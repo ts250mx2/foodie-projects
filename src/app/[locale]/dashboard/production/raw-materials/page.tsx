@@ -539,9 +539,9 @@ export default function RawMaterialsPage() {
                     onNewMaterial={handleNewMaterial}
                     projectId={project.idProyecto}
                     productType={0}
-                    initialSearchTerm={newMaterialSearch}
+                    externalSearchTerm={newMaterialSearch}
                     onEdit={handleEditFromSearch}
-                    refreshTrigger={refreshTrigger}
+                    refreshKey={refreshTrigger}
                 />
             )}
 

@@ -283,8 +283,16 @@ export default function ProductsPage() {
         .sort((a, b) => {
             if (!sortConfig) return 0;
             const { key, direction } = sortConfig;
-            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+
+            const aValue = a[key];
+            const bValue = b[key];
+
+            if (aValue === bValue) return 0;
+            if (aValue === undefined || aValue === null) return 1;
+            if (bValue === undefined || bValue === null) return -1;
+
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
             return 0;
         });
 
