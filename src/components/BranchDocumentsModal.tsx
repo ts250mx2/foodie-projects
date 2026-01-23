@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Button from './Button';
 import Input from './Input';
 
@@ -9,6 +9,8 @@ interface Document {
     Documento: string;
     Comentarios: string | null;
     RutaArchivo: string;
+    ArchivoDocumento?: string | null;
+    NombreArchivo?: string | null;
     FechaAct: string;
 }
 
@@ -26,9 +28,13 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
         documentName: '',
-        comments: '',
-        file: null as File | null
+        comments: ''
     });
+
+    // Grid upload state
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadingDocId, setUploadingDocId] = useState<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen && branchId) {
@@ -51,47 +57,77 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setFormData({ ...formData, file, documentName: formData.documentName || file.name });
+    const handleFileSelect = (docId: number) => {
+        setUploadingDocId(docId);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formData.file || !formData.documentName) return;
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0] && uploadingDocId !== null) {
+            uploadFileForDocument(uploadingDocId, e.target.files[0]);
+        }
+    };
 
-        setIsSaving(true);
-        try {
-            // Convert file to base64
-            const reader = new FileReader();
-            reader.readAsDataURL(formData.file);
-            reader.onload = async () => {
-                const base64 = (reader.result as string).split(',')[1];
-
+    const uploadFileForDocument = async (docId: number, file: File) => {
+        setIsUploading(true);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64 = (reader.result as string).split(',')[1];
+            try {
                 const response = await fetch(`/api/branches/${branchId}/documents`, {
-                    method: 'POST',
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         projectId,
-                        documentName: formData.documentName,
-                        originalFileName: formData.file?.name,
-                        comments: formData.comments,
-                        fileBase64: base64
+                        documentId: docId,
+                        fileBase64: base64,
+                        fileName: file.name
                     })
                 });
 
                 if (response.ok) {
-                    setFormData({ documentName: '', comments: '', file: null });
-                    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-                    if (fileInput) fileInput.value = '';
                     fetchDocuments();
+                } else {
+                    alert('Error al subir el archivo');
                 }
-                setIsSaving(false);
-            };
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Error al subir el archivo');
+            } finally {
+                setIsUploading(false);
+                setUploadingDocId(null);
+            }
+        };
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.documentName) return;
+
+        setIsSaving(true);
+        try {
+            const response = await fetch(`/api/branches/${branchId}/documents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    documentName: formData.documentName,
+                    comments: formData.comments,
+                    fileBase64: null // No file on create
+                })
+            });
+
+            if (response.ok) {
+                setFormData({ documentName: '', comments: '' });
+                fetchDocuments();
+            }
         } catch (error) {
             console.error('Error saving document:', error);
+        } finally {
             setIsSaving(false);
         }
     };
@@ -110,31 +146,47 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
         }
     };
 
-    const handleDownload = (path: string) => {
-        window.open(path, '_blank');
+    const handleDownload = (doc: Document) => {
+        if (doc.ArchivoDocumento) {
+            // Assume PDF or generic binary for now
+            const link = document.createElement('a');
+            link.href = `data:application/octet-stream;base64,${doc.ArchivoDocumento}`;
+            link.download = doc.NombreArchivo || doc.Documento; // Prefer Original Filename
+            link.click();
+        } else if (doc.RutaArchivo) {
+            window.open(doc.RutaArchivo, '_blank');
+        }
     };
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                />
+
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-gray-800">Documentos - {branchName}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
-                    {/* Upload Form */}
+                    {/* Add Form */}
                     <div className="md:col-span-1 border-r pr-6 border-gray-100">
-                        <h3 className="text-sm font-bold text-orange-600 mb-4 uppercase">Subir Documento</h3>
+                        <h3 className="text-sm font-bold text-orange-600 mb-4 uppercase">Nuevo Documento</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
                                 label="Nombre del Documento"
                                 value={formData.documentName}
                                 onChange={(e) => setFormData({ ...formData, documentName: e.target.value })}
                                 required
-                                placeholder="Ejem: Contrato.pdf"
+                                placeholder="Ej: Licencia de Funcionamiento"
                             />
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
@@ -143,29 +195,18 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
                                     onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                                     rows={3}
+                                    placeholder="Comentarios adicionales..."
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Archivo</label>
-                                <input
-                                    id="file-upload"
-                                    type="file"
-                                    onChange={handleFileChange}
-                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                                    required
-                                />
-                                <p className="text-[10px] text-gray-400 mt-1">PDF, Word, Excel, PNG, JPG</p>
                             </div>
                             <Button type="submit" className="w-full" disabled={isSaving}>
-                                {isSaving ? 'Subiendo...' : 'Guardar Documento'}
+                                {isSaving ? 'Guardando...' : 'Agregar Documento'}
                             </Button>
                         </form>
                     </div>
 
                     {/* Documents List */}
                     <div className="md:col-span-2 overflow-y-auto pr-2">
-                        <h3 className="text-sm font-bold text-gray-600 mb-4 uppercase">Historial de Documentos</h3>
+                        <h3 className="text-sm font-bold text-gray-600 mb-4 uppercase">Historial</h3>
                         {isLoading ? (
                             <div className="text-center py-10 text-gray-500">Cargando documentos...</div>
                         ) : documents.length === 0 ? (
@@ -177,7 +218,7 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
                                         <tr>
                                             <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Documento</th>
                                             <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Comentarios</th>
-                                            <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Fecha</th>
+                                            <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Archivo</th>
                                             <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Acciones</th>
                                         </tr>
                                     </thead>
@@ -190,20 +231,40 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
                                                 <td className="px-4 py-3 text-[11px] text-gray-600 truncate max-w-[150px]" title={doc.Comentarios || ''}>
                                                     {doc.Comentarios || '-'}
                                                 </td>
-                                                <td className="px-4 py-3 text-[11px] text-gray-500">
-                                                    {new Date(doc.FechaAct).toLocaleDateString()}
+                                                <td className="px-4 py-3 text-center">
+                                                    {(doc.ArchivoDocumento || doc.RutaArchivo) ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleDownload(doc)}
+                                                                className="text-blue-600 hover:underline text-[10px] flex items-center gap-1"
+                                                            >
+                                                                📎 Ver
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleFileSelect(doc.IdSucursalDocumento)}
+                                                                className="text-gray-400 hover:text-blue-600 text-[10px] border rounded px-1"
+                                                                disabled={isUploading}
+                                                            >
+                                                                🔄
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleFileSelect(doc.IdSucursalDocumento)}
+                                                            className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1"
+                                                            disabled={isUploading}
+                                                        >
+                                                            📤 Subir
+                                                        </button>
+                                                    )}
+                                                    {isUploading && uploadingDocId === doc.IdSucursalDocumento && (
+                                                        <span className="text-[10px] text-blue-500 animate-pulse block">Subiendo...</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <button
-                                                        onClick={() => handleDownload(doc.RutaArchivo)}
-                                                        className="text-lg mr-3 hover:scale-125 transition-transform"
-                                                        title="Descargar"
-                                                    >
-                                                        📥
-                                                    </button>
-                                                    <button
                                                         onClick={() => handleDelete(doc.IdSucursalDocumento)}
-                                                        className="text-lg hover:scale-125 transition-transform"
+                                                        className="text-lg hover:scale-125 transition-transform text-red-500"
                                                         title="Eliminar"
                                                     >
                                                         🗑️

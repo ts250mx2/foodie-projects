@@ -202,12 +202,12 @@ export default function TipsCapturePage() {
                                                 <div key={idx} className="text-xs">
                                                     <span className="font-semibold text-orange-600">{shift.shiftName}:</span>
                                                     <span className="ml-1 text-gray-700">
-                                                        ${shift.total.toFixed(2)}
+                                                        ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.total)}
                                                     </span>
                                                 </div>
                                             ))}
                                             <div className="text-xs font-bold text-pink-600 pt-1 border-t border-gray-200">
-                                                Total: ${monthlySalesDetails[day].reduce((sum, s) => sum + s.total, 0).toFixed(2)}
+                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[day].reduce((sum, s) => sum + s.total, 0))}
                                             </div>
                                         </div>
                                     )}

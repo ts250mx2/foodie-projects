@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
         const userId = parseInt(userIdStr);
         connection = await getFoodieProjectsConnection();
 
-        // Fetch project data
+        // Fetch project data (Changed NombreArchivoLogo to Logo64)
         const [projectRows] = await connection.query<any[]>(
-            'SELECT NombreArchivoLogo, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
+            'SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             success: true,
             projectData: {
-                Logo64: projectRows[0].NombreArchivoLogo || '',
+                Logo64: projectRows[0].Logo64 ? projectRows[0].Logo64.toString() : '',
                 Proyecto: projectRows[0].Proyecto || '',
                 Titulo: projectRows[0].Titulo || '',
                 ColorFondo1: projectRows[0].ColorFondo1 || '#FF6B35',
@@ -78,51 +78,20 @@ export async function PUT(request: NextRequest) {
 
         connection = await getFoodieProjectsConnection();
 
-        let logoPath = projectData.Logo64; // Keep existing path if no new file
+        // Prepare Logo64 content
+        let finalLogo64 = projectData.Logo64; // Default to existing if not changed
 
-        // If there's a new logo file (Base64), save it to disk
+        // If a new logo file is provided (Base64), use it directly
+        // The frontend sends the full base64 string in logoFile
         if (logoFile && logoFile.startsWith('data:image')) {
-            const fs = require('fs').promises;
-            const path = require('path');
-
-            // Get project UUID
-            const [projectRows] = await connection.query<any[]>(
-                'SELECT UUID FROM tblProyectos WHERE IdProyecto = ?',
-                [projectId]
-            );
-
-            if (projectRows.length === 0) {
-                return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 });
-            }
-
-            const uuid = projectRows[0].UUID;
-
-            // Extract file extension from Base64 data
-            const matches = logoFile.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
-            if (matches) {
-                const extension = matches[1]; // e.g., 'png', 'jpeg', 'jpg'
-                const base64Data = matches[2];
-                const fileName = `${uuid}.${extension}`;
-
-                // Create logos directory if it doesn't exist
-                const logosDir = path.join(process.cwd(), 'public', 'images', 'logos');
-                await fs.mkdir(logosDir, { recursive: true });
-
-                // Save file
-                const filePath = path.join(logosDir, fileName);
-                const buffer = Buffer.from(base64Data, 'base64');
-                await fs.writeFile(filePath, buffer);
-
-                // Store path without leading slash for NombreArchivoLogo
-                logoPath = `images/logos/${fileName}`;
-                console.log('Logo saved to:', logoPath);
-            }
+            finalLogo64 = logoFile;
         }
 
-        // Update project data with file path in NombreArchivoLogo
+        // Update project data saving Base64 directly to Logo64 column
+        // Removed NombreArchivoLogo update as we are using Logo64 now
         await connection.query(
-            'UPDATE tblProyectos SET NombreArchivoLogo = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ? WHERE IdProyecto = ?',
-            [logoPath, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra, projectId]
+            'UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ? WHERE IdProyecto = ?',
+            [finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra, projectId]
         );
 
         // Update user data
@@ -131,7 +100,7 @@ export async function PUT(request: NextRequest) {
             [userData.Usuario, userData.Telefono, userId]
         );
 
-        return NextResponse.json({ success: true, message: 'Settings updated successfully', logoPath });
+        return NextResponse.json({ success: true, message: 'Settings updated successfully', logoPath: finalLogo64 });
     } catch (error) {
         console.error('Error updating project settings:', error);
         return NextResponse.json({ success: false, message: 'Error updating settings', error: String(error) }, { status: 500 });

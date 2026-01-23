@@ -7,6 +7,8 @@ interface Instruction {
     numeroPaso: number;
     instrucciones: string;
     rutaArchivo: string | null;
+    archivoDocumento: string | null;
+    nombreArchivo: string | null;
 }
 
 interface InstructionsTabProps {
@@ -42,7 +44,9 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                 setInstructions(data.data.map((item: any) => ({
                     numeroPaso: item.NumeroPaso,
                     instrucciones: item.Instrucciones,
-                    rutaArchivo: item.RutaArchivo
+                    rutaArchivo: item.RutaArchivo,
+                    archivoDocumento: item.ArchivoDocumento,
+                    nombreArchivo: item.NombreArchivo
                 })));
             }
         } catch (error) {
@@ -70,31 +74,34 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
     const uploadFileForStep = async (step: number, file: File) => {
         setIsUploading(true);
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('projectId', projectId.toString());
-            formData.append('productId', product.IdProducto.toString());
-
-            const response = await fetch('/api/upload/instructions', {
-                method: 'POST',
-                body: formData
+            // Convert file to Base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
             });
 
-            const data = await response.json();
-            if (data.success) {
-                // Update instructions with new file path
-                const newInstructions = instructions.map(i =>
-                    i.numeroPaso === step ? { ...i, rutaArchivo: data.path } : i
-                );
+            const base64Data = await base64Promise;
 
-                // Save updated list to DB
-                await saveInstructions(newInstructions);
-            } else {
-                alert('Error al subir el archivo');
-            }
+            // Update instructions with new file data
+            const newInstructions = instructions.map(i =>
+                i.numeroPaso === step ? {
+                    ...i,
+                    archivoDocumento: base64Data,
+                    nombreArchivo: file.name,
+                    rutaArchivo: null // Clear old path
+                } : i
+            );
+
+            // Save updated list to DB
+            await saveInstructions(newInstructions);
         } catch (error) {
-            console.error('Error uploading file:', error);
-            alert('Error al subir el archivo');
+            console.error('Error processing file:', error);
+            alert('Error al procesar el archivo');
         } finally {
             setIsUploading(false);
             setUploadingStep(null);
@@ -113,13 +120,15 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                     projectId,
                     instructions: updatedInstructions.map(i => ({
                         instrucciones: i.instrucciones,
-                        rutaArchivo: i.rutaArchivo
+                        rutaArchivo: i.rutaArchivo,
+                        archivoDocumento: i.archivoDocumento,
+                        nombreArchivo: i.nombreArchivo
                     }))
                 })
             });
 
             if (!response.ok) {
-                // Revert on failure (could be improved by storing previous state)
+                // Revert on failure
                 await fetchInstructions();
                 alert('Error al guardar los cambios');
             }
@@ -140,7 +149,9 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
         try {
             const newInstructionObj = {
                 instrucciones: newInstruction,
-                rutaArchivo: null
+                rutaArchivo: null,
+                archivoDocumento: null,
+                nombreArchivo: null
             };
 
             const response = await fetch(`/api/products/${product.IdProducto}/instructions`, {
@@ -151,7 +162,9 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                     instructions: [
                         ...instructions.map(i => ({
                             instrucciones: i.instrucciones,
-                            rutaArchivo: i.rutaArchivo
+                            rutaArchivo: i.rutaArchivo,
+                            archivoDocumento: i.archivoDocumento,
+                            nombreArchivo: i.nombreArchivo
                         })),
                         newInstructionObj
                     ]
@@ -312,15 +325,19 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                                         </td>
                                         <td className="px-4 py-3 text-sm align-top">
                                             <div className="flex items-center gap-2">
-                                                {instruction.rutaArchivo ? (
+                                                {(instruction.archivoDocumento || instruction.rutaArchivo) ? (
                                                     <>
                                                         <a
-                                                            href={instruction.rutaArchivo}
+                                                            href={instruction.archivoDocumento
+                                                                ? `/api/products/instructions/download?projectId=${projectId}&productId=${product.IdProducto}&stepNumber=${instruction.numeroPaso}`
+                                                                : instruction.rutaArchivo || '#'
+                                                            }
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:underline text-xs flex items-center gap-1"
+                                                            className="text-blue-600 hover:underline text-xs flex items-center gap-1 max-w-[120px] truncate"
+                                                            title={instruction.nombreArchivo || 'Ver archivo'}
                                                         >
-                                                            📎 Ver
+                                                            📎 {instruction.nombreArchivo ? (instruction.nombreArchivo.length > 15 ? instruction.nombreArchivo.substring(0, 12) + '...' : instruction.nombreArchivo) : 'Ver'}
                                                         </a>
                                                         <button
                                                             onClick={() => handleFileSelect(instruction.numeroPaso)}

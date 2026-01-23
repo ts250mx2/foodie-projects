@@ -68,6 +68,12 @@ export default function ProductsPage() {
     });
     const [project, setProject] = useState<any>(null);
 
+    // New state for creating category/presentation
+    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isCreatingPresentation, setIsCreatingPresentation] = useState(false);
+    const [newPresentationName, setNewPresentationName] = useState('');
+
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
         if (storedProject) {
@@ -208,7 +214,7 @@ export default function ProductsPage() {
                     codigo: formData.codigo,
                     idCategoria: parseInt(formData.idCategoria),
                     idPresentacion: parseInt(formData.idPresentacion),
-                    precio: parseFloat(formData.precio),
+                    precio: parseFloat(formData.precio.replace(/,/g, '')),
                     iva: parseFloat(formData.iva)
                 })
             });
@@ -255,7 +261,7 @@ export default function ProductsPage() {
             codigo: product.Codigo,
             idCategoria: product.IdCategoria.toString(),
             idPresentacion: product.IdPresentacion.toString(),
-            precio: product.Precio.toString(),
+            precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.Precio),
             iva: product.IVA.toString()
         });
         setIsModalOpen(true);
@@ -318,6 +324,10 @@ export default function ProductsPage() {
                         precio: '',
                         iva: ''
                     });
+                    setIsCreatingCategory(false);
+                    setNewCategoryName('');
+                    setIsCreatingPresentation(false);
+                    setNewPresentationName('');
                     setIsModalOpen(true);
                 }}>
                     {t('addProduct')}
@@ -445,44 +455,181 @@ export default function ProductsPage() {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     {t('category')}
                                 </label>
-                                <select
-                                    value={formData.idCategoria}
-                                    onChange={(e) => setFormData({ ...formData, idCategoria: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    required
-                                >
-                                    <option value="">{t('selectCategory')}</option>
-                                    {categories.map((category) => (
-                                        <option key={category.IdCategoria} value={category.IdCategoria}>
-                                            {category.Categoria}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex gap-2">
+                                    {isCreatingCategory ? (
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                placeholder={t('newCategory')}
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!newCategoryName.trim()) return;
+                                                    try {
+                                                        const response = await fetch('/api/categories', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                projectId: project.idProyecto,
+                                                                category: newCategoryName
+                                                            })
+                                                        });
+                                                        const data = await response.json();
+                                                        if (data.success) {
+                                                            await fetchCategories();
+                                                            setFormData({ ...formData, idCategoria: data.id.toString() });
+                                                            setIsCreatingCategory(false);
+                                                            setNewCategoryName('');
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Error creating category:', error);
+                                                    }
+                                                }}
+                                                className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                                            >
+                                                ✓
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreatingCategory(false)}
+                                                className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <select
+                                                value={formData.idCategoria}
+                                                onChange={(e) => setFormData({ ...formData, idCategoria: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                required
+                                            >
+                                                <option value="">{t('selectCategory')}</option>
+                                                {categories.map((category) => (
+                                                    <option key={category.IdCategoria} value={category.IdCategoria}>
+                                                        {category.Categoria}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreatingCategory(true)}
+                                                className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
+                                                title={t('addCategory')}
+                                            >
+                                                +
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     {t('presentation')}
                                 </label>
-                                <select
-                                    value={formData.idPresentacion}
-                                    onChange={(e) => setFormData({ ...formData, idPresentacion: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    required
-                                >
-                                    <option value="">{t('selectPresentation')}</option>
-                                    {presentations.map((presentation) => (
-                                        <option key={presentation.IdPresentacion} value={presentation.IdPresentacion}>
-                                            {presentation.Presentacion}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex gap-2">
+                                    {isCreatingPresentation ? (
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newPresentationName}
+                                                onChange={(e) => setNewPresentationName(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                placeholder={t('newPresentation')}
+                                                autoFocus
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!newPresentationName.trim()) return;
+                                                    try {
+                                                        const response = await fetch('/api/presentations', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                projectId: project.idProyecto,
+                                                                presentation: newPresentationName
+                                                            })
+                                                        });
+                                                        const data = await response.json();
+                                                        if (data.success) {
+                                                            await fetchPresentations();
+                                                            setFormData({ ...formData, idPresentacion: data.id.toString() });
+                                                            setIsCreatingPresentation(false);
+                                                            setNewPresentationName('');
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Error creating presentation:', error);
+                                                    }
+                                                }}
+                                                className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                                            >
+                                                ✓
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreatingPresentation(false)}
+                                                className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <select
+                                                value={formData.idPresentacion}
+                                                onChange={(e) => setFormData({ ...formData, idPresentacion: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                                required
+                                            >
+                                                <option value="">{t('selectPresentation')}</option>
+                                                {presentations.map((presentation) => (
+                                                    <option key={presentation.IdPresentacion} value={presentation.IdPresentacion}>
+                                                        {presentation.Presentacion}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreatingPresentation(true)}
+                                                className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
+                                                title={t('addPresentation')}
+                                            >
+                                                +
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                             <Input
                                 label={t('price')}
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={formData.precio}
-                                onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    if ((val.match(/\./g) || []).length > 1) return;
+                                    setFormData({ ...formData, precio: val });
+                                }}
+                                onBlur={(e) => {
+                                    const val = parseFloat(e.target.value || '0');
+                                    if (!isNaN(val)) {
+                                        setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                    }
+                                }}
+                                onFocus={(e) => {
+                                    const val = e.target.value.replace(/,/g, '');
+                                    if (val === '0.00') {
+                                        setFormData({ ...formData, precio: '' });
+                                    } else {
+                                        setFormData({ ...formData, precio: val });
+                                    }
+                                }}
                                 required
                             />
                             <Input

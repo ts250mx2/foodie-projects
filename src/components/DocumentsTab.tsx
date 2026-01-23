@@ -7,6 +7,8 @@ interface Document {
     idProductoDocumento: number;
     descripcion: string;
     rutaArchivo: string | null;
+    archivoDocumento: string | null;
+    nombreArchivo: string | null;
 }
 
 interface DocumentsTabProps {
@@ -42,7 +44,9 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                 setDocuments(data.data.map((item: any) => ({
                     idProductoDocumento: item.IdProductoDocumento,
                     descripcion: item.Descripcion,
-                    rutaArchivo: item.RutaArchivo
+                    rutaArchivo: item.RutaArchivo,
+                    archivoDocumento: item.ArchivoDocumento,
+                    nombreArchivo: item.NombreArchivo
                 })));
             }
         } catch (error) {
@@ -70,26 +74,28 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
     const uploadFileForDocument = async (docId: number, file: File) => {
         setIsUploading(true);
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('projectId', projectId.toString());
-            formData.append('productId', product.IdProducto.toString());
-
-            const response = await fetch('/api/upload/instructions', {
-                method: 'POST',
-                body: formData
+            // Convert file to Base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+                reader.onload = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
             });
 
-            const data = await response.json();
-            if (data.success) {
-                // Update document through API
-                await updateDocument(docId, { rutaArchivo: data.path });
-            } else {
-                alert('Error al subir el archivo');
-            }
+            const base64Data = await base64Promise;
+
+            // Update document through API
+            await updateDocument(docId, {
+                archivoDocumento: base64Data,
+                nombreArchivo: file.name,
+                rutaArchivo: null // Clear old path
+            });
         } catch (error) {
-            console.error('Error uploading file:', error);
-            alert('Error al subir el archivo');
+            console.error('Error processing file:', error);
+            alert('Error al procesar el archivo');
         } finally {
             setIsUploading(false);
             setUploadingDocId(null);
@@ -138,7 +144,9 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                 body: JSON.stringify({
                     projectId,
                     descripcion: newDescription,
-                    rutaArchivo: null
+                    rutaArchivo: null,
+                    archivoDocumento: null,
+                    nombreArchivo: null
                 })
             });
 
@@ -260,15 +268,19 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                                         </td>
                                         <td className="px-4 py-3 text-sm align-top">
                                             <div className="flex items-center gap-2">
-                                                {document.rutaArchivo ? (
+                                                {(document.archivoDocumento || document.rutaArchivo) ? (
                                                     <>
                                                         <a
-                                                            href={document.rutaArchivo}
+                                                            href={document.archivoDocumento
+                                                                ? `/api/products/documents/download?projectId=${projectId}&productId=${product.IdProducto}&documentId=${document.idProductoDocumento}`
+                                                                : document.rutaArchivo || '#'
+                                                            }
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:underline text-xs flex items-center gap-1"
+                                                            className="text-blue-600 hover:underline text-xs flex items-center gap-1 max-w-[120px] truncate"
+                                                            title={document.nombreArchivo || 'Ver archivo'}
                                                         >
-                                                            📎 Ver
+                                                            📎 {document.nombreArchivo ? (document.nombreArchivo.length > 15 ? document.nombreArchivo.substring(0, 12) + '...' : document.nombreArchivo) : 'Ver'}
                                                         </a>
                                                         <button
                                                             onClick={() => handleFileSelect(document.idProductoDocumento)}

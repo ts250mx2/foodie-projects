@@ -183,7 +183,7 @@ export default function SalesChannelsCapturePage() {
                     year: selectedDate.getFullYear(),
                     shiftId: formData.shiftId,
                     channelId: formData.channelId,
-                    amount: parseFloat(formData.amount)
+                    amount: parseFloat(formData.amount.replace(/,/g, ''))
                 })
             });
 
@@ -327,14 +327,14 @@ export default function SalesChannelsCapturePage() {
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{shift.shiftName}</div>
                                                     <div className="font-semibold text-green-600">
-                                                        ${shift.total.toFixed(2)} ({shift.commission.toFixed(2)})
+                                                        ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.total)} (${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.commission)})
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-blue-700">
-                                                Total: ${monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0).toFixed(2)} (${monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.commission, 0).toFixed(2)})
+                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0))} (${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.commission, 0))})
                                             </div>
                                         </div>
                                     </>
@@ -383,16 +383,33 @@ export default function SalesChannelsCapturePage() {
                             <div className="flex flex-col">
                                 <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     className="p-2 border rounded text-sm"
                                     value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                    onChange={(e) => {
+                                        // Allow only numbers and dots
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        // Prevent multiple dots
+                                        if ((val.match(/\./g) || []).length > 1) return;
+                                        setFormData({ ...formData, amount: val });
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value || '0');
+                                        if (!isNaN(val)) {
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                        }
+                                    }}
+                                    onFocus={(e) => {
+                                        // Remove commas for editing
+                                        const val = e.target.value.replace(/,/g, '');
+                                        setFormData({ ...formData, amount: val });
+                                    }}
                                     required
+                                    placeholder="0.00"
                                 />
                             </div>
                             <button type="submit" className="bg-orange-500 text-white p-2 rounded hover:bg-orange-600 font-medium h-10 shadow-sm transition-colors">
-                                {tModal('save')}
+                                {tModal('add')}
                             </button>
                         </form>
 
@@ -403,38 +420,52 @@ export default function SalesChannelsCapturePage() {
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('shift')}</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Canal</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('amount')}</th>
+                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Comisión</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {dailySales.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-400 italic">No records found</td>
+                                            <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400 italic">No records found</td>
                                         </tr>
                                     ) : (
-                                        dailySales.map((sale, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.Turno}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${parseFloat(sale.Venta).toFixed(2)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                                    <button
-                                                        onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
-                                                        className="text-red-600 hover:text-red-900 font-bold"
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
+                                        dailySales.map((sale, idx) => {
+                                            const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
+                                            return (
+                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.Turno}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-medium">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                                        <button
+                                                            onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
+                                                            className="text-red-600 hover:text-red-900 font-bold"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td colSpan={2} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-orange-600 text-lg">${totalSales.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-right text-orange-600 text-lg">
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales)}
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+                                                dailySales.reduce((sum, sale) => sum + (parseFloat(sale.Venta) * ((sale.Comision || 0) / 100)), 0)
+                                            )}
+                                        </td>
                                         <td></td>
                                     </tr>
                                 </tfoot>

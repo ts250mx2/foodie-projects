@@ -254,7 +254,7 @@ export default function ProductionCapturePage() {
                                             {/* Total Footer */}
                                             <div className="mt-2 pt-1 border-t border-gray-200 text-right">
                                                 <div className="text-xs font-bold text-blue-800">
-                                                    Total: ${dayData.totalCost.toFixed(2)}
+                                                    Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(dayData.totalCost)}
                                                 </div>
                                             </div>
                                         </div>

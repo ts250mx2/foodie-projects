@@ -695,13 +695,13 @@ export default function PurchasesCapturePage() {
                                 {dayDetails && (
                                     <div className="mt-2 space-y-1 flex-1">
                                         <div className="text-xs font-bold text-blue-800 border-b border-blue-200 pb-1 mb-1">
-                                            Total: ${dayTotal.toFixed(2)}
+                                            Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(dayTotal)}
                                         </div>
                                         {dayDetails.map((detail, idx) => (
                                             <div key={idx} className="text-xs">
                                                 <div className="font-medium text-gray-700">{detail.provider}</div>
                                                 <div className="font-semibold text-blue-600">
-                                                    ${detail.total.toFixed(2)} ({detail.itemCount} {detail.itemCount === 1 ? 'producto' : 'productos'})
+                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(detail.total)} ({detail.itemCount} {detail.itemCount === 1 ? 'producto' : 'productos'})
                                                 </div>
                                             </div>
                                         ))}
@@ -750,6 +750,7 @@ export default function PurchasesCapturePage() {
                                             setSelectedProvider(null);
                                         }}
                                         onFocus={() => setShowProviderDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
                                         placeholder={tModal('searchProvider')}
                                         className="p-2 border rounded text-sm w-full"
                                         required
@@ -806,6 +807,7 @@ export default function PurchasesCapturePage() {
                                             setSelectedPaymentChannel(null);
                                         }}
                                         onFocus={() => setShowPaymentChannelDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
                                         placeholder="Buscar canal de pago..."
                                         className="p-2 border rounded text-sm w-full"
                                         required
@@ -923,7 +925,7 @@ export default function PurchasesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.NumeroFactura}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{purchase.CanalPago}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${parseFloat(purchase.Total.toString()).toFixed(2)}
+                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(purchase.Total.toString()))}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     {purchase.Status === 0 && (
@@ -961,7 +963,7 @@ export default function PurchasesCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${totalPurchases.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPurchases)}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -1091,7 +1093,7 @@ export default function PurchasesCapturePage() {
                                     type="text"
                                     className="p-2 border rounded text-sm bg-gray-100"
                                     value={detailFormData.quantity && detailFormData.cost ?
-                                        `$${(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost)).toFixed(2)}`
+                                        `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost))}`
                                         : '$0.00'}
                                     disabled
                                 />
@@ -1129,8 +1131,8 @@ export default function PurchasesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.Presentacion}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${parseFloat(detail.Costo.toString()).toFixed(2)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">${detail.Total.toFixed(2)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detail.Costo.toString()))}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(detail.Total)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     <button
                                                         onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
@@ -1148,7 +1150,7 @@ export default function PurchasesCapturePage() {
                                     <tr>
                                         <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tDetails('total')}</td>
                                         <td className="px-6 py-4 text-right text-green-600 text-lg">
-                                            ${purchaseDetails.reduce((sum, d) => sum + d.Total, 0).toFixed(2)}
+                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
                                         </td>
                                         <td></td>
                                     </tr>

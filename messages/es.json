@@ -158,7 +158,7 @@
     "SalesChannels": {
         "title": "Administración de Canales de Venta",
         "channelName": "Canal de Venta",
-        "commission": "Comisión",
+        "commission": "Comisión (%)",
         "order": "Orden",
         "active": "Activo",
         "actions": "Acciones",
@@ -609,7 +609,8 @@
         "cancel": "Cancelar",
         "close": "Cerrar",
         "total": "Total",
-        "select": "Seleccionar..."
+        "select": "Seleccionar...",
+        "add": "Agregar"
     },
     "SalesChannelsCapture": {
         "title": "Ventas por Canal",
@@ -759,7 +760,7 @@
         "amount": "Monto Fijo ($)",
         "sales": "Monto de Venta",
         "calculatedTip": "Propina Calculada",
-        "save": "Guardar Propina",
+        "save": "Agregar",
         "dailyTips": "Propinas del Día",
         "noTips": "No hay propinas registradas para este día.",
         "profile": "Perfil",

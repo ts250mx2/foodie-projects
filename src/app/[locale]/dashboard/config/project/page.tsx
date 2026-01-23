@@ -40,6 +40,7 @@ export default function ProjectSettingsPage() {
     const [message, setMessage] = useState('');
     const [project, setProject] = useState<any>(null);
     const [user, setUser] = useState<any>(null);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -69,13 +70,49 @@ export default function ProjectSettingsPage() {
         }
     };
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onloadend = async () => {
                 const base64String = reader.result as string;
-                setProjectData({ ...projectData, Logo64: base64String });
+
+                // Update local preview immediately
+                setProjectData(prev => ({ ...prev, Logo64: base64String }));
+
+                // Auto-save to backend
+                try {
+                    setMessage('Guardando logo...');
+                    const response = await fetch('/api/project-settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            projectId: project.idProyecto,
+                            userId: user.idUsuario,
+                            projectData: {
+                                ...projectData,
+                                Logo64: base64String // Ensure we send the new logo
+                            },
+                            userData: {
+                                Usuario: userData.Usuario,
+                                Telefono: userData.Telefono
+                            },
+                            logoFile: base64String
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        setMessage('Logo actualizado exitosamente');
+                        // Dispatch event to update Header
+                        window.dispatchEvent(new CustomEvent('project-logo-updated', { detail: base64String }));
+                    } else {
+                        setMessage('Error al guardar el logo');
+                    }
+                } catch (error) {
+                    console.error('Error saving logo:', error);
+                    setMessage('Error al guardar el logo');
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -141,47 +178,84 @@ export default function ProjectSettingsPage() {
                 <div className="bg-white rounded-lg shadow p-6 space-y-6">
                     <h2 className="text-xl font-semibold text-gray-800 border-b pb-3">Información del Proyecto</h2>
 
-                    {/* Logo Upload */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
-                        <div className="flex items-center gap-4">
-                            {projectData.Logo64 && (
-                                <img
-                                    src={projectData.Logo64.startsWith('/') ? projectData.Logo64 : `/${projectData.Logo64}`}
-                                    alt="Logo"
-                                    className="w-24 h-24 object-contain border rounded-lg"
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                    }}
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                        {/* Logo Upload Section */}
+                        <div className="flex-shrink-0">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+                            <div className="flex flex-col items-start gap-4">
+                                <div
+                                    onClick={() => !isUploadingLogo && document.getElementById('logoInput')?.click()}
+                                    className={`cursor-pointer group relative w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden hover:border-orange-500 transition-colors bg-gray-50 ${isUploadingLogo ? 'opacity-75 cursor-wait' : ''}`}
+                                >
+                                    {isUploadingLogo ? (
+                                        <div className="flex flex-col items-center">
+                                            <svg className="animate-spin h-8 w-8 text-orange-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span className="text-xs text-gray-500">Subiendo...</span>
+                                        </div>
+                                    ) : projectData.Logo64 ? (
+                                        <img
+                                            src={projectData.Logo64}
+                                            alt="Logo"
+                                            className="w-full h-full object-contain p-2"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                target.parentElement?.classList.add('broken-image');
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="text-center p-4">
+                                            <svg className="w-10 h-10 mx-auto text-gray-400 group-hover:text-orange-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                            </svg>
+                                            <span className="text-xs font-medium text-gray-500 group-hover:text-orange-500">Subir Logo</span>
+                                        </div>
+                                    )}
+
+                                    {/* Overlay on hover */}
+                                    {!isUploadingLogo && (
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                                        </div>
+                                    )}
+                                </div>
+
+                                <input
+                                    id="logoInput"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleLogoUpload}
+                                    className="hidden"
                                 />
-                            )}
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleLogoUpload}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                                <p className="text-xs text-gray-500 max-w-[10rem] text-center">
+                                    Click en la imagen para actualizar el logo.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Project Fields Section */}
+                        <div className="flex-1 space-y-6 w-full">
+                            {/* Project Name (Read-only) */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Proyecto</label>
+                                <input
+                                    type="text"
+                                    value={projectData.Proyecto}
+                                    disabled
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                                />
+                            </div>
+
+                            {/* Project Title */}
+                            <Input
+                                label="Título del Proyecto"
+                                value={projectData.Titulo}
+                                onChange={(e) => setProjectData({ ...projectData, Titulo: e.target.value })}
                             />
                         </div>
                     </div>
-
-                    {/* Project Name (Read-only) */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Proyecto</label>
-                        <input
-                            type="text"
-                            value={projectData.Proyecto}
-                            disabled
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-                        />
-                    </div>
-
-                    {/* Project Title */}
-                    <Input
-                        label="Título del Proyecto"
-                        value={projectData.Titulo}
-                        onChange={(e) => setProjectData({ ...projectData, Titulo: e.target.value })}
-                    />
 
                     {/* Color Pickers */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

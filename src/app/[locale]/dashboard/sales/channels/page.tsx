@@ -51,37 +51,6 @@ export default function SalesChannelsPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const url = editingChannel
-                ? `/api/sales-channels/${editingChannel.IdCanalVenta}`
-                : '/api/sales-channels';
-
-            const method = editingChannel ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectId: project.idProyecto,
-                    channel: formData.channel,
-                    commission: parseFloat(formData.commission) || 0,
-                    order: parseInt(formData.order) || 0
-                })
-            });
-
-            if (response.ok) {
-                fetchChannels();
-                setIsModalOpen(false);
-                setFormData({ channel: '', commission: '', order: '' });
-                setEditingChannel(null);
-            }
-        } catch (error) {
-            console.error('Error saving sales channel:', error);
-        }
-    };
-
     const handleDelete = async () => {
         if (!editingChannel) return;
         try {
@@ -99,42 +68,102 @@ export default function SalesChannelsPage() {
         }
     };
 
-    const openEditModal = (channel: Channel) => {
-        setEditingChannel(channel);
-        setFormData({
-            channel: channel.CanalVenta,
-            commission: channel.Comision.toString(),
-            order: channel.Orden.toString()
-        });
-        setIsModalOpen(true);
-    };
-
     const openDeleteModal = (channel: Channel) => {
         setEditingChannel(channel);
         setIsDeleteModalOpen(true);
     };
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Channel, direction: 'asc' | 'desc' } | null>(null);
+    const [draggedItem, setDraggedItem] = useState<number | null>(null);
 
-    const sortedAndFilteredChannels = channels
-        .filter(chan =>
-            chan.CanalVenta.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .sort((a, b) => {
-            if (!sortConfig) return 0;
-            const { key, direction } = sortConfig;
-            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
-            return 0;
-        });
+    // ... (rest of drag handlers)
 
-    const handleSort = (key: keyof Channel) => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
+    const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+        setDraggedItem(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (draggedItem === null) return;
+        if (draggedItem === index) return;
+
+        const newChannels = [...channels];
+        const draggedChannel = newChannels[draggedItem];
+        newChannels.splice(draggedItem, 1);
+        newChannels.splice(index, 0, draggedChannel);
+
+        setDraggedItem(index);
+        setChannels(newChannels);
+    };
+
+    const handleDragEnd = async () => {
+        setDraggedItem(null);
+
+        const updatedChannels = channels.map((channel, index) => ({
+            IdCanalVenta: channel.IdCanalVenta,
+            Orden: index + 1
+        }));
+
+        try {
+            await fetch('/api/sales-channels', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    channels: updatedChannels
+                })
+            });
+        } catch (error) {
+            console.error('Error updating channel order:', error);
+            fetchChannels();
         }
-        setSortConfig({ key, direction });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const url = editingChannel
+                ? `/api/sales-channels/${editingChannel.IdCanalVenta}`
+                : '/api/sales-channels';
+
+            const method = editingChannel ? 'PUT' : 'POST';
+
+            const nextOrder = channels.length > 0
+                ? Math.max(...channels.map(c => c.Orden)) + 1
+                : 1;
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    channel: formData.channel,
+                    commission: parseFloat(formData.commission) || 0,
+                    order: editingChannel ? editingChannel.Orden : nextOrder
+                })
+            });
+
+            if (response.ok) {
+                fetchChannels();
+                setIsModalOpen(false);
+                setFormData({ channel: '', commission: '', order: '' });
+                setEditingChannel(null);
+            }
+        } catch (error) {
+            console.error('Error saving sales channel:', error);
+        }
+    };
+
+    const openEditModal = (channel: Channel) => {
+        setEditingChannel(channel);
+        setFormData({
+            channel: channel.CanalVenta,
+            commission: channel.Comision.toString(),
+            order: ''
+        });
+        setIsModalOpen(true);
     };
 
     return (
@@ -153,48 +182,11 @@ export default function SalesChannelsPage() {
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('CanalVenta')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('channelName')}
-                                    {sortConfig?.key === 'CanalVenta' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
+                        <ThemedGridHeaderCell>
+                            {t('channelName')}
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Comision')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('commission')}
-                                {sortConfig?.key === 'Comision' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Orden')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('order')}
-                                {sortConfig?.key === 'Orden' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
+                        <ThemedGridHeaderCell>
+                            {t('commission')}
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell>
                             {t('active')}
@@ -206,23 +198,27 @@ export default function SalesChannelsPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {isLoading ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">Loading...</td>
+                                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">Loading...</td>
                             </tr>
-                        ) : sortedAndFilteredChannels.length === 0 ? (
+                        ) : channels.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No sales channels found</td>
+                                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No sales channels found</td>
                             </tr>
                         ) : (
-                            sortedAndFilteredChannels.map((chan) => (
-                                <tr key={chan.IdCanalVenta} className="hover:bg-gray-50">
+                            channels.map((chan, index) => (
+                                <tr
+                                    key={chan.IdCanalVenta}
+                                    className={`hover:bg-gray-50 cursor-move ${draggedItem === index ? 'opacity-50' : ''}`}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {chan.CanalVenta}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {chan.Comision}%
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {chan.Orden}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${chan.Status === 0
@@ -277,13 +273,7 @@ export default function SalesChannelsPage() {
                                 onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
                                 required
                             />
-                            <Input
-                                label={t('order')}
-                                type="number"
-                                value={formData.order}
-                                onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-                                required
-                            />
+
                             <div className="flex justify-end gap-3 mt-6">
                                 <button
                                     type="button"

@@ -25,8 +25,9 @@ export async function GET(request: NextRequest) {
         connection = await getFoodieProjectsConnection();
 
         // Fetch project title and logo
+        // Changed NombreArchivoLogo to Logo64
         const [rows] = await connection.query<any[]>(
-            'SELECT Titulo, NombreArchivoLogo FROM tblProyectos WHERE IdProyecto = ?',
+            'SELECT Titulo, Logo64 FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -34,16 +35,13 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 });
         }
 
-        // Add leading slash if path exists and doesn't start with /
-        let logoPath = rows[0].NombreArchivoLogo || null;
-        if (logoPath && !logoPath.startsWith('/')) {
-            logoPath = `/${logoPath}`;
-        }
+        // Return Logo64 directly (base64 string)
+        const logoData = rows[0].Logo64 || null;
 
         return NextResponse.json({
             success: true,
             titulo: rows[0].Titulo || null,
-            logo64: logoPath
+            logo64: logoData
         });
     } catch (error) {
         console.error('Error fetching project header:', error);

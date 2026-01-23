@@ -63,40 +63,22 @@ export async function POST(request: NextRequest) {
         const monthNum = month + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        let filePath = null;
+        let base64File = null;
+        let fileName = null;
 
         // Handle file upload if present
         if (file && file.size > 0) {
-            const fs = require('fs').promises;
-            const path = require('path');
-            const crypto = require('crypto');
-
-            // Generate UUID for file name
-            const uuid = crypto.randomUUID();
-            const fileExtension = file.name.split('.').pop();
-            const fileName = `${uuid}.${fileExtension}`;
-
-            // Get RutaArchivo from project settings (you may need to adjust this)
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'gastos');
-
-            // Create gastos directory if it doesn't exist
-            await fs.mkdir(uploadDir, { recursive: true });
-
-            // Save file
             const fileBuffer = Buffer.from(await file.arrayBuffer());
-            const fullPath = path.join(uploadDir, fileName);
-            await fs.writeFile(fullPath, fileBuffer);
-
-            // Store relative path for database
-            filePath = `gastos/${fileName}`;
+            base64File = fileBuffer.toString('base64');
+            fileName = file.name;
         }
 
         // Insert or update expense record - REPLACE instead of accumulate
         const [result] = await connection.query<ResultSetHeader>(
-            `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, Gasto, Referencia, IdCanalPago, RutaArchivo, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, Now())
-             ON DUPLICATE KEY UPDATE Gasto = ?, Referencia = ?, IdCanalPago = ?, RutaArchivo = COALESCE(?, RutaArchivo), FechaAct = Now()`,
-            [day, monthNum, year, conceptId, branchId, amount, reference, paymentChannelId || null, filePath, amount, reference, paymentChannelId || null, filePath]
+            `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, Gasto, Referencia, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())
+             ON DUPLICATE KEY UPDATE Gasto = ?, Referencia = ?, IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()`,
+            [day, monthNum, year, conceptId, branchId, amount, reference, paymentChannelId || null, base64File, fileName, amount, reference, paymentChannelId || null, base64File, fileName]
         );
 
         return NextResponse.json({
@@ -147,3 +129,53 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+
+export async function PUT(request: NextRequest) {
+    let connection;
+    try {
+        const formData = await request.formData();
+        const projectId = parseInt(formData.get('projectId') as string);
+        const branchId = parseInt(formData.get('branchId') as string);
+        const day = parseInt(formData.get('day') as string);
+        const month = parseInt(formData.get('month') as string);
+        const year = parseInt(formData.get('year') as string);
+        const conceptId = parseInt(formData.get('conceptId') as string);
+        const file = formData.get('file') as File | null;
+
+        if (!projectId || !branchId || day === undefined || month === null || !year || !conceptId || !file) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        const monthNum = month + 1; // Convert to 1-12 for SQL
+        connection = await getProjectConnection(projectId);
+
+        let base64File = null;
+        let fileName = null;
+
+        // Handle file upload
+        if (file && file.size > 0) {
+            const fileBuffer = Buffer.from(await file.arrayBuffer());
+            base64File = fileBuffer.toString('base64');
+            fileName = file.name;
+        }
+
+        // Update expense record with file path
+        await connection.query<ResultSetHeader>(
+            `UPDATE tblGastos 
+             SET ArchivoDocumento = ?, NombreArchivo = ?, FechaAct = Now()
+             WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
+            [base64File, fileName, day, monthNum, year, branchId, conceptId]
+        );
+
+        return NextResponse.json({
+            success: true,
+            message: 'File uploaded successfully'
+        });
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        return NextResponse.json({ success: false, message: 'Error uploading file' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+

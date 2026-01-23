@@ -21,9 +21,10 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        // List documents with document type name
+        // List documents with document type name, including Base64 data and filename
         const [rows] = await connection.query<RowDataPacket[]>(
-            `SELECT ed.IdEmpleadoDocumento, ed.IdTipoDocumento, ed.Documento, ed.Comentarios, ed.RutaArchivo, ed.FechaAct,
+            `SELECT ed.IdEmpleadoDocumento, ed.IdTipoDocumento, ed.Documento, ed.Comentarios, 
+                    ed.RutaArchivo, ed.ArchivoDocumento, ed.NombreArchivo, ed.FechaAct,
                     td.TipoDocumento
              FROM tblEmpleadosDocumentos ed
              LEFT JOIN tblTiposDocumentos td ON ed.IdTipoDocumento = td.IdTipoDocumento
@@ -49,54 +50,84 @@ export async function POST(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, documentTypeId, originalFileName, comments, fileBase64 } = body;
+        const { projectId, documentTypeId, comments } = body;
 
-        if (!projectId || !documentTypeId || !fileBase64) {
+        if (!projectId || !documentTypeId) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         const projectIdInt = parseInt(projectId);
         connection = await getProjectConnection(projectIdInt);
 
-        // 1. Get Employee Name
-        const [empRows] = await connection.query<RowDataPacket[]>(
-            'SELECT Empleado FROM tblEmpleados WHERE IdEmpleado = ?',
-            [id]
-        );
-        if (empRows.length === 0) {
-            return NextResponse.json({ success: false, message: 'Employee not found' }, { status: 404 });
-        }
-        const rawEmpName = empRows[0].Empleado || 'Empleado';
-        const employeeName = rawEmpName.replace(/[^a-z0-9]/gi, '_');
-
-        // 2. Insert record to get ID
+        // Insert metadata only (no file initially)
         const [result] = await connection.query<ResultSetHeader>(
             `INSERT INTO tblEmpleadosDocumentos (IdEmpleado, IdTipoDocumento, Comentarios, FechaAct) 
              VALUES (?, ?, ?, Now())`,
             [id, documentTypeId, comments || null]
         );
-        const docId = result.insertId;
 
-        // 3. Save to filesystem
-        const extension = path.extname(originalFileName) || '.bin';
-        const fileName = `${employeeName}_${docId}${extension}`;
-        const relativePath = `/documentos/${fileName}`;
-        const absolutePath = path.join(process.cwd(), 'public', 'documentos', fileName);
-
-        const buffer = Buffer.from(fileBase64, 'base64');
-        await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-        await fs.writeFile(absolutePath, buffer);
-
-        // 4. Update DB with path
-        await connection.query(
-            'UPDATE tblEmpleadosDocumentos SET RutaArchivo = ? WHERE IdEmpleadoDocumento = ?',
-            [relativePath, docId]
-        );
-
-        return NextResponse.json({ success: true, message: 'Document uploaded successfully', path: relativePath });
+        return NextResponse.json({ success: true, message: 'Document metadata created successfully', id: result.insertId });
     } catch (error) {
-        console.error('Error uploading document:', error);
-        return NextResponse.json({ success: false, message: 'Error uploading document' }, { status: 500 });
+        console.error('Error creating document:', error);
+        return NextResponse.json({ success: false, message: 'Error creating document' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    let connection;
+    try {
+        const { id } = await params;
+        const body = await request.json();
+        const { projectId, documentId, fileBase64, originalFileName, comments } = body;
+
+        // documentId is required. 
+        // We can update file info (fileBase64 + originalFileName) AND/OR comments.
+        if (!projectId || !documentId) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        const projectIdInt = parseInt(projectId);
+        connection = await getProjectConnection(projectIdInt);
+
+        // Build update query dynamically
+        const updates: string[] = [];
+        const values: any[] = [];
+
+        if (fileBase64 !== undefined) {
+            // Store Base64 directly
+            updates.push('ArchivoDocumento = ?');
+            values.push(fileBase64); // Can be null if clearing? Usually we just overwrite
+        }
+        if (originalFileName !== undefined) {
+            updates.push('NombreArchivo = ?');
+            values.push(originalFileName);
+        }
+        if (comments !== undefined) {
+            updates.push('Comentarios = ?');
+            values.push(comments);
+        }
+
+        // Always update FechaAct
+        updates.push('FechaAct = Now()');
+
+        if (updates.length === 0) {
+            return NextResponse.json({ success: true, message: 'No changes to update' });
+        }
+
+        const query = `UPDATE tblEmpleadosDocumentos SET ${updates.join(', ')} WHERE IdEmpleadoDocumento = ? AND IdEmpleado = ?`;
+        values.push(documentId, id);
+
+        await connection.query(query, values);
+
+        return NextResponse.json({ success: true, message: 'Document updated successfully' });
+    } catch (error) {
+        console.error('Error updating document:', error);
+        return NextResponse.json({ success: false, message: 'Error updating document' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }
@@ -120,22 +151,26 @@ export async function DELETE(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        // 1. Get file path to delete from disk
+        // Optional: Check if there's a legacy file on disk to delete (RutaArchivo)
+        // For now, we mainly delete the DB record. The previous file deletion logic can be kept if desired, 
+        // but if we are moving to Base64, we might just leave legacy files or clean them up.
+        // Let's check for legacy RutaArchivo just in case to keep system clean.
         const [rows] = await connection.query<RowDataPacket[]>(
             'SELECT RutaArchivo FROM tblEmpleadosDocumentos WHERE IdEmpleadoDocumento = ? AND IdEmpleado = ?',
             [docId, id]
         );
 
         if (rows.length > 0 && rows[0].RutaArchivo) {
-            const absolutePath = path.join(process.cwd(), 'public', rows[0].RutaArchivo);
-            try {
-                await fs.unlink(absolutePath);
-            } catch (unlinkError) {
-                console.error('Error deleting file from disk:', unlinkError);
+            // It's a legacy file path (starts with /documentos/)
+            if (!rows[0].RutaArchivo.startsWith('data:')) {
+                const absolutePath = path.join(process.cwd(), 'public', rows[0].RutaArchivo);
+                try {
+                    await fs.unlink(absolutePath).catch(() => { });
+                } catch (e) { }
             }
         }
 
-        // 2. Delete record
+        // Delete record
         await connection.query<ResultSetHeader>(
             'DELETE FROM tblEmpleadosDocumentos WHERE IdEmpleadoDocumento = ? AND IdEmpleado = ?',
             [docId, id]

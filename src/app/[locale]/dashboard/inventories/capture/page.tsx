@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import * as XLSX from 'xlsx';
 
 interface Branch {
     IdSucursal: number;
@@ -55,6 +56,8 @@ export default function InventoryCapturePage() {
     const [inventoryEntries, setInventoryEntries] = useState<InventoryEntry[]>([]);
     const [editedQuantities, setEditedQuantities] = useState<Record<number, number>>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -252,8 +255,18 @@ export default function InventoryCapturePage() {
         }
     };
 
+    // Filter entries based on search query
+    const filteredEntries = inventoryEntries.filter(entry => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            entry.Producto.toLowerCase().includes(query) ||
+            entry.Codigo.toLowerCase().includes(query)
+        );
+    });
+
     // Group inventory by category
-    const groupedInventory: GroupedInventory = inventoryEntries.reduce((acc, entry) => {
+    const groupedInventory: GroupedInventory = filteredEntries.reduce((acc, entry) => {
         const categoria = entry.Categoria || 'Sin Categoría';
         if (!acc[categoria]) {
             acc[categoria] = [];
@@ -273,6 +286,105 @@ export default function InventoryCapturePage() {
     const grandTotal = Object.values(groupedInventory).reduce((sum, entries) => {
         return sum + calculateCategoryTotal(entries);
     }, 0);
+
+    const handleExport = () => {
+        if (!inventoryEntries.length) return;
+
+        // Flatten data for export
+        const exportData = filteredEntries.map(entry => {
+            const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+            return {
+                timestamp: entry.FechaInventario,
+                category: entry.Categoria || 'Sin Categoría',
+                code: entry.Codigo,
+                product: entry.Producto,
+                presentation: entry.Presentacion,
+                quantity: quantity,
+                price: entry.Precio,
+                total: quantity * entry.Precio
+            };
+        });
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(exportData);
+
+        // Add headers
+        XLSX.utils.sheet_add_aoa(ws, [[
+            'Fecha', 'Categoría', 'Código', 'Producto', 'Presentación', 'Cantidad', 'Precio', 'Total'
+        ]], { origin: 'A1' });
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+
+        // Save file
+        const fileName = `Inventario_${selectedDate?.toISOString().split('T')[0] || 'export'}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    };
+
+    const handlePrint = () => {
+        const printContent = document.getElementById('inventory-grid-container');
+        if (!printContent) return;
+
+        const newWindow = window.open('', '', 'height=600,width=800');
+        if (!newWindow) return;
+
+        newWindow.document.write('<html><head><title>Imprimir Inventario</title>');
+        newWindow.document.write(`
+            <style>
+                body { font-family: sans-serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+                th { background-color: #f3f4f6; font-weight: bold; }
+                .text-right { text-align: right; }
+                .text-center { text-align: center; }
+                .category-header { background-color: #f97316 !important; color: white !important; font-weight: bold; padding: 10px; margin-top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .total-row { border: 2px solid #22c55e; padding: 10px; margin-top: 20px; font-weight: bold; font-size: 14px; text-align: right; }
+                .hidden-print { display: none; }
+                h2 { text-align: center; margin-bottom: 20px; }
+            </style>
+        `);
+        newWindow.document.write('</head><body>');
+        newWindow.document.write(`<h2>Inventario - ${selectedDate?.toLocaleDateString()}</h2>`);
+
+        // Clone the content to modify it for print if needed (e.g. remove inputs)
+        // For simplicity, we'll iterate the data again to create a clean specific print view
+        // simpler than trying to clean up the interactive DOM with inputs
+
+        let htmlContext = '';
+        Object.entries(groupedInventory).forEach(([categoria, entries]) => {
+            htmlContext += `<div class="category-header">📁 ${categoria} - Subtotal: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}</div>`;
+            htmlContext += '<table><thead><tr><th>Código</th><th>Producto</th><th>Presentación</th><th>Cantidad</th><th>Precio</th><th>Total</th></tr></thead><tbody>';
+            entries.forEach(entry => {
+                const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+                const total = quantity * entry.Precio;
+                htmlContext += `<tr>
+                    <td>${entry.Codigo}</td>
+                    <td>${entry.Producto}</td>
+                    <td>${entry.Presentacion}</td>
+                    <td class="text-center">${quantity}</td>
+                    <td class="text-right">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
+                    <td class="text-right">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}</td>
+                </tr>`;
+            });
+            htmlContext += '</tbody></table>';
+        });
+
+        htmlContext += `<div class="total-row">TOTAL GENERAL: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}</div>`;
+
+        newWindow.document.write(htmlContext);
+        newWindow.document.write('</body></html>');
+        newWindow.document.close();
+        newWindow.print();
+    };
+
+    const toggleCategory = (category: string) => {
+        setCollapsedCategories(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
+    };
+
+    // Calendar logic
 
     // Calendar logic
     const getDaysInMonth = (month: number, year: number) => {
@@ -385,7 +497,7 @@ export default function InventoryCapturePage() {
                                 {hasInventory && (
                                     <div className="text-xs space-y-1">
                                         <div className="text-green-600 font-semibold">
-                                            ${details.total.toFixed(2)}
+                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(details.total)}
                                         </div>
                                         <div className="text-gray-500">
                                             {details.productCount} productos
@@ -403,74 +515,112 @@ export default function InventoryCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col">
                         {/* Header */}
-                        <div className="flex justify-between items-center p-6 border-b">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {tModal('title')} - {selectedDate.toLocaleDateString()}
-                            </h2>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                                disabled={isLoading}
-                            >
-                                ✕
-                            </button>
+                        <div className="flex flex-col p-6 border-b gap-4">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {tModal('title')} - {selectedDate.toLocaleDateString()}
+                                </h2>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                    disabled={isLoading}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    🔍
+                                </span>
+                                <input
+                                    type="text"
+                                    placeholder="Buscar producto..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={handlePrint}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors flex items-center gap-2 text-sm"
+                                    disabled={isLoading}
+                                >
+                                    🖨️ Imprimir
+                                </button>
+                                <button
+                                    onClick={handleExport}
+                                    className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium transition-colors flex items-center gap-2 text-sm"
+                                    disabled={isLoading}
+                                >
+                                    📊 Exportar Excel
+                                </button>
+                            </div>
                         </div>
 
                         {/* Excel Grid */}
-                        <div className="flex-1 overflow-auto p-6">
+                        <div id="inventory-grid-container" className="flex-1 overflow-auto p-6">
                             {Object.entries(groupedInventory).map(([categoria, entries]) => (
                                 <div key={categoria} className="mb-6">
                                     {/* Category Header */}
-                                    <div className="bg-orange-500 text-white px-4 py-2 font-bold rounded-t-lg flex justify-between items-center">
-                                        <span>📁 {categoria}</span>
-                                        <span>Subtotal: ${calculateCategoryTotal(entries).toFixed(2)}</span>
+                                    <div
+                                        onClick={() => toggleCategory(categoria)}
+                                        className="bg-orange-500 text-white px-4 py-2 font-bold rounded-t-lg flex justify-between items-center cursor-pointer hover:bg-orange-600 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span>{collapsedCategories[categoria] ? '▶' : '▼'}</span>
+                                            <span>{categoria}</span>
+                                        </div>
+                                        <span>Subtotal: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calculateCategoryTotal(entries))}</span>
                                     </div>
 
                                     {/* Products Table */}
-                                    <div className="border border-gray-200 rounded-b-lg overflow-hidden">
-                                        <table className="min-w-full">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Código</th>
-                                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Producto</th>
-                                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Presentación</th>
-                                                    <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Cantidad</th>
-                                                    <th className="px-4 py-2 text-right text-xs font-bold text-gray-600">Precio</th>
-                                                    <th className="px-4 py-2 text-right text-xs font-bold text-gray-600">Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {entries.map((entry) => {
-                                                    const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
-                                                    const total = quantity * entry.Precio;
+                                    {!collapsedCategories[categoria] && (
+                                        <div className="border border-gray-200 rounded-b-lg overflow-hidden">
+                                            <table className="min-w-full table-fixed">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Código</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[30%]">Producto</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Presentación</th>
+                                                        <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[15%]">Cantidad</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[10%]">Precio</th>
+                                                        <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[15%]">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {entries.map((entry) => {
+                                                        const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+                                                        const total = quantity * entry.Precio;
 
-                                                    return (
-                                                        <tr key={entry.IdProducto} className="hover:bg-gray-50">
-                                                            <td className="px-4 py-2 text-sm text-gray-900">{entry.Codigo}</td>
-                                                            <td className="px-4 py-2 text-sm text-gray-900">{entry.Producto}</td>
-                                                            <td className="px-4 py-2 text-sm text-gray-600">{entry.Presentacion}</td>
-                                                            <td className="px-4 py-2">
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    value={quantity}
-                                                                    onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
-                                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                                                    disabled={isLoading}
-                                                                />
-                                                            </td>
-                                                            <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                                                ${entry.Precio.toFixed(2)}
-                                                            </td>
-                                                            <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                                                                ${total.toFixed(2)}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                        return (
+                                                            <tr key={entry.IdProducto} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Codigo}</td>
+                                                                <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Producto}</td>
+                                                                <td className="px-4 py-2 text-sm text-gray-600 truncate">{entry.Presentacion}</td>
+                                                                <td className="px-4 py-2 text-center">
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={quantity}
+                                                                        onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
+                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                                        disabled={isLoading}
+                                                                    />
+                                                                </td>
+                                                                <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                                                                    ${entry.Precio.toFixed(2)}
+                                                                </td>
+                                                                <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
 
@@ -478,7 +628,7 @@ export default function InventoryCapturePage() {
                             <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 mt-6">
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-gray-700">TOTAL GENERAL:</span>
-                                    <span className="text-2xl font-bold text-green-600">${grandTotal.toFixed(2)}</span>
+                                    <span className="text-2xl font-bold text-green-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(grandTotal)}</span>
                                 </div>
                             </div>
                         </div>
@@ -494,7 +644,7 @@ export default function InventoryCapturePage() {
                             </button>
                             <button
                                 onClick={handleSaveAll}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors disabled:bg-gray-400"
+                                className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors disabled:bg-gray-400"
                                 disabled={isLoading}
                             >
                                 {isLoading ? 'Guardando...' : 'Guardar Todo'}

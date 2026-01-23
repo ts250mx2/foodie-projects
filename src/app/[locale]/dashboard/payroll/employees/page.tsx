@@ -335,6 +335,13 @@ export default function EmployeesPage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
+                                        onClick={() => openEditModal(employee)}
+                                        className="text-xl mr-4 hover:scale-110 transition-transform"
+                                        title={t('editEmployee')}
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
                                         onClick={() => {
                                             if (employee.IdSucursal) {
                                                 setSelectedBranchForCapture(employee.IdSucursal.toString());
@@ -353,13 +360,6 @@ export default function EmployeesPage() {
                                         title="Acceso"
                                     >
                                         🔑
-                                    </button>
-                                    <button
-                                        onClick={() => openEditModal(employee)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editEmployee')}
-                                    >
-                                        ✏️
                                     </button>
                                     <button
                                         onClick={() => openDocumentsModal(employee)}
@@ -383,154 +383,164 @@ export default function EmployeesPage() {
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingEmployee ? t('editEmployee') : t('addEmployee')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('employeeName')}
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('position')}
-                                </label>
-                                <select
-                                    value={formData.positionId}
-                                    onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                >
-                                    <option value="">{t('selectPosition')}</option>
-                                    {positions.map((position) => (
-                                        <option key={position.IdPuesto} value={position.IdPuesto}>
-                                            {position.Puesto}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('branch')}
-                                </label>
-                                <select
-                                    value={formData.branchId}
-                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                >
-                                    <option value="">{t('selectBranch')}</option>
-                                    {branches.map((branch) => (
-                                        <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                            {branch.Sucursal}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <Input
-                                label={t('phone')}
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                type="tel"
-                            />
-
-                            <Input
-                                label={t('email')}
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                type="email"
-                            />
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('address')}
-                                </label>
-                                <textarea
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    rows={3}
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <h2 className="text-xl font-bold mb-4">
+                                {editingEmployee ? t('editEmployee') : t('addEmployee')}
+                            </h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <Input
+                                    label={t('employeeName')}
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    required
                                 />
-                            </div>
 
-                            <div className="flex justify-end gap-3 mt-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {t('position')}
+                                    </label>
+                                    <select
+                                        value={formData.positionId}
+                                        onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    >
+                                        <option value="">{t('selectPosition')}</option>
+                                        {positions.map((position) => (
+                                            <option key={position.IdPuesto} value={position.IdPuesto}>
+                                                {position.Puesto}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {t('branch')}
+                                    </label>
+                                    <select
+                                        value={formData.branchId}
+                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    >
+                                        <option value="">{t('selectBranch')}</option>
+                                        {branches.map((branch) => (
+                                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                                {branch.Sucursal}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <Input
+                                    label={t('phone')}
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    type="tel"
+                                />
+
+                                <Input
+                                    label={t('email')}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    type="email"
+                                />
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {t('address')}
+                                    </label>
+                                    <textarea
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        rows={3}
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                                    >
+                                        {t('cancel')}
+                                    </button>
+                                    <Button type="submit">
+                                        {t('save')}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Delete Confirmation Modal */}
+            {
+                isDeleteModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteEmployee')}</h3>
+                            <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
+                            <div className="flex justify-end gap-3">
                                 <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={() => setIsDeleteModalOpen(false)}
                                     className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
                                 >
                                     {t('cancel')}
                                 </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                >
+                                    {t('deleteEmployee')}
+                                </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteEmployee')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                {t('deleteEmployee')}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Schedule Capture Modal */}
-            {project && (
-                <ScheduleTimelineModal
-                    isOpen={isScheduleModalOpen}
-                    onClose={() => setIsScheduleModalOpen(false)}
-                    employeeId={selectedEmployeeForCapture}
-                    projectId={project.idProyecto}
-                    branchId={selectedBranchForCapture}
-                    onSaveSuccess={() => { }} // No refresh needed on this page unless we show schedules here
-                />
-            )}
+            {
+                project && (
+                    <ScheduleTimelineModal
+                        isOpen={isScheduleModalOpen}
+                        onClose={() => setIsScheduleModalOpen(false)}
+                        employeeId={selectedEmployeeForCapture}
+                        projectId={project.idProyecto}
+                        branchId={selectedBranchForCapture}
+                        onSaveSuccess={() => { }} // No refresh needed on this page unless we show schedules here
+                    />
+                )
+            }
 
-            {selectedEmployeeForDocuments && (
-                <EmployeeDocumentsModal
-                    isOpen={isDocumentsModalOpen}
-                    onClose={() => setIsDocumentsModalOpen(false)}
-                    employeeId={selectedEmployeeForDocuments.IdEmpleado}
-                    employeeName={selectedEmployeeForDocuments.Empleado}
-                    projectId={project?.idProyecto}
-                />
-            )}
+            {
+                selectedEmployeeForDocuments && (
+                    <EmployeeDocumentsModal
+                        isOpen={isDocumentsModalOpen}
+                        onClose={() => setIsDocumentsModalOpen(false)}
+                        employeeId={selectedEmployeeForDocuments.IdEmpleado}
+                        employeeName={selectedEmployeeForDocuments.Empleado}
+                        projectId={project?.idProyecto}
+                    />
+                )
+            }
 
-            {selectedEmployeeForAccess && (
-                <EmployeeAccessModal
-                    isOpen={isAccessModalOpen}
-                    onClose={() => setIsAccessModalOpen(false)}
-                    employeeId={selectedEmployeeForAccess.IdEmpleado}
-                    employeeName={selectedEmployeeForAccess.Empleado}
-                    projectId={project?.idProyecto}
-                />
-            )}
-        </div>
+            {
+                selectedEmployeeForAccess && (
+                    <EmployeeAccessModal
+                        isOpen={isAccessModalOpen}
+                        onClose={() => setIsAccessModalOpen(false)}
+                        employeeId={selectedEmployeeForAccess.IdEmpleado}
+                        employeeName={selectedEmployeeForAccess.Empleado}
+                        projectId={project?.idProyecto}
+                    />
+                )
+            }
+        </div >
     );
 }

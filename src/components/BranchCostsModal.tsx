@@ -39,6 +39,27 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
         }
     }, [isOpen, branchId]);
 
+    useEffect(() => {
+        const selectedCost = costs.find(c => c.Mes === formData.month && c.Anio === formData.year);
+        if (selectedCost) {
+            setFormData(prev => ({
+                ...prev,
+                salesObjective: selectedCost.ObjetivoVentas ? selectedCost.ObjetivoVentas.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                rawMaterialCost: selectedCost.CostoMateriaPrima ? selectedCost.CostoMateriaPrima.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                payrollCost: selectedCost.CostoNomina ? selectedCost.CostoNomina.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+                operatingExpense: selectedCost.GastoOperativo ? selectedCost.GastoOperativo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                salesObjective: '',
+                rawMaterialCost: '',
+                payrollCost: '',
+                operatingExpense: ''
+            }));
+        }
+    }, [formData.month, formData.year, costs]);
+
     const fetchCosts = async () => {
         setIsLoading(true);
         try {
@@ -64,22 +85,16 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                     projectId,
                     month: parseInt(formData.month.toString()),
                     year: parseInt(formData.year.toString()),
-                    salesObjective: formData.salesObjective ? parseFloat(formData.salesObjective) : null,
-                    rawMaterialCost: formData.rawMaterialCost ? parseFloat(formData.rawMaterialCost) : null,
-                    payrollCost: formData.payrollCost ? parseFloat(formData.payrollCost) : null,
-                    operatingExpense: formData.operatingExpense ? parseFloat(formData.operatingExpense) : null
+                    salesObjective: formData.salesObjective ? parseFloat(formData.salesObjective.toString().replace(/,/g, '')) : null,
+                    rawMaterialCost: formData.rawMaterialCost ? parseFloat(formData.rawMaterialCost.toString().replace(/,/g, '')) : null,
+                    payrollCost: formData.payrollCost ? parseFloat(formData.payrollCost.toString().replace(/,/g, '')) : null,
+                    operatingExpense: formData.operatingExpense ? parseFloat(formData.operatingExpense.toString().replace(/,/g, '')) : null
                 })
             });
 
             if (response.ok) {
                 fetchCosts();
-                setFormData({
-                    ...formData,
-                    salesObjective: '',
-                    rawMaterialCost: '',
-                    payrollCost: '',
-                    operatingExpense: ''
-                });
+                // Form data intentionally not cleared to keep the view in sync with the selected month/year
             }
         } catch (error) {
             console.error('Error saving costs:', error);
@@ -157,34 +172,139 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
 
                             <Input
                                 label="Objetivo Venta Mensual"
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={formData.salesObjective}
-                                onChange={(e) => setFormData({ ...formData, salesObjective: e.target.value })}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    // Allow numbers, commas, and one dot
+                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                        setFormData({ ...formData, salesObjective: value });
+                                    }
+                                }}
+                                onBlur={() => {
+                                    const value = formData.salesObjective;
+                                    if (value) {
+                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        if (!isNaN(number)) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                salesObjective: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            }));
+                                        }
+                                    }
+                                }}
+                                onFocus={() => {
+                                    const value = formData.salesObjective;
+                                    if (value) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            salesObjective: value.toString().replace(/,/g, '')
+                                        }));
+                                    }
+                                }}
+                                placeholder="0.00"
                             />
 
                             <Input
                                 label="Costo Materia Prima"
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={formData.rawMaterialCost}
-                                onChange={(e) => setFormData({ ...formData, rawMaterialCost: e.target.value })}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                        setFormData({ ...formData, rawMaterialCost: value });
+                                    }
+                                }}
+                                onBlur={() => {
+                                    const value = formData.rawMaterialCost;
+                                    if (value) {
+                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        if (!isNaN(number)) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                rawMaterialCost: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            }));
+                                        }
+                                    }
+                                }}
+                                onFocus={() => {
+                                    const value = formData.rawMaterialCost;
+                                    if (value) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            rawMaterialCost: value.toString().replace(/,/g, '')
+                                        }));
+                                    }
+                                }}
+                                placeholder="0.00"
                             />
 
                             <Input
                                 label="Costo Nómina"
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={formData.payrollCost}
-                                onChange={(e) => setFormData({ ...formData, payrollCost: e.target.value })}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                        setFormData({ ...formData, payrollCost: value });
+                                    }
+                                }}
+                                onBlur={() => {
+                                    const value = formData.payrollCost;
+                                    if (value) {
+                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        if (!isNaN(number)) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                payrollCost: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            }));
+                                        }
+                                    }
+                                }}
+                                onFocus={() => {
+                                    const value = formData.payrollCost;
+                                    if (value) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            payrollCost: value.toString().replace(/,/g, '')
+                                        }));
+                                    }
+                                }}
+                                placeholder="0.00"
                             />
 
                             <Input
                                 label="Gasto Operativo"
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={formData.operatingExpense}
-                                onChange={(e) => setFormData({ ...formData, operatingExpense: e.target.value })}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                        setFormData({ ...formData, operatingExpense: value });
+                                    }
+                                }}
+                                onBlur={() => {
+                                    const value = formData.operatingExpense;
+                                    if (value) {
+                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        if (!isNaN(number)) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                operatingExpense: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                            }));
+                                        }
+                                    }
+                                }}
+                                onFocus={() => {
+                                    const value = formData.operatingExpense;
+                                    if (value) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            operatingExpense: value.toString().replace(/,/g, '')
+                                        }));
+                                    }
+                                }}
+                                placeholder="0.00"
                             />
 
                             <div className="flex justify-end pt-2">

@@ -55,3 +55,32 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+
+export async function PUT(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, channels } = body;
+
+        if (!projectId || !Array.isArray(channels)) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(projectId);
+
+        // Update order for each channel
+        await Promise.all(channels.map(async (channel: { IdCanalVenta: number; Orden: number }) => {
+            await connection.query(
+                'UPDATE tblCanalesVenta SET Orden = ? WHERE IdCanalVenta = ?',
+                [channel.Orden, channel.IdCanalVenta]
+            );
+        }));
+
+        return NextResponse.json({ success: true, message: 'Channels reordered successfully' });
+    } catch (error) {
+        console.error('Error reordering sales channels:', error);
+        return NextResponse.json({ success: false, message: 'Error reordering sales channels' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}

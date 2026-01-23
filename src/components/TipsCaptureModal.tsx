@@ -157,7 +157,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                 setFormData(prev => ({
                     ...prev,
                     percentage: data.data.Porcentaje.toString(),
-                    amount: data.data.Monto.toString()
+                    amount: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data.data.Monto)
                 }));
             }
         } catch (error) {
@@ -210,9 +210,9 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                     month,
                     year,
                     profileId: formData.profileId,
-                    sales: formData.sales,
+                    sales: parseFloat(formData.sales.replace(/,/g, '')),
                     percentage: formData.percentage,
-                    amount: formData.amount
+                    amount: parseFloat(formData.amount.replace(/,/g, ''))
                 })
             });
 
@@ -253,9 +253,9 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
     };
 
     const calculateTip = () => {
-        const sales = parseFloat(formData.sales) || 0;
+        const sales = parseFloat(formData.sales.replace(/,/g, '')) || 0;
         const percentage = parseFloat(formData.percentage) || 0;
-        const amount = parseFloat(formData.amount) || 0;
+        const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
         return (sales * percentage / 100) + amount;
     };
 
@@ -311,6 +311,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                                 setShowEmployeeDropdown(true);
                                             }}
                                             onFocus={() => setShowEmployeeDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowEmployeeDropdown(false), 200)}
                                             placeholder={t('searchEmployee')}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                                             required
@@ -373,16 +374,33 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                         label={t('amount')}
                                         value={formData.amount}
                                         disabled
-                                        type="number"
+                                        type="text"
                                     />
 
                                     {/* Sales Input */}
                                     <Input
                                         label={t('sales')}
                                         value={formData.sales}
-                                        onChange={(e) => setFormData({ ...formData, sales: e.target.value })}
-                                        type="number"
-                                        step="0.01"
+                                        onChange={(e) => {
+                                            // Allow only numbers and dots
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            // Prevent multiple dots
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setFormData({ ...formData, sales: val });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value || '0');
+                                            if (!isNaN(val)) {
+                                                setFormData({ ...formData, sales: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                            }
+                                        }}
+                                        onFocus={(e) => {
+                                            // Remove commas for editing
+                                            const val = e.target.value.replace(/,/g, '');
+                                            setFormData({ ...formData, sales: val });
+                                        }}
+                                        type="text"
+                                        placeholder="0.00"
                                         required
                                     />
 
@@ -390,12 +408,12 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                     <div className="bg-white p-3 rounded-lg border-2 border-orange-300">
                                         <div className="text-xs text-gray-600 mb-1">{t('calculatedTip')}</div>
                                         <div className="text-2xl font-bold text-orange-600">
-                                            ${calculateTip().toFixed(2)}
+                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calculateTip())}
                                         </div>
                                     </div>
 
                                     <Button type="submit" className="w-full">
-                                        {t('save')}
+                                        Agregar
                                     </Button>
                                 </form>
                             </div>
@@ -427,8 +445,8 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{tip.Empleado}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-600">{tip.Turno}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-600">{tip.PerfilPropina}</td>
-                                                    <td className="px-4 py-3 text-sm text-right text-gray-900">${tip.Venta.toFixed(2)}</td>
-                                                    <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">${tip.MontoPropina.toFixed(2)}</td>
+                                                    <td className="px-4 py-3 text-sm text-right text-gray-900">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tip.Venta)}</td>
+                                                    <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tip.MontoPropina)}</td>
                                                     <td className="px-4 py-3 text-right">
                                                         <button
                                                             onClick={() => handleDelete(tip)}
@@ -447,7 +465,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                                     {t('total')}:
                                                 </td>
                                                 <td className="px-4 py-3 text-right text-lg font-bold text-orange-600">
-                                                    ${dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0).toFixed(2)}
+                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0))}
                                                 </td>
                                                 <td></td>
                                             </tr>

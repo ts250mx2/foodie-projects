@@ -27,12 +27,16 @@ export async function GET(
                 IdProducto INT NOT NULL,
                 Descripcion TEXT,
                 RutaArchivo VARCHAR(500),
+                ArchivoDocumento LONGBLOB,
+                NombreArchivo VARCHAR(500),
                 FechaAct DATETIME
             )
         `);
 
         const [rows] = await connection.query<RowDataPacket[]>(
-            `SELECT IdProductoDocumento, IdProducto, Descripcion, RutaArchivo, FechaAct
+            `SELECT IdProductoDocumento, IdProducto, Descripcion, RutaArchivo, 
+                    CAST(ArchivoDocumento AS CHAR) as ArchivoDocumento,
+                    NombreArchivo, FechaAct
              FROM tblProductosDocumentos
              WHERE IdProducto = ?
              ORDER BY FechaAct DESC`,
@@ -77,9 +81,15 @@ export async function POST(
         `);
 
         await connection.query<ResultSetHeader>(
-            `INSERT INTO tblProductosDocumentos (IdProducto, Descripcion, RutaArchivo, FechaAct)
-             VALUES (?, ?, ?, NOW())`,
-            [productId, descripcion, rutaArchivo || null]
+            `INSERT INTO tblProductosDocumentos (IdProducto, Descripcion, RutaArchivo, ArchivoDocumento, NombreArchivo, FechaAct)
+             VALUES (?, ?, ?, ?, ?, NOW())`,
+            [
+                productId,
+                descripcion,
+                rutaArchivo || null,
+                body.archivoDocumento || null,
+                body.nombreArchivo || null
+            ]
         );
 
         return NextResponse.json({
@@ -115,9 +125,18 @@ export async function PUT(
             `UPDATE tblProductosDocumentos 
              SET Descripcion = COALESCE(?, Descripcion),
                  RutaArchivo = COALESCE(?, RutaArchivo),
+                 ArchivoDocumento = COALESCE(?, ArchivoDocumento),
+                 NombreArchivo = COALESCE(?, NombreArchivo),
                  FechaAct = NOW()
              WHERE IdProductoDocumento = ? AND IdProducto = ?`,
-            [descripcion, rutaArchivo, documentId, productId]
+            [
+                descripcion,
+                rutaArchivo,
+                body.archivoDocumento,
+                body.nombreArchivo,
+                documentId,
+                productId
+            ]
         );
 
         return NextResponse.json({

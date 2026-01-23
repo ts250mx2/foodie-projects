@@ -74,6 +74,24 @@ export default function TipProfileEarningsModal({
         }
     };
 
+    const handleMontoBlur = () => {
+        if (monto) {
+            const val = parseFloat(monto.replace(/,/g, ''));
+            if (!isNaN(val)) {
+                setMonto(val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            }
+        }
+    };
+
+    const handleMontoFocus = () => {
+        if (monto) {
+            const val = parseFloat(monto.replace(/,/g, ''));
+            if (!isNaN(val)) {
+                setMonto(val.toString());
+            }
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -84,7 +102,7 @@ export default function TipProfileEarningsModal({
                     projectId,
                     idPuesto: selectedPuestoId,
                     porcentaje: parseFloat(porcentaje),
-                    monto: parseFloat(monto)
+                    monto: parseFloat(monto.replace(/,/g, ''))
                 })
             });
 
@@ -155,14 +173,21 @@ export default function TipProfileEarningsModal({
                         <div className="flex-1">
                             <Input
                                 label="Monto ($)"
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 value={monto}
-                                onChange={(e) => setMonto(e.target.value)}
+                                onChange={(e) => {
+                                    // Allow numbers and dots only
+                                    const val = e.target.value;
+                                    if (/^[\d.,]*$/.test(val)) {
+                                        setMonto(val);
+                                    }
+                                }}
+                                onBlur={handleMontoBlur}
+                                onFocus={handleMontoFocus}
                                 required
                             />
                         </div>
-                        <Button type="submit" className="mb-[2px]">Guardar</Button>
+                        <Button type="submit" className="mb-[2px]">Agregar</Button>
                     </div>
                 </form>
 

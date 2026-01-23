@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 
 interface Branch {
@@ -43,7 +43,6 @@ export default function ExpensesCapturePage() {
         reference: '',
         paymentChannelId: ''
     });
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [conceptSearch, setConceptSearch] = useState('');
     const [showConceptDropdown, setShowConceptDropdown] = useState(false);
     const [selectedConcept, setSelectedConcept] = useState<ExpenseConcept | null>(null);
@@ -51,6 +50,11 @@ export default function ExpensesCapturePage() {
     const [paymentChannelSearch, setPaymentChannelSearch] = useState('');
     const [showPaymentChannelDropdown, setShowPaymentChannelDropdown] = useState(false);
     const [selectedPaymentChannel, setSelectedPaymentChannel] = useState<PaymentChannel | null>(null);
+
+    // File upload state (Grid)
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingExpenseKey, setUploadingExpenseKey] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -211,9 +215,6 @@ export default function ExpensesCapturePage() {
             formDataToSend.append('amount', formData.amount);
             formDataToSend.append('reference', formData.reference);
             formDataToSend.append('paymentChannelId', formData.paymentChannelId);
-            if (selectedFile) {
-                formDataToSend.append('file', selectedFile);
-            }
 
             const response = await fetch('/api/expenses/daily', {
                 method: 'POST',
@@ -226,7 +227,6 @@ export default function ExpensesCapturePage() {
                 setFormData({ conceptId: '', amount: '', reference: '', paymentChannelId: '' });
                 setConceptSearch('');
                 setSelectedConcept(null);
-                setSelectedFile(null);
                 setPaymentChannelSearch('');
                 setSelectedPaymentChannel(null);
             }
@@ -251,6 +251,57 @@ export default function ExpensesCapturePage() {
             console.error('Error deleting expense:', error);
         }
     };
+
+    // --- File Upload (Grid) ---
+    const handleFileSelect = (expense: any) => {
+        const expenseKey = `${expense.Dia}-${expense.Mes}-${expense.Anio}-${expense.IdConceptoGasto}`;
+        setUploadingExpenseKey(expenseKey);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0] && uploadingExpenseKey !== null) {
+            const file = e.target.files[0];
+            const [day, month, year, conceptId] = uploadingExpenseKey.split('-');
+            await handleFileUpload(parseInt(day), parseInt(month), parseInt(year), parseInt(conceptId), file);
+        }
+    };
+
+    const handleFileUpload = async (day: number, month: number, year: number, conceptId: number, file: File) => {
+        setIsUploading(true);
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('projectId', project.idProyecto.toString());
+            formDataToSend.append('branchId', selectedBranch);
+            formDataToSend.append('day', day.toString());
+            formDataToSend.append('month', (month - 1).toString()); // Convert from SQL (1-12) to JS (0-11)
+            formDataToSend.append('year', year.toString());
+            formDataToSend.append('conceptId', conceptId.toString());
+            formDataToSend.append('file', file);
+
+            const response = await fetch('/api/expenses/daily', {
+                method: 'PUT',
+                body: formDataToSend
+            });
+
+            if (response.ok && selectedDate) {
+                await fetchDailyExpenses(selectedDate);
+            } else {
+                alert('Error al subir el archivo');
+            }
+            setUploadingExpenseKey(null);
+            setIsUploading(false);
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            alert('Error al subir el archivo');
+            setIsUploading(false);
+            setUploadingExpenseKey(null);
+        }
+    };
+
 
     // Calendar logic
     const getDaysInMonth = (month: number, year: number) => {
@@ -371,13 +422,13 @@ export default function ExpensesCapturePage() {
                                             {monthlyExpensesDetails[date.getDate()].map((exp, idx) => (
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{exp.conceptName}</div>
-                                                    <div className="font-semibold text-red-600">${exp.total.toFixed(2)}</div>
+                                                    <div className="font-semibold text-red-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(exp.total)}</div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-red-700">
-                                                Total: ${monthlyExpensesDetails[date.getDate()].reduce((sum, exp) => sum + exp.total, 0).toFixed(2)}
+                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyExpensesDetails[date.getDate()].reduce((sum, exp) => sum + exp.total, 0))}
                                             </div>
                                         </div>
                                     </>
@@ -399,6 +450,16 @@ export default function ExpensesCapturePage() {
                             <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
                         </div>
 
+                        {/* Hidden File Input */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
+                            onChange={handleFileChange}
+                        />
+
+
                         {/* Form */}
                         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg items-end">
                             {/* 1. Concepto */}
@@ -414,6 +475,7 @@ export default function ExpensesCapturePage() {
                                         setSelectedConcept(null);
                                     }}
                                     onFocus={() => setShowConceptDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowConceptDropdown(false), 200)}
                                     placeholder={tModal('searchConcept')}
                                     className="p-2 border rounded text-sm w-full"
                                     required
@@ -488,6 +550,7 @@ export default function ExpensesCapturePage() {
                                         setSelectedPaymentChannel(null);
                                     }}
                                     onFocus={() => setShowPaymentChannelDropdown(true)}
+                                    onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
                                     placeholder="Buscar canal de pago"
                                     className="p-2 border rounded text-sm w-full"
                                 />
@@ -531,23 +594,8 @@ export default function ExpensesCapturePage() {
                                 />
                             </div>
 
-                            {/* 5. Archivo */}
-                            <div className="flex flex-col md:col-span-2">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">Archivo (Imagen, PDF, Word, Excel)</label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx"
-                                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                                        className="p-2 border rounded text-sm flex-1"
-                                    />
-                                    {selectedFile && (
-                                        <span className="text-xs text-gray-600">📎 {selectedFile.name}</span>
-                                    )}
-                                </div>
-                            </div>
-                            <button type="submit" className="bg-red-500 text-white p-2 rounded hover:bg-red-600 font-medium h-10 shadow-sm transition-colors md:col-span-3">
-                                {tModal('save')}
+                            <button type="submit" className="bg-red-500 text-white p-2 rounded hover:bg-red-600 font-medium h-10 shadow-sm transition-colors md:col-span-4">
+                                Agregar
                             </button>
                         </form>
 
@@ -576,21 +624,40 @@ export default function ExpensesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.Referencia || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.CanalPago || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${parseFloat(exp.Gasto).toFixed(2)}
+                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(exp.Gasto))}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                    {exp.RutaArchivo ? (
-                                                        <a
-                                                            href={`/api/expenses/download?file=${encodeURIComponent(exp.RutaArchivo)}&projectId=${project.idProyecto}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:text-blue-800 text-lg"
-                                                            title="Descargar archivo"
-                                                        >
-                                                            📎
-                                                        </a>
+                                                    {exp.NombreArchivo ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <a
+                                                                href={`/api/expenses/download?projectId=${project.idProyecto}&branchId=${selectedBranch}&day=${exp.Dia}&month=${exp.Mes - 1}&year=${exp.Anio}&conceptId=${exp.IdConceptoGasto}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 hover:underline text-[10px] flex items-center gap-1"
+                                                                title={exp.NombreArchivo}
+                                                            >
+                                                                📎 {exp.NombreArchivo.length > 20 ? exp.NombreArchivo.substring(0, 17) + '...' : exp.NombreArchivo}
+                                                            </a>
+                                                            <button
+                                                                onClick={() => handleFileSelect(exp)}
+                                                                className="text-gray-400 hover:text-blue-600 text-[10px] border rounded px-1"
+                                                                disabled={isUploading}
+                                                                title="Cambiar Archivo"
+                                                            >
+                                                                🔄
+                                                            </button>
+                                                        </div>
                                                     ) : (
-                                                        <span className="text-gray-300">-</span>
+                                                        <button
+                                                            onClick={() => handleFileSelect(exp)}
+                                                            className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto"
+                                                            disabled={isUploading}
+                                                        >
+                                                            📤 Subir
+                                                        </button>
+                                                    )}
+                                                    {isUploading && uploadingExpenseKey === `${exp.Dia}-${exp.Mes}-${exp.Anio}-${exp.IdConceptoGasto}` && (
+                                                        <span className="text-[10px] text-blue-500 animate-pulse block mt-1">Subiendo...</span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -609,7 +676,7 @@ export default function ExpensesCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td colSpan={3} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-red-600 text-lg">${totalExpenses.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-right text-red-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalExpenses)}</td>
                                         <td colSpan={2}></td>
                                     </tr>
                                 </tfoot>

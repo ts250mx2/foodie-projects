@@ -27,13 +27,17 @@ export async function GET(
                 NumeroPaso INT NOT NULL,
                 Instrucciones TEXT,
                 RutaArchivo VARCHAR(500),
+                ArchivoDocumento LONGBLOB,
+                NombreArchivo VARCHAR(500),
                 FechaAct DATETIME,
                 PRIMARY KEY (IdProducto, NumeroPaso)
             )
         `);
 
         const [rows] = await connection.query<RowDataPacket[]>(
-            `SELECT IdProducto, NumeroPaso, Instrucciones, RutaArchivo, FechaAct
+            `SELECT IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
+                    CAST(ArchivoDocumento AS CHAR) as ArchivoDocumento, 
+                    NombreArchivo, FechaAct
              FROM tblProductosInstrucciones
              WHERE IdProducto = ?
              ORDER BY NumeroPaso ASC`,
@@ -73,6 +77,8 @@ export async function POST(
                 NumeroPaso INT NOT NULL,
                 Instrucciones TEXT,
                 RutaArchivo VARCHAR(500),
+                ArchivoDocumento LONGBLOB,
+                NombreArchivo VARCHAR(500),
                 FechaAct DATETIME,
                 PRIMARY KEY (IdProducto, NumeroPaso)
             )
@@ -91,9 +97,19 @@ export async function POST(
             for (let i = 0; i < instructions.length; i++) {
                 const instruction = instructions[i];
                 await connection.query<ResultSetHeader>(
-                    `INSERT INTO tblProductosInstrucciones (IdProducto, NumeroPaso, Instrucciones, RutaArchivo, FechaAct)
-                     VALUES (?, ?, ?, ?, NOW())`,
-                    [productId, i + 1, instruction.instrucciones, instruction.rutaArchivo || null]
+                    `INSERT INTO tblProductosInstrucciones (
+                        IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
+                        ArchivoDocumento, NombreArchivo, FechaAct
+                     )
+                     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+                    [
+                        productId,
+                        i + 1,
+                        instruction.instrucciones,
+                        instruction.rutaArchivo || null,
+                        instruction.archivoDocumento || null,
+                        instruction.nombreArchivo || null
+                    ]
                 );
             }
 
@@ -163,9 +179,19 @@ export async function DELETE(
             for (let i = 0; i < remainingSteps.length; i++) {
                 const step = remainingSteps[i];
                 await connection.query<ResultSetHeader>(
-                    `INSERT INTO tblProductosInstrucciones (IdProducto, NumeroPaso, Instrucciones, RutaArchivo, FechaAct)
-                     VALUES (?, ?, ?, ?, NOW())`,
-                    [productId, i + 1, step.Instrucciones, step.RutaArchivo]
+                    `INSERT INTO tblProductosInstrucciones (
+                        IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
+                        ArchivoDocumento, NombreArchivo, FechaAct
+                     )
+                     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+                    [
+                        productId,
+                        i + 1,
+                        step.Instrucciones,
+                        step.RutaArchivo,
+                        step.ArchivoDocumento,
+                        step.NombreArchivo
+                    ]
                 );
             }
 

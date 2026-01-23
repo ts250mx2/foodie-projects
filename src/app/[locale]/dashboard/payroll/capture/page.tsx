@@ -320,13 +320,13 @@ export default function PayrollCapturePage() {
                                             {monthlyPayrollDetails[date.getDate()].map((emp, idx) => (
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{emp.employeeName}</div>
-                                                    <div className="font-semibold text-green-600">${emp.total.toFixed(2)}</div>
+                                                    <div className="font-semibold text-green-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(emp.total)}</div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-blue-700">
-                                                Total: ${monthlyPayrollDetails[date.getDate()].reduce((sum, emp) => sum + emp.total, 0).toFixed(2)}
+                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyPayrollDetails[date.getDate()].reduce((sum, emp) => sum + emp.total, 0))}
                                             </div>
                                         </div>
                                     </>
@@ -374,7 +374,7 @@ export default function PayrollCapturePage() {
                                 />
                             </div>
                             <button type="submit" className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 font-medium h-10 shadow-sm transition-colors">
-                                {tModal('save')}
+                                Agregar
                             </button>
                         </form>
 
@@ -397,7 +397,7 @@ export default function PayrollCapturePage() {
                                             <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pay.Empleado}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${parseFloat(pay.Pago).toFixed(2)}
+                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(pay.Pago))}
                                                 </td>
                                             </tr>
                                         ))
@@ -406,7 +406,7 @@ export default function PayrollCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${totalPayroll.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPayroll)}</td>
                                     </tr>
                                 </tfoot>
                             </table>

@@ -49,6 +49,19 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 console.error('Error parsing project data', e);
             }
         }
+
+        // Listen for logo updates
+        const handleLogoUpdate = (event: CustomEvent) => {
+            if (event.detail) {
+                setProjectLogo(event.detail);
+            }
+        };
+
+        window.addEventListener('project-logo-updated', handleLogoUpdate as EventListener);
+
+        return () => {
+            window.removeEventListener('project-logo-updated', handleLogoUpdate as EventListener);
+        };
     }, []);
 
     const fetchProjectSettings = async (projectId: number) => {
