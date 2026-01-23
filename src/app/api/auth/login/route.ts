@@ -55,15 +55,15 @@ export async function POST(request: NextRequest) {
             [identifier]
         );
 
-        console.log(rows.length);
-        if (rows.length === 0) {
+        console.log((rows as any).length);
+        if ((rows as any).length === 0) {
             return NextResponse.json(
                 { success: false, message: 'Usuario no encontrado' },
                 { status: 401 }
             );
         }
 
-        const user = rows[0];
+        const user = (rows as any)[0];
 
         // Hash password
         // const hashedPassword = await bcrypt.hash(password, 10);

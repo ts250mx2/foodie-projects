@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
             [email]
         );
 
-        if (rows.length > 0) {
+        if ((rows as any).length > 0) {
             // Generate token
             const token = crypto.randomBytes(32).toString('hex');
             // Expires in 1 hour

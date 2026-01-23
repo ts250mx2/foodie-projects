@@ -22,11 +22,11 @@ export async function POST(request: NextRequest) {
             [token]
         );
 
-        if (rows.length === 0) {
+        if ((rows as any).length === 0) {
             return NextResponse.json({ success: false, message: 'Invalid or expired token' }, { status: 400 });
         }
 
-        const userId = rows[0].IdUsuario;
+        const userId = (rows as any)[0].IdUsuario;
 
         // Hash new password
         //const hashedPassword = await bcrypt.hash(password, 10);

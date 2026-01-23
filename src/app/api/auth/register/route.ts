@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
             [nombreUsuario, correoElectronico, telefono, hashedPassword]
         );
 
-        const idUsuario = userResult.insertId;
+        const idUsuario = (userResult as any).insertId;
 
         // Insert into tblProyectos
         const [projectResult] = await connection.query(
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
             [nombreProyecto, pais, idioma]
         );
 
-        const idProyecto = projectResult.insertId;
+        const idProyecto = (projectResult as any).insertId;
 
         // Insert into tblProyectosUsuarios (link user and project)
         await connection.query(

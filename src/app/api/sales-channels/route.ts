@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             message: 'Sales channel created successfully',
-            id: result.insertId
+            id: (result as any).insertId
         });
     } catch (error) {
         console.error('Error creating sales channel:', error);

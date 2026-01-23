@@ -28,7 +28,7 @@ export async function PUT(
             [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, rutaFoto || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, id]
         );
 
-        if (result.affectedRows === 0) {
+        if ((result as any).affectedRows === 0) {
             return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
         }
 
@@ -67,7 +67,7 @@ export async function DELETE(
             [id]
         );
 
-        if (result.affectedRows === 0) {
+        if ((result as any).affectedRows === 0) {
             return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
         }
 
