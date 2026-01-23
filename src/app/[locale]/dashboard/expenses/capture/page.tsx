@@ -212,7 +212,7 @@ export default function ExpensesCapturePage() {
             formDataToSend.append('month', selectedDate.getMonth().toString());
             formDataToSend.append('year', selectedDate.getFullYear().toString());
             formDataToSend.append('conceptId', formData.conceptId);
-            formDataToSend.append('amount', formData.amount);
+            formDataToSend.append('amount', formData.amount.replace(/[^0-9.]/g, ''));
             formDataToSend.append('reference', formData.reference);
             formDataToSend.append('paymentChannelId', formData.paymentChannelId);
 
@@ -422,13 +422,13 @@ export default function ExpensesCapturePage() {
                                             {monthlyExpensesDetails[date.getDate()].map((exp, idx) => (
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{exp.conceptName}</div>
-                                                    <div className="font-semibold text-red-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(exp.total)}</div>
+                                                    <div className="font-semibold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(exp.total)}</div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-red-700">
-                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyExpensesDetails[date.getDate()].reduce((sum, exp) => sum + exp.total, 0))}
+                                                Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlyExpensesDetails[date.getDate()].reduce((sum, exp) => sum + exp.total, 0))}
                                             </div>
                                         </div>
                                     </>
@@ -585,11 +585,28 @@ export default function ExpensesCapturePage() {
                             <div className="flex flex-col">
                                 <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     className="p-2 border rounded text-sm"
                                     value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if ((val.match(/\./g) || []).length > 1) return;
+                                        setFormData({ ...formData, amount: val });
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                        if (!isNaN(val)) {
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                        }
+                                    }}
+                                    onFocus={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val === '0.00' || val === '0') {
+                                            setFormData({ ...formData, amount: '' });
+                                        } else {
+                                            setFormData({ ...formData, amount: val });
+                                        }
+                                    }}
                                     required
                                 />
                             </div>
@@ -624,7 +641,7 @@ export default function ExpensesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.Referencia || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.CanalPago || '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(exp.Gasto))}
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Gasto))}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     {exp.NombreArchivo ? (
@@ -676,7 +693,7 @@ export default function ExpensesCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td colSpan={3} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-red-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalExpenses)}</td>
+                                        <td className="px-6 py-4 text-right text-red-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalExpenses)}</td>
                                         <td colSpan={2}></td>
                                     </tr>
                                 </tfoot>

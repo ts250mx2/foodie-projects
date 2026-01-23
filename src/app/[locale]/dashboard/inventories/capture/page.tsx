@@ -497,7 +497,7 @@ export default function InventoryCapturePage() {
                                 {hasInventory && (
                                     <div className="text-xs space-y-1">
                                         <div className="text-green-600 font-semibold">
-                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(details.total)}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(details.total)}
                                         </div>
                                         <div className="text-gray-500">
                                             {details.productCount} productos
@@ -570,8 +570,8 @@ export default function InventoryCapturePage() {
                                         <div className="flex items-center gap-2">
                                             <span>{collapsedCategories[categoria] ? '▶' : '▼'}</span>
                                             <span>{categoria}</span>
+                                            <div className="text-sm font-semibold text-gray-900">Subtotal: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}</div>
                                         </div>
-                                        <span>Subtotal: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calculateCategoryTotal(entries))}</span>
                                     </div>
 
                                     {/* Products Table */}
@@ -585,7 +585,7 @@ export default function InventoryCapturePage() {
                                                         <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Presentación</th>
                                                         <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[15%]">Cantidad</th>
                                                         <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[10%]">Precio</th>
-                                                        <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[15%]">Total</th>
+                                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -608,11 +608,9 @@ export default function InventoryCapturePage() {
                                                                         disabled={isLoading}
                                                                     />
                                                                 </td>
-                                                                <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                                                    ${entry.Precio.toFixed(2)}
-                                                                </td>
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
                                                                 <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
-                                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)}
+                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -628,7 +626,7 @@ export default function InventoryCapturePage() {
                             <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 mt-6">
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-gray-700">TOTAL GENERAL:</span>
-                                    <span className="text-2xl font-bold text-green-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(grandTotal)}</span>
+                                    <span className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}</span>
                                 </div>
                             </div>
                         </div>

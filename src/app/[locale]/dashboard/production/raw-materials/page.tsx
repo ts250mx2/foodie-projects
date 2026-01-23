@@ -430,6 +430,25 @@ export default function RawMaterialsPage() {
                                     const conversionSimple = getValue(material, 'ConversionSimple') as number || 0;
                                     const precioProcesado = conversionSimple > 0 ? precioNeto / conversionSimple : 0;
 
+                                    const formatCurrency = (val: number) => {
+                                        return new Intl.NumberFormat('en-US', {
+                                            style: 'currency',
+                                            currency: 'USD',
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }).format(val);
+                                    };
+
+                                    const handleBlur = (idProducto: number, field: keyof RawMaterial, value: string) => {
+                                        const numericValue = parseFloat(value.replace(/[^0-9.-]+/g, '')) || 0;
+                                        handleFieldChange(idProducto, field, numericValue);
+                                    };
+
+                                    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+                                        const value = e.target.value.replace(/[^0-9.-]+/g, '');
+                                        e.target.value = value;
+                                    };
+
                                     return (
                                         <tr key={material.IdProducto} className="hover:bg-gray-50">
                                             <td className="px-3 py-2 text-sm text-gray-900">{material.Codigo}</td>
@@ -437,10 +456,16 @@ export default function RawMaterialsPage() {
                                             <td className="px-3 py-2 text-sm text-gray-600">{material.UnidadCompra}</td>
                                             <td className="px-3 py-2 text-right">
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={precio || 0}
-                                                    onChange={(e) => handleFieldChange(material.IdProducto, 'Precio', parseFloat(e.target.value) || 0)}
+                                                    type="text"
+                                                    value={editedFields[material.IdProducto]?.Precio !== undefined ? (typeof editedFields[material.IdProducto].Precio === 'number' ? formatCurrency(editedFields[material.IdProducto].Precio as number) : editedFields[material.IdProducto].Precio) : formatCurrency(material.Precio)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (/^[0-9.$,]*$/.test(val)) {
+                                                            handleFieldChange(material.IdProducto, 'Precio', val);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => handleBlur(material.IdProducto, 'Precio', e.target.value)}
+                                                    onFocus={handleFocus}
                                                     className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-orange-500"
                                                 />
                                             </td>
@@ -492,10 +517,10 @@ export default function RawMaterialsPage() {
                                                 {merma.toFixed(2)}%
                                             </td>
                                             <td className="px-3 py-2 text-right text-sm font-medium text-blue-600">
-                                                ${precioNeto.toFixed(2)}
+                                                {formatCurrency(precioNeto)}
                                             </td>
                                             <td className="px-3 py-2 text-right text-sm font-medium text-orange-600">
-                                                ${precioProcesado.toFixed(2)}
+                                                {formatCurrency(precioProcesado)}
                                             </td>
                                             <td className="px-3 py-2 text-center">
                                                 <div className="flex justify-center gap-2">

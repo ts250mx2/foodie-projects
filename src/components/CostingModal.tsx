@@ -95,7 +95,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 codigo: initialProduct.Codigo || '',
                 idCategoria: initialProduct.IdCategoria?.toString() || initialProduct.IdCategoriaRecetario?.toString() || '',
                 idPresentacion: initialProduct.IdPresentacion?.toString() || '',
-                precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(initialProduct.Precio || 0),
+                precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(initialProduct.Precio || 0),
                 iva: (initialProduct.IVA || 0).toString()
             });
             setPhotoPreview(initialProduct.RutaFoto || null);
@@ -157,7 +157,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         codigo: product.Codigo || '',
         idCategoria: product.IdCategoria?.toString() || product.IdCategoriaRecetario?.toString() || '',
         idPresentacion: product.IdPresentacion?.toString() || '',
-        precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.Precio || 0),
+        precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.Precio || 0),
         iva: product.IVA.toString()
     });
     const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -458,7 +458,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         ...formData, // basic fields
                         idCategoria: parseInt(formData.idCategoria),
                         idPresentacion: parseInt(formData.idPresentacion),
-                        precio: parseFloat(formData.precio),
+                        precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
                         iva: parseFloat(formData.iva),
                         // New fields
                         conversionSimple: simpleConversion,
@@ -584,7 +584,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         Codigo: formData.codigo,
                         IdCategoria: parseInt(formData.idCategoria),
                         IdPresentacion: parseInt(formData.idPresentacion),
-                        Precio: parseFloat(formData.precio.replace(/,/g, '')),
+                        Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
                         IVA: parseFloat(formData.iva),
                         PesoInicial: pesoInicial,
                         PesoFinal: pesoFinal,
@@ -604,7 +604,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         Codigo: formData.codigo,
                         IdCategoria: parseInt(formData.idCategoria),
                         IdPresentacion: parseInt(formData.idPresentacion),
-                        Precio: parseFloat(formData.precio.replace(/,/g, '')),
+                        Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
                         IVA: parseFloat(formData.iva),
                         PesoInicial: pesoInicial,
                         PesoFinal: pesoFinal,
@@ -851,7 +851,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 }
                                 <div className="flex items-center gap-1" >
                                     <span className="opacity-70">Precio Menú:</span>
-                                    <span className="font-semibold">${product.Precio?.toFixed(2) || '0.00'}</span>
+                                    <span className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.Precio || 0)}</span>
                                 </div>
                             </div>
 
@@ -877,7 +877,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <h3 className="text-xs font-bold mb-1">% Impuesto</h3>
                                         <p className="text-[10px] opacity-90">IVA: {parseFloat(formData.iva) || 0}%</p>
                                         <p className="text-lg font-bold">
-                                            ${((parseFloat(formData.precio.replace(/,/g, '')) || 0) * ((parseFloat(formData.iva) || 0) / 100)).toFixed(2)}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * ((parseFloat(formData.iva) || 0) / 100))}
                                         </p>
                                     </div>
 
@@ -1109,14 +1109,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     setFormData({ ...formData, precio: val });
                                 }}
                                 onBlur={(e) => {
-                                    const val = parseFloat(e.target.value || '0');
+                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                     if (!isNaN(val)) {
-                                        setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                        setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                     }
                                 }}
                                 onFocus={(e) => {
-                                    const val = e.target.value.replace(/,/g, '');
-                                    if (val === '0.00') {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    if (val === '0.00' || val === '0') {
                                         setFormData({ ...formData, precio: '' });
                                     } else {
                                         setFormData({ ...formData, precio: val });
@@ -1211,14 +1211,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 setFormData({ ...formData, precio: val });
                                             }}
                                             onBlur={(e) => {
-                                                const val = parseFloat(e.target.value || '0');
+                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                                 if (!isNaN(val)) {
-                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                                 }
                                             }}
                                             onFocus={(e) => {
-                                                const val = e.target.value.replace(/,/g, '');
-                                                if (val === '0.00') {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if (val === '0.00' || val === '0') {
                                                     setFormData({ ...formData, precio: '' });
                                                 } else {
                                                     setFormData({ ...formData, precio: val });
@@ -1298,18 +1298,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase">P/U Compra Neto</label>
                                             <div className="text-lg font-bold text-blue-600">
-                                                ${((parseFloat(formData.precio.replace(/,/g, '')) || 0) * (pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0)).toFixed(2)}
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * (pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0))}
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase">Precio Procesado</label>
                                             <div className="text-lg font-bold text-orange-600">
-                                                ${(() => {
-                                                    const precio = parseFloat(formData.precio.replace(/,/g, '')) || 0;
+                                                {(() => {
+                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
                                                     const rendimiento = pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0; // Yield Ratio
                                                     const precioNeto = precio * rendimiento;
                                                     const conversion = simpleConversion || 1;
-                                                    return (precioNeto / conversion).toFixed(2);
+                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precioNeto / conversion);
                                                 })()}
                                             </div>
                                         </div>
@@ -1357,14 +1357,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 setFormData({ ...formData, precio: val });
                                                             }}
                                                             onBlur={(e) => {
-                                                                const val = parseFloat(e.target.value || '0');
+                                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                                                 if (!isNaN(val)) {
-                                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                                                 }
                                                             }}
                                                             onFocus={(e) => {
-                                                                const val = e.target.value.replace(/,/g, '');
-                                                                if (val === '0.00') {
+                                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                if (val === '0.00' || val === '0') {
                                                                     setFormData({ ...formData, precio: '' });
                                                                 } else {
                                                                     setFormData({ ...formData, precio: val });
@@ -1432,7 +1432,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <div className="flex flex-col bg-blue-50 p-1 px-2 rounded border border-blue-100">
                                                         <label className="text-xs font-bold text-blue-600 uppercase mb-1">Formula Costo/Unidad</label>
                                                         <span className="text-lg font-bold text-blue-800">
-                                                            ${calculateCostPerUnit().toFixed(2)}
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCostPerUnit())}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1448,7 +1448,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                                                     <div className="flex items-center gap-4">
                                                         <div className="text-lg font-bold">
-                                                            Costo Total: <span className="text-green-600">${totalCost.toFixed(2)}</span>
+                                                            Costo Total: <span className="text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}</span>
                                                         </div>
                                                         <Button
                                                             onClick={handleSaveAll}
@@ -1484,14 +1484,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         setFormData({ ...formData, precio: val });
                                                                     }}
                                                                     onBlur={(e) => {
-                                                                        const val = parseFloat(e.target.value || '0');
+                                                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                                                         if (!isNaN(val)) {
-                                                                            setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                                            setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                                                         }
                                                                     }}
                                                                     onFocus={(e) => {
-                                                                        const val = e.target.value.replace(/,/g, '');
-                                                                        if (val === '0.00') {
+                                                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                        if (val === '0.00' || val === '0') {
                                                                             setFormData({ ...formData, precio: '' });
                                                                         } else {
                                                                             setFormData({ ...formData, precio: val });
@@ -1505,7 +1505,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="text-lg font-bold">
-                                                        Costo Total: <span className="text-green-600">${totalCost.toFixed(2)}</span>
+                                                        Costo Total: <span className="text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}</span>
                                                     </div>
                                                     <Button
                                                         onClick={handleSaveAll}
@@ -1550,7 +1550,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 <div className="bg-gray-50 px-4 py-2 font-bold flex justify-between items-center border-b border-gray-200 text-orange-800">
                                                                     <span>{category}</span>
                                                                     <span>
-                                                                        Total: ${categorySubtotal.toFixed(2)}
+                                                                        Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(categorySubtotal)}
                                                                     </span>
                                                                 </div>
                                                                 <table className="min-w-full divide-y divide-gray-200">

@@ -264,7 +264,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                             <div className="w-32">
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Precio</label>
                                 <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 text-sm h-[42px] flex items-center justify-end">
-                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(currentPrice)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(currentPrice)}
                                 </div>
                             </div>
 
@@ -272,7 +272,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                             <div className="w-32">
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Total</label>
                                 <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-900 font-bold text-sm h-[42px] flex items-center justify-end">
-                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(currentTotal)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(currentTotal)}
                                 </div>
                             </div>
 
@@ -326,10 +326,10 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                                     {item.Presentacion}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.Precio)}
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.Precio)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.Total)}
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.Total)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex justify-end gap-2">
@@ -370,7 +370,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     <div className="mr-auto flex items-center gap-4">
                         <div className="text-sm font-medium text-gray-600">Total Producción:</div>
                         <div className="text-xl font-bold text-blue-600">
-                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(gridItems.reduce((sum, item) => sum + item.Total, 0))}
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(gridItems.reduce((sum, item) => sum + item.Total, 0))}
                         </div>
                     </div>
 

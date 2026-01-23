@@ -185,7 +185,7 @@ export default function SalesTerminalsCapturePage() {
                     year: selectedDate.getFullYear(),
                     shiftId: formData.shiftId,
                     terminalId: formData.terminalId,
-                    amount: parseFloat(formData.amount.replace(/,/g, ''))
+                    amount: parseFloat(formData.amount.replace(/[^0-9.]/g, ''))
                 })
             });
 
@@ -335,15 +335,15 @@ export default function SalesTerminalsCapturePage() {
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{shift.shiftName}</div>
                                                     <div className="font-semibold text-green-600">
-                                                        ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.total)}
-                                                        <span className="text-blue-600"> (${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.commission)})</span>
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shift.total)}
+                                                        <span className="text-blue-600"> ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shift.commission)})</span>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-blue-700">
-                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0))} (${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.commission, 0))})
+                                                Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0))} ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.commission, 0))})
                                             </div>
                                         </div>
                                     </>
@@ -403,15 +403,19 @@ export default function SalesTerminalsCapturePage() {
                                         setFormData({ ...formData, amount: val });
                                     }}
                                     onBlur={(e) => {
-                                        const val = parseFloat(e.target.value || '0');
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                         if (!isNaN(val)) {
-                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                         }
                                     }}
                                     onFocus={(e) => {
-                                        // Remove commas for editing
-                                        const val = e.target.value.replace(/,/g, '');
-                                        setFormData({ ...formData, amount: val });
+                                        // Remove currency symbols and commas for editing
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val === '0.00' || val === '0') {
+                                            setFormData({ ...formData, amount: '' });
+                                        } else {
+                                            setFormData({ ...formData, amount: val });
+                                        }
                                     }}
                                     required
                                     placeholder="0.00"

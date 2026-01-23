@@ -157,7 +157,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                 setFormData(prev => ({
                     ...prev,
                     percentage: data.data.Porcentaje.toString(),
-                    amount: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data.data.Monto)
+                    amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data.data.Monto)
                 }));
             }
         } catch (error) {
@@ -210,9 +210,9 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                     month,
                     year,
                     profileId: formData.profileId,
-                    sales: parseFloat(formData.sales.replace(/,/g, '')),
+                    sales: parseFloat(formData.sales.replace(/[^0-9.]/g, '')),
                     percentage: formData.percentage,
-                    amount: parseFloat(formData.amount.replace(/,/g, ''))
+                    amount: parseFloat(formData.amount.replace(/[^0-9.]/g, ''))
                 })
             });
 
@@ -253,9 +253,9 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
     };
 
     const calculateTip = () => {
-        const sales = parseFloat(formData.sales.replace(/,/g, '')) || 0;
+        const sales = parseFloat(formData.sales.replace(/[^0-9.]/g, '')) || 0;
         const percentage = parseFloat(formData.percentage) || 0;
-        const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
+        const amount = parseFloat(formData.amount.replace(/[^0-9.]/g, '')) || 0;
         return (sales * percentage / 100) + amount;
     };
 
@@ -389,15 +389,19 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                             setFormData({ ...formData, sales: val });
                                         }}
                                         onBlur={(e) => {
-                                            const val = parseFloat(e.target.value || '0');
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                             if (!isNaN(val)) {
-                                                setFormData({ ...formData, sales: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                setFormData({ ...formData, sales: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
                                             }
                                         }}
                                         onFocus={(e) => {
-                                            // Remove commas for editing
-                                            const val = e.target.value.replace(/,/g, '');
-                                            setFormData({ ...formData, sales: val });
+                                            // Remove currency symbols and commas for editing
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if (val === '0.00' || val === '0') {
+                                                setFormData({ ...formData, sales: '' });
+                                            } else {
+                                                setFormData({ ...formData, sales: val });
+                                            }
                                         }}
                                         type="text"
                                         placeholder="0.00"
@@ -408,7 +412,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                     <div className="bg-white p-3 rounded-lg border-2 border-orange-300">
                                         <div className="text-xs text-gray-600 mb-1">{t('calculatedTip')}</div>
                                         <div className="text-2xl font-bold text-orange-600">
-                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calculateTip())}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateTip())}
                                         </div>
                                     </div>
 
@@ -445,8 +449,8 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{tip.Empleado}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-600">{tip.Turno}</td>
                                                     <td className="px-4 py-3 text-sm text-gray-600">{tip.PerfilPropina}</td>
-                                                    <td className="px-4 py-3 text-sm text-right text-gray-900">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tip.Venta)}</td>
-                                                    <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tip.MontoPropina)}</td>
+                                                    <td className="px-4 py-3 text-sm text-right text-gray-900">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.Venta)}</td>
+                                                    <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.MontoPropina)}</td>
                                                     <td className="px-4 py-3 text-right">
                                                         <button
                                                             onClick={() => handleDelete(tip)}
@@ -465,7 +469,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                                     {t('total')}:
                                                 </td>
                                                 <td className="px-4 py-3 text-right text-lg font-bold text-orange-600">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0))}
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0))}
                                                 </td>
                                                 <td></td>
                                             </tr>

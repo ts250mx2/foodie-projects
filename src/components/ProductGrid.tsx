@@ -201,7 +201,7 @@ export default function ProductGrid({ productType, pageTitle }: ProductGridProps
                                     {product.Presentacion}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    ${product.Precio.toFixed(2)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.Precio)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                                     {product.IVA}%

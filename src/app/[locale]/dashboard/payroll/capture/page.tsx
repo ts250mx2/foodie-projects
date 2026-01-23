@@ -187,7 +187,7 @@ export default function PayrollCapturePage() {
                     month: selectedDate.getMonth(),
                     year: selectedDate.getFullYear(),
                     employeeId: formData.employeeId,
-                    amount: parseFloat(formData.amount)
+                    amount: parseFloat(formData.amount.replace(/[^0-9.-]+/g, ''))
                 })
             });
 
@@ -226,6 +226,25 @@ export default function PayrollCapturePage() {
     const tModal = useTranslations('PayrollModal');
 
     const totalPayroll = dailyPayroll.reduce((sum, pay) => sum + (pay.Pago || 0), 0);
+
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val);
+    };
+
+    const handleAmountBlur = () => {
+        const numericValue = parseFloat(formData.amount.replace(/[^0-9.-]+/g, '')) || 0;
+        setFormData({ ...formData, amount: formatCurrency(numericValue) });
+    };
+
+    const handleAmountFocus = () => {
+        const value = formData.amount.replace(/[^0-9.-]+/g, '');
+        setFormData({ ...formData, amount: value });
+    };
 
     return (
         <div className="flex flex-col min-h-screen p-6 gap-4">
@@ -320,13 +339,13 @@ export default function PayrollCapturePage() {
                                             {monthlyPayrollDetails[date.getDate()].map((emp, idx) => (
                                                 <div key={idx} className="text-xs">
                                                     <div className="font-medium text-gray-700">{emp.employeeName}</div>
-                                                    <div className="font-semibold text-green-600">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(emp.total)}</div>
+                                                    <div className="font-semibold text-green-600">{formatCurrency(emp.total)}</div>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-200">
                                             <div className="text-xs font-bold text-blue-700">
-                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlyPayrollDetails[date.getDate()].reduce((sum, emp) => sum + emp.total, 0))}
+                                                Total: {formatCurrency(monthlyPayrollDetails[date.getDate()].reduce((sum, emp) => sum + emp.total, 0))}
                                             </div>
                                         </div>
                                     </>
@@ -365,11 +384,17 @@ export default function PayrollCapturePage() {
                             <div className="flex flex-col">
                                 <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     className="p-2 border rounded text-sm"
                                     value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (/^[0-9.$,]*$/.test(val)) {
+                                            setFormData({ ...formData, amount: val });
+                                        }
+                                    }}
+                                    onBlur={handleAmountBlur}
+                                    onFocus={handleAmountFocus}
                                     required
                                 />
                             </div>
@@ -397,7 +422,7 @@ export default function PayrollCapturePage() {
                                             <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pay.Empleado}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(pay.Pago))}
+                                                    {formatCurrency(parseFloat(pay.Pago))}
                                                 </td>
                                             </tr>
                                         ))
@@ -406,7 +431,7 @@ export default function PayrollCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPayroll)}</td>
+                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">{formatCurrency(totalPayroll)}</td>
                                     </tr>
                                 </tfoot>
                             </table>

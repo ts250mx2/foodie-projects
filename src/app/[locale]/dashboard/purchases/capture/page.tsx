@@ -343,8 +343,8 @@ export default function PurchasesCapturePage() {
                     codigo: productFormData.codigo,
                     idCategoria: parseInt(productFormData.idCategoria),
                     idPresentacion: parseInt(productFormData.idPresentacion),
-                    precio: parseFloat(productFormData.precio),
-                    iva: parseFloat(productFormData.iva)
+                    precio: parseFloat(productFormData.precio.replace(/[^0-9.]/g, '')),
+                    iva: parseFloat(productFormData.iva.replace(/[^0-9.]/g, ''))
                 })
             });
 
@@ -517,7 +517,7 @@ export default function PurchasesCapturePage() {
                 paymentChannelId: parseInt(formData.paymentChannelId),
                 reference: formData.reference,
                 payTo: formData.payTo,
-                total: parseFloat(formData.total)
+                total: parseFloat(formData.total.replace(/[^0-9.]/g, ''))
             } : {
                 projectId: project.idProyecto,
                 branchId: parseInt(selectedBranch),
@@ -529,7 +529,7 @@ export default function PurchasesCapturePage() {
                 paymentChannelId: parseInt(formData.paymentChannelId),
                 reference: formData.reference,
                 payTo: formData.payTo,
-                total: parseFloat(formData.total)
+                total: parseFloat(formData.total.replace(/[^0-9.]/g, ''))
             };
 
             const response = await fetch(url, {
@@ -695,13 +695,13 @@ export default function PurchasesCapturePage() {
                                 {dayDetails && (
                                     <div className="mt-2 space-y-1 flex-1">
                                         <div className="text-xs font-bold text-blue-800 border-b border-blue-200 pb-1 mb-1">
-                                            Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(dayTotal)}
+                                            Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dayTotal)}
                                         </div>
                                         {dayDetails.map((detail, idx) => (
                                             <div key={idx} className="text-xs">
                                                 <div className="font-medium text-gray-700">{detail.provider}</div>
                                                 <div className="font-semibold text-blue-600">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(detail.total)} ({detail.itemCount} {detail.itemCount === 1 ? 'producto' : 'productos'})
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.total)} ({detail.itemCount} {detail.itemCount === 1 ? 'producto' : 'productos'})
                                                 </div>
                                             </div>
                                         ))}
@@ -865,11 +865,28 @@ export default function PurchasesCapturePage() {
                                 <div className="flex flex-col">
                                     <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('total')} *</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
+                                        type="text"
                                         className="p-2 border rounded text-sm"
                                         value={formData.total}
-                                        onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setFormData({ ...formData, total: val });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            if (!isNaN(val)) {
+                                                setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                            }
+                                        }}
+                                        onFocus={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if (val === '0.00' || val === '0') {
+                                                setFormData({ ...formData, total: '' });
+                                            } else {
+                                                setFormData({ ...formData, total: val });
+                                            }
+                                        }}
                                         required
                                     />
                                 </div>
@@ -925,7 +942,7 @@ export default function PurchasesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.NumeroFactura}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{purchase.CanalPago}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(purchase.Total.toString()))}
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(purchase.Total.toString()))}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     {purchase.Status === 0 && (
@@ -963,7 +980,7 @@ export default function PurchasesCapturePage() {
                                 <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                     <tr>
                                         <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalPurchases)}</td>
+                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -1077,11 +1094,28 @@ export default function PurchasesCapturePage() {
                             <div className="flex flex-col">
                                 <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('cost')} *</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     className="p-2 border rounded text-sm"
                                     value={detailFormData.cost}
-                                    onChange={(e) => setDetailFormData({ ...detailFormData, cost: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if ((val.match(/\./g) || []).length > 1) return;
+                                        setDetailFormData({ ...detailFormData, cost: val });
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                        if (!isNaN(val)) {
+                                            setDetailFormData({ ...detailFormData, cost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                        }
+                                    }}
+                                    onFocus={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val === '0.00' || val === '0') {
+                                            setDetailFormData({ ...detailFormData, cost: '' });
+                                        } else {
+                                            setDetailFormData({ ...detailFormData, cost: val });
+                                        }
+                                    }}
                                     required
                                 />
                             </div>
@@ -1093,7 +1127,7 @@ export default function PurchasesCapturePage() {
                                     type="text"
                                     className="p-2 border rounded text-sm bg-gray-100"
                                     value={detailFormData.quantity && detailFormData.cost ?
-                                        `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost))}`
+                                        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '')))
                                         : '$0.00'}
                                     disabled
                                 />
@@ -1131,8 +1165,8 @@ export default function PurchasesCapturePage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.Presentacion}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detail.Costo.toString()))}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(detail.Total)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo.toString()))}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                     <button
                                                         onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
@@ -1150,7 +1184,7 @@ export default function PurchasesCapturePage() {
                                     <tr>
                                         <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tDetails('total')}</td>
                                         <td className="px-6 py-4 text-right text-green-600 text-lg">
-                                            ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
                                         </td>
                                         <td></td>
                                     </tr>
@@ -1243,10 +1277,27 @@ export default function PurchasesCapturePage() {
                                     Precio *
                                 </label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
                                     value={productFormData.precio}
-                                    onChange={(e) => setProductFormData({ ...productFormData, precio: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if ((val.match(/\./g) || []).length > 1) return;
+                                        setProductFormData({ ...productFormData, precio: val });
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                        if (!isNaN(val)) {
+                                            setProductFormData({ ...productFormData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                        }
+                                    }}
+                                    onFocus={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val === '0.00' || val === '0') {
+                                            setProductFormData({ ...productFormData, precio: '' });
+                                        } else {
+                                            setProductFormData({ ...productFormData, precio: val });
+                                        }
+                                    }}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                     required
                                 />
