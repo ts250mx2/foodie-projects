@@ -5,7 +5,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ReactNode, useState } from 'react';
 
-export default function DashboardLayout({ children, params }: { children: ReactNode; params: any }) {
+export default function DashboardLayout({ children }: { children: ReactNode; params: { locale: string } }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const toggleSidebar = () => {
