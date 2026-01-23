@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
         query += ` ORDER BY h.Fecha ASC, h.HoraInicio ASC `;
 
-        const [rows] = await connection.query(query, queryParams);
+        const [rows] = (await connection.query(query, queryParams);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
             });
         } else {
             // Insert new
-            const [result] = await connection.query(
+            const [result] = (await connection.query(
                 `INSERT INTO tblHorariosEmpleados (IdEmpleado, Fecha, HoraInicio, HoraFin, HoraInicioDescanso, HoraFinDescanso, FechaAct, Status) 
                  VALUES (?, ?, ?, ?, ?, ?, Now(), 0)`,
                 [employeeId, date, startTime || null, endTime || null, breakStartTime || null, breakEndTime || null]

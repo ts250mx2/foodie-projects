@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
             ORDER BY day, B.Producto
         `;
 
-        const [rows] = await connection.query(query, [branchId, month, year]);
+        const [rows] = (await connection.query(query, [branchId, month, year]);
 
         // Group by day
         const groupedData: Record<number, { day: number, totalCost: number, itemCount: number, items: any[] }> = {};

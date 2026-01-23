@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT se.IdEmpleado, e.Empleado, p.Puesto, p.IdPuesto
              FROM tblSucursalesEmpleados se
              INNER JOIN tblEmpleados e ON se.IdEmpleado = e.IdEmpleado

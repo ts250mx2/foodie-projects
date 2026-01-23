@@ -22,7 +22,7 @@ export async function GET(
         connection = await getProjectConnection(projectId);
 
         // List documents with document type name, including Base64 data and filename
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT ed.IdEmpleadoDocumento, ed.IdTipoDocumento, ed.Documento, ed.Comentarios, 
                     ed.RutaArchivo, ed.ArchivoDocumento, ed.NombreArchivo, ed.FechaAct,
                     td.TipoDocumento
@@ -60,7 +60,7 @@ export async function POST(
         connection = await getProjectConnection(projectIdInt);
 
         // Insert metadata only (no file initially)
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             `INSERT INTO tblEmpleadosDocumentos (IdEmpleado, IdTipoDocumento, Comentarios, FechaAct) 
              VALUES (?, ?, ?, Now())`,
             [id, documentTypeId, comments || null]
@@ -155,7 +155,7 @@ export async function DELETE(
         // For now, we mainly delete the DB record. The previous file deletion logic can be kept if desired, 
         // but if we are moving to Base64, we might just leave legacy files or clean them up.
         // Let's check for legacy RutaArchivo just in case to keep system clean.
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             'SELECT RutaArchivo FROM tblEmpleadosDocumentos WHERE IdEmpleadoDocumento = ? AND IdEmpleado = ?',
             [docId, id]
         );

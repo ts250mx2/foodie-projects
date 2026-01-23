@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT A.IdProducto, A.Codigo, A.Producto, A.Precio, A.IVA, A.IdPresentacion, A.ConversionSimple, 
                     A.IdPresentacionConversion, A.PesoInicial, A.PesoFinal, A.ObservacionesMerma,
                     CR.CategoriaRecetario as Categoria, CR.IdCategoriaRecetario,

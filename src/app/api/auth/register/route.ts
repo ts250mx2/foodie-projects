@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
         await connection.beginTransaction();
 
         // Check if email or phone already exists
-        const [existingUsers] = await connection.query(
+        const [existingUsers] = (await connection.query(
             'SELECT IdUsuario FROM tblUsuarios WHERE CorreoElectronico = ? OR Telefono = ?',
             [correoElectronico, telefono]
-        );
+        )) as any[];
 
         if (Array.isArray(existingUsers) && existingUsers.length > 0) {
             await connection.rollback();
@@ -66,18 +66,18 @@ export async function POST(request: NextRequest) {
         const verificationToken = crypto.randomBytes(32).toString('hex');
 
         // Insert into tblUsuarios
-        const [userResult] = await connection.query(
+        const [userResult] = (await connection.query(
             'INSERT INTO tblUsuarios (Usuario, CorreoElectronico, Telefono, passwd, FechaAct, Status) VALUES (?, ?, ?, ?, Now(), 0)',
             [nombreUsuario, correoElectronico, telefono, hashedPassword]
-        );
+        )) as any;
 
         const idUsuario = (userResult as any).insertId;
 
         // Insert into tblProyectos
-        const [projectResult] = await connection.query(
+        const [projectResult] = (await connection.query(
             'INSERT INTO tblProyectos (Proyecto, Pais, Idioma, FechaAct, Status) VALUES (?, ?, ?, Now(), 0)',
             [nombreProyecto, pais, idioma]
-        );
+        )) as any;
 
         const idProyecto = (projectResult as any).insertId;
 

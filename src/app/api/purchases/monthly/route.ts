@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get monthly purchases grouped by day with provider and item count
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT 
                 DAY(C.FechaCompra) as day, 
                 P.Proveedor,

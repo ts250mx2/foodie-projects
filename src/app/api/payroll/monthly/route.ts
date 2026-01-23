@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get monthly payroll grouped by day and employee, filtered by branch
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT n.Dia as day, e.Empleado as employeeName, SUM(n.Pago) as total
              FROM tblNomina n
              LEFT JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado

@@ -20,7 +20,7 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             'DELETE FROM tblProductosKits WHERE IdProductoPadre = ? AND IdProductoHijo = ?',
             [idProductoPadre, idProductoHijo]
         );

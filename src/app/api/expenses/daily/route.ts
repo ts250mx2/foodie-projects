@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get daily expenses with concept names and payment channel names
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT g.*, c.ConceptoGasto, cp.CanalPago
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Insert or update expense record - REPLACE instead of accumulate
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, Gasto, Referencia, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE Gasto = ?, Referencia = ?, IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()`,

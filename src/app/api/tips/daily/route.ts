@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT 
                 pe.IdEmpleado,
                 e.Empleado,

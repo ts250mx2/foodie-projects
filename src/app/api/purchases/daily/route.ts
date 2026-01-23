@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get daily purchases with provider and payment channel info
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT A.IdCompra, A.FechaCompra, B.Proveedor, A.NumeroFactura, 
                     C.CanalPago, A.Total, A.Status, A.Referencia, A.PagarA, A.IdProveedor, A.IdCanalPago
              FROM tblCompras A
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         const purchaseDate = `${year}-${monthNum.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
         // Insert new purchase
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             `INSERT INTO tblCompras (IdSucursal, IdProveedor, NumeroFactura, IdCanalPago, Referencia, PagarA, Total, FechaCompra, Status, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
             [branchId, providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseDate]
