@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT se.IdEmpleado, e.Empleado, p.Puesto, p.IdPuesto
              FROM tblSucursalesEmpleados se
              INNER JOIN tblEmpleados e ON se.IdEmpleado = e.IdEmpleado
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `INSERT INTO tblSucursalesEmpleados (IdSucursal, IdEmpleado, FechaAct)
              VALUES (?, ?, Now())
              ON DUPLICATE KEY UPDATE FechaAct = Now()`,
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `DELETE FROM tblSucursalesEmpleados
              WHERE IdSucursal = ? AND IdEmpleado = ?`,
             [branchIdStr, employeeIdStr]
