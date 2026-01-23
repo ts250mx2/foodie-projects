@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT v.*, t.Turno, c.CanalVenta, c.Comision
              FROM tblVentasCanalesVenta v
              JOIN tblTurnos t ON v.IdTurno = t.IdTurno

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get daily payroll with employee names, filtered by branch
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT n.*, e.Empleado
              FROM tblNomina n
              LEFT JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Insert or update payroll record
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             `INSERT INTO tblNomina (Dia, Mes, Anio, IdUsuario, Pago, FechaAct)
              VALUES (?, ?, ?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE Pago = Pago + ?, FechaAct = Now()`,

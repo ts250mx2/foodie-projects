@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             ORDER BY A.Dia, A.IdTurno
         `;
 
-        const [rows] = (await connection.query(query, [month, year, branchId]);
+        const [rows] = await connection.query(query, [month, year, branchId]);
 
         return NextResponse.json({ success: true, data: rows });
 

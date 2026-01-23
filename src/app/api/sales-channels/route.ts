@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = (await connection.query('SELECT * FROM tblCanalesVenta WHERE Status = 0 ORDER BY Orden ASC, CanalVenta ASC');
+        const [rows] = await connection.query('SELECT * FROM tblCanalesVenta WHERE Status = 0 ORDER BY Orden ASC, CanalVenta ASC');
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblCanalesVenta (CanalVenta, Comision, Orden, Status, FechaAct) VALUES (?, ?, ?, 0, Now())',
             [channel, commission || 0, order || 0]
         );

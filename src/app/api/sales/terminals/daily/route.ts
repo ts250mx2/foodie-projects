@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT v.*, t.Turno, ter.Terminal, ter.Comision,
                     (v.Venta * ter.Comision / 100) as ComisionMonto
              FROM tblVentasTerminales v

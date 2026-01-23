@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
             ORDER BY prod.Producto ASC
         `;
 
-        const [rows] = (await connection.query(query, [branchId, formattedDate]);
+        const [rows] = await connection.query(query, [branchId, formattedDate]);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
             VALUES (?, ?, ?, ?, ?, 0, NOW())
         `;
 
-        const [result] = (await connection.query(query, [
+        const [result] = await connection.query(query, [
             branchId,
             productId,
             formattedDate,

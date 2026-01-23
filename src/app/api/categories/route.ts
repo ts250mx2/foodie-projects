@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = (await connection.query('SELECT * FROM tblCategorias WHERE Status = 0 ORDER BY Categoria ASC');
+        const [rows] = await connection.query('SELECT * FROM tblCategorias WHERE Status = 0 ORDER BY Categoria ASC');
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now(), EsRecetario defaults to 0 if not provided
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblCategorias (Categoria, EsRecetario, Status, FechaAct) VALUES (?, ?, 0, Now())',
             [category, esRecetario || 0]
         );

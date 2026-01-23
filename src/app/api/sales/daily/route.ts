@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
             ORDER BY A.IdTurno, C.Terminal, D.Plataforma
         `;
 
-        const [rows] = (await connection.query(query, [day, month, year, branchId]);
+        const [rows] = await connection.query(query, [day, month, year, branchId]);
 
         return NextResponse.json({ success: true, data: rows });
 

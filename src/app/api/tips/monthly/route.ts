@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(parseInt(projectId));
 
         // Get monthly summary grouped by day and shift
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT 
                 pe.Dia,
                 t.Turno,

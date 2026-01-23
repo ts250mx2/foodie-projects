@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get monthly expenses grouped by day and concept
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT g.Dia as day, c.ConceptoGasto as conceptName, SUM(g.Gasto) as total
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto

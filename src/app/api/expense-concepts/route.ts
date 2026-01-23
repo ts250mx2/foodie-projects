@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT c.*, cp.CanalPago 
              FROM tblConceptosGastos c
              LEFT JOIN tblCanalesPago cp ON c.IdCanalPago = cp.IdCanalPago
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblConceptosGastos (ConceptoGasto, ReferenciaObligatoria, IdCanalPago, Status, FechaAct) VALUES (?, ?, ?, 0, Now())',
             [concept, requiredReference || 0, paymentChannelId || null]
         );

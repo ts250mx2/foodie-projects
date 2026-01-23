@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
         query += ' ORDER BY t.Turno ASC ';
 
-        const [rows] = (await connection.query(query, queryParams);
+        const [rows] = await connection.query(query, queryParams);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblTurnos (Turno, IdSucursal, HoraInicio, HoraFin, Status, FechaAct) VALUES (?, ?, ?, ?, 0, Now())',
             [shift, branchId, startTime || null, endTime || null]
         );

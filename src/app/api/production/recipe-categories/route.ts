@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = (await connection.query(
+        const [rows] = await connection.query(
             `SELECT IdCategoriaRecetario, CategoriaRecetario, Status 
              FROM tblCategoriasRecetario 
              WHERE Status = 1
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         // In the previous Code `categories/route.ts` POST: `INSERT INTO tblCategorias (Categoria, ...)` -> NO IdProyecto.
         // So I will REMOVE IdProyecto from the INSERT and SELECT queries here as well, matching the pattern.
 
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblCategoriasRecetario (CategoriaRecetario, FechaAct, Status) VALUES (?, NOW(), 1)',
             [category]
         );

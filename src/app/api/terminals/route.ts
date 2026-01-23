@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = (await connection.query('SELECT * FROM tblTerminales WHERE Status = 0');
+        const [rows] = await connection.query('SELECT * FROM tblTerminales WHERE Status = 0');
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = (await connection.query(
+        const [result] = await connection.query(
             'INSERT INTO tblTerminales (Terminal, Comision, Status, FechaAct) VALUES (?, ?, 0, Now())',
             [terminal, commission || 0]
         );
