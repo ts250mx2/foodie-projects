@@ -3,7 +3,7 @@ import { getProjectConnection } from '@/lib/dynamic-db';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export async function GET(request: NextRequest) {
-    let connection;
+    let connection: any;
     try {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    let connection;
+    let connection: any;
     try {
         const body = await request.json();
         const { projectId, branchId, employeeId } = body;
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-    let connection;
+    let connection: any;
     try {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');
