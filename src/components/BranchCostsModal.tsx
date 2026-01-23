@@ -45,9 +45,9 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
             setFormData(prev => ({
                 ...prev,
                 salesObjective: selectedCost.ObjetivoVentas ? selectedCost.ObjetivoVentas.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                rawMaterialCost: selectedCost.CostoMateriaPrima ? selectedCost.CostoMateriaPrima.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                payrollCost: selectedCost.CostoNomina ? selectedCost.CostoNomina.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                operatingExpense: selectedCost.GastoOperativo ? selectedCost.GastoOperativo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+                rawMaterialCost: selectedCost.CostoMateriaPrima ? selectedCost.CostoMateriaPrima.toFixed(2) : '',
+                payrollCost: selectedCost.CostoNomina ? selectedCost.CostoNomina.toFixed(2) : '',
+                operatingExpense: selectedCost.GastoOperativo ? selectedCost.GastoOperativo.toFixed(2) : ''
             }));
         } else {
             setFormData(prev => ({
@@ -206,102 +206,75 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                             />
 
                             <Input
-                                label="Costo Materia Prima"
+                                label="Costo Materia Prima %"
                                 type="text"
                                 value={formData.rawMaterialCost}
                                 onChange={(e) => {
                                     const value = e.target.value;
-                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                    if (/^[\d]*\.?\d*$/.test(value)) {
                                         setFormData({ ...formData, rawMaterialCost: value });
                                     }
                                 }}
                                 onBlur={() => {
                                     const value = formData.rawMaterialCost;
                                     if (value) {
-                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        const number = parseFloat(value);
                                         if (!isNaN(number)) {
                                             setFormData(prev => ({
                                                 ...prev,
-                                                rawMaterialCost: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                rawMaterialCost: number.toFixed(2)
                                             }));
                                         }
-                                    }
-                                }}
-                                onFocus={() => {
-                                    const value = formData.rawMaterialCost;
-                                    if (value) {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            rawMaterialCost: value.toString().replace(/,/g, '')
-                                        }));
                                     }
                                 }}
                                 placeholder="0.00"
                             />
 
                             <Input
-                                label="Costo Nómina"
+                                label="Costo Nómina %"
                                 type="text"
                                 value={formData.payrollCost}
                                 onChange={(e) => {
                                     const value = e.target.value;
-                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                    if (/^[\d]*\.?\d*$/.test(value)) {
                                         setFormData({ ...formData, payrollCost: value });
                                     }
                                 }}
                                 onBlur={() => {
                                     const value = formData.payrollCost;
                                     if (value) {
-                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        const number = parseFloat(value);
                                         if (!isNaN(number)) {
                                             setFormData(prev => ({
                                                 ...prev,
-                                                payrollCost: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                payrollCost: number.toFixed(2)
                                             }));
                                         }
-                                    }
-                                }}
-                                onFocus={() => {
-                                    const value = formData.payrollCost;
-                                    if (value) {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            payrollCost: value.toString().replace(/,/g, '')
-                                        }));
                                     }
                                 }}
                                 placeholder="0.00"
                             />
 
                             <Input
-                                label="Gasto Operativo"
+                                label="Gasto Operativo %"
                                 type="text"
                                 value={formData.operatingExpense}
                                 onChange={(e) => {
                                     const value = e.target.value;
-                                    if (/^[\d,]*\.?\d*$/.test(value)) {
+                                    if (/^[\d]*\.?\d*$/.test(value)) {
                                         setFormData({ ...formData, operatingExpense: value });
                                     }
                                 }}
                                 onBlur={() => {
                                     const value = formData.operatingExpense;
                                     if (value) {
-                                        const number = parseFloat(value.toString().replace(/,/g, ''));
+                                        const number = parseFloat(value);
                                         if (!isNaN(number)) {
                                             setFormData(prev => ({
                                                 ...prev,
-                                                operatingExpense: number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                operatingExpense: number.toFixed(2)
                                             }));
                                         }
-                                    }
-                                }}
-                                onFocus={() => {
-                                    const value = formData.operatingExpense;
-                                    if (value) {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            operatingExpense: value.toString().replace(/,/g, '')
-                                        }));
                                     }
                                 }}
                                 placeholder="0.00"
@@ -340,16 +313,16 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                                                     {cost.Anio} - {months[cost.Mes - 1]}
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
-                                                    ${cost.ObjetivoVentas?.toLocaleString() || '0'}
+                                                    $ {cost.ObjetivoVentas?.toLocaleString() || '0'}
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
-                                                    ${cost.CostoMateriaPrima?.toLocaleString() || '0'}
+                                                    {cost.CostoMateriaPrima?.toFixed(2) || '0.00'} %
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
-                                                    ${cost.CostoNomina?.toLocaleString() || '0'}
+                                                    {cost.CostoNomina?.toFixed(2) || '0.00'} %
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
-                                                    ${cost.GastoOperativo?.toLocaleString() || '0'}
+                                                    {cost.GastoOperativo?.toFixed(2) || '0.00'} %
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right">
                                                     <button
