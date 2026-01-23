@@ -34,7 +34,7 @@ export async function GET(
             )
         `);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
                     CAST(ArchivoDocumento AS CHAR) as ArchivoDocumento, 
                     NombreArchivo, FechaAct

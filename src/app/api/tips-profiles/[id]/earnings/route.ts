@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT t.*, CASE WHEN t.IdPuesto = 0 THEN 'Default' ELSE p.Puesto END as PuestoNombre 
              FROM tblPerfilesPropinasIngresos t
              LEFT JOIN tblPuestos p ON t.IdPuesto = p.IdPuesto

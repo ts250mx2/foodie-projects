@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT ArchivoDocumento, NombreArchivo, RutaArchivo 
              FROM tblProductosDocumentos 
              WHERE IdProducto = ? AND IdProductoDocumento = ?`,

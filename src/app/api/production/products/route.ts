@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             ORDER BY A.Producto
         `;
 
-        const [rows] = await connection.query(query);
+        const [rows] = (await connection.query(query);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {

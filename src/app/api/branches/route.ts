@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Fetch active branches (Status = 0) with all fields
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT s.*, e.Empleado as GerenteNombre 
              FROM tblSucursales s
              LEFT JOIN tblEmpleados e ON s.IdEmpleadoGerente = e.IdEmpleado
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             `INSERT INTO tblSucursales (Sucursal, Telefonos, CorreoElectronico, Calle, IdEmpleadoGerente, Status, FechaAct) 
              VALUES (?, ?, ?, ?, ?, 0, Now())`,
             [branch, phone || null, email || null, address || null, managerId || null]

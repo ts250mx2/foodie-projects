@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         query += ` ORDER BY e.Empleado ASC `;
 
         // Join with tblPuestos and tblSucursales to get position and branch names
-        const [rows] = await connection.query(query, queryParams);
+        const [rows] = (await connection.query(query, queryParams);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = await connection.query(
+        const [result] = (await connection.query(
             `INSERT INTO tblEmpleados (Empleado, IdPuesto, IdSucursal, Telefonos, CorreoElectronico, Calle, Status, FechaAct) 
              VALUES (?, ?, ?, ?, ?, ?, 0, Now())`,
             [name, positionId || null, branchId || null, phone || null, email || null, address || null]

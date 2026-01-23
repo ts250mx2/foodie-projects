@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
 
         // Verify token and expiry
         // Note: ResetPasswordExpires > NOW()
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             'SELECT IdUsuario FROM tblUsuarios WHERE ResetPasswordToken = ? AND ResetPasswordExpires > NOW()',
             [token]
-        );
+        )) as any[];
 
         if (rows.length === 0) {
             return NextResponse.json({ success: false, message: 'Invalid or expired token' }, { status: 400 });

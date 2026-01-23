@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
         // Query user by email OR phone
         // Query user and project details by email OR phone
-        const [rows] = await pool.query(
+        const [rows] = (await pool.query(
             `SELECT 
                 u.IdUsuario, 
                 u.Usuario, 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             LEFT JOIN tblProyectos p ON pu.IdProyecto = p.IdProyecto
             WHERE u.CorreoElectronico = ?`,
             [identifier]
-        );
+        )) as any[];
 
         console.log(rows.length);
         if (rows.length === 0) {

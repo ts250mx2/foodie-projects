@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             'SELECT IdProveedor, Proveedor, Status FROM tblProveedores WHERE Status = 0 ORDER BY Proveedor ASC'
         );
 

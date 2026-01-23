@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             `SELECT * FROM tblSucursalesCostos 
              WHERE IdSucursal = ? 
              ORDER BY Anio DESC, Mes DESC`,

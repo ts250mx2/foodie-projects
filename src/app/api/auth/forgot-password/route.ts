@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
         const { email, locale } = forgotPasswordSchema.parse(body);
 
         // Check if user exists
-        const [rows] = await connection.query(
+        const [rows] = (await connection.query(
             'SELECT IdUsuario FROM tblUsuarios WHERE CorreoElectronico = ?',
             [email]
-        );
+        )) as any[];
 
         if (rows.length > 0) {
             // Generate token
