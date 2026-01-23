@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT v.Dia as day, t.Turno as shiftName, 
                     SUM(v.Venta) as total,
                     SUM(v.Venta * COALESCE(c.Comision, 0) / 100) as commission
@@ -38,3 +38,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

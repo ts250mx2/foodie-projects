@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT v.*, t.Turno, ter.Terminal, ter.Comision,
                     (v.Venta * ter.Comision / 100) as ComisionMonto
              FROM tblVentasTerminales v
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `INSERT INTO tblVentasTerminales (Dia, Mes, Anio, IdTurno, IdTerminal, IdSucursal, Venta, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE Venta = VALUES(Venta), FechaAct = Now()`,
@@ -83,7 +83,7 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `DELETE FROM tblVentasTerminales
              WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdTurno = ? AND IdTerminal = ? AND IdSucursal = ?`,
             [dayStr, monthStr, yearStr, shiftIdStr, terminalIdStr, branchIdStr]
@@ -97,3 +97,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

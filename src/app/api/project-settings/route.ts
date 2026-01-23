@@ -27,13 +27,13 @@ export async function GET(request: NextRequest) {
         connection = await getFoodieProjectsConnection();
 
         // Fetch project data (Changed NombreArchivoLogo to Logo64)
-        const [projectRows] = await connection.query<any[]>(
+        const [projectRows] = await connection.query(
             'SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
         // Fetch user data
-        const [userRows] = await connection.query<any[]>(
+        const [userRows] = await connection.query(
             'SELECT CorreoElectronico, Usuario, Telefono FROM tblUsuarios WHERE IdUsuario = ?',
             [userId]
         );
@@ -108,3 +108,4 @@ export async function PUT(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

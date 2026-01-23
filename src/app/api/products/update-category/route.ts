@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblProductos SET IdCategoriaRecetario = ?, FechaAct = NOW() WHERE IdProducto = ?',
             [categoryId, productId]
         );
@@ -27,3 +27,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

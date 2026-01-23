@@ -20,7 +20,7 @@ export async function GET(
         connection = await getProjectConnection(projectId);
 
         // List documents including ArchivoDocumento (Base64) and NombreArchivo
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             'SELECT IdSucursalDocumento, Documento, Comentarios, ArchivoDocumento, NombreArchivo, FechaAct FROM tblSucursalesDocumentos WHERE IdSucursal = ? ORDER BY FechaAct DESC',
             [id]
         );
@@ -58,7 +58,7 @@ export async function POST(
         connection = await getProjectConnection(projectIdInt);
 
         // Insert record (File is optional)
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblSucursalesDocumentos (IdSucursal, Documento, Comentarios, ArchivoDocumento, FechaAct) 
              VALUES (?, ?, ?, ?, Now())`,
             [id, documentName, comments || null, fileBase64 || null]
@@ -149,7 +149,7 @@ export async function DELETE(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblSucursalesDocumentos WHERE IdSucursalDocumento = ? AND IdSucursal = ?',
             [docId, id]
         );

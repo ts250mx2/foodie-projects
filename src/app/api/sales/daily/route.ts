@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
             ORDER BY A.IdTurno, C.Terminal, D.Plataforma
         `;
 
-        const [rows] = await connection.query<RowDataPacket[]>(query, [day, month, year, branchId]);
+        const [rows] = await connection.query(query, [day, month, year, branchId]);
 
         return NextResponse.json({ success: true, data: rows });
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
             FechaAct = NOW()
         `;
 
-        await connection.query<ResultSetHeader>(query, [
+        await connection.query(query, [
             day, month, year, shiftId, terminalId, platformId, branchId, amount
         ]);
 
@@ -93,3 +93,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

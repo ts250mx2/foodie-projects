@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
         query += ' ORDER BY p.Producto ASC';
 
-        const [rows] = await connection.query<RowDataPacket[]>(query, params);
+        const [rows] = await connection.query(query, params);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Check for duplicate product name
-        const [existingProductByName] = await connection.query<RowDataPacket[]>(
+        const [existingProductByName] = await connection.query(
             'SELECT IdProducto FROM tblProductos WHERE Producto = ? AND Status = 0',
             [producto]
         );
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check for duplicate product code
-        const [existingProductByCode] = await connection.query<RowDataPacket[]>(
+        const [existingProductByCode] = await connection.query(
             'SELECT IdProducto FROM tblProductos WHERE Codigo = ? AND Status = 0',
             [codigo]
         );
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, RutaFoto, Status, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
             [producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto || 0, rutaFoto || null]
         );
@@ -126,3 +126,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

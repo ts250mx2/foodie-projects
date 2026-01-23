@@ -23,7 +23,7 @@ export async function GET(
         projectConnection = await getProjectConnection(projectId);
 
         // Get employee access data
-        const [empRows] = await projectConnection.query<RowDataPacket[]>(
+        const [empRows] = await projectConnection.query(
             'SELECT Login, EsAdministrador FROM tblEmpleados WHERE IdEmpleado = ?',
             [id]
         );
@@ -46,7 +46,7 @@ export async function GET(
             database: 'BDFoodieProjects'
         });
 
-        const [projectRows] = await foodieProjectsConnection.query<RowDataPacket[]>(
+        const [projectRows] = await foodieProjectsConnection.query(
             'SELECT DominioFG FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
@@ -93,7 +93,7 @@ export async function POST(
             database: 'BDFoodieProjects'
         });
 
-        const [projectRows] = await foodieProjectsConnection.query<RowDataPacket[]>(
+        const [projectRows] = await foodieProjectsConnection.query(
             'SELECT DominioFG FROM tblProyectos WHERE IdProyecto = ?',
             [projectIdInt]
         );
@@ -116,13 +116,13 @@ export async function POST(
 
         // Update employee access
         if (hashedPassword) {
-            await projectConnection.query<ResultSetHeader>(
+            await projectConnection.query(
                 'UPDATE tblEmpleados SET Login = ?, Passwd = ?, EsAdministrador = ?, FechaAct = Now() WHERE IdEmpleado = ?',
                 [fullLogin, hashedPassword, isAdmin ? 1 : 0, id]
             );
         } else {
             // Update without changing password
-            await projectConnection.query<ResultSetHeader>(
+            await projectConnection.query(
                 'UPDATE tblEmpleados SET Login = ?, EsAdministrador = ?, FechaAct = Now() WHERE IdEmpleado = ?',
                 [fullLogin, isAdmin ? 1 : 0, id]
             );

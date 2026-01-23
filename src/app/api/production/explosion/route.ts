@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
                 B.Producto
         `;
 
-        const [rows] = await connection.query<RowDataPacket[]>(query, [day, month, year, branchId]);
+        const [rows] = await connection.query(query, [day, month, year, branchId]);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -66,3 +66,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

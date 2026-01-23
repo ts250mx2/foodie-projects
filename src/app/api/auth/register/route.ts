@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         const verificationToken = crypto.randomBytes(32).toString('hex');
 
         // Insert into tblUsuarios
-        const [userResult] = await connection.query<ResultSetHeader>(
+        const [userResult] = await connection.query(
             'INSERT INTO tblUsuarios (Usuario, CorreoElectronico, Telefono, passwd, FechaAct, Status) VALUES (?, ?, ?, ?, Now(), 0)',
             [nombreUsuario, correoElectronico, telefono, hashedPassword]
         );
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         const idUsuario = userResult.insertId;
 
         // Insert into tblProyectos
-        const [projectResult] = await connection.query<ResultSetHeader>(
+        const [projectResult] = await connection.query(
             'INSERT INTO tblProyectos (Proyecto, Pais, Idioma, FechaAct, Status) VALUES (?, ?, ?, Now(), 0)',
             [nombreProyecto, pais, idioma]
         );
@@ -127,3 +127,4 @@ export async function POST(request: NextRequest) {
         connection.release();
     }
 }
+

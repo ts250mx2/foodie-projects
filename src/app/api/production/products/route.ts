@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             ORDER BY A.Producto
         `;
 
-        const [rows] = await connection.query<RowDataPacket[]>(query);
+        const [rows] = await connection.query(query);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -45,3 +45,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

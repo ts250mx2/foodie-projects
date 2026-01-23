@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
         query += ` ORDER BY h.Fecha ASC, h.HoraInicio ASC `;
 
-        const [rows] = await connection.query<RowDataPacket[]>(query, queryParams);
+        const [rows] = await connection.query(query, queryParams);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Check if schedule already exists for this employee and date
-        const [existing] = await connection.query<RowDataPacket[]>(
+        const [existing] = await connection.query(
             'SELECT IdHorarioEmpleado FROM tblHorariosEmpleados WHERE IdEmpleado = ? AND Fecha = ? AND Status = 0',
             [employeeId, date]
         );
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
             });
         } else {
             // Insert new
-            const [result] = await connection.query<ResultSetHeader>(
+            const [result] = await connection.query(
                 `INSERT INTO tblHorariosEmpleados (IdEmpleado, Fecha, HoraInicio, HoraFin, HoraInicioDescanso, HoraFinDescanso, FechaAct, Status) 
                  VALUES (?, ?, ?, ?, ?, ?, Now(), 0)`,
                 [employeeId, date, startTime || null, endTime || null, breakStartTime || null, breakEndTime || null]
@@ -107,3 +107,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

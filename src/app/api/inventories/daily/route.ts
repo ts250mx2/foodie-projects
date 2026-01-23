@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get inventory entries for the selected day with product and category information
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT I.IdProducto, I.Cantidad, I.Precio, I.FechaInventario, I.Dia, I.Mes, I.Anio, I.IdSucursal,
                     P.Codigo, P.Producto, PR.Presentacion, P.IdCategoria,
                     C.Categoria,
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Use REPLACE INTO to insert or update
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `REPLACE INTO tblInventarios (IdProducto, Dia, Mes, Anio, IdSucursal, FechaInventario, Precio, Cantidad, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
             [productId, day, monthNum, year, branchId, inventoryDate, price, quantity]
@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest) {
         try {
             // Update all products in batch
             for (const update of updates) {
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `UPDATE tblInventarios 
                      SET Cantidad = ?, FechaAct = NOW()
                      WHERE IdProducto = ? AND Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?`,
@@ -154,7 +154,7 @@ export async function DELETE(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Delete the inventory entry using composite primary key
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblInventarios WHERE IdProducto = ? AND Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?',
             [productId, day, month, year, branchId]
         );
@@ -170,3 +170,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

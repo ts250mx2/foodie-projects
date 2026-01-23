@@ -18,7 +18,7 @@ export async function PUT(
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblPerfilesPropinas SET PerfilPropina = ?, EsActivo = ?, FechaAct = Now() WHERE IdPerfilPropina = ?',
             [profileName, body.esActivo !== undefined ? body.esActivo : 1, id]
         );
@@ -49,7 +49,7 @@ export async function DELETE(
         connection = await getProjectConnection(parseInt(projectIdStr));
 
         // Soft delete: Status = 2
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblPerfilesPropinas SET Status = 2, FechaAct = Now() WHERE IdPerfilPropina = ?',
             [id]
         );

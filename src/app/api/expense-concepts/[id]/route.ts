@@ -15,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblConceptosGastos SET ConceptoGasto = ?, ReferenciaObligatoria = ?, IdCanalPago = ?, FechaAct = Now() WHERE IdConceptoGasto = ?',
             [concept, requiredReference || 0, paymentChannelId || null, id]
         );
@@ -44,7 +44,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         connection = await getProjectConnection(projectId);
 
         // Soft delete: Status = 2 means deleted
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblConceptosGastos SET Status = 2, FechaAct = Now() WHERE IdConceptoGasto = ?',
             [id]
         );

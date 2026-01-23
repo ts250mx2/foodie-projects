@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         const productId = parseInt(productIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT 
                 A.IdProductoPadre,
                 A.IdProductoHijo,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         try {
             // Use REPLACE INTO for upsert logic
             for (const kit of kits) {
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `REPLACE INTO tblProductosKits (IdProductoPadre, IdProductoHijo, Cantidad, FechaAct)
                      VALUES (?, ?, ?, NOW())`,
                     [productId, kit.idProductoHijo, kit.cantidad]
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblProductosKits WHERE IdProductoPadre = ? AND IdProductoHijo = ?',
             [productId, childId]
         );
@@ -131,3 +131,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

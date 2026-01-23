@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get daily purchases with provider and payment channel info
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT A.IdCompra, A.FechaCompra, B.Proveedor, A.NumeroFactura, 
                     C.CanalPago, A.Total, A.Status, A.Referencia, A.PagarA, A.IdProveedor, A.IdCanalPago
              FROM tblCompras A
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         const purchaseDate = `${year}-${monthNum.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
         // Insert new purchase
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblCompras (IdSucursal, IdProveedor, NumeroFactura, IdCanalPago, Referencia, PagarA, Total, FechaCompra, Status, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
             [branchId, providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseDate]
@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Update purchase
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `UPDATE tblCompras 
              SET IdProveedor = ?, NumeroFactura = ?, IdCanalPago = ?, Referencia = ?, PagarA = ?, Total = ?, FechaAct = NOW()
              WHERE IdCompra = ?`,
@@ -130,7 +130,7 @@ export async function DELETE(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Soft delete by setting Status = 2
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'UPDATE tblCompras SET Status = 2, FechaAct = NOW() WHERE IdCompra = ?',
             [purchaseId]
         );
@@ -146,3 +146,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

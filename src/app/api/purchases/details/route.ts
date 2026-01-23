@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get purchase details with product information
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT D.IdDetalleCompra, D.IdProducto, D.Cantidad, D.Costo, D.Status,
                     P.Codigo, P.Producto, PR.Presentacion,
                     (D.Cantidad * D.Costo) as Total
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Insert new purchase detail
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblDetalleCompras (IdCompra, IdProducto, Cantidad, Costo, Status, FechaAct)
              VALUES (?, ?, ?, ?, 0, NOW())`,
             [purchaseId, productId, quantity, cost]
@@ -89,7 +89,7 @@ export async function DELETE(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Delete purchase detail
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblDetalleCompras WHERE IdDetalleCompra = ?',
             [detailId]
         );
@@ -105,3 +105,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

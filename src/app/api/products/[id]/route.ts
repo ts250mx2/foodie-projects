@@ -23,7 +23,7 @@ export async function PUT(
         // const isRawMaterial = idTipoProducto === 0;
         // const categoryUpdate = isRawMaterial ? 'IdCategoriaRecetario = ?' : 'IdCategoria = ?';
 
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, RutaFoto = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, FechaAct = Now() WHERE IdProducto = ?`,
             [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, rutaFoto || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, id]
         );
@@ -62,7 +62,7 @@ export async function DELETE(
         connection = await getProjectConnection(projectId);
 
         // Soft delete: Set Status = 2
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             'UPDATE tblProductos SET Status = 2, FechaAct = Now() WHERE IdProducto = ?',
             [id]
         );

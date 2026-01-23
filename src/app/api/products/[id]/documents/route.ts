@@ -33,7 +33,7 @@ export async function GET(
             )
         `);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT IdProductoDocumento, IdProducto, Descripcion, RutaArchivo, 
                     CAST(ArchivoDocumento AS CHAR) as ArchivoDocumento,
                     NombreArchivo, FechaAct
@@ -80,7 +80,7 @@ export async function POST(
             )
         `);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `INSERT INTO tblProductosDocumentos (IdProducto, Descripcion, RutaArchivo, ArchivoDocumento, NombreArchivo, FechaAct)
              VALUES (?, ?, ?, ?, ?, NOW())`,
             [
@@ -121,7 +121,7 @@ export async function PUT(
         const productId = parseInt(resolvedParams.id);
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `UPDATE tblProductosDocumentos 
              SET Descripcion = COALESCE(?, Descripcion),
                  RutaArchivo = COALESCE(?, RutaArchivo),
@@ -170,7 +170,7 @@ export async function DELETE(
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblProductosDocumentos WHERE IdProductoDocumento = ?',
             [documentId]
         );

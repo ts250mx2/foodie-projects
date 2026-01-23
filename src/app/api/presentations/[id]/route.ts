@@ -18,7 +18,7 @@ export async function PUT(
 
         connection = await getProjectConnection(projectId);
 
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             'UPDATE tblPresentaciones SET Presentacion = ?, FechaAct = Now() WHERE IdPresentacion = ?',
             [presentation, id]
         );
@@ -57,7 +57,7 @@ export async function DELETE(
         connection = await getProjectConnection(projectId);
 
         // Soft delete: Set Status = 1
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             'UPDATE tblPresentaciones SET Status = 1, FechaAct = Now() WHERE IdPresentacion = ?',
             [id]
         );

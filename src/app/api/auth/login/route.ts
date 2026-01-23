@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
         // Query user by email OR phone
         // Query user and project details by email OR phone
-        const [rows] = await pool.query<UsuarioRow[]>(
+        const [rows] = await pool.query(
             `SELECT 
                 u.IdUsuario, 
                 u.Usuario, 
@@ -117,3 +117,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+

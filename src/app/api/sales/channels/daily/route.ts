@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT v.*, t.Turno, c.CanalVenta, c.Comision
              FROM tblVentasCanalesVenta v
              JOIN tblTurnos t ON v.IdTurno = t.IdTurno
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(parseInt(projectId));
 
         // Use REPLACE INTO or similar? Standard is PK based check.
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `INSERT INTO tblVentasCanalesVenta (Dia, Mes, Anio, IdTurno, IdCanalVenta, IdSucursal, Venta, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE Venta = VALUES(Venta), FechaAct = Now()`,
@@ -83,7 +83,7 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `DELETE FROM tblVentasCanalesVenta
              WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdTurno = ? AND IdCanalVenta = ? AND IdSucursal = ?`,
             [dayStr, monthStr, yearStr, shiftIdStr, channelIdStr, branchIdStr]
@@ -97,3 +97,4 @@ export async function DELETE(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

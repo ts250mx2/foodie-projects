@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         connection = await getFoodieProjectsConnection();
 
         // Fetch project colors
-        const [rows] = await connection.query<any[]>(
+        const [rows] = await connection.query(
             'SELECT ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
@@ -47,3 +47,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

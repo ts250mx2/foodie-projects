@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
         // Fetch project title and logo
         // Changed NombreArchivoLogo to Logo64
-        const [rows] = await connection.query<any[]>(
+        const [rows] = await connection.query(
             'SELECT Titulo, Logo64 FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
@@ -50,3 +50,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

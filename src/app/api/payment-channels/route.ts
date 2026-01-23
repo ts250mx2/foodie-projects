@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>('SELECT * FROM tblCanalesPago WHERE Status = 0 ORDER BY CanalPago ASC');
+        const [rows] = await connection.query('SELECT * FROM tblCanalesPago WHERE Status = 0 ORDER BY CanalPago ASC');
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now()
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             'INSERT INTO tblCanalesPago (CanalPago, Status, FechaAct) VALUES (?, 0, Now())',
             [channelName]
         );
@@ -56,3 +56,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

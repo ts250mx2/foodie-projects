@@ -34,7 +34,7 @@ export async function GET(
             )
         `);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
                     CAST(ArchivoDocumento AS CHAR) as ArchivoDocumento, 
                     NombreArchivo, FechaAct
@@ -88,7 +88,7 @@ export async function POST(
 
         try {
             // Delete all existing instructions for this product
-            await connection.query<ResultSetHeader>(
+            await connection.query(
                 'DELETE FROM tblProductosInstrucciones WHERE IdProducto = ?',
                 [productId]
             );
@@ -96,7 +96,7 @@ export async function POST(
             // Insert new instructions with renumbered steps
             for (let i = 0; i < instructions.length; i++) {
                 const instruction = instructions[i];
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `INSERT INTO tblProductosInstrucciones (
                         IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
                         ArchivoDocumento, NombreArchivo, FechaAct
@@ -156,13 +156,13 @@ export async function DELETE(
 
         try {
             // Delete the specific step
-            await connection.query<ResultSetHeader>(
+            await connection.query(
                 'DELETE FROM tblProductosInstrucciones WHERE IdProducto = ? AND NumeroPaso = ?',
                 [productId, step]
             );
 
             // Renumber remaining steps
-            const [remainingSteps] = await connection.query<RowDataPacket[]>(
+            const [remainingSteps] = await connection.query(
                 `SELECT IdProducto, NumeroPaso, Instrucciones, RutaArchivo
                  FROM tblProductosInstrucciones
                  WHERE IdProducto = ?
@@ -171,14 +171,14 @@ export async function DELETE(
             );
 
             // Delete all and reinsert with new numbers
-            await connection.query<ResultSetHeader>(
+            await connection.query(
                 'DELETE FROM tblProductosInstrucciones WHERE IdProducto = ?',
                 [productId]
             );
 
             for (let i = 0; i < remainingSteps.length; i++) {
                 const step = remainingSteps[i];
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `INSERT INTO tblProductosInstrucciones (
                         IdProducto, NumeroPaso, Instrucciones, RutaArchivo, 
                         ArchivoDocumento, NombreArchivo, FechaAct

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT A.IdProducto, A.Codigo, A.Producto, A.Precio, A.IVA, A.IdPresentacion, A.ConversionSimple, 
                     A.IdPresentacionConversion, A.PesoInicial, A.PesoFinal, A.ObservacionesMerma,
                     CR.CategoriaRecetario as Categoria, CR.IdCategoriaRecetario,
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest) {
                     fields.push('FechaAct = NOW()');
                     values.push(update.idProducto);
 
-                    await connection.query<ResultSetHeader>(
+                    await connection.query(
                         `UPDATE tblProductos SET ${fields.join(', ')} WHERE IdProducto = ?`,
                         values
                     );
@@ -116,3 +116,4 @@ export async function PUT(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             'SELECT * FROM tblPerfilesPropinas WHERE Status < 2 ORDER BY PerfilPropina ASC'
         );
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'INSERT INTO tblPerfilesPropinas (PerfilPropina, EsActivo, Status, FechaAct) VALUES (?, ?, 0, Now())',
             [profileName, body.esActivo !== undefined ? body.esActivo : 1]
         );
@@ -53,3 +53,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

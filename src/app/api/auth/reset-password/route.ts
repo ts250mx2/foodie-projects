@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
         // Verify token and expiry
         // Note: ResetPasswordExpires > NOW()
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             'SELECT IdUsuario FROM tblUsuarios WHERE ResetPasswordToken = ? AND ResetPasswordExpires > NOW()',
             [token]
         );
@@ -47,3 +47,4 @@ export async function POST(request: NextRequest) {
         connection.release();
     }
 }
+

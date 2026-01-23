@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT t.*, CASE WHEN t.IdPuesto = 0 THEN 'Default' ELSE p.Puesto END as PuestoNombre 
              FROM tblPerfilesPropinasIngresos t
              LEFT JOIN tblPuestos p ON t.IdPuesto = p.IdPuesto
@@ -53,7 +53,7 @@ export async function POST(
         connection = await getProjectConnection(parseInt(projectId));
 
         // Using REPLACE INTO for upsert logic (works because of composite PK on IdPerfilPropina, IdPuesto)
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `REPLACE INTO tblPerfilesPropinasIngresos (IdPerfilPropina, IdPuesto, Porcentaje, Monto, FechaAct) 
              VALUES (?, ?, ?, ?, Now())`,
             [id, idPuesto, porcentaje ?? 0, monto ?? 0]
@@ -85,7 +85,7 @@ export async function DELETE(
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblPerfilesPropinasIngresos WHERE IdPerfilPropina = ? AND IdPuesto = ?',
             [id, idPuesto]
         );

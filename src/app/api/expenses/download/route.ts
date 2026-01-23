@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Fetch file from database
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT ArchivoDocumento, NombreArchivo FROM tblGastos 
              WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
             [day, month, year, branchId, conceptId]
@@ -68,3 +68,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

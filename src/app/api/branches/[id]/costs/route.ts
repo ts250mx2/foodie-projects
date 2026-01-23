@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT * FROM tblSucursalesCostos 
              WHERE IdSucursal = ? 
              ORDER BY Anio DESC, Mes DESC`,
@@ -55,7 +55,7 @@ export async function POST(
         // The requirement says: "si guarda un mes y año que ya esta en la tabla que lo reemplace"
         // Since (IdSucursal, Mes, Anio) is the PK, REPLACE INTO works perfectly.
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `REPLACE INTO tblSucursalesCostos (IdSucursal, Mes, Anio, ObjetivoVentas, CostoMateriaPrima, CostoNomina, GastoOperativo, FechaAct) 
              VALUES (?, ?, ?, ?, ?, ?, ?, Now())`,
             [id, month, year, salesObjective, rawMaterialCost, payrollCost, operatingExpense]
@@ -95,7 +95,7 @@ export async function DELETE(
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblSucursalesCostos WHERE IdSucursal = ? AND Mes = ? AND Anio = ?',
             [id, month, year]
         );

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get inventory dates combining both tblInventarios and tblSucursalesInventarios
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT 
                 COALESCE(I.Dia, SI.Dia) as Dia,
                 COALESCE(I.Mes, SI.Mes) as Mes,
@@ -72,3 +72,4 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

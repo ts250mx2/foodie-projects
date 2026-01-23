@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         }
         query += ' ORDER BY Puesto ASC';
 
-        const [rows] = await connection.query<RowDataPacket[]>(query);
+        const [rows] = await connection.query(query);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Status = 0 (Active), FechaAct = Now(), TienePropina defaults to 0 if not provided
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             'INSERT INTO tblPuestos (Puesto, TienePropina, Status, FechaAct) VALUES (?, ?, 0, Now())',
             [position, hasTips ?? 0]
         );
@@ -64,3 +64,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

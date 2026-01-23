@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             'SELECT * FROM tblPerfilesPropinasEgresos WHERE IdPerfilPropina = ?',
             [id]
         );
@@ -49,7 +49,7 @@ export async function POST(
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'INSERT INTO tblPerfilesPropinasEgresos (IdPerfilPropina, Concepto, Porcentaje, FechaAct) VALUES (?, ?, ?, Now())',
             [id, concepto, porcentaje ?? 0]
         );
@@ -80,7 +80,7 @@ export async function DELETE(
 
         connection = await getProjectConnection(parseInt(projectIdStr));
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             'DELETE FROM tblPerfilesPropinasEgresos WHERE IdPerfilPropinaEgreso = ? AND IdPerfilPropina = ?',
             [idEgreso, id]
         );

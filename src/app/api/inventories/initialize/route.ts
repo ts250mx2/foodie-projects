@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Check if inventory already exists for this day
-        const [existing] = await connection.query<RowDataPacket[]>(
+        const [existing] = await connection.query(
             'SELECT COUNT(*) as count FROM tblInventarios WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?',
             [day, monthNum, year, branchId]
         );
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
         if (!alreadyExists) {
             // First time initialization - copy from previous inventory
-            const [previousDay] = await connection.query<RowDataPacket[]>(
+            const [previousDay] = await connection.query(
                 `SELECT DISTINCT Dia, Mes, Anio 
                  FROM tblInventarios 
                  WHERE IdSucursal = ? 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
             if (previousDay.length > 0) {
                 // Copy products from previous inventory with quantity = 0
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
                      SELECT IdProducto, ?, ?, ?, ?, ?, 0, Precio, NOW()
                      FROM tblInventarios
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
                 );
             } else {
                 // No previous inventory, initialize with all active products
-                await connection.query<ResultSetHeader>(
+                await connection.query(
                     `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
                      SELECT IdProducto, ?, ?, ?, ?, ?, 0, Precio, NOW()
                      FROM tblProductos
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
         // ALWAYS add any new products that aren't in this day's inventory
         // This runs whether it's the first time or subsequent opens
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
              SELECT P.IdProducto, ?, ?, ?, ?, ?, 0, P.Precio, NOW()
              FROM tblProductos P
@@ -83,3 +83,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

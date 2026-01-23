@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         const productId = parseInt(productIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT 
                 pk.IdProductoPadre,
                 pk.IdProductoHijo,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
         // Use INSERT ... ON DUPLICATE KEY UPDATE to replace if exists
         // This requires a UNIQUE constraint on (IdProductoPadre, IdProductoHijo)
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblProductosKits (IdProductoPadre, IdProductoHijo, Cantidad, FechaAct) 
              VALUES (?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE 
@@ -79,3 +79,4 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+

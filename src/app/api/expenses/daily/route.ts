@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Get daily expenses with concept names and payment channel names
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT g.*, c.ConceptoGasto, cp.CanalPago
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Insert or update expense record - REPLACE instead of accumulate
-        const [result] = await connection.query<ResultSetHeader>(
+        const [result] = await connection.query(
             `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, Gasto, Referencia, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())
              ON DUPLICATE KEY UPDATE Gasto = ?, Referencia = ?, IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()`,
@@ -115,7 +115,7 @@ export async function DELETE(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Delete expense record
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `DELETE FROM tblGastos 
              WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
             [day, monthNum, year, branchId, conceptId]
@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest) {
         }
 
         // Update expense record with file path
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `UPDATE tblGastos 
              SET ArchivoDocumento = ?, NombreArchivo = ?, FechaAct = Now()
              WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
@@ -178,4 +178,5 @@ export async function PUT(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+
 

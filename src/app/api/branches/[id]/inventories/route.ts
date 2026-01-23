@@ -19,7 +19,7 @@ export async function GET(
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query<RowDataPacket[]>(
+        const [rows] = await connection.query(
             `SELECT * FROM tblSucursalesInventarios 
              WHERE IdSucursal = ? 
              ORDER BY FechaInventario DESC`,
@@ -56,7 +56,7 @@ export async function POST(
 
         connection = await getProjectConnection(projectId);
 
-        await connection.query<ResultSetHeader>(
+        await connection.query(
             `REPLACE INTO tblSucursalesInventarios (IdSucursal, Dia, Mes, Anio, FechaInventario, FechaAct) 
              VALUES (?, ?, ?, ?, ?, Now())`,
             [id, dia, mes, anio, date]
