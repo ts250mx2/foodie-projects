@@ -114,8 +114,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '🍳',
             items: [
                 { key: 'rawMaterials', href: '/dashboard/production/raw-materials' },
-                { key: 'dishes', href: '/dashboard/production/dishes' },
                 { key: 'subRecipes', href: '/dashboard/production/sub-recipes' },
+                { key: 'dishes', href: '/dashboard/production/dishes' },
                 { key: 'productionCapture', href: '/dashboard/production/capture' }
             ]
         }
