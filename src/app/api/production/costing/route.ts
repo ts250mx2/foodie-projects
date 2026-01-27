@@ -19,30 +19,20 @@ export async function GET(request: NextRequest) {
 
         const [rows] = await connection.query(
             `SELECT 
-                A.IdProductoPadre,
-                A.IdProductoHijo,
-                A.Cantidad,
-                B.Codigo,
-                B.Producto,
-                B.Precio,
-                B.PesoFinal,
-                B.ConversionSimple,
-                C.IdCategoria,
-                D.Presentacion, -- Standard Presentation
-                PC.Presentacion AS PresentacionInventario, -- User Requested Field (via IdPresentacionConversion)
-                CR.CategoriaRecetario,
-                CR.IdCategoriaRecetario,
-                -- Calculated Fields requested by User
-                (B.PesoFinal * B.Precio / B.ConversionSimple) AS PrecioProcesado,
-                (A.Cantidad * (B.PesoFinal * B.Precio / B.ConversionSimple)) AS Total
-             FROM tblProductosKits A
-             INNER JOIN tblProductos B ON A.IdProductoHijo = B.IdProducto
-             INNER JOIN tblCategorias C ON B.IdCategoria = C.IdCategoria
-             INNER JOIN tblPresentaciones D ON B.IdPresentacion = D.IdPresentacion
-             LEFT JOIN tblPresentaciones PC ON B.IdPresentacionConversion = PC.IdPresentacion
-             LEFT JOIN tblCategoriasRecetario CR ON B.IdCategoriaRecetario = CR.IdCategoriaRecetario
-             WHERE A.IdProductoPadre = ?
-             ORDER BY CR.CategoriaRecetario, B.Producto`,
+                B.IdProductoPadre,
+                A.IdProducto AS IdProductoHijo, 
+                A.Producto, 
+                A.Codigo,
+                B.Cantidad, 
+                A.PresentacionConversion AS PresentacionInventario, 
+                A.Costo, 
+                (B.Cantidad * A.Costo) AS Total,
+                A.CategoriaRecetario,
+                A.IdCategoriaRecetario
+            FROM vlProductos A 
+            INNER JOIN tblProductosKits B ON A.IdProducto = B.IdProductoHijo 
+            WHERE B.IdProductoPadre = ? 
+            ORDER BY A.IdCategoriaRecetario, A.Producto`,
             [productId]
         );
 

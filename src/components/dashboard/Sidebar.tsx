@@ -116,6 +116,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'rawMaterials', href: '/dashboard/production/raw-materials' },
                 { key: 'subRecipes', href: '/dashboard/production/sub-recipes' },
                 { key: 'dishes', href: '/dashboard/production/dishes' },
+                { key: 'menuSections', href: '/dashboard/production/menu-sections' },
                 { key: 'productionCapture', href: '/dashboard/production/capture' }
             ]
         }

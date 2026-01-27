@@ -18,7 +18,9 @@ export interface SearchProduct {
     ConversionSimple?: number;
     IdPresentacionConversion?: number;
     PresentacionConversion?: string;
-    // Add other fields if necessary
+    Costo: number;
+    ArchivoImagen?: string;
+    NombreArchivo?: string;
 }
 
 interface Category {

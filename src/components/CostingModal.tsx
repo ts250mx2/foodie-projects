@@ -14,19 +14,13 @@ interface KitItem {
     Cantidad: number;
     Codigo: string;
     Producto: string;
-    Precio: number;
-    Categoria: string;
-    IdCategoria: number;
-    Presentacion: string;
+    Costo: number;
     IdCategoriaRecetario?: number;
     CategoriaRecetario?: string;
-    // New fields
-    PesoFinal: number;
-    ConversionSimple: number;
-    PresentacionInventario: string; // From API Alias
-    // Calculated fields from API response (optional as they are recalculated on edit)
-    PrecioProcesado?: number;
+    PresentacionInventario: string;
     Total?: number;
+    ArchivoImagen?: string;
+    NombreArchivo?: string;
 }
 
 interface Product {
@@ -41,12 +35,16 @@ interface Product {
     Precio: number;
     IVA: number;
     RutaFoto?: string;
+    ArchivoImagen?: string;
+    NombreArchivo?: string;
     IdTipoProducto?: number;
     ConversionSimple?: number;
     IdPresentacionConversion?: number;
     PesoFinal?: number; // Used for Yield (Rendimiento) storage
     PesoInicial?: number;
     ObservacionesMerma?: string;
+    IdSeccionMenu?: number;
+    PorcentajeCostoIdeal?: number;
     Status?: number;
 }
 
@@ -63,6 +61,11 @@ interface RecipeCategory {
 interface Presentation {
     IdPresentacion: number;
     Presentacion: string;
+}
+
+interface MenuSection {
+    IdSeccionMenu: number;
+    SeccionMenu: string;
 }
 
 interface CostingModalProps {
@@ -98,11 +101,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(initialProduct.Precio || 0),
                 iva: (initialProduct.IVA || 0).toString()
             });
-            setPhotoPreview(initialProduct.RutaFoto || null);
+            setPhotoPreview(initialProduct.ArchivoImagen || null);
+            setSelectedPhotoBase64(initialProduct.ArchivoImagen || null);
             // Initialize sub-recipe state
             setPesoFinal(initialProduct.PesoFinal || 1);
             setPesoInicial(productType === 2 ? 1 : (initialProduct.PesoInicial || 1));
             setIdCategoriaRecetario(initialProduct.IdCategoriaRecetario?.toString() || '');
+            setIdSeccionMenu(initialProduct.IdSeccionMenu?.toString() || '');
+            setPorcentajeCostoIdeal(initialProduct.PorcentajeCostoIdeal?.toString() || '');
             setSimpleConversion(initialProduct.ConversionSimple || 1);
             setIdPresentacionConversion(initialProduct.IdPresentacionConversion || null);
         } else {
@@ -128,6 +134,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             setPhotoPreview(null);
             setPesoFinal(1); // Default to 1
             setPesoInicial(1); // Default to 1
+            setIdSeccionMenu('');
+            setPorcentajeCostoIdeal('');
             setSimpleConversion(1); // Default to 1
             setIdPresentacionConversion(null);
         }
@@ -145,6 +153,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [pesoFinal, setPesoFinal] = useState<number>(0);
     const [pesoInicial, setPesoInicial] = useState<number>(0);
     const [idCategoriaRecetario, setIdCategoriaRecetario] = useState<string>('');
+    const [idSeccionMenu, setIdSeccionMenu] = useState<string>('');
+    const [porcentajeCostoIdeal, setPorcentajeCostoIdeal] = useState<string>('');
     const [simpleConversion, setSimpleConversion] = useState<number>(0);
     const [idPresentacionConversion, setIdPresentacionConversion] = useState<number | null>(null);
 
@@ -152,6 +162,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [categories, setCategories] = useState<Category[]>([]);
     const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
     const [presentations, setPresentations] = useState<Presentation[]>([]);
+    const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
     const [formData, setFormData] = useState({
         producto: product.Producto,
         codigo: product.Codigo || '',
@@ -161,7 +172,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         iva: product.IVA.toString()
     });
     const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(product.RutaFoto || null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(product.ArchivoImagen || null);
+    const [selectedPhotoBase64, setSelectedPhotoBase64] = useState<string | null>(product.ArchivoImagen || null);
 
     // Recursive Editing State
     const [subEditingProduct, setSubEditingProduct] = useState<Product | null>(null);
@@ -171,6 +183,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isCreatingPresentation, setIsCreatingPresentation] = useState(false);
     const [newPresentationName, setNewPresentationName] = useState('');
+    const [isCreatingMenuSection, setIsCreatingMenuSection] = useState(false);
+    const [newMenuSectionName, setNewMenuSectionName] = useState('');
 
     // Add Material Modal Integration
     const [addMaterialRefreshKey, setAddMaterialRefreshKey] = useState(0);
@@ -209,6 +223,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             fetchCategories();
             fetchRecipeCategories();
             fetchPresentations();
+            fetchMenuSections();
             fetchAllProducts();
             if (product.IdProducto !== 0) {
                 fetchKitItems();
@@ -238,6 +253,16 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             if (data.success) setPresentations(data.data);
         } catch (error) {
             console.error('Error fetching presentations:', error);
+        }
+    };
+
+    const fetchMenuSections = async () => {
+        try {
+            const response = await fetch(`/api/production/menu-sections?projectId=${projectId}`);
+            const data = await response.json();
+            if (data.success) setMenuSections(data.data);
+        } catch (error) {
+            console.error('Error fetching menu sections:', error);
         }
     };
 
@@ -309,38 +334,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     };
 
     const handleAddProductToKit = (selectedProduct: SearchProduct) => {
-        const newItem: KitItem = {
-            IdProductoPadre: product.IdProducto,
-            IdProductoHijo: selectedProduct.IdProducto,
-            Cantidad: 1,
-            Codigo: selectedProduct.Codigo,
-            Producto: selectedProduct.Producto,
-            Precio: selectedProduct.Precio,
-            Categoria: selectedProduct.Categoria || '',
-            IdCategoria: selectedProduct.IdCategoria || 0,
-            Presentacion: selectedProduct.Presentacion || '',
-            IdCategoriaRecetario: selectedProduct.IdCategoriaRecetario,
-            CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Módulo de Recetario',
-            // New fields mapping
-            PesoFinal: selectedProduct.PesoFinal || 0, // Assuming SearchProduct has PesoFinal 
-            ConversionSimple: selectedProduct.ConversionSimple || 1,
-            PresentacionInventario: selectedProduct.PresentacionConversion || selectedProduct.Presentacion || '' // Map from SearchProduct's PresentacionConversion
-        };
-        // Clean up the object construction
         const finalItem: KitItem = {
             IdProductoPadre: product.IdProducto,
             IdProductoHijo: selectedProduct.IdProducto,
             Cantidad: 1,
             Codigo: selectedProduct.Codigo,
             Producto: selectedProduct.Producto,
-            Precio: selectedProduct.Precio,
-            Categoria: selectedProduct.Categoria || '',
-            IdCategoria: selectedProduct.IdCategoria || 0,
-            Presentacion: selectedProduct.Presentacion || '',
+            Costo: selectedProduct.Costo || selectedProduct.Precio || 0,
             IdCategoriaRecetario: selectedProduct.IdCategoriaRecetario,
             CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Módulo de Recetario',
-            PesoFinal: selectedProduct.PesoFinal || 0,
-            ConversionSimple: selectedProduct.ConversionSimple || 1,
             PresentacionInventario: selectedProduct.PresentacionConversion || selectedProduct.Presentacion || ''
         };
 
@@ -467,11 +469,16 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         pesoInicial: pesoInicial,
                         idCategoriaRecetario: idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario),
                         idTipoProducto: productType, // Ensure backend knows the type
+                        archivoImagen: selectedPhotoBase64,
+                        nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
 
                         // Ensure required fields are present if formData is incomplete (fallback to product)
                         producto: formData.producto || product.Producto,
                         codigo: formData.codigo || product.Codigo,
-                        rutaFoto: product.RutaFoto
+                        rutaFoto: product.RutaFoto,
+                        // Dishes specific fields
+                        idSeccionMenu: idSeccionMenu === '' ? null : parseInt(idSeccionMenu),
+                        porcentajeCostoIdeal: porcentajeCostoIdeal === '' ? null : parseFloat(porcentajeCostoIdeal),
                     })
                 });
             }
@@ -541,6 +548,27 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     };
 
+    const handleCreateMenuSection = async () => {
+        if (!newMenuSectionName.trim()) return;
+        try {
+            const response = await fetch('/api/production/menu-sections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId, seccionMenu: newMenuSectionName })
+            });
+            const data = await response.json();
+            if (data.success) {
+                const newSection = { IdSeccionMenu: data.id, SeccionMenu: newMenuSectionName };
+                setMenuSections([...menuSections, newSection]);
+                setIdSeccionMenu(data.id.toString());
+                setIsCreatingMenuSection(false);
+                setNewMenuSectionName('');
+            }
+        } catch (error) {
+            console.error('Error creating menu section:', error);
+        }
+    };
+
     const handleSaveGeneral = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
@@ -566,7 +594,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     pesoFinal: pesoFinal,
                     pesoInicial: pesoInicial,
                     idCategoriaRecetario: idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario),
-                    rutaFoto: product.RutaFoto // Keep existing photo
+                    idSeccionMenu: idSeccionMenu === '' ? null : parseInt(idSeccionMenu),
+                    porcentajeCostoIdeal: porcentajeCostoIdeal === '' ? null : parseFloat(porcentajeCostoIdeal),
+                    rutaFoto: product.RutaFoto, // Keep existing photo
+                    archivoImagen: selectedPhotoBase64, // Include base64 image data
+                    nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                 })
             });
 
@@ -590,7 +622,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         PesoFinal: pesoFinal,
                         ConversionSimple: simpleConversion,
                         IdPresentacionConversion: idPresentacionConversion || undefined,
-                        IdCategoriaRecetario: idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario)
+                        IdCategoriaRecetario: idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario),
+                        IdSeccionMenu: idSeccionMenu === '' ? undefined : parseInt(idSeccionMenu),
+                        PorcentajeCostoIdeal: porcentajeCostoIdeal === '' ? undefined : parseFloat(porcentajeCostoIdeal),
+                        ArchivoImagen: selectedPhotoBase64 || undefined,
+                        NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                     };
                     setProduct(newProduct);
                     // Call parent update but don't close (shouldClose = false)
@@ -610,7 +646,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         PesoFinal: pesoFinal,
                         ConversionSimple: simpleConversion,
                         IdPresentacionConversion: idPresentacionConversion || undefined,
-                        IdCategoriaRecetario: idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario)
+                        IdCategoriaRecetario: idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario),
+                        IdSeccionMenu: idSeccionMenu === '' ? undefined : parseInt(idSeccionMenu),
+                        PorcentajeCostoIdeal: porcentajeCostoIdeal === '' ? undefined : parseFloat(porcentajeCostoIdeal),
+                        ArchivoImagen: selectedPhotoBase64 || undefined,
+                        NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                     };
                     setProduct(updatedProduct);
                     if (onProductUpdate) onProductUpdate(updatedProduct, false);
@@ -627,25 +667,6 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const handleSavePhoto = async () => {
         setIsSaving(true);
         try {
-            let photoPath = product.RutaFoto;
-
-            if (selectedPhoto) {
-                const formDataPhoto = new FormData();
-                formDataPhoto.append('file', selectedPhoto);
-                formDataPhoto.append('projectId', projectId.toString());
-                formDataPhoto.append('productId', product.IdProducto.toString());
-
-                const uploadResponse = await fetch('/api/upload/instructions', {
-                    method: 'POST',
-                    body: formDataPhoto
-                });
-
-                const uploadData = await uploadResponse.json();
-                if (uploadData.success) {
-                    photoPath = uploadData.path;
-                }
-            }
-
             // Update product with new photo path
             const response = await fetch(`/api/products/${product.IdProducto}`, {
                 method: 'PUT',
@@ -664,19 +685,41 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     pesoFinal: pesoFinal,
                     pesoInicial: pesoInicial,
                     idCategoriaRecetario: idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario),
-                    rutaFoto: photoPath
+                    rutaFoto: product.RutaFoto, // Keep existing photo
+                    archivoImagen: selectedPhotoBase64, // Send base64 string
+                    nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                 })
             });
 
             if (response.ok) {
                 alert('Foto actualizada exitosamente');
-                if (onProductUpdate) onProductUpdate(product, false);
+                const updatedProduct: Product = {
+                    ...product,
+                    ArchivoImagen: selectedPhotoBase64 || undefined,
+                    NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
+                };
+                setProduct(updatedProduct);
+                if (onProductUpdate) onProductUpdate(updatedProduct, false);
             }
         } catch (error) {
             console.error('Error saving photo:', error);
             alert('Error al guardar la foto');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedPhoto(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setPhotoPreview(base64String);
+                setSelectedPhotoBase64(base64String);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -694,16 +737,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     const totalCost = kitItems.reduce((sum, item) => {
         const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
-        const precioRaw = editedPrices[item.IdProductoHijo] ?? item.Precio;
-
-        const pesoFinal = item.PesoFinal || 0;
-        const conversion = item.ConversionSimple || 1;
-
-        const precioProcesado = conversion !== 0
-            ? (pesoFinal * precioRaw) / conversion
-            : 0;
-
-        return sum + (cantidad * precioProcesado);
+        const costoUnitario = item.Costo || 0;
+        return sum + (cantidad * costoUnitario);
     }, 0);
 
     const calculateCostPerUnit = () => {
@@ -730,14 +765,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             // Calculate Totals / Header Values from State
             const calculatedTotalCost = kitItems.reduce((sum, item) => {
                 const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
-                // Use edited price or item price
-                const precioRaw = editedPrices[item.IdProductoHijo] ?? item.Precio;
-
-                const pFinal = item.PesoFinal || 0;
-                const conv = item.ConversionSimple || 1;
-                const pProcesado = conv !== 0 ? (pFinal * precioRaw) / conv : 0;
-
-                return sum + (cantidad * pProcesado);
+                const costoUnitario = item.Costo || 0;
+                return sum + (cantidad * costoUnitario);
             }, 0);
 
             const rendimientoVal = pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0;
@@ -765,24 +794,21 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             // Map Kit Items to PDF format
             const pdfKitItems = kitItems.map(item => {
                 const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
-                const precioRaw = editedPrices[item.IdProductoHijo] ?? item.Precio;
-                const pFinal = item.PesoFinal || 0;
-                const conv = item.ConversionSimple || 1;
-                const pProcesado = conv !== 0 ? (pFinal * precioRaw) / conv : 0;
+                const costoUnitario = item.Costo || 0;
 
                 return {
                     Codigo: item.Codigo,
                     Producto: item.Producto,
-                    Categoria: item.Categoria,
+                    Categoria: '', // Not returned by API
                     CategoriaRecetario: item.CategoriaRecetario,
-                    Presentacion: item.Presentacion,
+                    Presentacion: '', // Not returned by API
                     Cantidad: cantidad,
-                    Precio: precioRaw,
+                    Precio: costoUnitario, // Alias for PDF compatibility
                     PresentacionInventario: item.PresentacionInventario,
-                    PesoFinal: pFinal,
-                    ConversionSimple: conv,
-                    PrecioProcesado: pProcesado,
-                    Total: cantidad * pProcesado
+                    PesoFinal: 0, // Not returned by API
+                    ConversionSimple: 0, // Not returned by API
+                    PrecioProcesado: costoUnitario,
+                    Total: cantidad * costoUnitario
                 };
             });
 
@@ -816,7 +842,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     return (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 ${isOpen ? '' : 'hidden'}`}>
-            <div className="bg-white w-[90vw] h-[90vh] rounded-lg shadow-lg flex flex-col">
+            <div className="bg-white w-[70vw] h-[85vh] rounded-lg shadow-lg flex flex-col">
                 {/* Header with Info Boxes */}
                 <div className="bg-orange-500 text-white px-6 py-4">
                     <div className="flex justify-between items-start gap-4">
@@ -998,162 +1024,230 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto flex flex-col p-6" >
                     {activeTab === 'general' && (
-                        <form onSubmit={handleSaveGeneral} className="max-w-2xl mx-auto w-full space-y-4">
-                            <Input
-                                label="Nombre del Producto"
-                                value={formData.producto}
-                                onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label="Código"
-                                value={formData.codigo}
-                                onChange={(e) => setFormData({ ...formData, codigo: e.target.value.toUpperCase() })}
-                                required
-                            />
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                                <div className="flex gap-2">
-                                    {isCreatingCategory ? (
-                                        <>
-                                            <input
-                                                type="text"
-                                                value={newCategoryName}
-                                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none"
-                                                placeholder="Nueva Categoría..."
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); }
-                                                    if (e.key === 'Escape') setIsCreatingCategory(false);
-                                                }}
-                                            />
-                                            <button type="button" onClick={handleCreateCategory} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾</button>
-                                            <button type="button" onClick={() => setIsCreatingCategory(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">✕</button>
-                                        </>
-                                    ) : (
-                                        <>
+                        <form onSubmit={handleSaveGeneral} className="max-w-4xl mx-auto w-full space-y-6">
+                            {/* Row 1: Nombre y Código */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Nombre del Producto"
+                                    value={formData.producto}
+                                    onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
+                                    required
+                                />
+                                <Input
+                                    label="Código"
+                                    value={formData.codigo}
+                                    onChange={(e) => setFormData({ ...formData, codigo: e.target.value.toUpperCase() })}
+                                    required
+                                />
+                            </div>
+
+                            {/* Row 2: Categoría, Presentación y Modulo de Recetario (OR Seccion de Menu for Dishes) */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[72px]">
+                                {productType === 1 ? (
+                                    <>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Sección de Menú</label>
+                                            <div className="flex gap-2 h-full">
+                                                {isCreatingMenuSection ? (
+                                                    <div className="flex gap-2 w-full h-[38px]">
+                                                        <input
+                                                            type="text"
+                                                            value={newMenuSectionName}
+                                                            onChange={(e) => setNewMenuSectionName(e.target.value)}
+                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
+                                                            placeholder="Nueva Sección..."
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') { e.preventDefault(); handleCreateMenuSection(); }
+                                                                if (e.key === 'Escape') setIsCreatingMenuSection(false);
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={handleCreateMenuSection} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
+                                                        <button type="button" onClick={() => setIsCreatingMenuSection(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <select
+                                                        value={idSeccionMenu}
+                                                        onChange={(e) => {
+                                                            if (e.target.value === 'NEW') {
+                                                                setIsCreatingMenuSection(true);
+                                                                setNewMenuSectionName('');
+                                                            } else {
+                                                                setIdSeccionMenu(e.target.value);
+                                                            }
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        {menuSections.map(sec => (
+                                                            <option key={sec.IdSeccionMenu} value={sec.IdSeccionMenu}>{sec.SeccionMenu}</option>
+                                                        ))}
+                                                        <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Porcentaje Costo Ideal</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={porcentajeCostoIdeal}
+                                                    onChange={(e) => setPorcentajeCostoIdeal(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] pr-8"
+                                                    placeholder="0.00"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                            <div className="flex gap-2 h-full">
+                                                {isCreatingCategory ? (
+                                                    <div className="flex gap-2 w-full h-[38px]">
+                                                        <input
+                                                            type="text"
+                                                            value={newCategoryName}
+                                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
+                                                            placeholder="Nueva Categoría..."
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); }
+                                                                if (e.key === 'Escape') setIsCreatingCategory(false);
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={handleCreateCategory} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
+                                                        <button type="button" onClick={() => setIsCreatingCategory(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <select
+                                                        value={formData.idCategoria}
+                                                        onChange={(e) => {
+                                                            if (e.target.value === 'NEW') {
+                                                                setIsCreatingCategory(true);
+                                                                setNewCategoryName('');
+                                                            } else {
+                                                                setFormData({ ...formData, idCategoria: e.target.value });
+                                                            }
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                        required
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        {categories.map(cat => (
+                                                            <option key={cat.IdCategoria} value={cat.IdCategoria}>{cat.Categoria}</option>
+                                                        ))}
+                                                        <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Presentación</label>
+                                            <div className="flex gap-2 h-full">
+                                                {isCreatingPresentation ? (
+                                                    <div className="flex gap-2 w-full h-[38px]">
+                                                        <input
+                                                            type="text"
+                                                            value={newPresentationName}
+                                                            onChange={(e) => setNewPresentationName(e.target.value)}
+                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
+                                                            placeholder="Nueva Presentación..."
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') { e.preventDefault(); handleCreatePresentation(); }
+                                                                if (e.key === 'Escape') setIsCreatingPresentation(false);
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={handleCreatePresentation} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
+                                                        <button type="button" onClick={() => setIsCreatingPresentation(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <select
+                                                        value={formData.idPresentacion}
+                                                        onChange={(e) => {
+                                                            if (e.target.value === 'NEW') {
+                                                                setIsCreatingPresentation(true);
+                                                                setNewPresentationName('');
+                                                            } else {
+                                                                setFormData({ ...formData, idPresentacion: e.target.value });
+                                                            }
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                        required
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        {presentations.map(pres => (
+                                                            <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
+                                                        ))}
+                                                        <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
                                             <select
-                                                value={formData.idCategoria}
-                                                onChange={(e) => setFormData({ ...formData, idCategoria: e.target.value })}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                                                required
+                                                value={idCategoriaRecetario}
+                                                onChange={(e) => setIdCategoriaRecetario(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
                                             >
                                                 <option value="">Seleccionar...</option>
-                                                {categories.map(cat => (
-                                                    <option key={cat.IdCategoria} value={cat.IdCategoria}>{cat.Categoria}</option>
+                                                <option value="0">Sin Módulo de Recetario</option>
+                                                {recipeCategories.map(cat => (
+                                                    <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
                                                 ))}
                                             </select>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setIsCreatingCategory(true); setNewCategoryName(''); }}
-                                                className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm"
-                                                title="Crear Nueva Categoría"
-                                            >
-                                                +
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Presentación</label>
-                                <div className="flex gap-2">
-                                    {isCreatingPresentation ? (
-                                        <>
-                                            <input
-                                                type="text"
-                                                value={newPresentationName}
-                                                onChange={(e) => setNewPresentationName(e.target.value)}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none"
-                                                placeholder="Nueva Presentación..."
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') { e.preventDefault(); handleCreatePresentation(); }
-                                                    if (e.key === 'Escape') setIsCreatingPresentation(false);
-                                                }}
-                                            />
-                                            <button type="button" onClick={handleCreatePresentation} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">💾</button>
-                                            <button type="button" onClick={() => setIsCreatingPresentation(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">✕</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <select
-                                                value={formData.idPresentacion}
-                                                onChange={(e) => setFormData({ ...formData, idPresentacion: e.target.value })}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                                                required
-                                            >
-                                                <option value="">Seleccionar...</option>
-                                                {presentations.map(pres => (
-                                                    <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
-                                                ))}
-                                            </select>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setIsCreatingPresentation(true); setNewPresentationName(''); }}
-                                                className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm"
-                                                title="Crear Nueva Presentación"
-                                            >
-                                                +
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                            {productType === 0 && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
-                                    <select
-                                        value={idCategoriaRecetario}
-                                        onChange={(e) => setIdCategoriaRecetario(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                    >
-                                        <option value="">Seleccionar...</option>
-                                        <option value="0">Sin Módulo de Recetario</option>
-                                        {recipeCategories.map(cat => (
-                                            <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                            {productType !== 2 && (
-                                <>
-                                    <Input
-                                        label="Precio"
-                                        type="text"
-                                        value={formData.precio}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setFormData({ ...formData, precio: val });
-                                        }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            if (!isNaN(val)) {
-                                                setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                            }
-                                        }}
-                                        onFocus={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if (val === '0.00' || val === '0') {
-                                                setFormData({ ...formData, precio: '' });
-                                            } else {
+
+                            {/* Row 3: Precio e IVA */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {productType !== 2 && (
+                                    <>
+                                        <Input
+                                            label="Precio"
+                                            type="text"
+                                            value={formData.precio}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if ((val.match(/\./g) || []).length > 1) return;
                                                 setFormData({ ...formData, precio: val });
-                                            }
-                                        }}
-                                        required
-                                    />
-                                    <Input
-                                        label="IVA"
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.iva}
-                                        onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
-                                        required
-                                    />
-                                </>
-                            )}
+                                            }}
+                                            onBlur={(e) => {
+                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                if (!isNaN(val)) {
+                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                }
+                                            }}
+                                            onFocus={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if (val === '0.00' || val === '0') {
+                                                    setFormData({ ...formData, precio: '' });
+                                                } else {
+                                                    setFormData({ ...formData, precio: val });
+                                                }
+                                            }}
+                                            required
+                                        />
+                                        <Input
+                                            label="IVA"
+                                            type="number"
+                                            step="0.01"
+                                            value={formData.iva}
+                                            onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                                            required
+                                        />
+                                    </>
+                                )}
+                            </div>
                             <div className="flex justify-end pt-4">
                                 <Button type="submit" disabled={isSaving}>
                                     {isSaving ? 'Guardando...' : '💾 Guardar Cambios'}
@@ -1165,42 +1259,52 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                     {
                         activeTab === 'photo' && (
-                            <div className="max-w-2xl mx-auto w-full space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Foto del Producto
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                setSelectedPhoto(file);
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setPhotoPreview(reader.result as string);
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                    />
-                                    {photoPreview && (
-                                        <div className="mt-3">
-                                            <img
-                                                src={photoPreview}
-                                                alt="Vista previa"
-                                                className="w-full h-64 object-contain rounded-md border border-gray-300 bg-gray-50"
-                                            />
+                            <div className="flex flex-col items-center justify-center space-y-6 py-8">
+                                <div
+                                    onClick={() => document.getElementById('photo-upload')?.click()}
+                                    className="w-80 h-80 border-4 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all overflow-hidden relative group"
+                                >
+                                    {photoPreview ? (
+                                        <>
+                                            <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                <span className="text-white font-bold bg-orange-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center p-6">
+                                            <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">📸</div>
+                                            <p className="text-gray-500 font-medium">Click para seleccionar una foto</p>
+                                            <p className="text-gray-400 text-sm mt-2">Formatos: JPG, PNG, WEBP</p>
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex justify-end pt-4">
-                                    <Button onClick={handleSavePhoto} disabled={isSaving}>
-                                        {isSaving ? 'Guardando...' : '💾 Guardar Foto'}
-                                    </Button>
-                                </div>
+
+                                <input
+                                    type="file"
+                                    id="photo-upload"
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                    className="hidden"
+                                />
+
+                                {selectedPhoto && (
+                                    <div className="flex gap-4">
+                                        <Button onClick={handleSavePhoto} disabled={isSaving} className="bg-green-600 px-8 py-3 text-lg">
+                                            {isSaving ? 'Guardando...' : '💾 Guardar Foto'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setSelectedPhoto(null);
+                                                setPhotoPreview(product.ArchivoImagen || null);
+                                                setSelectedPhotoBase64(product.ArchivoImagen || null);
+                                            }}
+                                            className="bg-gray-500 px-8 py-3 text-lg"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         )
                     }
@@ -1342,41 +1446,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <div className="space-y-4">
                                                 {/* Fields Grid for Sub-recipes */}
                                                 <div className="grid grid-cols-4 gap-4">
-                                                    <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Unidad de Compra</label>
-                                                        <select
-                                                            value={formData.idPresentacion}
-                                                            onChange={(e) => setFormData({ ...formData, idPresentacion: e.target.value })}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                                        >
-                                                            <option value="">Seleccionar...</option>
-                                                            {presentations.filter(p => !p.Presentacion.includes('DEPRECATED')).map(pres => (
-                                                                <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    {/* Hide Price for Sub-recipes as requested */}
-                                                    <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Módulo de Recetario</label>
-                                                        <select
-                                                            value={idCategoriaRecetario}
-                                                            onChange={(e) => setIdCategoriaRecetario(e.target.value)}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                                        >
-                                                            <option value="">Seleccionar...</option>
-                                                            <option value="0">Sin Módulo de Recetario</option>
-                                                            {recipeCategories.map(cat => (
-                                                                <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
-                                                            ))}
-                                                        </select>
+                                                    <div className="flex flex-col bg-gray-50 p-1 px-2 rounded border border-gray-100">
+                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Costo Total</label>
+                                                        <span className="text-lg font-bold text-gray-900">
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}
+                                                        </span>
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Contenido</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Rendimiento (Peso Final)</label>
                                                         <input
                                                             type="number"
                                                             step="0.01"
-                                                            value={simpleConversion}
-                                                            onChange={(e) => setSimpleConversion(parseFloat(e.target.value) || 0)}
+                                                            value={pesoFinal}
+                                                            onChange={(e) => setPesoFinal(parseFloat(e.target.value) || 0)}
                                                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                                         />
                                                     </div>
@@ -1392,25 +1474,6 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 <option key={p.IdPresentacion} value={p.IdPresentacion}>{p.Presentacion}</option>
                                                             ))}
                                                         </select>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Peso Inicial</label>
-                                                        <input
-                                                            type="number"
-                                                            value={pesoInicial}
-                                                            disabled={true}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-gray-100 text-gray-500 outline-none"
-                                                        />
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Rendimiento (PesoFinal)</label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={pesoFinal}
-                                                            onChange={(e) => setPesoFinal(parseFloat(e.target.value) || 0)}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                                        />
                                                     </div>
                                                     <div className="flex flex-col bg-blue-50 p-1 px-2 rounded border border-blue-100">
                                                         <label className="text-xs font-bold text-blue-600 uppercase mb-1">Formula Costo/Unidad</label>
@@ -1430,9 +1493,6 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </Button>
 
                                                     <div className="flex items-center gap-4">
-                                                        <div className="text-lg font-bold">
-                                                            Costo Total: <span className="text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}</span>
-                                                        </div>
                                                         <Button
                                                             onClick={handleSaveAll}
                                                             disabled={isSaving}
@@ -1457,7 +1517,6 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         <div className="flex flex-col ml-4">
                                                             <label className="text-xs font-bold text-gray-500 uppercase mb-1">Precio Venta</label>
                                                             <div className="relative">
-                                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                                                                 <input
                                                                     type="text"
                                                                     value={formData.precio}
@@ -1480,13 +1539,34 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                             setFormData({ ...formData, precio: val });
                                                                         }
                                                                     }}
-                                                                    className="w-32 pl-6 pr-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                                                    className="w-32 px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                                                 />
                                                             </div>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-4">
+                                                    {productType === 1 && (
+                                                        <>
+                                                            <div className="flex flex-col bg-blue-50 p-1 px-2 rounded border border-blue-100 min-w-[80px]">
+                                                                <label className="text-[10px] font-bold text-blue-600 uppercase mb-0.5">% Ideal</label>
+                                                                <span className="text-sm font-bold text-blue-800">
+                                                                    {(parseFloat(porcentajeCostoIdeal) || 0).toFixed(2)}%
+                                                                </span>
+                                                            </div>
+                                                            <div className={`flex flex-col p-1 px-2 rounded border min-w-[80px] ${(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100) > (parseFloat(porcentajeCostoIdeal) || 0)
+                                                                ? 'bg-red-50 border-red-100 text-red-800'
+                                                                : 'bg-green-50 border-green-100 text-green-800'
+                                                                }`}>
+                                                                <label className="text-[10px] font-bold uppercase mb-0.5 opacity-70">
+                                                                    % Costo {(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100) > (parseFloat(porcentajeCostoIdeal) || 0) && '⚠️'}
+                                                                </label>
+                                                                <span className="text-sm font-bold">
+                                                                    {(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100).toFixed(2)}%
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                     <div className="text-lg font-bold">
                                                         Costo Total: <span className="text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}</span>
                                                     </div>
@@ -1514,18 +1594,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         const items = groupedItems[category];
                                                         const categorySubtotal = items.reduce((sum, item) => {
                                                             const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
-
-                                                            // New Logic: A.Cantidad * (PesoFinal * Precio / ConversionSimple)
-                                                            const pesoFinal = item.PesoFinal || 0;
-                                                            const precioRaw = item.Precio || 0;
-                                                            const conversion = item.ConversionSimple || 1;
-
-                                                            // Ensure division by zero safety
-                                                            const precioProcesado = conversion !== 0
-                                                                ? (pesoFinal * precioRaw) / conversion
-                                                                : 0;
-
-                                                            return sum + (cantidad * precioProcesado);
+                                                            const costoUnitario = item.Costo || 0;
+                                                            return sum + (cantidad * costoUnitario);
                                                         }, 0);
 
                                                         return (
@@ -1539,35 +1609,21 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 <table className="min-w-full divide-y divide-gray-200">
                                                                     <thead className="bg-gray-50">
                                                                         <tr>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Código</th>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Producto</th>
-                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Cantidad</th>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Pres. Inv.</th>
-                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600">Precio Proc.</th>
-                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600">Total</th>
-                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600">Acciones</th>
+                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Código</th>
+                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
+                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Cantidad</th>
+                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Pres. Inv.</th>
+                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Costo</th>
+                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
+                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Acciones</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="bg-white divide-y divide-gray-200">
                                                                         {items.map(item => {
                                                                             const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
 
-                                                                            // Calculate Precio Procesado
-                                                                            // Formula: PesoFinal * Precio / ConversionSimple (User Request removed /100)
-                                                                            // User Query: PesoFinal*Precio/ConversionSimple
-                                                                            // Wait, user query says "PesoFinal*Precio/ConversionSimple". Previous request said "PesoFinal/100...".
-                                                                            // User changed requirements? "el precio procesado es igual a (PesoFinal/100 * Precio)/ConversionSimple" (Step 1587).
-                                                                            // BUT CURRENT Request (Step 1682) says: "PesoFinal*Precio/ConversionSimple".
-                                                                            // I will follow the LATEST SQL: "PesoFinal*Precio/ConversionSimple".
-                                                                            const pesoFinal = item.PesoFinal || 0;
-                                                                            const precioRaw = item.Precio || 0;
-                                                                            const conversion = item.ConversionSimple || 1;
-
-                                                                            const precioProcesado = conversion !== 0
-                                                                                ? (pesoFinal * precioRaw) / conversion
-                                                                                : 0;
-
-                                                                            const total = cantidad * precioProcesado;
+                                                                            const costoUnitario = item.Costo || 0;
+                                                                            const total = cantidad * costoUnitario;
 
                                                                             return (
                                                                                 <tr key={item.IdProductoHijo} className="hover:bg-gray-50">
@@ -1584,7 +1640,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                                     </td>
                                                                                     <td className="px-4 py-2 text-sm text-gray-500">{item.PresentacionInventario || '-'}</td>
                                                                                     <td className="px-4 py-2 text-right text-sm">
-                                                                                        ${precioProcesado.toFixed(2)}
+                                                                                        ${costoUnitario.toFixed(2)}
                                                                                     </td>
                                                                                     <td className="px-4 py-2 text-right font-bold text-blue-600">
                                                                                         ${total.toFixed(2)}

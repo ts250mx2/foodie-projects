@@ -90,7 +90,8 @@
         "dishes": "Platillos Menu",
         "subRecipes": "Subrecetas",
         "recipeCategories": "Módulos de Recetario",
-        "productionCapture": "Captura de Producción"
+        "productionCapture": "Captura de Producción",
+        "menuSections": "Secciones Menu"
     },
     "Production": {
         "title": "Captura de Producción",
@@ -137,6 +138,21 @@
         "successAdd": "Forma de pago creada exitosamente",
         "successUpdate": "Forma de pago actualizada exitosamente",
         "successDelete": "Forma de pago eliminada exitosamente"
+    },
+    "MenuSections": {
+        "title": "Administración de Secciones de Menú",
+        "addSection": "Agregar Sección",
+        "editSection": "Editar Sección",
+        "deleteSection": "Eliminar",
+        "sectionName": "Nombre de la Sección",
+        "actions": "Acciones",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "confirmDelete": "¿Está seguro de eliminar esta sección?",
+        "successAdd": "Sección creada exitosamente",
+        "successUpdate": "Sección actualizada exitosamente",
+        "successDelete": "Sección eliminada exitosamente",
+        "searchPlaceholder": "Buscar sección..."
     },
     "Platforms": {
         "title": "Administración de Plataformas",

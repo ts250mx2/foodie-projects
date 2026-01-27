@@ -25,7 +25,8 @@ interface RawMaterial {
     Cantidad?: number;
     IdPresentacion?: number;
     IVA: number;
-    RutaFoto?: string;
+    ArchivoImagen?: string;
+    NombreArchivo?: string;
 }
 
 interface Presentation {

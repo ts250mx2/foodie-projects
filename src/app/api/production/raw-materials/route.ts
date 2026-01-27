@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
         const [rows] = await connection.query(
             `SELECT A.IdProducto, A.Codigo, A.Producto, A.Precio, A.IVA, A.IdPresentacion, A.ConversionSimple, 
                     A.IdPresentacionConversion, A.PesoInicial, A.PesoFinal, A.ObservacionesMerma,
+                    A.ArchivoImagen, A.NombreArchivo,
                     CR.CategoriaRecetario as Categoria, CR.IdCategoriaRecetario,
                     C.Presentacion AS UnidadCompra,
                     D.Presentacion AS UnidadConversion
@@ -31,7 +32,13 @@ export async function GET(request: NextRequest) {
              ORDER BY CR.CategoriaRecetario, A.Producto`
         );
 
-        return NextResponse.json({ success: true, data: rows });
+        // Convert ArchivoImagen Buffer to string if necessary
+        const formattedRows = (rows as any[]).map(row => ({
+            ...row,
+            ArchivoImagen: row.ArchivoImagen ? row.ArchivoImagen.toString() : null
+        }));
+
+        return NextResponse.json({ success: true, data: formattedRows });
     } catch (error) {
         console.error('Error fetching raw materials:', error);
         return NextResponse.json({ success: false, message: 'Error fetching raw materials' }, { status: 500 });

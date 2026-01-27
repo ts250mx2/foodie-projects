@@ -16,52 +16,89 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        let query = `SELECT 
-                p.IdProducto,
-                p.Producto,
-                p.Codigo,
-                p.IdCategoria,
-                p.IdPresentacion,
-                p.Precio,
-                p.IVA,
-                p.RutaFoto,
-                p.Status,
-                p.PesoInicial,
-                p.PesoFinal,
-                p.ConversionSimple,
-                p.IdCategoriaRecetario,
-                p.IdPresentacionConversion,
-                c.Categoria,
-                pr.Presentacion,
-                cr.CategoriaRecetario,
-                pc.Presentacion AS PresentacionConversion
-            FROM tblProductos p
-            LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
-            LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
-            LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
-            LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
-            WHERE p.Status = 0`;
-
+        let query = '';
         const params: any[] = [];
 
-        if (tipoProductoStr !== null) {
-            if (tipoProductoStr.includes(',')) {
-                const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
-                if (types.length > 0) {
-                    query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
-                    params.push(...types);
-                }
-            } else {
-                query += ' AND p.IdTipoProducto = ?';
-                params.push(parseInt(tipoProductoStr));
-            }
-        }
+        // Special case for Dishes (IdTipoProducto = 1) - Use the view joined with tblProductos for missing fields
+        if (tipoProductoStr === '1') {
+            query = `
+                SELECT 
+                    v.*, 
+                    p.IdSeccionMenu, 
+                    p.PorcentajeCostoIdeal,
+                    p.ArchivoImagen,
+                    p.NombreArchivo 
+                FROM vlPlatillos v
+                LEFT JOIN tblProductos p ON v.IdProducto = p.IdProducto
+                WHERE v.Status = 0 
+                ORDER BY v.Producto`;
+        } else if (tipoProductoStr === '2') {
+            // Special case for Sub-recipes (IdTipoProducto = 2)
+            query = `
+                SELECT 
+                    v.*, 
+                    p.ArchivoImagen, 
+                    p.NombreArchivo 
+                FROM vlProductos v
+                LEFT JOIN tblProductos p ON v.IdProducto = p.IdProducto
+                WHERE v.Status = 0 AND v.IdTipoProducto = 2 
+                ORDER BY v.Producto`;
+        } else {
+            // Standard query for other products
+            query = `SELECT 
+                    p.IdProducto,
+                    p.Producto,
+                    p.Codigo,
+                    p.IdCategoria,
+                    p.IdPresentacion,
+                    p.Precio,
+                    p.IVA,
+                    p.ArchivoImagen,
+                    p.NombreArchivo,
+                    p.Status,
+                    p.PesoInicial,
+                    p.PesoFinal,
+                    p.ConversionSimple,
+                    p.IdCategoriaRecetario,
+                    p.IdPresentacionConversion,
+                    p.IdSeccionMenu,
+                    p.PorcentajeCostoIdeal,
+                    c.Categoria,
+                    pr.Presentacion,
+                    cr.CategoriaRecetario,
+                    pc.Presentacion AS PresentacionConversion
+                FROM tblProductos p
+                LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
+                LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
+                LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
+                LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
+                WHERE p.Status = 0`;
 
-        query += ' ORDER BY p.Producto ASC';
+            if (tipoProductoStr !== null) {
+                if (tipoProductoStr.includes(',')) {
+                    const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
+                    if (types.length > 0) {
+                        query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
+                        params.push(...types);
+                    }
+                } else {
+                    query += ' AND p.IdTipoProducto = ?';
+                    params.push(parseInt(tipoProductoStr));
+                }
+            }
+
+            query += ' ORDER BY p.Producto ASC';
+        }
 
         const [rows] = await connection.query(query, params);
 
-        return NextResponse.json({ success: true, data: rows });
+        // Convert ArchivoImagen Buffer to string if necessary
+        const formattedRows = (rows as any[]).map(row => ({
+            ...row,
+            ArchivoImagen: row.ArchivoImagen ? row.ArchivoImagen.toString() : null
+        }));
+
+        return NextResponse.json({ success: true, data: formattedRows });
     } catch (error) {
         console.error('Error fetching products:', error);
         return NextResponse.json({ success: false, message: 'Error fetching products' }, { status: 500 });
@@ -74,10 +111,16 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, rutaFoto } = body;
+        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal } = body;
 
-        if (!projectId || !producto || !codigo || !idCategoria || !idPresentacion || precio === undefined || iva === undefined) {
+        // Validation: Required for all
+        if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        // Required only if NOT a Dish (type 1)
+        if (idTipoProducto !== 1 && (!idCategoria || !idPresentacion)) {
+            return NextResponse.json({ success: false, message: 'Category and Presentation are required' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
@@ -110,8 +153,8 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, RutaFoto, Status, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
-            [producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto || 0, rutaFoto || null]
+            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, Now())`,
+            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null]
         );
 
         return NextResponse.json({

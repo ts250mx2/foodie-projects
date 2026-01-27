@@ -10,22 +10,23 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idCategoriaRecetario, idPresentacion, precio, iva, rutaFoto, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto } = body;
+        const { projectId, producto, codigo, idCategoria, idCategoriaRecetario, idPresentacion, precio, iva, archivoImagen, nombreArchivo, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto, idSeccionMenu, porcentajeCostoIdeal } = body;
 
-        if (!projectId || !producto || !codigo || !idCategoria || !idPresentacion || precio === undefined || iva === undefined) {
+        // Validation: Required for all
+        if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        // Required only if NOT a Dish (type 1)
+        if (idTipoProducto !== 1 && (!idCategoria || !idPresentacion)) {
+            return NextResponse.json({ success: false, message: 'Category and Presentation are required' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
 
-        // Determine which category column to update
-        // User requested to always save to IdCategoria in tblProductos
-        // const isRawMaterial = idTipoProducto === 0;
-        // const categoryUpdate = isRawMaterial ? 'IdCategoriaRecetario = ?' : 'IdCategoria = ?';
-
         const [result] = await connection.query(
-            `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, RutaFoto = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, FechaAct = Now() WHERE IdProducto = ?`,
-            [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, rutaFoto || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, id]
+            `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, ArchivoImagen = ?, NombreArchivo = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, IdSeccionMenu = ?, PorcentajeCostoIdeal = ?, FechaAct = Now() WHERE IdProducto = ?`,
+            [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, archivoImagen || null, nombreArchivo || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, idSeccionMenu || null, porcentajeCostoIdeal || null, id]
         );
 
         if ((result as any).affectedRows === 0) {
