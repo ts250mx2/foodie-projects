@@ -58,11 +58,11 @@
         "branches": "Sucursales",
         "tips": "Propinas",
         "sales": "Ventas",
-        "terminals": "Terminales",
+        "terminals": "Formas de Pago",
         "platforms": "Plataformas",
         "salesChannels": "Canales de Venta",
         "paymentChannels": "Canales de Pago",
-        "salesTerminalsCapture": "Ventas por Terminal",
+        "salesTerminalsCapture": "Ventas por Forma de Pago",
         "salesChannelsCapture": "Ventas por Canal",
         "tipsCapture": "Captura de Propinas",
         "salesCapture": "Captura de Ventas",
@@ -123,20 +123,20 @@
         }
     },
     "Terminals": {
-        "title": "Administración de Terminales",
-        "terminalName": "Terminal",
+        "title": "Administración de Formas de Pago",
+        "terminalName": "Forma de Pago",
         "commission": "Comisión",
         "active": "Activo",
         "actions": "Acciones",
-        "addTerminal": "Agregar Terminal",
+        "addTerminal": "Agregar Forma de Pago",
         "editTerminal": "Editar",
         "deleteTerminal": "Eliminar",
         "save": "Guardar",
         "cancel": "Cancelar",
-        "confirmDelete": "¿Está seguro de eliminar esta terminal?",
-        "successAdd": "Terminal creada exitosamente",
-        "successUpdate": "Terminal actualizada exitosamente",
-        "successDelete": "Terminal eliminada exitosamente"
+        "confirmDelete": "¿Está seguro de eliminar esta forma de pago?",
+        "successAdd": "Forma de pago creada exitosamente",
+        "successUpdate": "Forma de pago actualizada exitosamente",
+        "successDelete": "Forma de pago eliminada exitosamente"
     },
     "Platforms": {
         "title": "Administración de Plataformas",
@@ -606,7 +606,7 @@
     "SalesModal": {
         "title": "Capturar Ventas",
         "shift": "Turno",
-        "terminal": "Terminal",
+        "terminal": "Forma de Pago",
         "platform": "Plataforma",
         "amount": "Monto de Venta",
         "save": "Guardar",
@@ -647,7 +647,7 @@
         }
     },
     "SalesTerminalsCapture": {
-        "title": "Ventas por Terminal",
+        "title": "Ventas por Forma de Pago",
         "selectBranch": "Seleccionar Sucursal",
         "month": "Mes",
         "year": "Año",

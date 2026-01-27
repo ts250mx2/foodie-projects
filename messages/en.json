@@ -58,11 +58,11 @@
         "branches": "Branches",
         "tips": "Tips",
         "sales": "Sales",
-        "terminals": "Terminals",
+        "terminals": "Payment Methods",
         "platforms": "Platforms",
         "salesChannels": "Sales Channels",
         "paymentChannels": "Payment Channels",
-        "salesTerminalsCapture": "Sales by Terminal",
+        "salesTerminalsCapture": "Sales by Payment Method",
         "salesChannelsCapture": "Sales by Channel",
         "tipsCapture": "Tips Capture",
         "salesCapture": "Sales Capture",
@@ -91,20 +91,20 @@
         "productionCapture": "Production Capture"
     },
     "Terminals": {
-        "title": "Terminals Management",
-        "terminalName": "Terminal",
+        "title": "Payment Methods Management",
+        "terminalName": "Payment Method",
         "commission": "Commission",
         "active": "Active",
         "actions": "Actions",
-        "addTerminal": "Add Terminal",
+        "addTerminal": "Add Payment Method",
         "editTerminal": "Edit",
         "deleteTerminal": "Delete",
         "save": "Save",
         "cancel": "Cancel",
-        "confirmDelete": "Are you sure you want to delete this terminal?",
-        "successAdd": "Terminal created successfully",
-        "successUpdate": "Terminal updated successfully",
-        "successDelete": "Terminal deleted successfully"
+        "confirmDelete": "Are you sure you want to delete this payment method?",
+        "successAdd": "Payment method created successfully",
+        "successUpdate": "Payment method updated successfully",
+        "successDelete": "Payment method deleted successfully"
     },
     "Platforms": {
         "title": "Platforms Management",
@@ -571,7 +571,7 @@
     "SalesModal": {
         "title": "Capture Sales",
         "shift": "Shift",
-        "terminal": "Terminal",
+        "terminal": "Payment Method",
         "platform": "Platform",
         "amount": "Sale Amount",
         "save": "Save",
@@ -611,7 +611,7 @@
         }
     },
     "SalesTerminalsCapture": {
-        "title": "Sales by Terminal",
+        "title": "Sales by Payment Method",
         "selectBranch": "Select Branch",
         "month": "Month",
         "year": "Year",

@@ -378,7 +378,7 @@ export default function SalesTerminalsCapturePage() {
                                 </select>
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">Terminal</label>
+                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('terminal')}</label>
                                 <select
                                     className="p-2 border rounded text-sm"
                                     value={formData.terminalId}
@@ -431,7 +431,7 @@ export default function SalesTerminalsCapturePage() {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('shift')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Terminal</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('terminal')}</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('amount')}</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Comisión</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
