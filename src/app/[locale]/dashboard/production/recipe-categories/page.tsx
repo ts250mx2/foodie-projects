@@ -154,7 +154,7 @@ export default function RecipeCategoriesPage() {
                         >
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1">
-                                    {t('categoryName')}
+                                    {t('moduleName')}
                                     {sortConfig?.key === 'CategoriaRecetario' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
@@ -217,11 +217,11 @@ export default function RecipeCategoriesPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <h2 className="text-xl font-bold mb-4">
-                            {editingCategory ? t('editCategory') : t('addCategory')}
+                            {editingCategory ? t('editModule') : t('addModule')}
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
-                                label={t('categoryName')}
+                                label={t('moduleName')}
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                 required
@@ -248,7 +248,7 @@ export default function RecipeCategoriesPage() {
             {isDeleteModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteCategory')}</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteModule')}</h3>
                         <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
                         <div className="flex justify-end gap-3">
                             <button
@@ -261,9 +261,9 @@ export default function RecipeCategoriesPage() {
                             <button
                                 onClick={handleDelete}
                                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                title="Delete"
+                                title={t('deleteModule')}
                             >
-                                {t('deleteCategory')}
+                                {t('deleteModule')}
                             </button>
                         </div>
                     </div>
