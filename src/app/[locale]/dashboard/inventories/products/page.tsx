@@ -523,7 +523,7 @@ export default function ProductsPage() {
                                                 className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
                                                 title={t('addCategory')}
                                             >
-                                                +
+                                                {t('addCategory')}
                                             </button>
                                         </>
                                     )}
@@ -601,7 +601,7 @@ export default function ProductsPage() {
                                                 className="px-3 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
                                                 title={t('addPresentation')}
                                             >
-                                                +
+                                                {t('addPresentation')}
                                             </button>
                                         </>
                                     )}
