@@ -7,6 +7,18 @@ import "../globals.css";
 export const metadata = {
   title: 'Foodie Guru',
   description: 'Enterprise Food Management Portal',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+  },
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
 };
 
 export default async function LocaleLayout({

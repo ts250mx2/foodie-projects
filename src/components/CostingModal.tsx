@@ -458,8 +458,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         ...formData, // basic fields
                         idCategoria: parseInt(formData.idCategoria),
                         idPresentacion: parseInt(formData.idPresentacion),
-                        precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
-                        iva: parseFloat(formData.iva),
+                        precio: productType === 2 ? 0 : parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
+                        iva: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
                         // New fields
                         conversionSimple: simpleConversion,
                         idPresentacionConversion: finalIdPresentacionConversion,
@@ -558,8 +558,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     codigo: formData.codigo,
                     idCategoria: parseInt(formData.idCategoria),
                     idPresentacion: parseInt(formData.idPresentacion),
-                    precio: parseFloat(formData.precio.replace(/,/g, '')),
-                    iva: parseFloat(formData.iva),
+                    precio: productType === 2 ? 0 : parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
+                    iva: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
                     idTipoProducto: productType ?? product.IdTipoProducto ?? 1,
                     conversionSimple: simpleConversion,
                     idPresentacionConversion: idPresentacionConversion,
@@ -656,8 +656,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     codigo: formData.codigo,
                     idCategoria: parseInt(formData.idCategoria),
                     idPresentacion: parseInt(formData.idPresentacion),
-                    precio: parseFloat(formData.precio.replace(/,/g, '')),
-                    iva: parseFloat(formData.iva),
+                    precio: productType === 2 ? 0 : parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
+                    iva: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
                     idTipoProducto: productType ?? 1,
                     conversionSimple: simpleConversion,
                     idPresentacionConversion: idPresentacionConversion,
@@ -849,10 +849,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                     )
                                 }
-                                <div className="flex items-center gap-1" >
-                                    <span className="opacity-70">Precio Menú:</span>
-                                    <span className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.Precio || 0)}</span>
-                                </div>
+                                {productType !== 2 && (
+                                    <div className="flex items-center gap-1">
+                                        <span className="opacity-70">Precio Menú:</span>
+                                        <span className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(product.Precio || 0)}</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Current Action / Tab Title (Smaller) */}
@@ -868,9 +870,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                             </div>
                         </div>
 
-                        {/* Info Boxes - Only show in Costing Tab */}
+                        {/* Info Boxes - Only show in Costing Tab and NOT for Sub-recipes */}
                         {
-                            activeTab === 'costing' && (
+                            activeTab === 'costing' && productType !== 2 && (
                                 <div className="flex gap-3">
                                     {/* % Impuesto */}
                                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
@@ -1099,39 +1101,43 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     )}
                                 </div>
                             </div>
-                            <Input
-                                label="Precio"
-                                type="text"
-                                value={formData.precio}
-                                onChange={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                                    if ((val.match(/\./g) || []).length > 1) return;
-                                    setFormData({ ...formData, precio: val });
-                                }}
-                                onBlur={(e) => {
-                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                    if (!isNaN(val)) {
-                                        setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                    }
-                                }}
-                                onFocus={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                                    if (val === '0.00' || val === '0') {
-                                        setFormData({ ...formData, precio: '' });
-                                    } else {
-                                        setFormData({ ...formData, precio: val });
-                                    }
-                                }}
-                                required
-                            />
-                            <Input
-                                label="IVA"
-                                type="number"
-                                step="0.01"
-                                value={formData.iva}
-                                onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
-                                required
-                            />
+                            {productType !== 2 && (
+                                <>
+                                    <Input
+                                        label="Precio"
+                                        type="text"
+                                        value={formData.precio}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setFormData({ ...formData, precio: val });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            if (!isNaN(val)) {
+                                                setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                            }
+                                        }}
+                                        onFocus={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if (val === '0.00' || val === '0') {
+                                                setFormData({ ...formData, precio: '' });
+                                            } else {
+                                                setFormData({ ...formData, precio: val });
+                                            }
+                                        }}
+                                        required
+                                    />
+                                    <Input
+                                        label="IVA"
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.iva}
+                                        onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                                        required
+                                    />
+                                </>
+                            )}
                             <div className="flex justify-end pt-4">
                                 <Button type="submit" disabled={isSaving}>
                                     {isSaving ? 'Guardando...' : '💾 Guardar Cambios'}
@@ -1346,33 +1352,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             ))}
                                                         </select>
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Precio</label>
-                                                        <input
-                                                            type="text"
-                                                            value={formData.precio}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                                if ((val.match(/\./g) || []).length > 1) return;
-                                                                setFormData({ ...formData, precio: val });
-                                                            }}
-                                                            onBlur={(e) => {
-                                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                                                if (!isNaN(val)) {
-                                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                                                }
-                                                            }}
-                                                            onFocus={(e) => {
-                                                                const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                                if (val === '0.00' || val === '0') {
-                                                                    setFormData({ ...formData, precio: '' });
-                                                                } else {
-                                                                    setFormData({ ...formData, precio: val });
-                                                                }
-                                                            }}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                                                        />
-                                                    </div>
+                                                    {/* Hide Price for Sub-recipes as requested */}
                                                     <div className="flex flex-col">
                                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1">Categoría Recetario</label>
                                                         <select
