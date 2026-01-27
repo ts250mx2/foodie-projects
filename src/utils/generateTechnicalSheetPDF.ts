@@ -178,7 +178,7 @@ export async function generateTechnicalSheetPDF(
 
             // Row 2
             doc.setFont('helvetica', 'bold');
-            doc.text('Categoría Recetario:', col1X, yPosition);
+            doc.text('Módulo de Recetario:', col1X, yPosition);
             doc.setFont('helvetica', 'normal');
             doc.text(costingData.categoriaRecetario || 'Sin Categoría', col1X + 35, yPosition);
             yPosition += rowHeight;
@@ -291,7 +291,7 @@ export async function generateTechnicalSheetPDF(
             // Group items by Recipe Category
             const groupedItems: { [key: string]: KitItem[] } = {};
             kitItems.forEach(item => {
-                const cat = item.CategoriaRecetario || 'Sin Categoría de Recetario';
+                const cat = item.CategoriaRecetario || 'Sin Módulo de Recetario';
                 if (!groupedItems[cat]) {
                     groupedItems[cat] = [];
                 }

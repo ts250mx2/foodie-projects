@@ -87,6 +87,7 @@
         "rawMaterials": "Raw Materials",
         "dishes": "Dishes",
         "subRecipes": "Sub-recipes",
+        "recipeCategories": "Recipe Modules",
         "productionCapture": "Production Capture"
     },
     "Terminals": {

@@ -89,7 +89,7 @@
         "rawMaterials": "Materia Prima",
         "dishes": "Platillos",
         "subRecipes": "Subrecetas",
-        "recipeCategories": "Categorías Recetario",
+        "recipeCategories": "Módulos de Recetario",
         "productionCapture": "Captura de Producción"
     },
     "Production": {
@@ -277,7 +277,7 @@
         "active": "Activo",
         "actions": "Acciones",
         "addCategory": "Agregar Categoría",
-        "addRecipeCategory": "Agregar Categoria Recetario",
+        "addRecipeCategory": "Agregar Módulo de Recetario",
         "editCategory": "Editar",
         "deleteCategory": "Eliminar",
         "save": "Guardar",

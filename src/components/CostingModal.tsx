@@ -320,7 +320,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             IdCategoria: selectedProduct.IdCategoria || 0,
             Presentacion: selectedProduct.Presentacion || '',
             IdCategoriaRecetario: selectedProduct.IdCategoriaRecetario,
-            CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Categoría de Recetario',
+            CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Módulo de Recetario',
             // New fields mapping
             PesoFinal: selectedProduct.PesoFinal || 0, // Assuming SearchProduct has PesoFinal 
             ConversionSimple: selectedProduct.ConversionSimple || 1,
@@ -338,7 +338,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             IdCategoria: selectedProduct.IdCategoria || 0,
             Presentacion: selectedProduct.Presentacion || '',
             IdCategoriaRecetario: selectedProduct.IdCategoriaRecetario,
-            CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Categoría de Recetario',
+            CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Módulo de Recetario',
             PesoFinal: selectedProduct.PesoFinal || 0,
             ConversionSimple: selectedProduct.ConversionSimple || 1,
             PresentacionInventario: selectedProduct.PresentacionConversion || selectedProduct.Presentacion || ''
@@ -681,7 +681,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     };
 
     const groupedItems = kitItems.reduce((acc, item) => {
-        const categoria = item.CategoriaRecetario || 'Sin Categoría de Recetario';
+        const categoria = item.CategoriaRecetario || 'Sin Módulo de Recetario';
         if (!acc[categoria]) acc[categoria] = [];
         acc[categoria].push(item);
         return acc;
@@ -1234,14 +1234,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoría Recetario</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
                                         <select
                                             value={idCategoriaRecetario}
                                             onChange={(e) => setIdCategoriaRecetario(e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                         >
                                             <option value="">Seleccionar...</option>
-                                            <option value="0">Sin Categoría de Recetario</option>
+                                            <option value="0">Sin Módulo de Recetario</option>
                                             {recipeCategories.map(cat => (
                                                 <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
                                             ))}
@@ -1354,14 +1354,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </div>
                                                     {/* Hide Price for Sub-recipes as requested */}
                                                     <div className="flex flex-col">
-                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Categoría Recetario</label>
+                                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1">Módulo de Recetario</label>
                                                         <select
                                                             value={idCategoriaRecetario}
                                                             onChange={(e) => setIdCategoriaRecetario(e.target.value)}
                                                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                                         >
                                                             <option value="">Seleccionar...</option>
-                                                            <option value="0">Sin Categoría de Recetario</option>
+                                                            <option value="0">Sin Módulo de Recetario</option>
                                                             {recipeCategories.map(cat => (
                                                                 <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
                                                             ))}

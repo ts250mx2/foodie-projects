@@ -147,7 +147,7 @@ export default function AddMaterialModal({
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Producto</th>
                                     {productType > 0 ? (
                                         <>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cat. Recetario</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mód. Recetario</th>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Pres. Conversión</th>
                                         </>
                                     ) : (
@@ -193,7 +193,7 @@ export default function AddMaterialModal({
                                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                             : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
                                                             }`}
-                                                        title={productType > 0 && (!p.IdCategoriaRecetario || p.IdCategoriaRecetario <= 0) ? 'Debe asignar una Categoría de Recetario antes de agregar' : 'Agregar al Kit'}
+                                                        title={productType > 0 && (!p.IdCategoriaRecetario || p.IdCategoriaRecetario <= 0) ? 'Debe asignar un Módulo de Recetario antes de agregar' : 'Agregar al Kit'}
                                                     >
                                                         ➕ Agregar
                                                     </Button>
