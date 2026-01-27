@@ -33,6 +33,8 @@ export default function SalesChannelsCapturePage() {
         channelId: '',
         amount: ''
     });
+    const [dailyTotalSale, setDailyTotalSale] = useState<string>('');
+    const [isSavingDailyTotal, setIsSavingDailyTotal] = useState(false);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -143,8 +145,63 @@ export default function SalesChannelsCapturePage() {
 
     const handleDayClick = async (date: Date) => {
         setSelectedDate(date);
-        await fetchDailySales(date);
+        await Promise.all([
+            fetchDailySales(date),
+            fetchDailyTotalSale(date)
+        ]);
         setIsModalOpen(true);
+    };
+
+    const fetchDailyTotalSale = async (date: Date) => {
+        if (!project || !selectedBranch) return;
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                day: date.getDate().toString(),
+                month: date.getMonth().toString(),
+                year: date.getFullYear().toString()
+            });
+            const response = await fetch(`/api/sales/daily-total?${params}`);
+            const data = await response.json();
+            if (data.success) {
+                const amount = data.data.sales || 0;
+                setDailyTotalSale(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount));
+            }
+        } catch (error) {
+            console.error('Error fetching daily total sale:', error);
+        }
+    };
+
+    const handleSaveDailyTotal = async () => {
+        if (!selectedDate || !project || !selectedBranch) return;
+
+        setIsSavingDailyTotal(true);
+        try {
+            const response = await fetch('/api/sales/daily-total', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    branchId: selectedBranch,
+                    day: selectedDate.getDate(),
+                    month: selectedDate.getMonth(),
+                    year: selectedDate.getFullYear(),
+                    amount: parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0
+                })
+            });
+
+            if (response.ok) {
+                alert('Venta total del día guardada correctamente');
+            } else {
+                alert('Error al guardar la venta total del día');
+            }
+        } catch (error) {
+            console.error('Error saving daily total sale:', error);
+            alert('Error al guardar la venta total del día');
+        } finally {
+            setIsSavingDailyTotal(false);
+        }
     };
 
     const fetchDailySales = async (date: Date) => {
@@ -348,11 +405,38 @@ export default function SalesChannelsCapturePage() {
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {t('title')} - {selectedDate.toLocaleDateString()}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
+                        <div className="bg-gray-50 p-4 rounded-lg flex flex-col md:flex-row items-end gap-4">
+                            <div className="flex flex-col flex-1">
+                                <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-2">
+                                    💰 Venta Total del día
+                                </label>
+                                <input
+                                    type="text"
+                                    className="p-2 border rounded text-sm w-full"
+                                    value={dailyTotalSale}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if ((val.match(/\./g) || []).length > 1) return;
+                                        setDailyTotalSale(val);
+                                    }}
+                                    onBlur={(e) => {
+                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                        setDailyTotalSale(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val));
+                                    }}
+                                    onFocus={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        setDailyTotalSale(val === '0.00' || val === '0' ? '' : val);
+                                    }}
+                                    placeholder="$0.00"
+                                />
+                            </div>
+                            <button
+                                onClick={handleSaveDailyTotal}
+                                disabled={isSavingDailyTotal}
+                                className="bg-orange-500 text-white p-2 rounded hover:bg-orange-600 font-medium h-10 shadow-sm transition-colors px-6"
+                            >
+                                {isSavingDailyTotal ? '...' : '💾 Guardar Venta Total'}
+                            </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg items-end">
@@ -472,6 +556,20 @@ export default function SalesChannelsCapturePage() {
                                         </td>
                                         <td></td>
                                     </tr>
+                                    {Math.abs((parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales) > 0.01 && (
+                                        <tr className="bg-blue-50/50">
+                                            <td colSpan={2} className={`px-6 py-4 text-right uppercase text-xs font-bold tracking-wider ${(parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales < 0 ? 'text-red-600' : 'text-blue-600'
+                                                }`}>
+                                                Diferencia
+                                                <span className="ml-2">⚠️</span>
+                                            </td>
+                                            <td className={`px-6 py-4 text-right text-lg font-bold ${(parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales < 0 ? 'text-red-600' : 'text-blue-600'
+                                                }`}>
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales)}
+                                            </td>
+                                            <td colSpan={2}></td>
+                                        </tr>
+                                    )}
                                 </tfoot>
                             </table>
                         </div>
