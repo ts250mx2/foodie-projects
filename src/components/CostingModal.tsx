@@ -1101,6 +1101,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     )}
                                 </div>
                             </div>
+                            {productType === 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
+                                    <select
+                                        value={idCategoriaRecetario}
+                                        onChange={(e) => setIdCategoriaRecetario(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="0">Sin Módulo de Recetario</option>
+                                        {recipeCategories.map(cat => (
+                                            <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             {productType !== 2 && (
                                 <>
                                     <Input
@@ -1233,20 +1249,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
-                                        <select
-                                            value={idCategoriaRecetario}
-                                            onChange={(e) => setIdCategoriaRecetario(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            <option value="0">Sin Módulo de Recetario</option>
-                                            {recipeCategories.map(cat => (
-                                                <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <Input
