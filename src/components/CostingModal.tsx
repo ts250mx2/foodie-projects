@@ -491,7 +491,21 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 setEditedPrices({});
                 alert('✅ Costeo guardado correctamente');
                 // Pass back the saved product info (using form data + ID)
-                onProductUpdate?.({ ...product, ...formData, IdProducto: product.IdProducto } as any);
+                const savedPrecio = (formData.precio && typeof formData.precio === 'string')
+                    ? parseFloat(formData.precio.replace(/[^0-9.]/g, ''))
+                    : (product.Precio || 0);
+
+                onProductUpdate?.({
+                    ...product,
+                    ...formData,
+                    Precio: savedPrecio,
+                    IVA: parseFloat(formData.iva || '0'),
+                    IdProducto: product.IdProducto,
+                    PesoFinal: pesoFinal,
+                    PesoInicial: pesoInicial,
+                    ConversionSimple: simpleConversion,
+                    IdPresentacionConversion: idPresentacionConversion
+                } as any);
                 setIsSaving(false);
             } else {
                 alert('Error al guardar algunos datos');
@@ -664,9 +678,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     };
 
-    const handleSavePhoto = async () => {
+    const handleSavePhoto = async (photoBase64?: string, photoName?: string) => {
         setIsSaving(true);
         try {
+            const finalBase64 = photoBase64 || selectedPhotoBase64;
+            const finalName = photoName || selectedPhoto?.name || product.NombreArchivo;
+
             // Update product with new photo path
             const response = await fetch(`/api/products/${product.IdProducto}`, {
                 method: 'PUT',
@@ -686,8 +703,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     pesoInicial: pesoInicial,
                     idCategoriaRecetario: idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario),
                     rutaFoto: product.RutaFoto, // Keep existing photo
-                    archivoImagen: selectedPhotoBase64, // Send base64 string
-                    nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
+                    archivoImagen: finalBase64, // Send base64 string
+                    nombreArchivo: finalName,
                 })
             });
 
@@ -695,11 +712,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 alert('Foto actualizada exitosamente');
                 const updatedProduct: Product = {
                     ...product,
-                    ArchivoImagen: selectedPhotoBase64 || undefined,
-                    NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
+                    ArchivoImagen: finalBase64 || undefined,
+                    NombreArchivo: finalName,
                 };
                 setProduct(updatedProduct);
                 if (onProductUpdate) onProductUpdate(updatedProduct, false);
+                setSelectedPhoto(null); // Reset selection state after auto-save
             }
         } catch (error) {
             console.error('Error saving photo:', error);
@@ -718,6 +736,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 const base64String = reader.result as string;
                 setPhotoPreview(base64String);
                 setSelectedPhotoBase64(base64String);
+                // Automate Save
+                handleSavePhoto(base64String, file.name);
             };
             reader.readAsDataURL(file);
         }
@@ -1266,7 +1286,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 >
                                     {photoPreview ? (
                                         <>
-                                            <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                                            <img src={photoPreview} alt="Preview" className="w-full h-full object-fill" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                 <span className="text-white font-bold bg-orange-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
                                             </div>
@@ -1288,11 +1308,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     className="hidden"
                                 />
 
-                                {selectedPhoto && (
+                                {selectedPhoto && !isSaving && (
                                     <div className="flex gap-4">
-                                        <Button onClick={handleSavePhoto} disabled={isSaving} className="bg-green-600 px-8 py-3 text-lg">
-                                            {isSaving ? 'Guardando...' : '💾 Guardar Foto'}
-                                        </Button>
                                         <Button
                                             onClick={() => {
                                                 setSelectedPhoto(null);

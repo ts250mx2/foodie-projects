@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
                     p.IdPresentacion,
                     p.Precio,
                     p.IVA,
+                    p.IdTipoProducto,
                     p.ArchivoImagen,
                     p.NombreArchivo,
                     p.Status,
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal } = body;
+        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario } = body;
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
@@ -153,8 +154,8 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, Now())`,
-            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null]
+            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, Now())`,
+            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null]
         );
 
         return NextResponse.json({

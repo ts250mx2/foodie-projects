@@ -21,6 +21,7 @@ interface Product {
     IdCategoriaRecetario?: number;
     IdSeccionMenu?: number;
     PorcentajeCostoIdeal?: number;
+    IdTipoProducto: number;
 }
 
 interface Category {
@@ -96,7 +97,7 @@ export default function ProductsPage() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`/api/products?projectId=${project.idProyecto}`);
+            const response = await fetch(`/api/products?projectId=${project.idProyecto}&tipoProducto=0`);
             const data = await response.json();
             if (data.success) {
                 setProducts(data.data);
@@ -258,6 +259,18 @@ export default function ProductsPage() {
         }
     };
 
+    const handleProductUpdate = (updatedProduct?: any, shouldClose = true) => {
+        fetchProducts();
+        if (updatedProduct) {
+            setSelectedProductForCosting(updatedProduct);
+        }
+        if (shouldClose) {
+            setIsModalOpen(false);
+            setSelectedProductForCosting(null);
+            setEditingProduct(null);
+        }
+    };
+
     const openEditModal = (product: Product) => {
         setEditingProduct(product);
         setSelectedProductForCosting(product);
@@ -280,8 +293,9 @@ export default function ProductsPage() {
 
     const sortedAndFilteredProducts = products
         .filter(product =>
-            product.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.Codigo.toLowerCase().includes(searchTerm.toLowerCase())
+            (product.IdTipoProducto === 0) &&
+            (product.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                product.Codigo.toLowerCase().includes(searchTerm.toLowerCase()))
         )
         .sort((a, b) => {
             if (!sortConfig) return 0;
@@ -426,29 +440,17 @@ export default function ProductsPage() {
                         setSelectedProductForCosting(null);
                         setEditingProduct(null);
                     }}
-                    onProductUpdate={fetchProducts}
+                    onProductUpdate={handleProductUpdate}
                     productType={0}
                     projectId={project?.idProyecto}
-                    product={selectedProductForCosting ? {
-                        IdProducto: selectedProductForCosting.IdProducto,
-                        Producto: selectedProductForCosting.Producto,
-                        Codigo: selectedProductForCosting.Codigo,
-                        IdCategoria: selectedProductForCosting.IdCategoria,
-                        IdPresentacion: selectedProductForCosting.IdPresentacion,
-                        Precio: selectedProductForCosting.Precio,
-                        IVA: selectedProductForCosting.IVA,
-                        IdTipoProducto: 0, // Specifically for Raw Materials
-                        IdCategoriaRecetario: selectedProductForCosting.IdCategoriaRecetario
-                    } : {
+                    product={selectedProductForCosting || {
                         IdProducto: 0,
                         Producto: '',
                         Codigo: '',
-                        IdCategoria: undefined,
-                        IdPresentacion: undefined,
                         Precio: 0,
                         IVA: 0,
-                        IdTipoProducto: 0, // Specifically for Raw Materials
-                        IdCategoriaRecetario: undefined
+                        IdTipoProducto: 0,
+                        Status: 0
                     }}
                 />
             )}
