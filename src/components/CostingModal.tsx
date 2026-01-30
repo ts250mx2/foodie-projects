@@ -620,7 +620,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 const data = await response.json();
 
                 if (isNew && data.id) {
-                    alert('Producto creado exitosamente. Ahora puede agregar costos, fotos, etc.');
+                    alert('Producto creado exitosamente.');
                     // Update local state to "saved" mode without closing
                     const newProduct: Product = {
                         ...product,
@@ -643,8 +643,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                     };
                     setProduct(newProduct);
-                    // Call parent update but don't close (shouldClose = false)
-                    if (onProductUpdate) onProductUpdate(newProduct, false);
+                    // Call parent update and close (shouldClose = true)
+                    if (onProductUpdate) onProductUpdate(newProduct, true);
                 } else {
                     alert('Información general actualizada exitosamente');
                     const updatedProduct: Product = {

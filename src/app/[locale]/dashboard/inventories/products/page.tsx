@@ -285,6 +285,8 @@ export default function ProductsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
 
+    const [categorySearch, setCategorySearch] = useState('');
+
     const filteredProducts = products.filter(p =>
         p.IdProducto !== selectedProduct?.IdProducto &&
         (p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -292,21 +294,32 @@ export default function ProductsPage() {
     );
 
     const sortedAndFilteredProducts = products
-        .filter(product =>
-            (product.IdTipoProducto === 0) &&
-            (product.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.Codigo.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
+        .filter(product => {
+            const matchesType = product.IdTipoProducto === 0;
+            const categoryName = product.Categoria ? String(product.Categoria) : '';
+            const matchesCategory = categoryName.toLowerCase().includes(categorySearch.toLowerCase());
+
+            const searchTermLower = searchTerm.toLowerCase();
+            const productName = product.Producto ? String(product.Producto) : '';
+            const productCode = product.Codigo ? String(product.Codigo) : '';
+            const matchesSearch = productName.toLowerCase().includes(searchTermLower) ||
+                productCode.toLowerCase().includes(searchTermLower);
+
+            return matchesType && matchesCategory && matchesSearch;
+        })
         .sort((a, b) => {
             if (!sortConfig) return 0;
             const { key, direction } = sortConfig;
 
-            const aValue = a[key];
-            const bValue = b[key];
+            const aValue = key === 'Categoria' ? (a.Categoria ?? '') :
+                key === 'Presentacion' ? (a.Presentacion ?? '') :
+                    (a[key] ?? '');
+
+            const bValue = key === 'Categoria' ? (b.Categoria ?? '') :
+                key === 'Presentacion' ? (b.Presentacion ?? '') :
+                    (b[key] ?? '');
 
             if (aValue === bValue) return 0;
-            if (aValue === undefined || aValue === null) return 1;
-            if (bValue === undefined || bValue === null) return -1;
 
             if (aValue < bValue) return direction === 'asc' ? -1 : 1;
             if (aValue > bValue) return direction === 'asc' ? 1 : -1;
@@ -358,23 +371,81 @@ export default function ProductsPage() {
                                 />
                             </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('code')}
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Codigo')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('code')}
+                                {sortConfig?.key === 'Codigo' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('category')}
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Categoria')}
+                        >
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                    {t('category')}
+                                    {sortConfig?.key === 'Categoria' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Category..."
+                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                    value={categorySearch}
+                                    onChange={(e) => setCategorySearch(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('presentation')}
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Presentacion')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('presentation')}
+                                {sortConfig?.key === 'Presentacion' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('price')}
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Precio')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                {t('price')}
+                                {sortConfig?.key === 'Precio' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('iva')}
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('IVA')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                {t('iva')}
+                                {sortConfig?.key === 'IVA' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Status')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('active')}
+                                {sortConfig?.key === 'Status' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell className="text-right">
                             {t('actions')}

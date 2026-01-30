@@ -98,18 +98,35 @@ export default function SubRecipesPage() {
         setSortConfig({ key, direction });
     };
 
+    const [categorySearch, setCategorySearch] = useState('');
+
     const sortedAndFilteredSubRecipes = subRecipes
-        .filter(subRecipe =>
-            searchTerm === '' ||
-            subRecipe.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            subRecipe.Codigo.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        .filter(subRecipe => {
+            const searchTermLower = searchTerm.toLowerCase();
+            const productName = subRecipe.Producto ? String(subRecipe.Producto) : '';
+            const productCode = subRecipe.Codigo ? String(subRecipe.Codigo) : '';
+            const matchesSearch = productName.toLowerCase().includes(searchTermLower) ||
+                productCode.toLowerCase().includes(searchTermLower);
+
+            const categoryName = subRecipe.Categoria ? String(subRecipe.Categoria) : '';
+            const matchesCategory = categoryName.toLowerCase().includes(categorySearch.toLowerCase());
+
+            return matchesSearch && matchesCategory;
+        })
         .sort((a, b) => {
             if (!sortConfig) return 0;
-            const aValue = a[sortConfig.key as keyof SubRecipe] ?? '';
-            const bValue = b[sortConfig.key as keyof SubRecipe] ?? '';
-            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            const { key, direction } = sortConfig;
+
+            const aValue = key === 'Categoria' ? (a.Categoria ?? '') :
+                key === 'Presentacion' ? (a.Presentacion ?? '') :
+                    (a[key as keyof SubRecipe] ?? '');
+
+            const bValue = key === 'Categoria' ? (b.Categoria ?? '') :
+                key === 'Presentacion' ? (b.Presentacion ?? '') :
+                    (b[key as keyof SubRecipe] ?? '');
+
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
             return 0;
         });
 
@@ -150,10 +167,60 @@ export default function SubRecipesPage() {
                                 />
                             </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>{t('code')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>{t('category')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>{t('presentation')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">Costo</ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Codigo')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('code')}
+                                {sortConfig?.key === 'Codigo' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Categoria')}
+                        >
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                    {t('category')}
+                                    {sortConfig?.key === 'Categoria' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Filter..."
+                                    className="mt-1 block px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                    value={categorySearch}
+                                    onChange={(e) => setCategorySearch(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Presentacion')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('presentation')}
+                                {sortConfig?.key === 'Presentacion' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Costo')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                Costo
+                                {sortConfig?.key === 'Costo' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell className="text-right">{t('actions')}</ThemedGridHeaderCell>
                     </ThemedGridHeader>
                     <tbody className="bg-white divide-y divide-gray-200">

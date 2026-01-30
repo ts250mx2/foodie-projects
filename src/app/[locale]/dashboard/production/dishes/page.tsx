@@ -103,18 +103,32 @@ export default function DishesPage() {
         setSortConfig({ key, direction });
     };
 
+    const [menuSectionSearch, setMenuSectionSearch] = useState('');
+
     const sortedAndFilteredDishes = dishes
-        .filter(dish =>
-            searchTerm === '' ||
-            dish.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            dish.Codigo.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        .filter(dish => {
+            const searchTermLower = searchTerm.toLowerCase();
+            const productName = dish.Producto ? String(dish.Producto) : '';
+            const productCode = dish.Codigo ? String(dish.Codigo) : '';
+            const matchesSearch = productName.toLowerCase().includes(searchTermLower) ||
+                productCode.toLowerCase().includes(searchTermLower);
+
+            const menuSectionName = dish.SeccionMenu ? String(dish.SeccionMenu) : '';
+            const matchesMenuSection = menuSectionName.toLowerCase().includes(menuSectionSearch.toLowerCase());
+
+            return matchesSearch && matchesMenuSection;
+        })
         .sort((a, b) => {
             if (!sortConfig) return 0;
-            const aValue = a[sortConfig.key as keyof Dish] ?? '';
-            const bValue = b[sortConfig.key as keyof Dish] ?? '';
-            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            const { key, direction } = sortConfig;
+
+            const aValue = a[key as keyof Dish] ?? '';
+            const bValue = b[key as keyof Dish] ?? '';
+
+            if (aValue === bValue) return 0;
+
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
             return 0;
         });
 
@@ -155,14 +169,104 @@ export default function DishesPage() {
                                 />
                             </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>{t('code')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>Sección Menú</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">{t('price')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">{t('iva')}</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">Costo</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">% Costo Ideal</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">% Costo Real</ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>Alerta</ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Codigo')}
+                        >
+                            <div className="flex items-center gap-1">
+                                {t('code')}
+                                {sortConfig?.key === 'Codigo' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('SeccionMenu')}
+                        >
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                    Sección Menú
+                                    {sortConfig?.key === 'SeccionMenu' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Filter..."
+                                    className="mt-1 block px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                    value={menuSectionSearch}
+                                    onChange={(e) => setMenuSectionSearch(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Precio')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                {t('price')}
+                                {sortConfig?.key === 'Precio' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('IVA')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                {t('iva')}
+                                {sortConfig?.key === 'IVA' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('Costo')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                Costo
+                                {sortConfig?.key === 'Costo' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('PorcentajeCostoIdeal')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                % Costo Ideal
+                                {sortConfig?.key === 'PorcentajeCostoIdeal' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="text-right cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('PorcentajeCosto')}
+                        >
+                            <div className="flex items-center justify-end gap-1">
+                                % Costo Real
+                                {sortConfig?.key === 'PorcentajeCosto' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => handleSort('AlertaCosto')}
+                        >
+                            <div className="flex items-center gap-1">
+                                Alerta
+                                {sortConfig?.key === 'AlertaCosto' && (
+                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                )}
+                            </div>
+                        </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell className="text-right">{t('actions')}</ThemedGridHeaderCell>
                     </ThemedGridHeader>
                     <tbody className="bg-white divide-y divide-gray-200">
