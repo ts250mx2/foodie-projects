@@ -16,80 +16,60 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        let query = '';
+        let query = `
+            SELECT 
+                p.IdProducto,
+                p.Producto,
+                p.Codigo,
+                p.IdCategoria,
+                p.IdPresentacion,
+                p.Precio,
+                p.IVA,
+                p.IdTipoProducto,
+                p.ArchivoImagen,
+                p.NombreArchivo,
+                p.Status,
+                p.PesoInicial,
+                p.PesoFinal,
+                p.ConversionSimple,
+                p.IdCategoriaRecetario,
+                p.IdPresentacionConversion,
+                p.IdSeccionMenu,
+                p.PorcentajeCostoIdeal,
+                p.CantidadCompra,
+                p.IdPresentacionInventario,
+                c.Categoria,
+                pr.Presentacion,
+                cr.CategoriaRecetario,
+                pc.Presentacion AS PresentacionConversion,
+                pi.Presentacion AS PresentacionInventario,
+                COALESCE(v.Costo, vp.Costo) as Costo
+            FROM tblProductos p
+            LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
+            LEFT JOIN vlPlatillos vp ON p.IdProducto = vp.IdProducto
+            LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
+            LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
+            LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
+            LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
+            LEFT JOIN tblPresentaciones pi ON p.IdPresentacionInventario = pi.IdPresentacion
+            WHERE p.Status = 0
+        `;
         const params: any[] = [];
 
-        // Special case for Dishes (IdTipoProducto = 1) - Use the view joined with tblProductos for missing fields
-        if (tipoProductoStr === '1') {
-            query = `
-                SELECT 
-                    v.*, 
-                    p.IdSeccionMenu, 
-                    p.PorcentajeCostoIdeal,
-                    p.ArchivoImagen,
-                    p.NombreArchivo 
-                FROM vlPlatillos v
-                LEFT JOIN tblProductos p ON v.IdProducto = p.IdProducto
-                WHERE v.Status = 0 
-                ORDER BY v.Producto`;
-        } else if (tipoProductoStr === '2') {
-            // Special case for Sub-recipes (IdTipoProducto = 2)
-            query = `
-                SELECT 
-                    v.*, 
-                    p.ArchivoImagen, 
-                    p.NombreArchivo 
-                FROM vlProductos v
-                LEFT JOIN tblProductos p ON v.IdProducto = p.IdProducto
-                WHERE v.Status = 0 AND v.IdTipoProducto = 2 
-                ORDER BY v.Producto`;
-        } else {
-            // Standard query for other products
-            query = `SELECT 
-                    p.IdProducto,
-                    p.Producto,
-                    p.Codigo,
-                    p.IdCategoria,
-                    p.IdPresentacion,
-                    p.Precio,
-                    p.IVA,
-                    p.IdTipoProducto,
-                    p.ArchivoImagen,
-                    p.NombreArchivo,
-                    p.Status,
-                    p.PesoInicial,
-                    p.PesoFinal,
-                    p.ConversionSimple,
-                    p.IdCategoriaRecetario,
-                    p.IdPresentacionConversion,
-                    p.IdSeccionMenu,
-                    p.PorcentajeCostoIdeal,
-                    c.Categoria,
-                    pr.Presentacion,
-                    cr.CategoriaRecetario,
-                    pc.Presentacion AS PresentacionConversion
-                FROM tblProductos p
-                LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
-                LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
-                LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
-                LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
-                WHERE p.Status = 0`;
-
-            if (tipoProductoStr !== null) {
-                if (tipoProductoStr.includes(',')) {
-                    const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
-                    if (types.length > 0) {
-                        query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
-                        params.push(...types);
-                    }
-                } else {
-                    query += ' AND p.IdTipoProducto = ?';
-                    params.push(parseInt(tipoProductoStr));
+        if (tipoProductoStr !== null) {
+            if (tipoProductoStr.includes(',')) {
+                const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
+                if (types.length > 0) {
+                    query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
+                    params.push(...types);
                 }
+            } else {
+                query += ' AND p.IdTipoProducto = ?';
+                params.push(parseInt(tipoProductoStr));
             }
-
-            query += ' ORDER BY p.Producto ASC';
         }
+
+        query += ' ORDER BY p.Producto ASC';
 
         const [rows] = await connection.query(query, params);
 
@@ -112,7 +92,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario } = body;
+        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario, cantidadCompra, idPresentacionInventario } = body;
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
@@ -154,8 +134,8 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, Now())`,
-            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null]
+            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, CantidadCompra, IdPresentacionInventario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, Now())`,
+            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null, cantidadCompra || 0, idPresentacionInventario || null]
         );
 
         return NextResponse.json({

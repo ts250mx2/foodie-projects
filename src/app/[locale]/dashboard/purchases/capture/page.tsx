@@ -66,6 +66,7 @@ export default function PurchasesCapturePage() {
     const t = useTranslations('PurchasesCapture');
     const tModal = useTranslations('PurchasesModal');
     const tDetails = useTranslations('PurchaseDetailsModal');
+    const tCommon = useTranslations('Common');
 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -432,6 +433,13 @@ export default function PurchasesCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         await fetchDailyPurchases(date);
         setIsModalOpen(true);

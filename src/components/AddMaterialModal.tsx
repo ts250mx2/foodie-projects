@@ -78,7 +78,7 @@ export default function AddMaterialModal({
             // Or if productType is passed, use it?
             // The previous logic (Step 1705) hardcoded tipoProducto=0 in some places?
             // Let's stick to existing fetchData logic but ensure dependency on refreshKey works.
-            const typesToFetch = productType === 1 ? '0,2' : '0';
+            const typesToFetch = (productType === 1 || productType === 2) ? '0,2' : '0';
             const response = await fetch(`/api/products?projectId=${projectId}&tipoProducto=${typesToFetch}`);
             if (response.ok) {
                 const data = await response.json();
@@ -150,6 +150,7 @@ export default function AddMaterialModal({
                                     {productType > 0 ? (
                                         <>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mód. Recetario</th>
+                                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Costo</th>
                                             <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Pres. Conversión</th>
                                         </>
                                     ) : (
@@ -174,6 +175,9 @@ export default function AddMaterialModal({
                                             {productType > 0 ? (
                                                 <>
                                                     <td className="px-4 py-3 text-sm text-gray-500">{p.CategoriaRecetario || '-'}</td>
+                                                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600">
+                                                        ${(p.Costo || p.Precio || 0).toFixed(2)}
+                                                    </td>
                                                     <td className="px-4 py-3 text-sm text-gray-500">{p.PresentacionConversion || '-'}</td>
                                                 </>
                                             ) : (

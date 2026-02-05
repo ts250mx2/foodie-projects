@@ -62,6 +62,7 @@
         "platforms": "Plataformas",
         "salesChannels": "Canales de Venta",
         "paymentChannels": "Canales de Pago",
+        "taxes": "Impuestos",
         "salesTerminalsCapture": "Ventas por Forma de Pago",
         "salesChannelsCapture": "Ventas por Canal",
         "tipsCapture": "Captura de Propinas",
@@ -236,6 +237,19 @@
         "successAdd": "Canal de pago creado exitosamente",
         "successUpdate": "Canal de pago actualizado exitosamente",
         "successDelete": "Canal de pago eliminado exitosamente"
+    },
+    "Taxes": {
+        "title": "Impuestos",
+        "addTax": "Agregar Impuesto",
+        "description": "Descripción",
+        "percentage": "Porcentaje (%)",
+        "active": "Activo",
+        "actions": "Acciones",
+        "editTax": "Editar",
+        "deleteTax": "Eliminar",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "confirmDelete": "¿Está seguro de eliminar este impuesto?"
     },
     "Suppliers": {
         "title": "Administración de Proveedores",
@@ -819,5 +833,8 @@
         "noEmployees": "No hay empleados asignados a esta sucursal.",
         "confirmDelete": "¿Estás seguro de que deseas eliminar este empleado de la sucursal?",
         "close": "Cerrar"
+    },
+    "Common": {
+        "errorFutureDate": "No se pueden capturar datos para fechas futuras."
     }
 }

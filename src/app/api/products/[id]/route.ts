@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { ResultSetHeader } from 'mysql2';
+import fs from 'fs';
+import path from 'path';
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     let connection;
     try {
-        const { id } = await params;
+        const { id } = await props.params;
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idCategoriaRecetario, idPresentacion, precio, iva, archivoImagen, nombreArchivo, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto, idSeccionMenu, porcentajeCostoIdeal } = body;
+
+        // Persist log to file
+        const logData = `[${new Date().toISOString()}] PUT /api/products/${id}\nBody: ${JSON.stringify(body, null, 2)}\n\n`;
+        fs.appendFileSync(path.join(process.cwd(), 'api-debug.log'), logData);
+
+        console.log('API Received Body:', body);
+        const { projectId, producto, codigo, idCategoria, idCategoriaRecetario, idPresentacion, precio, iva, archivoImagen, nombreArchivo, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto, idSeccionMenu, porcentajeCostoIdeal, cantidadCompra, idPresentacionInventario } = body;
+
+        console.log('API Extracted Fields:', { cantidadCompra, idPresentacionInventario });
 
         // Validation: Required for all
-        if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
+        if (!projectId || !producto || !codigo || precio === undefined || iva === undefined || cantidadCompra === undefined || idPresentacionInventario === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
@@ -24,10 +34,13 @@ export async function PUT(
 
         connection = await getProjectConnection(projectId);
 
-        const [result] = await connection.query(
-            `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, ArchivoImagen = ?, NombreArchivo = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, IdSeccionMenu = ?, PorcentajeCostoIdeal = ?, FechaAct = Now() WHERE IdProducto = ?`,
-            [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, archivoImagen || null, nombreArchivo || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, idSeccionMenu || null, porcentajeCostoIdeal || null, id]
-        );
+        const sql = `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, ArchivoImagen = ?, NombreArchivo = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, IdSeccionMenu = ?, PorcentajeCostoIdeal = ?, CantidadCompra = ?, IdPresentacionInventario = ?, FechaAct = Now() WHERE IdProducto = ?`;
+        const params = [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, archivoImagen || null, nombreArchivo || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, idPresentacionInventario || null, id];
+
+        console.log('API executing SQL:', sql);
+        console.log('API SQL Params:', params);
+
+        const [result] = await connection.query(sql, params);
 
         if ((result as any).affectedRows === 0) {
             return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });

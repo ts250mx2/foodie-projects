@@ -42,6 +42,7 @@ interface GroupedInventory {
 export default function InventoryCapturePage() {
     const t = useTranslations('InventoryCapture');
     const tModal = useTranslations('InventoryModal');
+    const tCommon = useTranslations('Common');
 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -147,14 +148,20 @@ export default function InventoryCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         setIsLoading(true);
 
-        // Initialize inventory for this day
-        await initializeInventory(date);
-
-        // Fetch inventory entries
-        await fetchInventoryEntries(date);
+        await Promise.all([
+            initializeInventory(date),
+            fetchInventoryEntries(date)
+        ]);
 
         setIsLoading(false);
         setIsModalOpen(true);

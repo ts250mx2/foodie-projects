@@ -223,5 +223,8 @@
         "close": "Fermer",
         "total": "Total",
         "select": "Sélectionner..."
+    },
+    "Common": {
+        "errorFutureDate": "Impossible de saisir des données pour des dates futures."
     }
 }

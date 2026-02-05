@@ -10,6 +10,7 @@ interface Branch {
 
 export default function SalesCapturePage() {
     const t = useTranslations('SalesCapture');
+    const tCommon = useTranslations('Common');
     // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -154,6 +155,13 @@ export default function SalesCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         await fetchDailySales(date);
         setIsModalOpen(true);

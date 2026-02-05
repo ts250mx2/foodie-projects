@@ -12,6 +12,7 @@ interface Branch {
 export default function SalesTerminalsCapturePage() {
     const t = useTranslations('SalesTerminalsCapture');
     const tModal = useTranslations('SalesModal');
+    const tCommon = useTranslations('Common');
     const { colors } = useTheme();
 
     // Basic state
@@ -146,6 +147,13 @@ export default function SalesTerminalsCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         await Promise.all([
             fetchDailySales(date),

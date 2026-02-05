@@ -23,6 +23,7 @@ interface PaymentChannel {
 
 export default function ExpensesCapturePage() {
     const t = useTranslations('ExpensesCapture');
+    const tCommon = useTranslations('Common');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
@@ -175,6 +176,13 @@ export default function ExpensesCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         await fetchDailyExpenses(date);
         setIsModalOpen(true);

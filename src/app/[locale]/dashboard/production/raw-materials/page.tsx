@@ -27,6 +27,8 @@ interface RawMaterial {
     IVA: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
+    CantidadCompra: number;
+    IdPresentacionInventario: number | null;
 }
 
 interface Presentation {
@@ -209,7 +211,9 @@ export default function RawMaterialsPage() {
                 idPresentacionConversion: fields.IdPresentacionConversion,
                 pesoInicial: fields.PesoInicial,
                 pesoFinal: fields.PesoFinal,
-                observacionesMerma: fields.ObservacionesMerma
+                observacionesMerma: fields.ObservacionesMerma,
+                cantidadCompra: fields.CantidadCompra,
+                idPresentacionInventario: fields.IdPresentacionInventario
             }));
 
             const response = await fetch('/api/production/raw-materials', {

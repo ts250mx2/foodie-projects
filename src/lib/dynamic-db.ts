@@ -19,8 +19,9 @@ interface ProjectConfig extends RowDataPacket {
 export async function getProjectConnection(projectId: number) {
     try {
         // 1. Get project details from main DB
-        const [rows] = await pool.query<ProjectConfig[]>(
-            'SELECT BaseDatos, Servidor, UsarioBD, PasswdBD FROM tblProyectos WHERE IdProyecto = ?',
+        // Use * to handle inconsistent naming between BDFoodieProjects and BDIntegraProjects
+        const [rows] = await pool.query<any[]>(
+            'SELECT * FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -28,14 +29,16 @@ export async function getProjectConnection(projectId: number) {
             throw new Error(`Project with ID ${projectId} not found`);
         }
 
-        const config = rows[0];
+        const project = rows[0];
+        const dbUser = project.UsuarioBD || project.UsarioBD;
+        const dbPass = project.PasswordBD || project.PasswdBD;
 
         // 2. Create connection to project DB
         const connection = await mysql.createConnection({
-            host: config.Servidor,
-            user: config.UsarioBD, // Note: DB column has typo 'UsarioBD'
-            password: config.PasswdBD,
-            database: config.BaseDatos,
+            host: project.Servidor,
+            user: dbUser,
+            password: dbPass,
+            database: project.BaseDatos,
         });
 
         return connection;

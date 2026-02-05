@@ -225,5 +225,8 @@
         "close": "Fechar",
         "total": "Total",
         "select": "Selecionar..."
+    },
+    "Common": {
+        "errorFutureDate": "Não é possível capturar dados para datas futuras."
     }
 }

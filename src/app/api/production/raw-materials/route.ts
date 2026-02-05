@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         const [rows] = await connection.query(
             `SELECT A.IdProducto, A.Codigo, A.Producto, A.Precio, A.IVA, A.IdPresentacion, A.ConversionSimple, 
                     A.IdPresentacionConversion, A.PesoInicial, A.PesoFinal, A.ObservacionesMerma,
-                    A.ArchivoImagen, A.NombreArchivo,
+                    A.ArchivoImagen, A.NombreArchivo, A.CantidadCompra, A.IdPresentacionInventario,
                     CR.CategoriaRecetario as Categoria, CR.IdCategoriaRecetario,
                     C.Presentacion AS UnidadCompra,
                     D.Presentacion AS UnidadConversion
@@ -91,6 +91,14 @@ export async function PUT(request: NextRequest) {
                 if (update.observacionesMerma !== undefined) {
                     fields.push('ObservacionesMerma = ?');
                     values.push(update.observacionesMerma);
+                }
+                if (update.cantidadCompra !== undefined) {
+                    fields.push('CantidadCompra = ?');
+                    values.push(update.cantidadCompra);
+                }
+                if (update.idPresentacionInventario !== undefined) {
+                    fields.push('IdPresentacionInventario = ?');
+                    values.push(update.idPresentacionInventario);
                 }
 
                 if (fields.length > 0) {

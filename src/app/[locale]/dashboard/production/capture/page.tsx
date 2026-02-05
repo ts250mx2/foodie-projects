@@ -23,6 +23,7 @@ interface MonthlyProductionSummary {
 
 export default function ProductionCapturePage() {
     const t = useTranslations('Production');
+    const tCommon = useTranslations('Common');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
@@ -141,6 +142,13 @@ export default function ProductionCapturePage() {
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
 
     const handleDayClick = (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         setIsModalOpen(true);
     };

@@ -12,6 +12,7 @@ interface Branch {
 
 export default function TipsCapturePage() {
     const t = useTranslations('TipsCapture');
+    const tCommon = useTranslations('Common');
 
     // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -99,6 +100,13 @@ export default function TipsCapturePage() {
 
     const handleDayClick = (day: number) => {
         const date = new Date(selectedYear, selectedMonth, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            alert(tCommon('errorFutureDate'));
+            return;
+        }
+
         setSelectedDate(date);
         setIsModalOpen(true);
     };

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
                     (I.Cantidad * I.Precio) as Total
              FROM tblInventarios I
              INNER JOIN tblProductos P ON I.IdProducto = P.IdProducto
-             LEFT JOIN tblPresentaciones PR ON P.IdPresentacion = PR.IdPresentacion
+             LEFT JOIN tblPresentaciones PR ON COALESCE(P.IdPresentacionInventario, P.IdPresentacion) = PR.IdPresentacion
              LEFT JOIN tblCategorias C ON P.IdCategoria = C.IdCategoria
              WHERE I.IdSucursal = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ?
              ORDER BY C.Categoria, P.Producto`,

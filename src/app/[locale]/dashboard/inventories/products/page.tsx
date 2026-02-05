@@ -22,6 +22,8 @@ interface Product {
     IdSeccionMenu?: number;
     PorcentajeCostoIdeal?: number;
     IdTipoProducto: number;
+    CantidadCompra: number;
+    IdPresentacionInventario: number | null;
 }
 
 interface Category {

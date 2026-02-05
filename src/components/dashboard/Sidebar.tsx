@@ -61,6 +61,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'terminals', href: '/dashboard/sales/terminals' },
                 { key: 'salesChannels', href: '/dashboard/sales/channels' },
                 { key: 'paymentChannels', href: '/dashboard/config/payment-channels' },
+                { key: 'taxes', href: '/dashboard/config/taxes' },
                 { key: 'employees', href: '/dashboard/payroll/employees' },
                 { key: 'positions', href: '/dashboard/payroll/positions' },
                 { key: 'documentTypes', href: '/dashboard/settings/document-types' }
@@ -210,7 +211,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                             </button>
 
                             <div
-                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen && !isCollapsed ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen && !isCollapsed ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
                                     }`}
                             >
                                 <ul className="bg-black/10 py-2 space-y-1">
