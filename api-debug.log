@@ -551,3 +551,486 @@ Body: {
   "porcentajeCostoIdeal": null
 }
 
+[2026-02-05T21:33:28.983Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 0,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 0,
+  "idPresentacionInventario": 14,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T21:33:41.933Z] PUT /api/products/430
+Body: {
+  "projectId": 8,
+  "producto": "CHICHARRON SALSA VERDE",
+  "codigo": "CHICHARRON SV",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 18,
+  "pesoFinal": 1,
+  "pesoInicial": 0,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 0,
+  "idPresentacionInventario": 18,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T21:34:07.269Z] PUT /api/products/430
+Body: {
+  "projectId": 8,
+  "producto": "CHICHARRON SALSA VERDE",
+  "codigo": "CHICHARRON SV",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 0,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 0,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:00:15.470Z] PUT /api/products/430
+Body: {
+  "projectId": 8,
+  "producto": "CHICHARRON SALSA VERDE",
+  "codigo": "CHICHARRON SV",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 0,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:00:39.915Z] PUT /api/products/430
+Body: {
+  "projectId": 8,
+  "producto": "CHICHARRON SALSA VERDE",
+  "codigo": "CHICHARRON SV",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 0,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:19:08.882Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": 14,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:26:29.931Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:31:15.400Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:31:29.261Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:32:06.760Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:33:19.842Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:33:53.739Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:34:14.326Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:34:19.838Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null
+}
+
+[2026-02-05T22:34:34.959Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0
+}
+
+[2026-02-05T22:34:42.387Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 2,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": 1,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": 14,
+  "idPresentacionConversion": 14,
+  "pesoInicial": 1,
+  "pesoFinal": 1
+}
+
+[2026-02-05T22:34:46.741Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0
+}
+
+[2026-02-05T22:37:58.633Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0
+}
+
+[2026-02-05T22:38:09.661Z] PUT /api/products/431
+Body: {
+  "projectId": 8,
+  "producto": "ASADO",
+  "codigo": "ASADO",
+  "idCategoria": 32,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0
+}
+
+[2026-02-05T23:22:11.242Z] PUT /api/products/163
+Body: {
+  "projectId": 8,
+  "producto": "ACEITE AVE CAJA 2 PZ DE 10 LTS",
+  "codigo": "ACEITE",
+  "idCategoria": 16,
+  "idPresentacion": 18,
+  "precio": 36,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 10,
+  "idCategoriaRecetario": 1,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 2,
+  "idPresentacionInventario": 16,
+  "idPresentacionConversion": 19,
+  "pesoInicial": 1,
+  "pesoFinal": 1
+}
+
+[2026-02-05T23:22:36.903Z] PUT /api/products/163
+Body: {
+  "projectId": 8,
+  "producto": "ACEITE AVE CAJA 2 PZ DE 10 LTS",
+  "codigo": "ACEITE",
+  "idCategoria": 16,
+  "idPresentacion": 18,
+  "precio": 36,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 10,
+  "idCategoriaRecetario": 1,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 2,
+  "idPresentacionInventario": 16,
+  "idPresentacionConversion": 19,
+  "pesoInicial": 1,
+  "pesoFinal": 1
+}
+

@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "কর",
+        "purchaseUnit": "ক্রয় একক",
+        "inventoryUnit": "ইনভেন্টরি একক",
+        "recipeUnit": "রেসিপি একক"
+    },
+    "Common": {
+        "errorFutureDate": "ভবিষ্যতের তারিখের জন্য ডেটা ক্যাপচার করা সম্ভব নয়।"
     }
 }

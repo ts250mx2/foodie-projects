@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "कर",
+        "purchaseUnit": "खरीद इकाई",
+        "inventoryUnit": "इन्वेंट्री इकाई",
+        "recipeUnit": "नुस्खा इकाई"
+    },
+    "Common": {
+        "errorFutureDate": "भविष्य की तारीखों के लिए डेटा कैप्चर करना संभव नहीं है।"
     }
 }

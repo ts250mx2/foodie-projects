@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "Налог",
+        "purchaseUnit": "Единица закупки",
+        "inventoryUnit": "Единица инвентаризации",
+        "recipeUnit": "Единица рецепта"
+    },
+    "Common": {
+        "errorFutureDate": "Невозможно зафиксировать данные для будущих дат."
     }
 }

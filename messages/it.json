@@ -291,5 +291,14 @@
         "close": "Chiudi",
         "total": "Totale",
         "select": "Seleziona..."
+    },
+    "Products": {
+        "iva": "Imposta",
+        "purchaseUnit": "Unità di misura acquisto",
+        "inventoryUnit": "Unità di misura inventario",
+        "recipeUnit": "Unità di misura ricetta"
+    },
+    "Common": {
+        "errorFutureDate": "Non è possibile acquisire dati per date future."
     }
 }

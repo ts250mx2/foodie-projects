@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "ضريبة",
+        "purchaseUnit": "وحدة قياس الشراء",
+        "inventoryUnit": "وحدة قياس المخزون",
+        "recipeUnit": "وحدة قياس الوصفة"
+    },
+    "Common": {
+        "errorFutureDate": "لا يمكن التقاط البيانات للتواريخ المستقبلية."
     }
 }

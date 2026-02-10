@@ -16,62 +16,96 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        let query = `
-            SELECT 
-                p.IdProducto,
-                p.Producto,
-                p.Codigo,
-                p.IdCategoria,
-                p.IdPresentacion,
-                p.Precio,
-                p.IVA,
-                p.IdTipoProducto,
-                p.ArchivoImagen,
-                p.NombreArchivo,
-                p.Status,
-                p.PesoInicial,
-                p.PesoFinal,
-                p.ConversionSimple,
-                p.IdCategoriaRecetario,
-                p.IdPresentacionConversion,
-                p.IdSeccionMenu,
-                p.PorcentajeCostoIdeal,
-                p.CantidadCompra,
-                p.IdPresentacionInventario,
-                c.Categoria,
-                pr.Presentacion,
-                cr.CategoriaRecetario,
-                pc.Presentacion AS PresentacionConversion,
-                pi.Presentacion AS PresentacionInventario,
-                COALESCE(v.Costo, vp.Costo) as Costo
-            FROM tblProductos p
-            LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
-            LEFT JOIN vlPlatillos vp ON p.IdProducto = vp.IdProducto
-            LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
-            LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
-            LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
-            LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
-            LEFT JOIN tblPresentaciones pi ON p.IdPresentacionInventario = pi.IdPresentacion
-            WHERE p.Status = 0
-        `;
+        let query = '';
         const params: any[] = [];
 
-        if (tipoProductoStr !== null) {
-            if (tipoProductoStr.includes(',')) {
-                const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
-                if (types.length > 0) {
-                    query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
-                    params.push(...types);
+        if (tipoProductoStr === '2') {
+            query = `
+                SELECT 
+                    IdProducto,
+                    Producto,
+                    Codigo,
+                    Categoria,
+                    Presentacion,
+                    COALESCE(Costo, 0) as Costo,
+                    Status,
+                    ArchivoImagen,
+                    NombreArchivo,
+                    IdTipoProducto,
+                    IdCategoria,
+                    IdPresentacion,
+                    COALESCE(Precio, 0) as Precio,
+                    COALESCE(IVA, 0) as IVA,
+                    PesoInicial,
+                    PesoFinal,
+                    ConversionSimple,
+                    IdCategoriaRecetario,
+                    IdPresentacionConversion,
+                    IdSeccionMenu,
+                    PorcentajeCostoIdeal,
+                    CantidadCompra,
+                    IdPresentacionInventario
+                FROM vlProductos 
+                WHERE Status = 0 AND IdTipoProducto = 2
+            `;
+        } else {
+            query = `
+                SELECT 
+                    p.IdProducto,
+                    p.Producto,
+                    p.Codigo,
+                    p.IdCategoria,
+                    p.IdPresentacion,
+                    p.Precio,
+                    p.IVA,
+                    p.IdTipoProducto,
+                    p.ArchivoImagen,
+                    p.NombreArchivo,
+                    p.Status,
+                    p.PesoInicial,
+                    p.PesoFinal,
+                    p.ConversionSimple,
+                    p.IdCategoriaRecetario,
+                    p.IdPresentacionConversion,
+                    p.IdSeccionMenu,
+                    p.PorcentajeCostoIdeal,
+                    p.CantidadCompra,
+                    p.IdPresentacionInventario,
+                    c.Categoria,
+                    pr.Presentacion,
+                    cr.CategoriaRecetario,
+                    pc.Presentacion AS PresentacionConversion,
+                    pi.Presentacion AS PresentacionInventario,
+                    COALESCE(v.Costo, vp.Costo) as Costo
+                FROM tblProductos p
+                LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
+                LEFT JOIN vlPlatillos vp ON p.IdProducto = vp.IdProducto
+                LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
+                LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
+                LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
+                LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
+                LEFT JOIN tblPresentaciones pi ON p.IdPresentacionInventario = pi.IdPresentacion
+                WHERE p.Status = 0
+            `;
+
+            if (tipoProductoStr !== null) {
+                if (tipoProductoStr.includes(',')) {
+                    const types = tipoProductoStr.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
+                    if (types.length > 0) {
+                        query += ` AND p.IdTipoProducto IN (${types.map(() => '?').join(',')})`;
+                        params.push(...types);
+                    }
+                } else {
+                    query += ' AND p.IdTipoProducto = ?';
+                    params.push(parseInt(tipoProductoStr));
                 }
-            } else {
-                query += ' AND p.IdTipoProducto = ?';
-                params.push(parseInt(tipoProductoStr));
             }
         }
 
-        query += ' ORDER BY p.Producto ASC';
+        query += ' ORDER BY Producto ASC';
 
         const [rows] = await connection.query(query, params);
+
 
         // Convert ArchivoImagen Buffer to string if necessary
         const formattedRows = (rows as any[]).map(row => ({

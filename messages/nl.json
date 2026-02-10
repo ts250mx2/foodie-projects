@@ -59,7 +59,7 @@
         "terminals": "Terminals",
         "platforms": "Platforms",
         "salesCapture": "Sales Capture",
-        "inventories": "Inventories",
+        "inventories": "Inventaries",
         "inventoryDates": "Inventory Dates",
         "products": "Products",
         "inventoryCapture": "Inventory Capture",
@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "Belasting",
+        "purchaseUnit": "Inkoopeenheid",
+        "inventoryUnit": "Inventariseenheid",
+        "recipeUnit": "Recepteenheid"
+    },
+    "Common": {
+        "errorFutureDate": "Kan geen gegevens vastleggen voor toekomstige datums."
     }
 }

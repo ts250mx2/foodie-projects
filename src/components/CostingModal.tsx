@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
 import InstructionsTab from '@/components/InstructionsTab';
 import DocumentsTab from '@/components/DocumentsTab';
 import { generateTechnicalSheetPDF, CostingHeaderData } from '@/utils/generateTechnicalSheetPDF';
+import { YIELD_DATA, YieldReference } from '@/utils/yieldData';
 
 interface KitItem {
     IdProductoPadre: number;
@@ -47,6 +49,9 @@ interface Product {
     PorcentajeCostoIdeal?: number;
     CantidadCompra?: number;
     IdPresentacionInventario?: number;
+    UnidadMedidaCompra?: string;
+    UnidadMedidaInventario?: string;
+    UnidadMedidaRecetario?: string;
     Status?: number;
 }
 
@@ -86,7 +91,8 @@ interface CostingModalProps {
     onProductUpdate?: (product?: Product, shouldClose?: boolean) => void;
 }
 
-export default function CostingModal({ isOpen, onClose, product: initialProduct, projectId, initialTab = 'general', onProductUpdate, productType }: CostingModalProps) {
+export default function CostingModal({ isOpen, onClose, product: initialProduct, projectId, productType, onProductUpdate, initialTab = 'general' }: CostingModalProps) {
+    const t = useTranslations('Products');
     const [product, setProduct] = useState<Product>(initialProduct || {
         IdProducto: 0,
         Producto: '',
@@ -108,7 +114,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 idCategoria: initialProduct.IdCategoria?.toString() || initialProduct.IdCategoriaRecetario?.toString() || '',
                 idPresentacion: initialProduct.IdPresentacion?.toString() || '',
                 precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(initialProduct.Precio || 0),
-                iva: (initialProduct.IVA || 0).toString()
+                iva: (initialProduct.IVA ?? 0).toString()
             });
             setPhotoPreview(initialProduct.ArchivoImagen || null);
             setSelectedPhotoBase64(initialProduct.ArchivoImagen || null);
@@ -118,10 +124,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             setIdCategoriaRecetario(initialProduct.IdCategoriaRecetario?.toString() || '');
             setIdSeccionMenu(initialProduct.IdSeccionMenu?.toString() || '');
             setPorcentajeCostoIdeal(initialProduct.PorcentajeCostoIdeal?.toString() || '');
-            setSimpleConversion(initialProduct.ConversionSimple || 1);
+            setSimpleConversion(productType === 2 ? 1 : (initialProduct.ConversionSimple || 1));
             setIdPresentacionConversion(initialProduct.IdPresentacionConversion || null);
             // Correctly load numeric fields
-            if (initialProduct.CantidadCompra !== undefined) {
+            if (productType === 2) {
+                setCantidadCompra(1);
+            } else if (initialProduct.CantidadCompra !== undefined) {
                 setCantidadCompra(initialProduct.CantidadCompra);
             } else {
                 setCantidadCompra(0);
@@ -133,8 +141,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 setIdPresentacionInventario(null);
             }
 
-            setPesoInicial(initialProduct.PesoInicial || 0);
-            setPesoFinal(initialProduct.PesoFinal || 0);
+            setPesoInicial((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoInicial || 1));
+            setPesoFinal((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoFinal || 1));
+            setUnMedidaCompra(initialProduct.UnidadMedidaCompra || '');
+            setUnMedidaInventario(initialProduct.UnidadMedidaInventario || '');
+            setUnMedidaRecetario(initialProduct.UnidadMedidaRecetario || '');
+            setUnMedidaRecetario(initialProduct.UnidadMedidaRecetario || '');
+            // Initialize yield toggle based on weights
+            const initHasYield = initialProduct.PesoInicial !== 1 || initialProduct.PesoFinal !== 1;
+            setHasYield(initHasYield);
         } else {
             // Reset for new product
             setProduct({
@@ -168,6 +183,66 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     }, [initialProduct, productType]);
 
+    const handleFetchAiYield = async () => {
+        if (!formData.producto) {
+            alert('Por favor, ingrese el nombre del producto primero.');
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            const response = await fetch('/api/ai/suggest-yield', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productName: formData.producto }),
+            });
+            const data = await response.json();
+            if (data.suggestions && data.suggestions.length > 0) {
+                setAiYieldSuggestions(data.suggestions);
+                setIsAiYieldModalOpen(true);
+            } else if (data.yield !== undefined) {
+                // Fallback for old single yield format just in case
+                setAiYieldSuggestions([{ process: 'General', yield: data.yield, explanation: data.explanation || '' }]);
+                setIsAiYieldModalOpen(true);
+            } else if (data.suggestion) {
+                alert(`${data.error}: ${data.suggestion}`);
+            } else {
+                alert(data.error || 'Error al obtener la sugerencia de la IA');
+            }
+        } catch (error) {
+            console.error('AI Fetch Error:', error);
+            alert('Error de conexión con el servicio de IA');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleFetchMarketPrices = async () => {
+        if (!formData.producto) {
+            alert('Por favor, ingrese el nombre del producto primero.');
+            return;
+        }
+        setIsMarketPricesLoading(true);
+        try {
+            const response = await fetch('/api/ai/market-prices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productName: formData.producto }),
+            });
+            const data = await response.json();
+            if (data.results) {
+                setMarketPriceResults(data.results);
+                setIsMarketPricesModalOpen(true);
+            } else {
+                alert(data.error || 'No se encontraron precios en el mercado.');
+            }
+        } catch (error) {
+            console.error('Market Prices Fetch Error:', error);
+            alert('Error de conexión con el servicio de búsqueda');
+        } finally {
+            setIsMarketPricesLoading(false);
+        }
+    };
+
     const [activeTab, setActiveTab] = useState<'general' | 'photo' | 'costing' | 'instructions' | 'documents'>(initialTab as any);
     const [kitItems, setKitItems] = useState<KitItem[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -186,6 +261,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [idPresentacionConversion, setIdPresentacionConversion] = useState<number | null>(null);
     const [cantidadCompra, setCantidadCompra] = useState<number>(0);
     const [idPresentacionInventario, setIdPresentacionInventario] = useState<number | null>(null);
+    const [hasYield, setHasYield] = useState<boolean>(true);
 
     // New State for General Config & Photo
     const [categories, setCategories] = useState<Category[]>([]);
@@ -199,7 +275,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         idCategoria: product.IdCategoria?.toString() || product.IdCategoriaRecetario?.toString() || '',
         idPresentacion: product.IdPresentacion?.toString() || '',
         precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.Precio || 0),
-        iva: product.IVA.toString()
+        iva: (product.IVA ?? 0).toString()
     });
     const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(product.ArchivoImagen || null);
@@ -221,34 +297,124 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [converterInput, setConverterInput] = useState<number>(1);
     const [converterResult, setConverterResult] = useState<number>(1);
 
+    const UNIT_HIERARCHY: Record<string, string[]> = {
+        'kg': ['g', 'lb', 'oz'],
+        'g': [],
+        'lb': ['oz', 'g'],
+        'oz': ['g'],
+        't': ['kg'],
+        'ar': ['kg', 'lb'],
+        'l': ['ml', 'fl-oz', 'taza'],
+        'ml': [],
+        'gal': ['l', 'ml', 'fl-oz', 'taza'],
+        'qt': ['pt', 'ml'],
+        'pt': ['ml'],
+        'fl-oz': ['ml'],
+        'taza': ['ml'],
+        'caja': ['pza', 'kg', 'g', 'l', 'ml', 'paquete'],
+        'saco': ['kg', 'lb', 'g'],
+        'docena': ['pza'],
+        'paquete': ['pza'],
+        'bolsa': ['pza', 'kg', 'g', 'l', 'ml'],
+        'pza': [],
+        'lata': ['pza', 'kg', 'g', 'l', 'ml'],
+        'botella': ['pza', 'l', 'ml'],
+        'frasco': ['pza', 'kg', 'g', 'l', 'ml'],
+        'garrafon': ['l', 'ml']
+    };
+
+    const [unMedidaCompra, setUnMedidaCompra] = useState<string>('');
+    const [unMedidaInventario, setUnMedidaInventario] = useState<string>('');
+    const [unMedidaRecetario, setUnMedidaRecetario] = useState<string>('');
+    const [isYieldModalOpen, setIsYieldModalOpen] = useState(false);
+    const [yieldSearchQuery, setYieldSearchQuery] = useState('');
+    const [isAiYieldModalOpen, setIsAiYieldModalOpen] = useState(false);
+    const [aiYieldSuggestions, setAiYieldSuggestions] = useState<Array<{ process: string, yield: number, explanation: string }>>([]);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+
+    const [isMarketPricesModalOpen, setIsMarketPricesModalOpen] = useState(false);
+    const [marketPriceResults, setMarketPriceResults] = useState<Array<{ title: string, link: string, snippet: string, source: string, price?: string, unit?: string }>>([]);
+    const [isMarketPricesLoading, setIsMarketPricesLoading] = useState(false);
+
+    const MEASUREMENT_UNITS = ['kg', 'g', 'lb', 'oz', 't', 'ar', 'l', 'ml', 'gal', 'qt', 'pt', 'fl-oz', 'taza', 'garrafon'];
+
+    useEffect(() => {
+        if (unMedidaCompra) {
+            const isMeasurement = MEASUREMENT_UNITS.includes(unMedidaCompra);
+            const children = UNIT_HIERARCHY[unMedidaCompra] || [];
+
+            if (isMeasurement || children.length === 0) {
+                setUnMedidaInventario(unMedidaCompra);
+                setCantidadCompra(1);
+            } else if (unMedidaInventario !== '' && !children.includes(unMedidaInventario) && unMedidaInventario !== unMedidaCompra) {
+                // Keep existing unless invalid
+            }
+        } else {
+            setUnMedidaInventario('');
+        }
+    }, [unMedidaCompra]);
+
+    // Synchronize unMedidaInventario label with idPresentacionConversion (the actual selected inventory unit)
+    useEffect(() => {
+        if (idPresentacionConversion) {
+            const pres = presentations.find(p => p.IdPresentacion === idPresentacionConversion);
+            if (pres) {
+                setUnMedidaInventario(pres.Presentacion);
+            }
+        } else if (unMedidaCompra) {
+            setUnMedidaInventario(unMedidaCompra);
+        }
+    }, [idPresentacionConversion, presentations, unMedidaCompra]);
+
     const CONVERSION_FACTORS: Record<string, number> = {
-        // Volume (Base: Litro)
-        'Litro': 1,
-        'Mililitro': 0.001,
-        'Galon': 3.78541,
-        'Onza Fluida': 0.0295735,
-        'Taza': 0.236588,
-        // Weight (Base: Kilo)
-        'Kilo': 1,
-        'Gramo': 0.001,
-        'Libra': 0.453592,
-        'Onza': 0.0283495
+        // Volume (Base: l)
+        'l': 1, 'Litro': 1,
+        'ml': 0.001, 'Mililitro': 0.001,
+        'gal': 3.78541, 'Galon': 3.78541,
+        'fl-oz': 0.0295735, 'Onza Fluida': 0.0295735,
+        'taza': 0.236588, 'Taza': 0.236588,
+        'qt': 0.946353,
+        'pt': 0.473176,
+        'garrafon': 19,
+        // Weight (Base: kg)
+        'kg': 1, 'Kilo': 1,
+        'g': 0.001, 'Gramo': 0.001,
+        'lb': 0.453592, 'Libra': 0.453592,
+        'oz': 0.0283495, 'Onza': 0.0283495,
+        't': 1000,
+        'ar': 11.3398
     };
 
     const UNIT_TYPES: Record<string, 'volume' | 'weight'> = {
+        'l': 'volume', 'ml': 'volume', 'gal': 'volume', 'fl-oz': 'volume', 'taza': 'volume', 'qt': 'volume', 'pt': 'volume', 'garrafon': 'volume',
         'Litro': 'volume', 'Mililitro': 'volume', 'Galon': 'volume', 'Onza Fluida': 'volume', 'Taza': 'volume',
+        'kg': 'weight', 'g': 'weight', 'lb': 'weight', 'oz': 'weight', 't': 'weight', 'ar': 'weight',
         'Kilo': 'weight', 'Gramo': 'weight', 'Libra': 'weight', 'Onza': 'weight'
     };
 
     const calculateConversion = (val: number, from: string, to: string) => {
-        if (UNIT_TYPES[from] !== UNIT_TYPES[to]) return 0;
-        const baseValue = val * CONVERSION_FACTORS[from];
-        return baseValue / CONVERSION_FACTORS[to];
+        if (!UNIT_TYPES[from] || !UNIT_TYPES[to] || UNIT_TYPES[from] !== UNIT_TYPES[to]) return 0;
+        const fromFactor = CONVERSION_FACTORS[from];
+        const toFactor = CONVERSION_FACTORS[to];
+        if (!fromFactor || !toFactor) return 0;
+        const baseValue = val * fromFactor;
+        return baseValue / toFactor;
     };
 
     useEffect(() => {
         setConverterResult(calculateConversion(converterInput, converterFromUnit, converterToUnit));
     }, [converterInput, converterFromUnit, converterToUnit]);
+
+    useEffect(() => {
+        if (unMedidaInventario && unMedidaRecetario) {
+            if (UNIT_TYPES[unMedidaInventario] && UNIT_TYPES[unMedidaRecetario] && UNIT_TYPES[unMedidaInventario] === UNIT_TYPES[unMedidaRecetario]) {
+                const conv = calculateConversion(1, unMedidaInventario, unMedidaRecetario);
+                setSimpleConversion(Number(conv.toFixed(4)));
+            } else if (unMedidaInventario === unMedidaRecetario) {
+                setSimpleConversion(1);
+            }
+        }
+    }, [unMedidaInventario, unMedidaRecetario]);
 
     // Add Material Modal Integration
     const [addMaterialRefreshKey, setAddMaterialRefreshKey] = useState(0);
@@ -501,7 +667,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         setIsSaving(true);
         try {
             // Logic: IdPresentacionConversion defaults to IdPresentacion if null
-            const finalIdPresentacionConversion = idPresentacionConversion || (formData.idPresentacion ? parseInt(formData.idPresentacion) : null);
+            // For Sub-recipes (Type 2), we MUST force all three IDs to be equal to the main presentation
+            const mainId = formData.idPresentacion ? parseInt(formData.idPresentacion) : null;
+            const finalIdPresentacionConversion = productType === 2 ? mainId : (idPresentacionConversion || mainId);
+            const finalIdPresentacionInventario = productType === 2 ? mainId : idPresentacionInventario;
 
             // 1. Save Kit Items
             const kits = kitItems.map(item => ({
@@ -541,16 +710,16 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     // New fields
                     conversionSimple: simpleConversion,
                     idPresentacionConversion: finalIdPresentacionConversion,
-                    pesoFinal: pesoFinal, // Mapping Yield to PesoFinal
-                    pesoInicial: pesoInicial,
+                    pesoFinal: (productType === 0 && !hasYield) ? 1 : ((productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal),
+                    pesoInicial: (productType === 0 && !hasYield) ? 1 : pesoInicial,
                     idCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
                     idTipoProducto: productType, // Ensure backend knows the type
                     archivoImagen: selectedPhotoBase64,
                     nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
 
                     // New fields for Refactor
-                    cantidadCompra: cantidadCompra,
-                    idPresentacionInventario: idPresentacionInventario,
+                    cantidadCompra: cantidadCompra || (productType === 2 ? 1 : 0),
+                    idPresentacionInventario: finalIdPresentacionInventario,
 
                     // Ensure required fields are present if formData is incomplete (fallback to product)
                     producto: formData.producto || product.Producto,
@@ -559,6 +728,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     // Dishes specific fields
                     idSeccionMenu: idSeccionMenu === '' ? null : parseInt(idSeccionMenu),
                     porcentajeCostoIdeal: porcentajeCostoIdeal === '' ? null : parseFloat(porcentajeCostoIdeal),
+                    // Unit Drilldowns
+                    unidadMedidaCompra: unMedidaCompra,
+                    unidadMedidaInventario: unMedidaInventario,
+                    unidadMedidaRecetario: unMedidaRecetario,
                 };
 
                 console.log('Sending Product Update Payload:', payload);
@@ -576,27 +749,29 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             if (costingResponse.ok && (!isProductUpdatePerformed || productUpdateResponse.ok)) {
                 setEditedQuantities({});
                 setEditedPrices({});
-                alert('✅ Costeo guardado correctamente');
-                // Pass back the saved product info (using form data + ID)
-                const savedPrecio = (formData.precio && typeof formData.precio === 'string')
-                    ? parseFloat(formData.precio.replace(/[^0-9.]/g, ''))
-                    : (product.Precio || 0);
-
-                const finalIdPresentacionInventario = idPresentacionInventario;
-
-                onProductUpdate?.({
+                const payload = {
                     ...product,
-                    ...formData,
-                    Precio: savedPrecio,
-                    IVA: parseFloat(formData.iva || '0'),
-                    IdProducto: product.IdProducto,
-                    PesoFinal: pesoFinal,
-                    PesoInicial: pesoInicial,
-                    ConversionSimple: simpleConversion,
-                    IdPresentacionConversion: idPresentacionConversion,
-                    CantidadCompra: cantidadCompra,
-                    IdPresentacionInventario: finalIdPresentacionInventario
-                } as any);
+                    Producto: formData.producto,
+                    Codigo: formData.codigo,
+                    IdCategoria: productType === 2 ? 1 : (formData.idCategoria === '' ? null : parseInt(formData.idCategoria)),
+                    IdCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
+                    IdPresentacion: parseInt(formData.idPresentacion),
+                    Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
+                    IVA: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
+                    idTipoProducto: productType ?? product.IdTipoProducto ?? 1,
+                    idSeccionMenu: idSeccionMenu === '' ? null : parseInt(idSeccionMenu),
+                    porcentajeCostoIdeal: porcentajeCostoIdeal === '' ? null : parseFloat(porcentajeCostoIdeal),
+                    PesoFinal: (productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal,
+                    PesoInicial: productType === 2 ? 1 : pesoInicial,
+                    ConversionSimple: productType === 2 ? 1 : simpleConversion,
+                    IdPresentacionConversion: finalIdPresentacionConversion || undefined,
+                    CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
+                    IdPresentacionInventario: finalIdPresentacionInventario || undefined
+                } as any;
+                if (productType === 2) {
+                    alert('✅ Informacion guardada exitosamente');
+                }
+                onProductUpdate?.(payload);
                 setIsSaving(false);
             } else {
                 alert('Error al guardar algunos datos');
@@ -694,18 +869,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     precio: productType === 2 ? 0 : parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
                     iva: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
                     idTipoProducto: productType ?? product.IdTipoProducto ?? 1,
-                    conversionSimple: simpleConversion,
-                    idPresentacionConversion: idPresentacionConversion,
-                    pesoFinal: pesoFinal,
-                    pesoInicial: pesoInicial,
+                    conversionSimple: productType === 2 ? 1 : simpleConversion,
                     idCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
                     idSeccionMenu: idSeccionMenu === '' ? null : parseInt(idSeccionMenu),
                     porcentajeCostoIdeal: porcentajeCostoIdeal === '' ? null : parseFloat(porcentajeCostoIdeal),
                     rutaFoto: product.RutaFoto, // Keep existing photo
                     archivoImagen: selectedPhotoBase64, // Include base64 image data
                     nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
-                    cantidadCompra: cantidadCompra,
-                    idPresentacionInventario: idPresentacionInventario || parseInt(formData.idPresentacion),
+                    cantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
+                    idPresentacionInventario: productType === 2 ? parseInt(formData.idPresentacion) : (idPresentacionInventario || parseInt(formData.idPresentacion)),
+                    idPresentacionConversion: productType === 2 ? parseInt(formData.idPresentacion) : idPresentacionConversion,
+                    pesoInicial: (productType === 0 && !hasYield) ? 1 : (productType === 2 ? 1 : pesoInicial),
+                    pesoFinal: (productType === 0 && !hasYield) ? 1 : ((productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal),
                 })
             });
 
@@ -725,17 +900,17 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         IdPresentacion: parseInt(formData.idPresentacion),
                         Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
                         IVA: parseFloat(formData.iva),
-                        PesoInicial: pesoInicial,
-                        PesoFinal: pesoFinal,
-                        ConversionSimple: simpleConversion,
-                        IdPresentacionConversion: idPresentacionConversion || undefined,
+                        PesoInicial: productType === 2 ? 1 : pesoInicial,
+                        PesoFinal: (productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal,
+                        ConversionSimple: productType === 2 ? 1 : simpleConversion,
+                        IdPresentacionConversion: (productType === 2 ? parseInt(formData.idPresentacion) : idPresentacionConversion) || undefined,
                         IdCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario)),
                         IdSeccionMenu: idSeccionMenu === '' ? undefined : parseInt(idSeccionMenu),
                         PorcentajeCostoIdeal: porcentajeCostoIdeal === '' ? undefined : parseFloat(porcentajeCostoIdeal),
                         ArchivoImagen: selectedPhotoBase64 || undefined,
                         NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
-                        CantidadCompra: cantidadCompra,
-                        IdPresentacionInventario: idPresentacionInventario || parseInt(formData.idPresentacion),
+                        CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
+                        IdPresentacionInventario: (productType === 2 ? parseInt(formData.idPresentacion) : (idPresentacionInventario || parseInt(formData.idPresentacion))) || undefined,
                     };
                     setProduct(newProduct);
                     // Call parent update and close (shouldClose = true)
@@ -751,17 +926,17 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         IdPresentacion: parseInt(formData.idPresentacion),
                         Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '')),
                         IVA: parseFloat(formData.iva),
-                        PesoInicial: pesoInicial,
-                        PesoFinal: pesoFinal,
-                        ConversionSimple: simpleConversion,
-                        IdPresentacionConversion: idPresentacionConversion || undefined,
-                        IdCategoriaRecetario: idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario),
+                        PesoInicial: productType === 2 ? 1 : pesoInicial,
+                        PesoFinal: (productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal,
+                        ConversionSimple: productType === 2 ? 1 : simpleConversion,
+                        IdPresentacionConversion: (productType === 2 ? parseInt(formData.idPresentacion) : idPresentacionConversion) || undefined,
+                        IdCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? undefined : parseInt(idCategoriaRecetario)),
                         IdSeccionMenu: idSeccionMenu === '' ? undefined : parseInt(idSeccionMenu),
                         PorcentajeCostoIdeal: porcentajeCostoIdeal === '' ? undefined : parseFloat(porcentajeCostoIdeal),
                         ArchivoImagen: selectedPhotoBase64 || undefined,
                         NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
-                        CantidadCompra: cantidadCompra,
-                        IdPresentacionInventario: idPresentacionInventario || parseInt(formData.idPresentacion),
+                        CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
+                        IdPresentacionInventario: (productType === 2 ? parseInt(formData.idPresentacion) : (idPresentacionInventario || parseInt(formData.idPresentacion))) || undefined,
                     };
                     setProduct(updatedProduct);
                     if (onProductUpdate) onProductUpdate(updatedProduct, false);
@@ -991,8 +1166,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 <div className="flex gap-3">
                                     {/* % Impuesto */}
                                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
-                                        <h3 className="text-xs font-bold mb-1">% Impuesto</h3>
-                                        <p className="text-[10px] opacity-90">IVA: {parseFloat(formData.iva) || 0}%</p>
+                                        <h3 className="text-xs font-bold mb-1">% {t('iva')}</h3>
+                                        <p className="text-[10px] opacity-90">{t('iva')}: {parseFloat(formData.iva) || 0}%</p>
                                         <p className="text-lg font-bold">
                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * ((parseFloat(formData.iva) || 0) / 100))}
                                         </p>
@@ -1001,7 +1176,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     {/* % Costo Precio con IVA */}
                                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
                                         <h3 className="text-xs font-bold mb-1">% Costo/Precio</h3>
-                                        <p className="text-[10px] opacity-90">con IVA</p>
+                                        <p className="text-[10px] opacity-90">con {t('iva')}</p>
                                         <p className="text-lg font-bold">
                                             {(() => {
                                                 const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
@@ -1013,7 +1188,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     {/* % Costo Neto / Precio (Sin IVA) */}
                                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
                                         <h3 className="text-xs font-bold mb-1">% Costo/Precio</h3>
-                                        <p className="text-[10px] opacity-90">sin IVA</p>
+                                        <p className="text-[10px] opacity-90">sin {t('iva')}</p>
                                         <p className="text-lg font-bold">
                                             {(() => {
                                                 const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
@@ -1132,9 +1307,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 />
                             </div>
 
-                            {/* Row 2: Categoría, Módulo de Recetario, Precio y IVA (For Raw Materials Type 0) */}
+                            {/* Row 2: Categoría, Módulo de Recetario, Precio y {t('Products.iva')} (For Raw Materials Type 0) */}
                             {productType === 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                                     {/* Categoria */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
@@ -1196,10 +1371,39 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </select>
                                     </div>
 
+                                    {/* Medida de compra (Moved from Row 4) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('purchaseUnit')}</label>
+                                        <select
+                                            value={unMedidaCompra}
+                                            onChange={(e) => setUnMedidaCompra(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                        >
+                                            <option value="">Selec...</option>
+                                            {Object.keys(UNIT_HIERARCHY).map(u => (
+                                                <option key={u} value={u}>{t(`units.${u}`)}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                     {/* Precio Compra */}
                                     <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                {unMedidaCompra ? `Precio ${t(`units.${unMedidaCompra}`)}` : "Precio Compra"}
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={handleFetchMarketPrices}
+                                                disabled={isMarketPricesLoading}
+                                                className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                                title="Buscar Precios en Mercado"
+                                            >
+                                                {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
+                                            </button>
+                                        </div>
                                         <Input
-                                            label="Precio Compra"
+                                            label=""
                                             type="text"
                                             value={formData.precio}
                                             onChange={(e) => {
@@ -1225,9 +1429,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         />
                                     </div>
 
-                                    {/* IVA */}
+                                    {/* {t('Products.iva')} */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">IVA</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('iva')}</label>
                                         <select
                                             value={formData.iva}
                                             onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
@@ -1423,33 +1627,47 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {productType !== 2 && (
                                             <>
-                                                <Input
-                                                    label={productType === 0 ? "Precio Compra" : "Precio"}
-                                                    type="text"
-                                                    value={formData.precio}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                        if ((val.match(/\./g) || []).length > 1) return;
-                                                        setFormData({ ...formData, precio: val });
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                                        if (!isNaN(val)) {
-                                                            setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                                        }
-                                                    }}
-                                                    onFocus={(e) => {
-                                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                        if (val === '0.00' || val === '0') {
-                                                            setFormData({ ...formData, precio: '' });
-                                                        } else {
-                                                            setFormData({ ...formData, precio: val });
-                                                        }
-                                                    }}
-                                                    required
-                                                />
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">IVA</label>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="block text-sm font-medium text-gray-700">{productType === 0 ? "Precio Compra" : "Precio"}</label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleFetchMarketPrices}
+                                                            disabled={isMarketPricesLoading}
+                                                            className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                                            title="Buscar Precios en Mercado"
+                                                        >
+                                                            {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
+                                                        </button>
+                                                    </div>
+                                                    <Input
+                                                        label=""
+                                                        type="text"
+                                                        value={formData.precio}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                            if ((val.match(/\./g) || []).length > 1) return;
+                                                            setFormData({ ...formData, precio: val });
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                            if (!isNaN(val)) {
+                                                                setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                            }
+                                                        }}
+                                                        onFocus={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                            if (val === '0.00' || val === '0') {
+                                                                setFormData({ ...formData, precio: '' });
+                                                            } else {
+                                                                setFormData({ ...formData, precio: val });
+                                                            }
+                                                        }}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('iva')}</label>
                                                     <select
                                                         value={formData.iva}
                                                         onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
@@ -1473,251 +1691,283 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                             {/* Row 4: Datos de Presentación, Conversión, Pesos y Métricas (Solo Raw Materials) */}
                             {productType === 0 && (
                                 <div className="space-y-6">
-                                    {/* Sub-row 3: Presentaciones y Conversión */}
-                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                                        {/* 1. Presentación Compra */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Presentación Compra</label>
-                                            <div className="flex gap-2">
-                                                {isCreatingPresentation ? (
-                                                    <div className="flex gap-2 w-full">
-                                                        <input
-                                                            type="text"
-                                                            value={newPresentationName}
-                                                            onChange={(e) => setNewPresentationName(e.target.value)}
-                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-[38px]"
-                                                            placeholder="Nueva..."
-                                                            autoFocus
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') { e.preventDefault(); handleCreatePresentation(); }
-                                                                if (e.key === 'Escape') setIsCreatingPresentation(false);
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={handleCreatePresentation} className="px-2 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-[38px]">💾</button>
-                                                        <button type="button" onClick={() => setIsCreatingPresentation(false)} className="px-2 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-[38px]">✕</button>
-                                                    </div>
-                                                ) : (
-                                                    <select
-                                                        value={formData.idPresentacion}
-                                                        onChange={(e) => {
-                                                            if (e.target.value === 'NEW') {
-                                                                setIsCreatingPresentation(true);
-                                                                setNewPresentationName('');
-                                                            } else {
-                                                                setFormData({ ...formData, idPresentacion: e.target.value });
-                                                            }
-                                                        }}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                        required
-                                                    >
-                                                        <option value="">Selec...</option>
-                                                        {presentations.map(pres => (
-                                                            <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
-                                                        ))}
-                                                        <option value="NEW" className="font-bold text-orange-600">+ Nueva...</option>
-                                                    </select>
-                                                )}
+                                    {/* Sub-row 3: Unidades de Medida y Contenido */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+                                        {/* 2. Cantidad */}
+                                        {!MEASUREMENT_UNITS.includes(unMedidaCompra) && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {(!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0)
+                                                        ? "Cantidad"
+                                                        : `Cantidad X ${t(`units.${unMedidaCompra}`)}`}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={cantidadCompra}
+                                                    onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
+                                                    disabled={!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
+                                                />
                                             </div>
-                                        </div>
+                                        )}
 
-                                        {/* 2. Cantidad Compra */}
+                                        {/* 3. Unidad Medida Inventario */}
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad Compra</label>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={cantidadCompra}
-                                                onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            />
-                                        </div>
-
-                                        {/* 3. Presentación Inventario */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Pres. Inventario</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventoryUnit')}</label>
                                             <select
-                                                value={idPresentacionInventario || ''}
-                                                onChange={(e) => setIdPresentacionInventario(e.target.value ? parseInt(e.target.value) : null)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                value={unMedidaInventario}
+                                                onChange={(e) => setUnMedidaInventario(e.target.value)}
+                                                disabled={!unMedidaCompra || MEASUREMENT_UNITS.includes(unMedidaCompra) || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                             >
-                                                <option value="">Pre. Compra (Default)</option>
-                                                {presentations.map(pres => (
-                                                    <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
-                                                ))}
+                                                {(!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0) ? (
+                                                    <option value={unMedidaCompra}>{unMedidaCompra ? t(`units.${unMedidaCompra}`) : 'Selec...'}</option>
+                                                ) : (
+                                                    <>
+                                                        <option value="">Selec...</option>
+                                                        <option value={unMedidaCompra}>{t(`units.${unMedidaCompra}`)} (Misma)</option>
+                                                        {UNIT_HIERARCHY[unMedidaCompra].map(u => (
+                                                            <option key={u} value={u}>{t(`units.${u}`)}</option>
+                                                        ))}
+                                                    </>
+                                                )}
                                             </select>
                                         </div>
 
-                                        {/* 4. Contenido (ConversionSimple) */}
+                                        {/* 4. Unidad Medida Receta */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('recipeUnit')}</label>
+                                            <select
+                                                value={unMedidaRecetario}
+                                                onChange={(e) => setUnMedidaRecetario(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                            >
+                                                <option value="">Selec...</option>
+                                                {(() => {
+                                                    const isMeasurement = MEASUREMENT_UNITS.includes(unMedidaInventario);
+                                                    const options = isMeasurement
+                                                        ? [unMedidaInventario, ...(UNIT_HIERARCHY[unMedidaInventario] || [])]
+                                                        : Object.keys(UNIT_HIERARCHY);
+
+                                                    return options.map(u => (
+                                                        <option key={u} value={u}>{t(`units.${u}`)}</option>
+                                                    ));
+                                                })()}
+                                            </select>
+                                        </div>
+
+                                        {/* 5. Contenido (ConversionSimple) */}
                                         <div className="relative">
                                             <div className="flex justify-between items-center mb-1">
-                                                <label className="block text-sm font-medium text-gray-700">Contenido</label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsConverterOpen(true)}
-                                                    className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded hover:bg-orange-200 transition-colors font-bold border border-orange-200"
-                                                >
-                                                    🛠️ CONVERSIONES
-                                                </button>
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    {MEASUREMENT_UNITS.includes(unMedidaCompra) ? "Conversion" : "Contenido"}
+                                                </label>
+                                                {!MEASUREMENT_UNITS.includes(unMedidaCompra) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsConverterOpen(true)}
+                                                        className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full hover:bg-orange-600 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1 border border-orange-400"
+                                                        title="Conversiones de Unidades"
+                                                    >
+                                                        🛠️ CONV.
+                                                    </button>
+                                                )}
                                             </div>
                                             <input
                                                 type="number"
                                                 step="0.01"
                                                 value={simpleConversion}
                                                 onChange={(e) => setSimpleConversion(parseFloat(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                disabled={(UNIT_TYPES[unMedidaInventario] && UNIT_TYPES[unMedidaRecetario] && UNIT_TYPES[unMedidaInventario] === UNIT_TYPES[unMedidaRecetario]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                             />
+                                        </div>
+                                    </div>
 
-                                            {/* Unit Converter Popup */}
-                                            {isConverterOpen && (
-                                                <div className="absolute bottom-[110%] left-0 w-[280px] bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-[100] animate-in fade-in slide-in-from-bottom-2">
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Conversor de Medidas</h4>
-                                                        <button onClick={() => setIsConverterOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-                                                    </div>
+                                    {/* Unit Converter Popup Container */}
+                                    {isConverterOpen && (
+                                        <div className="relative">
+                                            <div className="absolute bottom-[20%] right-0 w-[280px] bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-[100] animate-in fade-in slide-in-from-bottom-2">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Conversor de Medidas</h4>
+                                                    <button onClick={() => setIsConverterOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                                                </div>
 
-                                                    <div className="space-y-3">
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div>
-                                                                <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">De:</label>
-                                                                <select
-                                                                    value={converterFromUnit}
-                                                                    onChange={(e) => {
-                                                                        const newFrom = e.target.value;
-                                                                        setConverterFromUnit(newFrom);
-                                                                        if (UNIT_TYPES[newFrom] !== UNIT_TYPES[converterToUnit]) {
-                                                                            setConverterToUnit(newFrom);
-                                                                        }
-                                                                    }}
-                                                                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                                                                >
-                                                                    {Object.keys(CONVERSION_FACTORS).map(unit => (
-                                                                        <option key={unit} value={unit}>{unit}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">Valor:</label>
-                                                                <input
-                                                                    type="number"
-                                                                    value={converterInput}
-                                                                    onChange={(e) => setConverterInput(parseFloat(e.target.value) || 0)}
-                                                                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                                                                />
-                                                            </div>
-                                                        </div>
-
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-2 gap-2">
                                                         <div>
-                                                            <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">A:</label>
+                                                            <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">De:</label>
                                                             <select
-                                                                value={converterToUnit}
-                                                                onChange={(e) => setConverterToUnit(e.target.value)}
+                                                                value={converterFromUnit}
+                                                                onChange={(e) => {
+                                                                    const newFrom = e.target.value;
+                                                                    setConverterFromUnit(newFrom);
+                                                                    if (UNIT_TYPES[newFrom] !== UNIT_TYPES[converterToUnit]) {
+                                                                        setConverterToUnit(newFrom);
+                                                                    }
+                                                                }}
                                                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                                                             >
-                                                                {Object.keys(CONVERSION_FACTORS)
-                                                                    .filter(u => UNIT_TYPES[u] === UNIT_TYPES[converterFromUnit])
-                                                                    .map(unit => (
-                                                                        <option key={unit} value={unit}>{unit}</option>
-                                                                    ))}
+                                                                {Object.keys(CONVERSION_FACTORS).map(unit => (
+                                                                    <option key={unit} value={unit}>{unit}</option>
+                                                                ))}
                                                             </select>
                                                         </div>
-
-                                                        <div className="bg-orange-50 border border-orange-100 rounded p-2 text-center">
-                                                            <span className="block text-[10px] text-orange-600 font-bold uppercase mb-1">Resultado</span>
-                                                            <span className="text-xl font-black text-orange-700">
-                                                                {converterResult.toLocaleString('en-US', { maximumFractionDigits: 4 })}
-                                                            </span>
-                                                            <span className="ml-1 text-[10px] text-orange-600 font-bold">{converterToUnit}</span>
+                                                        <div>
+                                                            <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">Valor:</label>
+                                                            <input
+                                                                type="number"
+                                                                value={converterInput}
+                                                                onChange={(e) => setConverterInput(parseFloat(e.target.value) || 0)}
+                                                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                            />
                                                         </div>
-
-                                                        <button
-                                                            onClick={() => {
-                                                                setSimpleConversion(parseFloat(converterResult.toFixed(4)));
-                                                                setIsConverterOpen(false);
-                                                            }}
-                                                            className="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 transition-colors shadow-sm"
-                                                        >
-                                                            ASIGNAR A CONTENIDO
-                                                        </button>
                                                     </div>
+
+                                                    <div>
+                                                        <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">A:</label>
+                                                        <select
+                                                            value={converterToUnit}
+                                                            onChange={(e) => setConverterToUnit(e.target.value)}
+                                                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                        >
+                                                            {Object.keys(CONVERSION_FACTORS)
+                                                                .filter(u => UNIT_TYPES[u] === UNIT_TYPES[converterFromUnit])
+                                                                .map(unit => (
+                                                                    <option key={unit} value={unit}>{unit}</option>
+                                                                ))}
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="bg-orange-50 border border-orange-100 rounded p-2 text-center">
+                                                        <span className="block text-[10px] text-orange-600 font-bold uppercase mb-1">Resultado</span>
+                                                        <span className="text-xl font-black text-orange-700">
+                                                            {converterResult.toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                                                        </span>
+                                                        <span className="ml-1 text-[10px] text-orange-600 font-bold">{converterToUnit}</span>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            setSimpleConversion(parseFloat(converterResult.toFixed(4)));
+                                                            setUnMedidaRecetario(converterToUnit);
+                                                            setIsConverterOpen(false);
+                                                        }}
+                                                        className="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 transition-colors shadow-sm"
+                                                    >
+                                                        ASIGNAR A CONTENIDO
+                                                    </button>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
+                                    )}
 
-                                        {/* 5. Presentación Receta (IdPresentacionConversion) */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Pres. Receta</label>
-                                            <select
-                                                value={idPresentacionConversion || ''}
-                                                onChange={(e) => setIdPresentacionConversion(e.target.value ? parseInt(e.target.value) : null)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                    {/* Sub-row 4: Switch de Rendimiento */}
+                                    <div className="flex items-center gap-2 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                            <div
+                                                onClick={() => {
+                                                    const newVal = !hasYield;
+                                                    setHasYield(newVal);
+                                                    if (!newVal) {
+                                                        setPesoInicial(1);
+                                                        setPesoFinal(1);
+                                                    }
+                                                }}
+                                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
                                             >
-                                                <option value="">Seleccionar...</option>
-                                                {presentations.map(pres => (
-                                                    <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
-                                                ))}
-                                            </select>
+                                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
+                                            </div>
                                         </div>
+                                        <p className="text-[10px] text-orange-600 font-medium ml-2 italic">
+                                            {hasYield
+                                                ? 'Permite calcular merma y precios procesados basados en pesos.'
+                                                : 'Los pesos inicial y final se mantendrán en 1 (Sin proceso de merma).'}
+                                        </p>
                                     </div>
 
-                                    {/* Sub-row 4: Pesos y Métricas Combined */}
-                                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 items-end">
-                                        <div className="md:col-span-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Peso Inicial</label>
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                value={pesoInicial}
-                                                onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            />
-                                        </div>
-                                        <div className="md:col-span-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Peso Final</label>
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                value={pesoFinal}
-                                                onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            />
-                                        </div>
+                                    {/* Sub-row 5: Pesos y Métricas Combined */}
+                                    {hasYield && (
+                                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 items-end animate-in fade-in slide-in-from-top-2">
+                                            <div className="md:col-span-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        Peso Inicial {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}
+                                                    </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleFetchAiYield}
+                                                        disabled={isAiLoading}
+                                                        className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                                        title="Sugerir Rendimiento con IA"
+                                                    >
+                                                        {isAiLoading ? '⌛...' : '✨ IA YIELD'}
+                                                    </button>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    value={pesoInicial}
+                                                    onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-1">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Peso Final {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    value={pesoFinal}
+                                                    onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                />
+                                            </div>
 
-                                        {/* Metrics */}
-                                        <div className="text-center md:border-l md:border-gray-300 pl-4">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Rendimiento</label>
-                                            <span className={`text-base font-bold ${pesoFinal > pesoInicial ? 'text-green-600' : 'text-blue-600'}`}>
-                                                {pesoInicial > 0 ? ((pesoFinal / pesoInicial) * 100).toFixed(2) : '0.00'}%
-                                            </span>
+                                            {/* Metrics */}
+                                            <div className="text-center md:border-l md:border-gray-300 pl-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="text-xl font-bold text-gray-800 leading-none">
+                                                        {(pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0).toFixed(1)}%
+                                                    </div>
+                                                    <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">Utilizable</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-center">
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
+                                                <span className="text-base font-bold text-red-500">
+                                                    {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
+                                                </span>
+                                            </div>
+                                            <div className="text-center">
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                                                    Precio {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''} Rendimiento
+                                                </label>
+                                                <span className="text-base font-bold text-green-600">
+                                                    {(() => {
+                                                        const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                        const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            <div className="text-center">
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">Precio Procesado</label>
+                                                <span className="text-base font-bold text-purple-600">
+                                                    {(() => {
+                                                        const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                        const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                        const conversion = simpleConversion || 1;
+                                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                    })()}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="text-center">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
-                                            <span className="text-base font-bold text-red-500">
-                                                {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
-                                            </span>
-                                        </div>
-                                        <div className="text-center">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">P/U Compra Neto</label>
-                                            <span className="text-base font-bold text-gray-800">
-                                                {(() => {
-                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                    const divisor = cantidadCompra || 1;
-                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precio / divisor);
-                                                })()}
-                                            </span>
-                                        </div>
-                                        <div className="text-center">
-                                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">Precio Procesado</label>
-                                            <span className="text-base font-bold text-purple-600">
-                                                {(() => {
-                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                    const qty = cantidadCompra || 1;
-                                                    const content = simpleConversion || 1;
-                                                    const finalPrice = (precio / qty) / content;
-                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(finalPrice);
-                                                })()}
-                                            </span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
@@ -1727,8 +1977,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 </Button>
                             </div>
                         </form>
-                    )
-                    }
+                    )}
 
                     {
                         activeTab === 'photo' && (
@@ -1826,13 +2075,100 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Input
-                                            label="Contenido"
-                                            type="number"
-                                            step="0.01"
-                                            value={simpleConversion}
-                                            onChange={(e) => setSimpleConversion(parseFloat(e.target.value) || 0)}
-                                        />
+                                        <div className="relative">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-sm font-medium text-gray-700">Contenido</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsConverterOpen(true)}
+                                                    className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded hover:bg-orange-700 transition-colors font-bold shadow-sm"
+                                                >
+                                                    🛠️ CONVERSIONES
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={simpleConversion}
+                                                onChange={(e) => setSimpleConversion(parseFloat(e.target.value) || 0)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                            />
+
+                                            {/* Unit Converter Popup */}
+                                            {isConverterOpen && (
+                                                <div className="absolute top-[110%] left-0 w-[280px] bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-[100] animate-in fade-in slide-in-from-top-2">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Conversor de Medidas</h4>
+                                                        <button onClick={() => setIsConverterOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div>
+                                                                <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">De:</label>
+                                                                <select
+                                                                    value={converterFromUnit}
+                                                                    onChange={(e) => {
+                                                                        const newFrom = e.target.value;
+                                                                        setConverterFromUnit(newFrom);
+                                                                        if (UNIT_TYPES[newFrom] !== UNIT_TYPES[converterToUnit]) {
+                                                                            setConverterToUnit(newFrom);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                                >
+                                                                    {Object.keys(CONVERSION_FACTORS).map(unit => (
+                                                                        <option key={unit} value={unit}>{unit}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">Valor:</label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={converterInput}
+                                                                    onChange={(e) => setConverterInput(parseFloat(e.target.value) || 0)}
+                                                                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">A:</label>
+                                                            <select
+                                                                value={converterToUnit}
+                                                                onChange={(e) => setConverterToUnit(e.target.value)}
+                                                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                            >
+                                                                {Object.keys(CONVERSION_FACTORS)
+                                                                    .filter(u => UNIT_TYPES[u] === UNIT_TYPES[converterFromUnit])
+                                                                    .map(unit => (
+                                                                        <option key={unit} value={unit}>{unit}</option>
+                                                                    ))}
+                                                            </select>
+                                                        </div>
+
+                                                        <div className="bg-orange-50 border border-orange-100 rounded p-2 text-center">
+                                                            <span className="block text-[10px] text-orange-600 font-bold uppercase mb-1">Resultado</span>
+                                                            <span className="text-xl font-black text-orange-700">
+                                                                {converterResult.toLocaleString('en-US', { maximumFractionDigits: 4 })}
+                                                            </span>
+                                                            <span className="ml-1 text-[10px] text-orange-600 font-bold">{converterToUnit}</span>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                setSimpleConversion(parseFloat(converterResult.toFixed(4)));
+                                                                setIsConverterOpen(false);
+                                                            }}
+                                                            className="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 transition-colors shadow-sm"
+                                                        >
+                                                            ASIGNAR A CONTENIDO
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Inventario</label>
                                             <select
@@ -1849,15 +2185,31 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    Peso Inicial {unMedidaInventario ? (t.raw(`units`) && t.raw(`units`)[unMedidaInventario] ? t(`units.${unMedidaInventario}`) : unMedidaInventario) : ''}
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleFetchAiYield}
+                                                    disabled={isAiLoading}
+                                                    className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                                    title="Sugerir Rendimiento con IA"
+                                                >
+                                                    {isAiLoading ? '⌛...' : '✨ IA YIELD'}
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={pesoInicial}
+                                                onChange={(e) => setPesoInicial(parseFloat(e.target.value) || 0)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                            />
+                                        </div>
                                         <Input
-                                            label="Peso Inicial"
-                                            type="number"
-                                            step="0.01"
-                                            value={pesoInicial}
-                                            onChange={(e) => setPesoInicial(parseFloat(e.target.value) || 0)}
-                                        />
-                                        <Input
-                                            label="Peso Final"
+                                            label={`Peso Final ${unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}`}
                                             type="number"
                                             step="0.01"
                                             value={pesoFinal}
@@ -1865,7 +2217,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-4 rounded-lg">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase">% Rendimiento</label>
                                             <div className="text-lg font-bold text-gray-900">
@@ -1879,6 +2231,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             </div>
                                         </div>
                                         <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase">
+                                                Precio {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''} Rendimiento
+                                            </label>
+                                            <div className="text-lg font-bold text-green-600">
+                                                {(() => {
+                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
+                                                    const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                })()}
+                                            </div>
+                                        </div>
+                                        <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase">P/U Compra Neto</label>
                                             <div className="text-lg font-bold text-blue-600">
                                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * (pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0))}
@@ -1889,10 +2253,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <div className="text-lg font-bold text-orange-600">
                                                 {(() => {
                                                     const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
-                                                    const rendimiento = pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0; // Yield Ratio
-                                                    const precioNeto = precio * rendimiento;
+                                                    const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
                                                     const conversion = simpleConversion || 1;
-                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(precioNeto / conversion);
+                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
                                                 })()}
                                             </div>
                                         </div>
@@ -1940,6 +2303,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 const val = e.target.value ? parseInt(e.target.value) : null;
                                                                 setIdPresentacionConversion(val);
                                                                 setIdPresentacionInventario(val);
+                                                                if (productType === 2 && val) {
+                                                                    setFormData({ ...formData, idPresentacion: val.toString() });
+                                                                }
                                                             }}
                                                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                                         >
@@ -2213,6 +2579,194 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         />
                     )
                 }
+
+                {/* Yield Reference Modal */}
+                {isYieldModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-gray-200">
+                            <div className="bg-gradient-to-r from-blue-700 to-blue-800 p-4 flex justify-between items-center">
+                                <h3 className="text-white font-bold flex items-center gap-2">
+                                    📊 {t('yieldReference')}
+                                </h3>
+                                <button onClick={() => setIsYieldModalOpen(false)} className="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-full transition-all">
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar alimento..."
+                                        value={yieldSearchQuery}
+                                        onChange={(e) => setYieldSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {/* Proteins Section */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-bold text-blue-800 border-b border-blue-100 pb-1 flex justify-between items-center">
+                                            🥩 {t('proteins')}
+                                            <span className="text-[10px] bg-blue-50 text-blue-600 px-2 rounded-full">Ref.</span>
+                                        </h4>
+                                        <div className="space-y-1">
+                                            {YIELD_DATA.filter(it => it.category === 'Proteina' && (it.name.toLowerCase().includes(yieldSearchQuery.toLowerCase()) || yieldSearchQuery === '')).map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        const newPesoFinal = pesoInicial * (item.yield / 100);
+                                                        setPesoFinal(parseFloat(newPesoFinal.toFixed(3)));
+                                                        setIsYieldModalOpen(false);
+                                                    }}
+                                                    className="flex justify-between items-center p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors border border-transparent hover:border-blue-200 group"
+                                                >
+                                                    <span className="text-sm text-gray-700 group-hover:text-blue-700">{item.name}</span>
+                                                    <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{item.yield}%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Vegetables Section */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-bold text-green-800 border-b border-green-100 pb-1 flex justify-between items-center">
+                                            🥦 {t('vegetables')}
+                                            <span className="text-[10px] bg-green-50 text-green-600 px-2 rounded-full">Ref.</span>
+                                        </h4>
+                                        <div className="space-y-1">
+                                            {YIELD_DATA.filter(it => it.category === 'Vegetal' && (it.name.toLowerCase().includes(yieldSearchQuery.toLowerCase()) || yieldSearchQuery === '')).map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        const newPesoFinal = pesoInicial * (item.yield / 100);
+                                                        setPesoFinal(parseFloat(newPesoFinal.toFixed(3)));
+                                                        setIsYieldModalOpen(false);
+                                                    }}
+                                                    className="flex justify-between items-center p-2 rounded-lg hover:bg-green-50 cursor-pointer transition-colors border border-transparent hover:border-green-200 group"
+                                                >
+                                                    <span className="text-sm text-gray-700 group-hover:text-green-700">{item.name}</span>
+                                                    <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">{item.yield}%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic text-[11px] text-gray-500 text-center">
+                                    * Los porcentajes son valores promedio estimados de la industria. Pueden variar según el proveedor y el método de limpieza.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* AI Yield Suggestion Modal */}
+                {isAiYieldModalOpen && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-orange-100">
+                            <div className="bg-gradient-to-r from-orange-500 to-yellow-600 p-6 text-center relative">
+                                <button className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer transition-colors" onClick={() => setIsAiYieldModalOpen(false)}>✕</button>
+                                <div className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">Rendimientos Sugeridos por IA</div>
+                                <h3 className="text-white text-3xl font-black mb-1">Selecciona un proceso</h3>
+                                <div className="text-white/90 text-sm font-medium">{formData.producto}</div>
+                            </div>
+
+                            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+                                {aiYieldSuggestions.map((suggestion, idx) => (
+                                    <div
+                                        key={idx}
+                                        onClick={() => {
+                                            const newPesoFinal = pesoInicial * (suggestion.yield / 100);
+                                            setPesoFinal(parseFloat(newPesoFinal.toFixed(3)));
+                                            setIsAiYieldModalOpen(false);
+                                        }}
+                                        className="group p-4 bg-orange-50 border border-orange-100 rounded-xl hover:bg-orange-100 hover:border-orange-300 transition-all cursor-pointer flex justify-between items-center"
+                                    >
+                                        <div className="flex-1">
+                                            <div className="text-orange-900 font-bold text-lg mb-0.5">{suggestion.process}</div>
+                                            <div className="text-xs text-orange-700/80 leading-snug">{suggestion.explanation}</div>
+                                        </div>
+                                        <div className="ml-4 text-right">
+                                            <div className="text-2xl font-black text-orange-600 group-hover:scale-110 transition-transform">{suggestion.yield}%</div>
+                                            <div className="text-[10px] font-bold text-orange-400 uppercase tracking-tighter">Yield Sugerido</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+                                <button
+                                    onClick={() => setIsAiYieldModalOpen(false)}
+                                    className="text-gray-400 font-bold py-2 hover:text-gray-600 transition-colors text-sm"
+                                >
+                                    Cerrar sin cambios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Market Prices Modal */}
+                {isMarketPricesModalOpen && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-orange-100">
+                            <div className="bg-gradient-to-r from-orange-600 to-orange-700 p-6 text-center relative border-b border-orange-500">
+                                <button className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer transition-colors" onClick={() => setIsMarketPricesModalOpen(false)}>✕</button>
+                                <div className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">Precios en el Mercado</div>
+                                <h3 className="text-white text-3xl font-black mb-1">{formData.producto}</h3>
+                                <div className="text-orange-100 text-sm font-medium">Resultados de búsqueda en tiempo real</div>
+                            </div>
+
+                            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4 bg-gray-50/50">
+                                {marketPriceResults.length > 0 ? (
+                                    marketPriceResults.map((result, idx) => (
+                                        <a
+                                            key={idx}
+                                            href={result.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-orange-500 hover:shadow-lg transition-all relative overflow-hidden group"
+                                        >
+                                            {/* Highlighted Price Tag */}
+                                            {result.price && (
+                                                <div className="absolute top-0 right-0 bg-orange-600 text-white px-4 py-2 rounded-bl-2xl shadow-md font-black text-xl animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    {result.price}
+                                                    {result.unit && <span className="text-[10px] opacity-80 block text-right font-bold uppercase -mt-1">{result.unit}</span>}
+                                                </div>
+                                            )}
+
+                                            <div className={`pr-24`}>
+                                                <div className="text-orange-950 font-bold text-lg mb-1 line-clamp-1 group-hover:text-orange-600 transition-colors">{result.title}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold mb-2 flex items-center gap-1 uppercase tracking-widest">
+                                                    🏢 {result.source}
+                                                </div>
+                                                <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 italic">
+                                                    "{result.snippet}"
+                                                </p>
+                                            </div>
+                                        </a>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-10">
+                                        <div className="text-4xl mb-4">⌛</div>
+                                        <p className="text-gray-500 font-medium">Buscando los mejores precios para ti...</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-4 bg-white border-t border-gray-100 flex justify-center">
+                                <button
+                                    onClick={() => setIsMarketPricesModalOpen(false)}
+                                    className="bg-orange-600 text-white font-bold py-3 px-10 rounded-xl hover:bg-orange-700 transition-all shadow-md active:scale-95 text-sm uppercase tracking-widest"
+                                >
+                                    Cerrar Búsqueda
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

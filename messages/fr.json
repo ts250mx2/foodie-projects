@@ -226,5 +226,11 @@
     },
     "Common": {
         "errorFutureDate": "Impossible de saisir des données pour des dates futures."
+    },
+    "Products": {
+        "iva": "Impôt",
+        "purchaseUnit": "Unité de Mesure d'Achat",
+        "inventoryUnit": "Unité de Mesure d'Inventaire",
+        "recipeUnit": "Unité de Mesure de Recette"
     }
 }

@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "税",
+        "purchaseUnit": "購入時単位",
+        "inventoryUnit": "在庫時単位",
+        "recipeUnit": "レシピ単位"
+    },
+    "Common": {
+        "errorFutureDate": "将来の日付のデータを取り込むことはできません。"
     }
 }

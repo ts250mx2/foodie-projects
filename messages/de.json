@@ -141,7 +141,7 @@
         "email": "E-Mail",
         "address": "Adresse",
         "active": "Aktiv",
-        "actions": "Aktionen",
+        "actions": "Azioni",
         "addEmployee": "Mitarbeiter hinzufügen",
         "editEmployee": "Bearbeiten",
         "deleteEmployee": "Löschen",
@@ -223,5 +223,14 @@
         "close": "Schließen",
         "total": "Gesamt",
         "select": "Auswählen..."
+    },
+    "Products": {
+        "iva": "Steuer",
+        "purchaseUnit": "Einkaufseinheit",
+        "inventoryUnit": "Inventareinheit",
+        "recipeUnit": "Rezepteinheit"
+    },
+    "Common": {
+        "errorFutureDate": "Daten für zukünftige Daten können nicht erfasst werden."
     }
 }

@@ -4,16 +4,17 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/navigation';
 import "../globals.css";
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
+
 export const metadata = {
   title: 'Foodie Guru',
   description: 'Enterprise Food Management Portal',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: 'cover',
-  },
   formatDetection: {
     telephone: false,
     address: false,

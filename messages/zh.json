@@ -347,5 +347,14 @@
         "close": "Close",
         "total": "Total",
         "select": "Select..."
+    },
+    "Products": {
+        "iva": "税",
+        "purchaseUnit": "采购计量单位",
+        "inventoryUnit": "库存计量单位",
+        "recipeUnit": "配方计量单位"
+    },
+    "Common": {
+        "errorFutureDate": "无法获取未来日期的数据。"
     }
 }

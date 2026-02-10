@@ -228,5 +228,11 @@
     },
     "Common": {
         "errorFutureDate": "Não é possível capturar dados para datas futuras."
+    },
+    "Products": {
+        "iva": "Imposto",
+        "purchaseUnit": "Unidade de Medida de Compra",
+        "inventoryUnit": "Unidade de Medida de Inventário",
+        "recipeUnit": "Unidade de Medida de Receita"
     }
 }
