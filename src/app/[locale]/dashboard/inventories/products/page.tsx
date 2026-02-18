@@ -24,6 +24,9 @@ interface Product {
     IdTipoProducto: number;
     CantidadCompra: number;
     IdPresentacionInventario: number | null;
+    UnidadMedidaCompra?: string;
+    UnidadMedidaInventario?: string;
+    UnidadMedidaRecetario?: string;
 }
 
 interface Category {
@@ -65,6 +68,8 @@ export default function ProductsPage() {
         cantidad: ''
     });
     const [productSearch, setProductSearch] = useState('');
+    const [codeSearch, setCodeSearch] = useState('');
+    const [categorySearch, setCategorySearch] = useState('');
     const [formData, setFormData] = useState({
         producto: '',
         codigo: '',
@@ -99,7 +104,7 @@ export default function ProductsPage() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`/api/products?projectId=${project.idProyecto}&tipoProducto=0`);
+            const response = await fetch(`/api/products?projectId=${project.idProyecto}&useView=true`);
             const data = await response.json();
             if (data.success) {
                 setProducts(data.data);
@@ -287,8 +292,6 @@ export default function ProductsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
 
-    const [categorySearch, setCategorySearch] = useState('');
-
     const filteredProducts = products.filter(p =>
         p.IdProducto !== selectedProduct?.IdProducto &&
         (p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -297,17 +300,18 @@ export default function ProductsPage() {
 
     const sortedAndFilteredProducts = products
         .filter(product => {
-            const matchesType = product.IdTipoProducto === 0;
             const categoryName = product.Categoria ? String(product.Categoria) : '';
             const matchesCategory = categoryName.toLowerCase().includes(categorySearch.toLowerCase());
 
             const searchTermLower = searchTerm.toLowerCase();
+            const codeSearchLower = codeSearch.toLowerCase();
             const productName = product.Producto ? String(product.Producto) : '';
             const productCode = product.Codigo ? String(product.Codigo) : '';
-            const matchesSearch = productName.toLowerCase().includes(searchTermLower) ||
-                productCode.toLowerCase().includes(searchTermLower);
 
-            return matchesType && matchesCategory && matchesSearch;
+            const matchesSearch = productName.toLowerCase().includes(searchTermLower);
+            const matchesCode = productCode.toLowerCase().includes(codeSearchLower);
+
+            return matchesCategory && matchesSearch && matchesCode;
         })
         .sort((a, b) => {
             if (!sortConfig) return 0;
@@ -340,13 +344,37 @@ export default function ProductsPage() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <Button onClick={() => {
-                    setEditingProduct(null);
-                    setSelectedProductForCosting(null);
-                    setIsModalOpen(true);
-                }}>
-                    {t('addProduct')}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => {
+                            const XLSX = require('xlsx');
+                            const dataToExport = sortedAndFilteredProducts.map(p => ({
+                                'Producto': p.Producto,
+                                'Código': p.Codigo,
+                                'Categoría': p.Categoria || '',
+                                'Unidad Medida Compra': (p as any).UnidadMedidaCompra || '',
+                                'Precio': p.Precio,
+                                'IVA (%)': p.IVA,
+                                'Estatus': p.Status === 0 ? 'Activo' : 'Inactivo'
+                            }));
+
+                            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                            const workbook = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
+                            XLSX.writeFile(workbook, "listado_productos.xlsx");
+                        }}
+                        variant="secondary"
+                    >
+                        📤 Exportar Excel
+                    </Button>
+                    <Button onClick={() => {
+                        setEditingProduct(null);
+                        setSelectedProductForCosting(null);
+                        setIsModalOpen(true);
+                    }}>
+                        {t('addProduct')}
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -377,11 +405,21 @@ export default function ProductsPage() {
                             className="cursor-pointer hover:opacity-80"
                             onClick={() => handleSort('Codigo')}
                         >
-                            <div className="flex items-center gap-1">
-                                {t('code')}
-                                {sortConfig?.key === 'Codigo' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1">
+                                    {t('code')}
+                                    {sortConfig?.key === 'Codigo' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Filter..."
+                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                    value={codeSearch}
+                                    onChange={(e) => setCodeSearch(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
                             </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
@@ -410,7 +448,7 @@ export default function ProductsPage() {
                             onClick={() => handleSort('Presentacion')}
                         >
                             <div className="flex items-center gap-1">
-                                {t('presentation')}
+                                Unidad Medida Compra
                                 {sortConfig?.key === 'Presentacion' && (
                                     <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                 )}
@@ -466,7 +504,7 @@ export default function ProductsPage() {
                                     {product.Categoria}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {product.Presentacion}
+                                    {(product as any).UnidadMedidaCompra}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                                     ${product.Precio.toFixed(2)}

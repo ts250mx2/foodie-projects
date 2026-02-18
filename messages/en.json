@@ -88,9 +88,8 @@
         "rawMaterials": "Raw Materials",
         "dishes": "Dishes Menu",
         "subRecipes": "Sub-recipes",
-        "recipeCategories": "Recipe Modules",
-        "productionCapture": "Production Capture",
-        "menuSections": "Menu Sections"
+        "menuSections": "Menu Sections",
+        "massiveProductUpload": "Massive Product Upload"
     },
     "Terminals": {
         "title": "Payment Methods Management",
