@@ -64,7 +64,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'taxes', href: '/dashboard/config/taxes' },
                 { key: 'employees', href: '/dashboard/payroll/employees' },
                 { key: 'positions', href: '/dashboard/payroll/positions' },
-                { key: 'documentTypes', href: '/dashboard/settings/document-types' }
+                { key: 'documentTypes', href: '/dashboard/settings/document-types' },
+                { key: 'massiveProductUpload', href: '/dashboard/config/massive-product-upload' }
             ]
         },
         {

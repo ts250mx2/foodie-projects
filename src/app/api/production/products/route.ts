@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
                 A.IVA, 
                 A.RutaFoto, 
                 A.Status,
+                A.UnidadMedidaCompra,
+                A.UnidadMedidaInventario,
+                A.UnidadMedidaRecetario,
                 B.Categoria, 
                 C.Presentacion
             FROM tblProductos A

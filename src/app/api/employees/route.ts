@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, name, positionId, branchId, phone, email, address } = body;
+        const { projectId, name, positionId, branchId, phone, email, address, photo } = body;
 
         if (!projectId || !name) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            `INSERT INTO tblEmpleados (Empleado, IdPuesto, IdSucursal, Telefonos, CorreoElectronico, Calle, Status, FechaAct) 
-             VALUES (?, ?, ?, ?, ?, ?, 0, Now())`,
-            [name, positionId || null, branchId || null, phone || null, email || null, address || null]
+            `INSERT INTO tblEmpleados (Empleado, IdPuesto, IdSucursal, Telefonos, CorreoElectronico, Calle, ArchivoFoto, Status, FechaAct) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, 0, Now())`,
+            [name, positionId || null, branchId || null, phone || null, email || null, address || null, photo || null]
         );
 
         return NextResponse.json({

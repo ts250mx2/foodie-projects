@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -104,6 +104,52 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         RutaFoto: '',
     });
 
+    const UNIT_HIERARCHY: Record<string, string[]> = {
+        'kg': ['g', 'lb', 'oz'],
+        'g': [],
+        'lb': ['oz', 'g'],
+        'oz': ['g'],
+        't': ['kg'],
+        'ar': ['kg', 'lb'],
+        'l': ['ml', 'fl-oz', 'taza'],
+        'ml': [],
+        'gal': ['l', 'ml', 'fl-oz', 'taza'],
+        'qt': ['pt', 'ml'],
+        'pt': ['ml'],
+        'fl-oz': ['ml'],
+        'taza': ['ml'],
+        'caja': ['pza', 'kg', 'g', 'l', 'ml', 'paquete'],
+        'saco': ['kg', 'lb', 'g'],
+        'docena': ['pza'],
+        'paquete': ['pza'],
+        'bolsa': ['pza', 'kg', 'g', 'l', 'ml'],
+        'pza': [],
+        'lata': ['pza', 'kg', 'g', 'l', 'ml'],
+        'botella': ['pza', 'l', 'ml'],
+        'frasco': ['pza', 'kg', 'g', 'l', 'ml'],
+        'garrafon': ['l', 'ml']
+    };
+
+    const [unMedidaCompra, setUnMedidaCompra] = useState<string>('');
+    const [unMedidaInventario, setUnMedidaInventario] = useState<string>('');
+    const [unMedidaRecetario, setUnMedidaRecetario] = useState<string>('');
+
+    // Mapping from translated labels to internal keys to maintain logic compatibility
+    // and satisfy the requirement to save translated labels in the database.
+    const unitMap = Object.keys(UNIT_HIERARCHY).reduce((acc, key) => {
+        const label = t(`units.${key}`);
+        acc[label] = key;
+        return acc;
+    }, {} as Record<string, string>);
+
+    const getBaseUnit = (unit: string) => unitMap[unit] || unit;
+
+    const ensureLabel = (val: string) => {
+        if (!val) return '';
+        if (UNIT_HIERARCHY[val]) return t(`units.${val}`);
+        return val;
+    };
+
     useEffect(() => {
         if (isOpen && initialProduct) {
             console.log('CostingModal: Loading initialProduct:', initialProduct);
@@ -143,10 +189,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
             setPesoInicial((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoInicial || 1));
             setPesoFinal((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoFinal || 1));
-            setUnMedidaCompra(initialProduct.UnidadMedidaCompra || '');
-            setUnMedidaInventario(initialProduct.UnidadMedidaInventario || '');
-            setUnMedidaRecetario(initialProduct.UnidadMedidaRecetario || '');
-            setUnMedidaRecetario(initialProduct.UnidadMedidaRecetario || '');
+            setUnMedidaCompra(ensureLabel(initialProduct.UnidadMedidaCompra || ''));
+
+            // Set initial load flag to true to prevent sync hooks from overwriting
+            isInitialLoad.current = true;
+            prevIdConversion.current = initialProduct.IdPresentacionConversion || null;
+
+            // Delayed initialization for dependent units to ensure purchase unit children are "loaded" first
+            setTimeout(() => {
+                const invLabel = ensureLabel(initialProduct.UnidadMedidaInventario || '');
+                const recLabel = ensureLabel(initialProduct.UnidadMedidaRecetario || '');
+                setUnMedidaInventario(invLabel);
+                setUnMedidaRecetario(recLabel);
+
+                // Release the guard after dependent units have been set
+                setTimeout(() => { isInitialLoad.current = false; }, 500);
+            }, 50);
             // Initialize yield toggle based on weights
             const initHasYield = initialProduct.PesoInicial !== 1 || initialProduct.PesoFinal !== 1;
             setHasYield(initHasYield);
@@ -292,45 +350,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [isCreatingMenuSection, setIsCreatingMenuSection] = useState(false);
     const [newMenuSectionName, setNewMenuSectionName] = useState('');
     const [isConverterOpen, setIsConverterOpen] = useState(false);
-    const [converterFromUnit, setConverterFromUnit] = useState('Litro');
-    const [converterToUnit, setConverterToUnit] = useState('Litro');
+    const [converterFromUnit, setConverterFromUnit] = useState(t('units.l'));
+    const [converterToUnit, setConverterToUnit] = useState(t('units.l'));
     const [converterInput, setConverterInput] = useState<number>(1);
     const [converterResult, setConverterResult] = useState<number>(1);
 
-    const UNIT_HIERARCHY: Record<string, string[]> = {
-        'kg': ['g', 'lb', 'oz'],
-        'g': [],
-        'lb': ['oz', 'g'],
-        'oz': ['g'],
-        't': ['kg'],
-        'ar': ['kg', 'lb'],
-        'l': ['ml', 'fl-oz', 'taza'],
-        'ml': [],
-        'gal': ['l', 'ml', 'fl-oz', 'taza'],
-        'qt': ['pt', 'ml'],
-        'pt': ['ml'],
-        'fl-oz': ['ml'],
-        'taza': ['ml'],
-        'caja': ['pza', 'kg', 'g', 'l', 'ml', 'paquete'],
-        'saco': ['kg', 'lb', 'g'],
-        'docena': ['pza'],
-        'paquete': ['pza'],
-        'bolsa': ['pza', 'kg', 'g', 'l', 'ml'],
-        'pza': [],
-        'lata': ['pza', 'kg', 'g', 'l', 'ml'],
-        'botella': ['pza', 'l', 'ml'],
-        'frasco': ['pza', 'kg', 'g', 'l', 'ml'],
-        'garrafon': ['l', 'ml']
-    };
-
-    const [unMedidaCompra, setUnMedidaCompra] = useState<string>('');
-    const [unMedidaInventario, setUnMedidaInventario] = useState<string>('');
-    const [unMedidaRecetario, setUnMedidaRecetario] = useState<string>('');
     const [isYieldModalOpen, setIsYieldModalOpen] = useState(false);
     const [yieldSearchQuery, setYieldSearchQuery] = useState('');
     const [isAiYieldModalOpen, setIsAiYieldModalOpen] = useState(false);
     const [aiYieldSuggestions, setAiYieldSuggestions] = useState<Array<{ process: string, yield: number, explanation: string }>>([]);
     const [isAiLoading, setIsAiLoading] = useState(false);
+    const isInitialLoad = useRef(true);
+    const prevIdConversion = useRef<number | null>(null);
 
     const [isMarketPricesModalOpen, setIsMarketPricesModalOpen] = useState(false);
     const [marketPriceResults, setMarketPriceResults] = useState<Array<{ title: string, link: string, snippet: string, source: string, price?: string, unit?: string }>>([]);
@@ -339,14 +370,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const MEASUREMENT_UNITS = ['kg', 'g', 'lb', 'oz', 't', 'ar', 'l', 'ml', 'gal', 'qt', 'pt', 'fl-oz', 'taza', 'garrafon'];
 
     useEffect(() => {
+        if (isInitialLoad.current) return;
         if (unMedidaCompra) {
-            const isMeasurement = MEASUREMENT_UNITS.includes(unMedidaCompra);
-            const children = UNIT_HIERARCHY[unMedidaCompra] || [];
+            const baseCompra = getBaseUnit(unMedidaCompra);
+            const isMeasurement = MEASUREMENT_UNITS.includes(baseCompra);
+            const children = UNIT_HIERARCHY[baseCompra] || [];
 
             if (isMeasurement || children.length === 0) {
-                setUnMedidaInventario(unMedidaCompra);
-                setCantidadCompra(1);
-            } else if (unMedidaInventario !== '' && !children.includes(unMedidaInventario) && unMedidaInventario !== unMedidaCompra) {
+                // Only auto-set if inventory unit is currently empty (new product case)
+                if (!unMedidaInventario) {
+                    setUnMedidaInventario(unMedidaCompra);
+                    setCantidadCompra(1);
+                }
+            } else if (unMedidaInventario !== '' && !children.includes(getBaseUnit(unMedidaInventario)) && unMedidaInventario !== unMedidaCompra) {
                 // Keep existing unless invalid
             }
         } else {
@@ -356,15 +392,30 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     // Synchronize unMedidaInventario label with idPresentacionConversion (the actual selected inventory unit)
     useEffect(() => {
-        if (idPresentacionConversion) {
-            const pres = presentations.find(p => p.IdPresentacion === idPresentacionConversion);
-            if (pres) {
-                setUnMedidaInventario(pres.Presentacion);
+        if (isInitialLoad.current) return;
+
+        // Only run if idPresentacionConversion has actually changed compared to its last known value
+        if (idPresentacionConversion !== prevIdConversion.current) {
+            if (idPresentacionConversion) {
+                const pres = presentations.find(p => p.IdPresentacion === idPresentacionConversion);
+                if (pres) {
+                    setUnMedidaInventario(pres.Presentacion);
+                }
             }
-        } else if (unMedidaCompra) {
-            setUnMedidaInventario(unMedidaCompra);
+            prevIdConversion.current = idPresentacionConversion;
         }
-    }, [idPresentacionConversion, presentations, unMedidaCompra]);
+    }, [idPresentacionConversion, presentations]);
+
+    // Sync unMedidaCompra with idPresentacion for Sub-recipes (productType === 2)
+    useEffect(() => {
+        if (isInitialLoad.current) return;
+        if (productType === 2 && formData.idPresentacion) {
+            const pres = presentations.find(p => p.IdPresentacion.toString() === formData.idPresentacion);
+            if (pres) {
+                setUnMedidaCompra(pres.Presentacion);
+            }
+        }
+    }, [formData.idPresentacion, presentations, productType]);
 
     const CONVERSION_FACTORS: Record<string, number> = {
         // Volume (Base: l)
@@ -393,9 +444,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     };
 
     const calculateConversion = (val: number, from: string, to: string) => {
-        if (!UNIT_TYPES[from] || !UNIT_TYPES[to] || UNIT_TYPES[from] !== UNIT_TYPES[to]) return 0;
-        const fromFactor = CONVERSION_FACTORS[from];
-        const toFactor = CONVERSION_FACTORS[to];
+        const baseFrom = getBaseUnit(from);
+        const baseTo = getBaseUnit(to);
+        if (!UNIT_TYPES[baseFrom] || !UNIT_TYPES[baseTo] || UNIT_TYPES[baseFrom] !== UNIT_TYPES[baseTo]) return 0;
+        const fromFactor = CONVERSION_FACTORS[baseFrom];
+        const toFactor = CONVERSION_FACTORS[baseTo];
         if (!fromFactor || !toFactor) return 0;
         const baseValue = val * fromFactor;
         return baseValue / toFactor;
@@ -407,7 +460,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     useEffect(() => {
         if (unMedidaInventario && unMedidaRecetario) {
-            if (UNIT_TYPES[unMedidaInventario] && UNIT_TYPES[unMedidaRecetario] && UNIT_TYPES[unMedidaInventario] === UNIT_TYPES[unMedidaRecetario]) {
+            const baseInv = getBaseUnit(unMedidaInventario);
+            const baseRec = getBaseUnit(unMedidaRecetario);
+            if (UNIT_TYPES[baseInv] && UNIT_TYPES[baseRec] && UNIT_TYPES[baseInv] === UNIT_TYPES[baseRec]) {
                 const conv = calculateConversion(1, unMedidaInventario, unMedidaRecetario);
                 setSimpleConversion(Number(conv.toFixed(4)));
             } else if (unMedidaInventario === unMedidaRecetario) {
@@ -766,7 +821,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     ConversionSimple: productType === 2 ? 1 : simpleConversion,
                     IdPresentacionConversion: finalIdPresentacionConversion || undefined,
                     CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
-                    IdPresentacionInventario: finalIdPresentacionInventario || undefined
+                    IdPresentacionInventario: finalIdPresentacionInventario || undefined,
+                    UnidadMedidaCompra: unMedidaCompra,
+                    UnidadMedidaInventario: unMedidaInventario,
+                    UnidadMedidaRecetario: unMedidaRecetario
                 } as any;
                 if (productType === 2) {
                     alert('✅ Informacion guardada exitosamente');
@@ -881,6 +939,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     idPresentacionConversion: productType === 2 ? parseInt(formData.idPresentacion) : idPresentacionConversion,
                     pesoInicial: (productType === 0 && !hasYield) ? 1 : (productType === 2 ? 1 : pesoInicial),
                     pesoFinal: (productType === 0 && !hasYield) ? 1 : ((productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal),
+                    unidadMedidaCompra: unMedidaCompra,
+                    unidadMedidaInventario: unMedidaInventario,
+                    unidadMedidaRecetario: unMedidaRecetario,
                 })
             });
 
@@ -911,6 +972,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                         CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
                         IdPresentacionInventario: (productType === 2 ? parseInt(formData.idPresentacion) : (idPresentacionInventario || parseInt(formData.idPresentacion))) || undefined,
+                        UnidadMedidaCompra: unMedidaCompra,
+                        UnidadMedidaInventario: unMedidaInventario,
+                        UnidadMedidaRecetario: unMedidaRecetario,
                     };
                     setProduct(newProduct);
                     // Call parent update and close (shouldClose = true)
@@ -937,6 +1001,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         NombreArchivo: selectedPhoto?.name || product.NombreArchivo,
                         CantidadCompra: productType === 2 ? 1 : (cantidadCompra || 0),
                         IdPresentacionInventario: (productType === 2 ? parseInt(formData.idPresentacion) : (idPresentacionInventario || parseInt(formData.idPresentacion))) || undefined,
+                        UnidadMedidaCompra: unMedidaCompra,
+                        UnidadMedidaInventario: unMedidaInventario,
+                        UnidadMedidaRecetario: unMedidaRecetario,
                     };
                     setProduct(updatedProduct);
                     if (onProductUpdate) onProductUpdate(updatedProduct, false);
@@ -977,6 +1044,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     rutaFoto: product.RutaFoto, // Keep existing photo
                     archivoImagen: finalBase64, // Send base64 string
                     nombreArchivo: finalName,
+                    unidadMedidaCompra: unMedidaCompra,
+                    unidadMedidaInventario: unMedidaInventario,
+                    unidadMedidaRecetario: unMedidaRecetario,
                 })
             });
 
@@ -986,6 +1056,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     ...product,
                     ArchivoImagen: finalBase64 || undefined,
                     NombreArchivo: finalName,
+                    UnidadMedidaCompra: unMedidaCompra,
+                    UnidadMedidaInventario: unMedidaInventario,
+                    UnidadMedidaRecetario: unMedidaRecetario,
                 };
                 setProduct(updatedProduct);
                 if (onProductUpdate) onProductUpdate(updatedProduct, false);
@@ -1380,9 +1453,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
                                         >
                                             <option value="">Selec...</option>
-                                            {Object.keys(UNIT_HIERARCHY).map(u => (
-                                                <option key={u} value={u}>{t(`units.${u}`)}</option>
-                                            ))}
+                                            {(() => {
+                                                const options = new Set<string>();
+                                                if (unMedidaCompra) options.add(unMedidaCompra);
+                                                Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+
+                                                return Array.from(options).sort().map(u => (
+                                                    <option key={u} value={u}>{u}</option>
+                                                ));
+                                            })()}
                                         </select>
                                     </div>
 
@@ -1390,7 +1469,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div>
                                         <div className="flex justify-between items-center mb-1">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                {unMedidaCompra ? `Precio ${t(`units.${unMedidaCompra}`)}` : "Precio Compra"}
+                                                {unMedidaCompra ? `Precio ${unMedidaCompra}` : "Precio Compra"}
                                             </label>
                                             <button
                                                 type="button"
@@ -1688,26 +1767,26 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 </>
                             )}
 
-                            {/* Row 4: Datos de Presentación, Conversión, Pesos y Métricas (Solo Raw Materials) */}
-                            {productType === 0 && (
+                            {/* Row 4: Datos de Presentación, Conversión, Pesos y Métricas (Raw Materials & Sub-recipes) */}
+                            {(productType === 0 || productType === 2) && (
                                 <div className="space-y-6">
                                     {/* Sub-row 3: Unidades de Medida y Contenido */}
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
 
                                         {/* 2. Cantidad */}
-                                        {!MEASUREMENT_UNITS.includes(unMedidaCompra) && (
+                                        {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    {(!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0)
+                                                    {(!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0)
                                                         ? "Cantidad"
-                                                        : `Cantidad X ${t(`units.${unMedidaCompra}`)}`}
+                                                        : `Cantidad X ${unMedidaCompra}`}
                                                 </label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     value={cantidadCompra}
                                                     onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
-                                                    disabled={!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0}
+                                                    disabled={!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                                 />
                                             </div>
@@ -1719,20 +1798,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <select
                                                 value={unMedidaInventario}
                                                 onChange={(e) => setUnMedidaInventario(e.target.value)}
-                                                disabled={!unMedidaCompra || MEASUREMENT_UNITS.includes(unMedidaCompra) || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0}
+                                                disabled={!unMedidaCompra || (MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && !initialProduct?.IdProducto) || (!UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] && !unMedidaInventario)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                             >
-                                                {(!unMedidaCompra || !UNIT_HIERARCHY[unMedidaCompra] || UNIT_HIERARCHY[unMedidaCompra].length === 0) ? (
-                                                    <option value={unMedidaCompra}>{unMedidaCompra ? t(`units.${unMedidaCompra}`) : 'Selec...'}</option>
-                                                ) : (
-                                                    <>
-                                                        <option value="">Selec...</option>
-                                                        <option value={unMedidaCompra}>{t(`units.${unMedidaCompra}`)} (Misma)</option>
-                                                        {UNIT_HIERARCHY[unMedidaCompra].map(u => (
-                                                            <option key={u} value={u}>{t(`units.${u}`)}</option>
-                                                        ))}
-                                                    </>
-                                                )}
+                                                {(() => {
+                                                    const baseCompra = getBaseUnit(unMedidaCompra);
+                                                    const children = UNIT_HIERARCHY[baseCompra] || [];
+                                                    const options = new Set<string>();
+
+                                                    if (unMedidaInventario) options.add(unMedidaInventario);
+                                                    if (unMedidaCompra) options.add(unMedidaCompra);
+                                                    children.forEach(u => options.add(t(`units.${u}`)));
+
+                                                    return Array.from(options).sort().map(u => (
+                                                        <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>
+                                                    ));
+                                                })()}
                                             </select>
                                         </div>
 
@@ -1746,13 +1827,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             >
                                                 <option value="">Selec...</option>
                                                 {(() => {
-                                                    const isMeasurement = MEASUREMENT_UNITS.includes(unMedidaInventario);
-                                                    const options = isMeasurement
-                                                        ? [unMedidaInventario, ...(UNIT_HIERARCHY[unMedidaInventario] || [])]
-                                                        : Object.keys(UNIT_HIERARCHY);
+                                                    const baseInv = getBaseUnit(unMedidaInventario);
+                                                    const isMeasurement = MEASUREMENT_UNITS.includes(baseInv);
+                                                    const options = new Set<string>();
 
-                                                    return options.map(u => (
-                                                        <option key={u} value={u}>{t(`units.${u}`)}</option>
+                                                    if (unMedidaRecetario) options.add(unMedidaRecetario);
+                                                    options.add(""); // Selec...
+
+                                                    if (isMeasurement) {
+                                                        if (unMedidaInventario) options.add(unMedidaInventario);
+                                                        (UNIT_HIERARCHY[baseInv] || []).forEach(u => options.add(t(`units.${u}`)));
+                                                    } else {
+                                                        Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+                                                    }
+
+                                                    return Array.from(options).sort().map(u => (
+                                                        <option key={u} value={u}>{u || 'Selec...'}</option>
                                                     ));
                                                 })()}
                                             </select>
@@ -1762,9 +1852,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <div className="relative">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="block text-sm font-medium text-gray-700">
-                                                    {MEASUREMENT_UNITS.includes(unMedidaCompra) ? "Conversion" : "Contenido"}
+                                                    {MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) ? "Conversion" : "Contenido"}
                                                 </label>
-                                                {!MEASUREMENT_UNITS.includes(unMedidaCompra) && (
+                                                {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsConverterOpen(true)}
@@ -1780,7 +1870,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 step="0.01"
                                                 value={simpleConversion}
                                                 onChange={(e) => setSimpleConversion(parseFloat(e.target.value))}
-                                                disabled={(UNIT_TYPES[unMedidaInventario] && UNIT_TYPES[unMedidaRecetario] && UNIT_TYPES[unMedidaInventario] === UNIT_TYPES[unMedidaRecetario]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
+                                                disabled={(UNIT_TYPES[getBaseUnit(unMedidaInventario)] && UNIT_TYPES[getBaseUnit(unMedidaRecetario)] && UNIT_TYPES[getBaseUnit(unMedidaInventario)] === UNIT_TYPES[getBaseUnit(unMedidaRecetario)]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                             />
                                         </div>
@@ -1804,15 +1894,17 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 onChange={(e) => {
                                                                     const newFrom = e.target.value;
                                                                     setConverterFromUnit(newFrom);
-                                                                    if (UNIT_TYPES[newFrom] !== UNIT_TYPES[converterToUnit]) {
+                                                                    if (UNIT_TYPES[getBaseUnit(newFrom)] !== UNIT_TYPES[getBaseUnit(converterToUnit)]) {
                                                                         setConverterToUnit(newFrom);
                                                                     }
                                                                 }}
                                                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                                                             >
-                                                                {Object.keys(CONVERSION_FACTORS).map(unit => (
-                                                                    <option key={unit} value={unit}>{unit}</option>
-                                                                ))}
+                                                                {Object.keys(UNIT_HIERARCHY)
+                                                                    .sort((a, b) => t(`units.${a}`).localeCompare(t(`units.${b}`)))
+                                                                    .map(u => (
+                                                                        <option key={u} value={t(`units.${u}`)}>{t(`units.${u}`)}</option>
+                                                                    ))}
                                                             </select>
                                                         </div>
                                                         <div>
@@ -1833,10 +1925,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             onChange={(e) => setConverterToUnit(e.target.value)}
                                                             className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
                                                         >
-                                                            {Object.keys(CONVERSION_FACTORS)
-                                                                .filter(u => UNIT_TYPES[u] === UNIT_TYPES[converterFromUnit])
-                                                                .map(unit => (
-                                                                    <option key={unit} value={unit}>{unit}</option>
+                                                            {Object.keys(UNIT_HIERARCHY)
+                                                                .filter(u => UNIT_TYPES[getBaseUnit(t(`units.${u}`))] === UNIT_TYPES[getBaseUnit(converterFromUnit)])
+                                                                .sort((a, b) => t(`units.${a}`).localeCompare(t(`units.${b}`)))
+                                                                .map(u => (
+                                                                    <option key={u} value={t(`units.${u}`)}>{t(`units.${u}`)}</option>
                                                                 ))}
                                                         </select>
                                                     </div>

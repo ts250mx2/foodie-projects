@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
             `SELECT A.IdProducto, A.Codigo, A.Producto, A.Precio, A.IVA, A.IdPresentacion, A.ConversionSimple, 
                     A.IdPresentacionConversion, A.PesoInicial, A.PesoFinal, A.ObservacionesMerma,
                     A.ArchivoImagen, A.NombreArchivo, A.CantidadCompra, A.IdPresentacionInventario,
+                    A.UnidadMedidaCompra, A.UnidadMedidaInventario, A.UnidadMedidaRecetario,
                     CR.CategoriaRecetario as Categoria, CR.IdCategoriaRecetario,
                     C.Presentacion AS UnidadCompra,
                     D.Presentacion AS UnidadConversion

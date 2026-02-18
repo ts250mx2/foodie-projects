@@ -90,9 +90,8 @@
         "rawMaterials": "Materia Prima",
         "dishes": "Platillos Menu",
         "subRecipes": "Subrecetas",
-        "recipeCategories": "Módulos de Recetario",
-        "productionCapture": "Captura de Producción",
-        "menuSections": "Secciones Menu"
+        "menuSections": "Secciones Menu",
+        "massiveProductUpload": "Carga Masiva Productos"
     },
     "Production": {
         "title": "Captura de Producción",
@@ -419,7 +418,12 @@
         "confirmDelete": "¿Está seguro de eliminar este empleado?",
         "successAdd": "Empleado creado exitosamente",
         "successUpdate": "Empleado actualizado exitosamente",
-        "successDelete": "Empleado eliminado exitosamente"
+        "successDelete": "Empleado eliminado exitosamente",
+        "photo": "Foto",
+        "uploadPhoto": "Subir Foto",
+        "takePhoto": "Tomar Foto",
+        "takeSnapshot": "Capturar",
+        "close": "Cerrar"
     },
     "Branches": {
         "title": "Administración de Sucursales",

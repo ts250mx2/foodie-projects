@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -19,6 +19,7 @@ interface Employee {
     Telefonos: string | null;
     CorreoElectronico: string | null;
     Calle: string | null;
+    ArchivoFoto: string | null;
     Status: number;
 }
 
@@ -48,8 +49,13 @@ export default function EmployeesPage() {
         branchId: '',
         phone: '',
         email: '',
-        address: ''
+        address: '',
+        photo: '' as string | null
     });
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isWebcamActive, setIsWebcamActive] = useState(false);
     const [project, setProject] = useState<any>(null);
 
     // Schedule modal state
@@ -136,15 +142,17 @@ export default function EmployeesPage() {
                     branchId: formData.branchId ? parseInt(formData.branchId) : null,
                     phone: formData.phone,
                     email: formData.email,
-                    address: formData.address
+                    address: formData.address,
+                    photo: formData.photo
                 })
             });
 
             if (response.ok) {
                 fetchEmployees();
                 setIsModalOpen(false);
-                setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '' });
+                setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null });
                 setEditingEmployee(null);
+                stopWebcam();
             }
         } catch (error) {
             console.error('Error saving employee:', error);
@@ -176,7 +184,8 @@ export default function EmployeesPage() {
             branchId: employee.IdSucursal?.toString() || '',
             phone: employee.Telefonos || '',
             email: employee.CorreoElectronico || '',
-            address: employee.Calle || ''
+            address: employee.Calle || '',
+            photo: employee.ArchivoFoto || null
         });
         setIsModalOpen(true);
     };
@@ -216,6 +225,57 @@ export default function EmployeesPage() {
             return 0;
         });
 
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, photo: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const startWebcam = async () => {
+        setIsWebcamActive(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error('Error accessing webcam:', err);
+            alert('No se pudo acceder a la cámara');
+            setIsWebcamActive(false);
+        }
+    };
+
+    const stopWebcam = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        setIsWebcamActive(false);
+    };
+
+    const takeSnapshot = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setFormData(prev => ({ ...prev, photo: dataUrl }));
+                stopWebcam();
+            }
+        }
+    };
+
     const handleSort = (key: keyof Employee) => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -240,7 +300,7 @@ export default function EmployeesPage() {
                     </Button>
                     <Button onClick={() => {
                         setEditingEmployee(null);
-                        setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '' });
+                        setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null });
                         setIsModalOpen(true);
                     }}>
                         {t('addEmployee')}
@@ -311,7 +371,16 @@ export default function EmployeesPage() {
                         {sortedAndFilteredEmployees.map((employee) => (
                             <tr key={employee.IdEmpleado} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {employee.Empleado}
+                                    <div className="flex items-center gap-3">
+                                        {employee.ArchivoFoto ? (
+                                            <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border">
+                                                👤
+                                            </div>
+                                        )}
+                                        {employee.Empleado}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {employee.Puesto || '-'}
@@ -386,60 +455,125 @@ export default function EmployeesPage() {
             {
                 isModalOpen && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+                            <button
+                                onClick={() => {
+                                    setIsModalOpen(false);
+                                    stopWebcam();
+                                }}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <span className="text-2xl">✕</span>
+                            </button>
+
                             <h2 className="text-xl font-bold mb-4">
                                 {editingEmployee ? t('editEmployee') : t('addEmployee')}
                             </h2>
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <Input
-                                    label={t('employeeName')}
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    required
-                                />
+                                <div className="flex gap-6 items-start">
+                                    <div className="flex-1 space-y-4">
+                                        <Input
+                                            label={t('employeeName')}
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            required
+                                        />
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('position')}
-                                    </label>
-                                    <select
-                                        value={formData.positionId}
-                                        onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    >
-                                        <option value="">{t('selectPosition')}</option>
-                                        {positions.map((position) => (
-                                            <option key={position.IdPuesto} value={position.IdPuesto}>
-                                                {position.Puesto}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                {t('position')}
+                                            </label>
+                                            <select
+                                                value={formData.positionId}
+                                                onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                            >
+                                                <option value="">{t('selectPosition')}</option>
+                                                {positions.map((position) => (
+                                                    <option key={position.IdPuesto} value={position.IdPuesto}>
+                                                        {position.Puesto}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="w-48 space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">{t('photo')}</label>
+                                        <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
+                                            {isWebcamActive ? (
+                                                <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
+                                            ) : formData.photo ? (
+                                                <img src={formData.photo} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-4xl">👤</span>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {isWebcamActive ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={takeSnapshot}
+                                                    className="col-span-2 py-1 px-2 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                                >
+                                                    📸 {t('takeSnapshot')}
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className="py-1 px-2 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
+                                                    >
+                                                        📁 {t('uploadPhoto')}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={startWebcam}
+                                                        className="py-1 px-2 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
+                                                    >
+                                                        📹 {t('takePhoto')}
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handlePhotoUpload}
+                                        />
+                                        <canvas ref={canvasRef} className="hidden" />
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('branch')}
-                                    </label>
-                                    <select
-                                        value={formData.branchId}
-                                        onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    >
-                                        <option value="">{t('selectBranch')}</option>
-                                        {branches.map((branch) => (
-                                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                                {branch.Sucursal}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('branch')}
+                                        </label>
+                                        <select
+                                            value={formData.branchId}
+                                            onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        >
+                                            <option value="">{t('selectBranch')}</option>
+                                            {branches.map((branch) => (
+                                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                                    {branch.Sucursal}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                                <Input
-                                    label={t('phone')}
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    type="tel"
-                                />
+                                    <Input
+                                        label={t('phone')}
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        type="tel"
+                                    />
+                                </div>
 
                                 <Input
                                     label={t('email')}
@@ -463,7 +597,10 @@ export default function EmployeesPage() {
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => setIsModalOpen(false)}
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            stopWebcam();
+                                        }}
                                         className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
                                     >
                                         {t('cancel')}

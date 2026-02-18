@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');
         const tipoProductoStr = searchParams.get('tipoProducto');
+        const useView = searchParams.get('useView') === 'true';
 
         if (!projectIdStr) {
             return NextResponse.json({ success: false, message: 'Project ID is required' }, { status: 400 });
@@ -19,7 +20,9 @@ export async function GET(request: NextRequest) {
         let query = '';
         const params: any[] = [];
 
-        if (tipoProductoStr === '2') {
+        if (useView) {
+            query = `SELECT * FROM vlProductos WHERE Status = 0 ORDER BY Producto`;
+        } else if (tipoProductoStr === '2') {
             query = `
                 SELECT 
                     IdProducto,
@@ -44,7 +47,10 @@ export async function GET(request: NextRequest) {
                     IdSeccionMenu,
                     PorcentajeCostoIdeal,
                     CantidadCompra,
-                    IdPresentacionInventario
+                    IdPresentacionInventario,
+                    UnidadMedidaCompra,
+                    UnidadMedidaInventario,
+                    UnidadMedidaRecetario
                 FROM vlProductos 
                 WHERE Status = 0 AND IdTipoProducto = 2
             `;
@@ -71,6 +77,9 @@ export async function GET(request: NextRequest) {
                     p.PorcentajeCostoIdeal,
                     p.CantidadCompra,
                     p.IdPresentacionInventario,
+                    p.UnidadMedidaCompra,
+                    p.UnidadMedidaInventario,
+                    p.UnidadMedidaRecetario,
                     c.Categoria,
                     pr.Presentacion,
                     cr.CategoriaRecetario,
@@ -102,7 +111,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        query += ' ORDER BY Producto ASC';
+        //query += ' ORDER BY Producto ASC';
 
         const [rows] = await connection.query(query, params);
 
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario, cantidadCompra, idPresentacionInventario } = body;
+        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario, cantidadCompra, idPresentacionInventario, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
@@ -168,8 +177,8 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, CantidadCompra, IdPresentacionInventario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, Now())`,
-            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null, cantidadCompra || 0, idPresentacionInventario || null]
+            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, CantidadCompra, IdPresentacionInventario, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
+            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null, cantidadCompra || 0, idPresentacionInventario || null, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]
         );
 
         return NextResponse.json({
