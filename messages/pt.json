@@ -56,7 +56,7 @@
         "applyYield": "Aplicar Rendimento",
         "quantityHelpQuestion": "Qual é o número a colocar nesta célula?",
         "quantityHelpTooltip": "A quantidade a colocar nesta célula deve ser a quantidade levando em conta a unidade de medida de inventário do produto. \n\nExemplo: se você compra por caixa e sua unidade de medida de inventário é por quilos, você deve colocar o número de quilos que a caixa contém.",
-        "contentHelpQuestion": "Qual é o número a colocar nesta célula? Quantos {recipeUnit} tem {inventoryUnit}?",
+        "contentHelpQuestion": "Quantos {recipeUnit} tem {inventoryUnit}?",
         "contentHelpTooltip": "Este valor representa quantas unidades de medida de receita estão contidas em uma única unidade de medida de inventário.\n\nExemplo: Se a sua unidade de inventário for 'Quilo' e a sua unidade de receita for 'Grama', você deve colocar 1000 (porque há 1000 gramas em um quilo).",
         "proteins": "Proteínas",
         "payroll": "Folha de Pagamento",
