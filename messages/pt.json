@@ -303,6 +303,7 @@
         "purchaseUnit": "Unidade de Medida de Compra",
         "inventoryUnit": "Unidade de Medida de Inventário",
         "recipeUnit": "Unidade de Medida de Receita",
-        "productDescriptionHint": "Coloque a descrição do produto igual à descrição da fatura"
+        "productDescriptionHint": "Coloque a descrição do produto igual à descrição da fatura",
+        "productDescriptionExample": "Exemplo de descrição de produto: FORMULA LACTEA NUTRILECHE CAJA 12 PZAS 1 L."
     }
 }

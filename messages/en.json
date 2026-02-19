@@ -357,6 +357,7 @@
         "contentHelpQuestion": "How many {recipeUnit} are in {inventoryUnit}?",
         "contentHelpTooltip": "This value represents how many recipe units of measure are contained in a single inventory unit of measure.\n\nExample: If your inventory unit is 'Kilo' and your recipe unit is 'Gram', you should place 1000 (because there are 1000 grams in a kilo).",
         "productDescriptionHint": "Place the product description same as the invoice description",
+        "productDescriptionExample": "Product description example: FORMULA LACTEA NUTRILECHE CAJA 12 PZAS 1 L.",
         "proteins": "Proteins",
         "vegetables": "Vegetables",
         "units": {

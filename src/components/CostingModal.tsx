@@ -368,6 +368,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [isMarketPricesLoading, setIsMarketPricesLoading] = useState(false);
     const [showQuantityHelp, setShowQuantityHelp] = useState(false);
     const [showContentHelp, setShowContentHelp] = useState(false);
+    const [showProductHintTooltip, setShowProductHintTooltip] = useState(false);
 
     const MEASUREMENT_UNITS = ['kg', 'g', 'lb', 'oz', 't', 'ar', 'l', 'ml', 'gal', 'qt', 'pt', 'fl-oz', 'taza', 'garrafon'];
 
@@ -1375,8 +1376,21 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
                                         required
                                     />
-                                    <p className="mt-1 text-[10px] text-orange-600 font-bold">
+                                    <p
+                                        className="mt-1 text-[10px] text-orange-600 font-bold cursor-help hover:text-orange-700 transition-colors w-fit relative"
+                                        onMouseEnter={() => setShowProductHintTooltip(true)}
+                                        onMouseLeave={() => setShowProductHintTooltip(false)}
+                                    >
                                         {t('productDescriptionHint')}
+
+                                        {showProductHintTooltip && (
+                                            <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
+                                                <div className="flex gap-2 items-start">
+                                                    <span className="text-orange-500 mt-0.5">💡</span>
+                                                    <span>{t('productDescriptionExample')}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </p>
                                 </div>
                                 <Input
