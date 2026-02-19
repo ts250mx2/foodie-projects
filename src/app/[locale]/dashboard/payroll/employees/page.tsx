@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ScheduleTimelineModal from '@/components/ScheduleTimelineModal';
 import EmployeeDocumentsModal from '@/components/EmployeeDocumentsModal';
 import EmployeeAccessModal from '@/components/EmployeeAccessModal';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -35,11 +34,11 @@ interface Position {
 
 export default function EmployeesPage() {
     const t = useTranslations('Employees');
-    const tSchedules = useTranslations('SchedulesModal');
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [positions, setPositions] = useState<Position[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -58,10 +57,7 @@ export default function EmployeesPage() {
     const [isWebcamActive, setIsWebcamActive] = useState(false);
     const [project, setProject] = useState<any>(null);
 
-    // Schedule modal state
-    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [selectedBranchForCapture, setSelectedBranchForCapture] = useState<string>('');
-    const [selectedEmployeeForCapture, setSelectedEmployeeForCapture] = useState<number | undefined>(undefined);
+    // Modal state
     const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
     const [selectedEmployeeForDocuments, setSelectedEmployeeForDocuments] = useState<Employee | null>(null);
     const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
@@ -115,7 +111,7 @@ export default function EmployeesPage() {
             if (data.success) {
                 setBranches(data.data);
                 if (data.data.length > 0) {
-                    setSelectedBranchForCapture(data.data[0].IdSucursal.toString());
+                    // Branch state simplified
                 }
             }
         } catch (error) {
@@ -289,15 +285,6 @@ export default function EmployeesPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
-                    <Button
-                        variant="secondary"
-                        onClick={() => {
-                            setSelectedEmployeeForCapture(undefined);
-                            setIsScheduleModalOpen(true);
-                        }}
-                    >
-                        🗓️ {tSchedules('title')}
-                    </Button>
                     <Button onClick={() => {
                         setEditingEmployee(null);
                         setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null });
@@ -409,19 +396,6 @@ export default function EmployeesPage() {
                                         title={t('editEmployee')}
                                     >
                                         ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (employee.IdSucursal) {
-                                                setSelectedBranchForCapture(employee.IdSucursal.toString());
-                                            }
-                                            setSelectedEmployeeForCapture(employee.IdEmpleado);
-                                            setIsScheduleModalOpen(true);
-                                        }}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={tSchedules('title')}
-                                    >
-                                        🗓️
                                     </button>
                                     <button
                                         onClick={() => openAccessModal(employee)}
@@ -641,19 +615,6 @@ export default function EmployeesPage() {
                 )
             }
 
-            {/* Schedule Capture Modal */}
-            {
-                project && (
-                    <ScheduleTimelineModal
-                        isOpen={isScheduleModalOpen}
-                        onClose={() => setIsScheduleModalOpen(false)}
-                        employeeId={selectedEmployeeForCapture}
-                        projectId={project.idProyecto}
-                        branchId={selectedBranchForCapture}
-                        onSaveSuccess={() => { }} // No refresh needed on this page unless we show schedules here
-                    />
-                )
-            }
 
             {
                 selectedEmployeeForDocuments && (

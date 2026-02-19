@@ -744,6 +744,7 @@
     },
     "SchedulesCapture": {
         "title": "Horarios",
+        "employee": "Empleado",
         "selectBranch": "Seleccionar Sucursal",
         "noBranches": "No hay sucursales",
         "month": "Mes",
@@ -770,7 +771,18 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "assignSchedules": "Asignar Horarios",
+        "selectAll": "Seleccionar Todos",
+        "noEmployeesSelected": "Debe seleccionar al menos un empleado",
+        "nextWeek": "Semana Siguiente",
+        "prevWeek": "Semana Anterior",
+        "importPreviousWeek": "Importar Semana Anterior",
+        "confirmImportPreviousWeek": "¿Estás seguro de que deseas copiar todos los horarios de la semana anterior a la semana actual? Esto reemplazará cualquier horario existente en los mismos días.",
+        "noPreviousWeekData": "No se encontraron horarios en la semana anterior para esta sucursal.",
+        "viewAllEmployees": "Ver todos los empleados",
+        "delete": "Borrar",
+        "confirmDelete": "¿Estás seguro de que deseas eliminar este horario?"
     },
     "SchedulesModal": {
         "title": "Captura de Horarios",
@@ -782,6 +794,10 @@
         "breakStart": "Inicio Descanso",
         "breakEnd": "Fin Descanso",
         "save": "Guardar",
+        "delete": "Borrar",
+        "confirmDelete": "¿Estás seguro de que deseas borrar este horario?",
+        "importPrevious": "Importar del día anterior",
+        "noPreviousSchedule": "No se encontró un horario para el día anterior",
         "close": "Cerrar",
         "prevWeek": "Semana Anterior",
         "nextWeek": "Próxima Semana"
