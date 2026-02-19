@@ -366,6 +366,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [isMarketPricesModalOpen, setIsMarketPricesModalOpen] = useState(false);
     const [marketPriceResults, setMarketPriceResults] = useState<Array<{ title: string, link: string, snippet: string, source: string, price?: string, unit?: string }>>([]);
     const [isMarketPricesLoading, setIsMarketPricesLoading] = useState(false);
+    const [showQuantityHelp, setShowQuantityHelp] = useState(false);
 
     const MEASUREMENT_UNITS = ['kg', 'g', 'lb', 'oz', 't', 'ar', 'l', 'ml', 'gal', 'qt', 'pt', 'fl-oz', 'taza', 'garrafon'];
 
@@ -1878,14 +1879,24 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                                     {/* Question for quantity help */}
                                     {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) && (
-                                        <div className="-mt-4 mb-2">
+                                        <div className="-mt-4 mb-2 relative">
                                             <p
-                                                className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors"
-                                                title={t('quantityHelpTooltip')}
+                                                className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
+                                                onMouseEnter={() => setShowQuantityHelp(true)}
+                                                onMouseLeave={() => setShowQuantityHelp(false)}
                                             >
                                                 <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
                                                 {t('quantityHelpQuestion')}
                                             </p>
+
+                                            {showQuantityHelp && (
+                                                <div className="absolute bottom-full left-0 mb-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-bottom-1">
+                                                    <div className="flex gap-2 items-start">
+                                                        <span className="text-orange-500 mt-0.5">💡</span>
+                                                        <span>{t('quantityHelpTooltip')}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
