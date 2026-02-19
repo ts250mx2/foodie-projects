@@ -1879,7 +1879,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
 
                                     {/* Dedicated Tooltips Row aligned with the grid above */}
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 -mt-3.5 mb-2 h-0 relative">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-1 mb-2 relative">
                                         {/* Column 1: Quantity Help (Matches Column 1 of grid above) */}
                                         {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) ? (
                                             <div className="relative">
@@ -2015,7 +2015,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     )}
 
                                     {/* Sub-row 4: Switch de Rendimiento */}
-                                    <div className="flex items-center gap-2 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                                    <div className="flex items-center gap-2 bg-orange-50 p-3 rounded-lg border border-orange-100 mt-4">
                                         <div className="flex items-center gap-3">
                                             <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
                                             <div
