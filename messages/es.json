@@ -373,6 +373,8 @@
         "applyYield": "Aplicar Rendimiento",
         "quantityHelpQuestion": "¿Cual es el numero a colocar en esta celda?",
         "quantityHelpTooltip": "La cantidad a colocar en esta celda, debe de ser la cantidad tomando en cuenta la unidad de medida de inventario del producto. \n\nEjemplo, si compras por caja y tu unidad de medida de inventario es por kilos, debes colocar el numero de kilos que contenga la caja.",
+        "contentHelpQuestion": "¿Cual es el numero a colocar en esta celda? ¿Cuántas {recipeUnit} tiene {inventoryUnit}?",
+        "contentHelpTooltip": "Este valor representa cuántas unidades de medida de receta están contenidas en una sola unidad de medida de inventario.\n\nEjemplo: Si tu unidad de inventario es 'Kilo' y tu unidad de receta es 'Gramo', debes colocar 1000 (porque hay 1000 gramos en un kilo).",
         "proteins": "Proteínas",
         "vegetables": "Verduras",
         "units": {
