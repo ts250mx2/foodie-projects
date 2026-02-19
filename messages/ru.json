@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "Невозможно зафиксировать данные для будущих дат."
+    },
+    "SchedulesCapture": {
+        "exportPdf": "Экспорт в PDF"
     }
 }

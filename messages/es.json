@@ -91,7 +91,8 @@
         "dishes": "Platillos Menu",
         "subRecipes": "Subrecetas",
         "menuSections": "Secciones Menu",
-        "massiveProductUpload": "Carga Masiva Productos"
+        "massiveProductUpload": "Carga Masiva Productos",
+        "productionCapture": "Captura de Producción"
     },
     "Production": {
         "title": "Captura de Producción",
@@ -782,7 +783,8 @@
         "noPreviousWeekData": "No se encontraron horarios en la semana anterior para esta sucursal.",
         "viewAllEmployees": "Ver todos los empleados",
         "delete": "Borrar",
-        "confirmDelete": "¿Estás seguro de que deseas eliminar este horario?"
+        "confirmDelete": "¿Estás seguro de que deseas eliminar este horario?",
+        "exportPdf": "Exportar PDF"
     },
     "SchedulesModal": {
         "title": "Captura de Horarios",

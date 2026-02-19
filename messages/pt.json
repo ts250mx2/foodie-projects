@@ -56,7 +56,8 @@
         "employees": "Funcionários",
         "positions": "Cargos",
         "shifts": "Turnos",
-        "payrollCapture": "Captura de Folha"
+        "payrollCapture": "Captura de Folha",
+        "productionCapture": "Captura de Produção"
     },
     "Terminals": {
         "title": "Gestão de Terminais",
@@ -269,7 +270,8 @@
         "noPreviousWeekData": "Nenhum horário encontrado na semana anterior para esta filial.",
         "viewAllEmployees": "Ver todos os funcionários",
         "delete": "Excluir",
-        "confirmDelete": "Tem certeza de que deseja excluir este horário?"
+        "confirmDelete": "Tem certeza de que deseja excluir este horário?",
+        "exportPdf": "Exportar PDF"
     },
     "SchedulesModal": {
         "title": "Captura de Horários",

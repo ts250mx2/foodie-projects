@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "ভবিষ্যতের তারিখের জন্য ডেটা ক্যাপচার করা সম্ভব নয়।"
+    },
+    "SchedulesCapture": {
+        "exportPdf": "পিডিএফ রপ্তানি করুন"
     }
 }

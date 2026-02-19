@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import BulkScheduleModal from '@/components/BulkScheduleModal';
 import Button from '@/components/Button';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Branch {
     IdSucursal: number;
@@ -367,6 +369,82 @@ export default function SchedulesPage() {
         }
     };
 
+    const handleExportPdf = async () => {
+        if (!project?.idProyecto) return;
+        setLoading(true);
+
+        try {
+            // 1. Fetch project header for logo
+            const resp = await fetch(`/api/project-header?projectId=${project.idProyecto}`);
+            const data = await resp.json();
+            const logo64 = data.logo64;
+
+            const doc = new jsPDF('landscape');
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // 2. Add Project Logo (if available)
+            if (logo64) {
+                try {
+                    const imgData = logo64.startsWith('data:') ? logo64 : `data:image/png;base64,${logo64}`;
+                    doc.addImage(imgData, 'PNG', 15, 5, 30, 15);
+                } catch (e) {
+                    console.warn('Error adding logo to PDF:', e);
+                }
+            }
+
+            // 3. Add Title
+            doc.setFontSize(22);
+            doc.setTextColor(234, 88, 12); // Orange-600
+            doc.text(`Horarios ${formatWeekRange()}`, pageWidth / 2, 20, { align: 'center' });
+
+            // 4. Prepare Table Data
+            const head = [['Empleado', ...weekDaysLabels.map((_, i) => {
+                const date = weekDays[i];
+                const dayLabel = t(`days.${weekDaysLabels[i]}`);
+                return `${dayLabel} ${date.getDate()}`;
+            })]];
+
+            const body = filteredEmployees.map(employee => {
+                const row = [employee.Empleado];
+                weekDays.forEach(date => {
+                    const schedule = getScheduleForCell(employee.IdEmpleado, date);
+                    if (schedule) {
+                        let text = `${schedule.HoraInicio.substring(0, 5)} - ${schedule.HoraFin.substring(0, 5)}`;
+                        if (schedule.HoraInicioDescanso && schedule.HoraFinDescanso && schedule.HoraInicioDescanso !== '00:00:00') {
+                            text += `\n(${schedule.HoraInicioDescanso.substring(0, 5)} - ${schedule.HoraFinDescanso.substring(0, 5)})`;
+                        }
+                        row.push(text);
+                    } else {
+                        row.push('-');
+                    }
+                });
+                return row;
+            });
+
+            // 5. Generate Table
+            autoTable(doc, {
+                head,
+                body,
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [234, 88, 12], textColor: 255, fontSize: 10, halign: 'center' },
+                bodyStyles: { fontSize: 8, halign: 'center', valign: 'middle' },
+                columnStyles: {
+                    0: { fontStyle: 'bold', halign: 'left', cellWidth: 40 }
+                },
+                styles: { overflow: 'linebreak', cellPadding: 2 }
+            });
+
+            // 6. Save PDF
+            doc.save(`Horarios_${formatWeekRange().replace(/ /g, '_')}.pdf`);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Error al exportar el PDF');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const formatWeekRange = () => {
         const start = weekDays[0];
         const end = weekDays[6];
@@ -396,6 +474,14 @@ export default function SchedulesPage() {
                                 <span>📅</span>
                             )}
                             {t('importPreviousWeek')}
+                        </button>
+                        <button
+                            onClick={handleExportPdf}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50"
+                        >
+                            <span>📄</span>
+                            {t('exportPdf')}
                         </button>
                     </div>
                 </div>

@@ -232,5 +232,8 @@
     },
     "Common": {
         "errorFutureDate": "Daten für zukünftige Daten können nicht erfasst werden."
+    },
+    "SchedulesCapture": {
+        "exportPdf": "PDF exportieren"
     }
 }

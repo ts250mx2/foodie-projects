@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "Kan geen gegevens vastleggen voor toekomstige datums."
+    },
+    "SchedulesCapture": {
+        "exportPdf": "PDF exporteren"
     }
 }

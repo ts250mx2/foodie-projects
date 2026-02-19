@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "将来の日付のデータを取り込むことはできません。"
+    },
+    "SchedulesCapture": {
+        "exportPdf": "PDFを書き出す"
     }
 }

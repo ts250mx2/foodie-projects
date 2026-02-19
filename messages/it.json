@@ -300,5 +300,8 @@
     },
     "Common": {
         "errorFutureDate": "Non è possibile acquisire dati per date future."
+    },
+    "SchedulesCapture": {
+        "exportPdf": "Esporta PDF"
     }
 }

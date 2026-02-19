@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "لا يمكن التقاط البيانات للتواريخ المستقبلية."
+    },
+    "SchedulesCapture": {
+        "exportPdf": "تصدير PDF"
     }
 }

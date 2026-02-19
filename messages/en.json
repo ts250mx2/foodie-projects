@@ -89,7 +89,8 @@
         "dishes": "Dishes Menu",
         "subRecipes": "Sub-recipes",
         "menuSections": "Menu Sections",
-        "massiveProductUpload": "Massive Product Upload"
+        "massiveProductUpload": "Massive Product Upload",
+        "productionCapture": "Production Capture"
     },
     "Terminals": {
         "title": "Payment Methods Management",
@@ -812,7 +813,8 @@
         "noPreviousWeekData": "No schedules found in the previous week for this branch.",
         "viewAllEmployees": "View all employees",
         "delete": "Delete",
-        "confirmDelete": "Are you sure you want to delete this schedule?"
+        "confirmDelete": "Are you sure you want to delete this schedule?",
+        "exportPdf": "Export PDF"
     },
     "SchedulesModal": {
         "title": "Capture Schedules",

@@ -54,7 +54,8 @@
         "employees": "Employés",
         "positions": "Postes",
         "shifts": "Quarts",
-        "payrollCapture": "Saisie de la paie"
+        "payrollCapture": "Saisie de la paie",
+        "productionCapture": "Capture de Production"
     },
     "Terminals": {
         "title": "Gestion des Terminaux",
@@ -267,7 +268,8 @@
         "noPreviousWeekData": "Aucun horaire trouvé la semaine précédente pour cette succursale.",
         "viewAllEmployees": "Voir tous les employés",
         "delete": "Supprimer",
-        "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet horaire ?"
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet horaire ?",
+        "exportPdf": "Exporter en PDF"
     },
     "SchedulesModal": {
         "title": "Saisie des Horaires",

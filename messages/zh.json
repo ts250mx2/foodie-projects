@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "无法获取未来日期的数据。"
+    },
+    "SchedulesCapture": {
+        "exportPdf": "导出 PDF"
     }
 }

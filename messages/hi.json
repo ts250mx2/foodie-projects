@@ -356,5 +356,8 @@
     },
     "Common": {
         "errorFutureDate": "भविष्य की तारीखों के लिए डेटा कैप्चर करना संभव नहीं है।"
+    },
+    "SchedulesCapture": {
+        "exportPdf": "PDF निर्यात करें"
     }
 }
