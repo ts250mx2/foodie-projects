@@ -1368,12 +1368,17 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         <form onSubmit={handleSaveGeneral} className="max-w-4xl mx-auto w-full space-y-6">
                             {/* Row 1: Nombre y Código */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="Nombre del Producto"
-                                    value={formData.producto}
-                                    onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
-                                    required
-                                />
+                                <div>
+                                    <Input
+                                        label="Nombre del Producto"
+                                        value={formData.producto}
+                                        onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
+                                        required
+                                    />
+                                    <p className="mt-1 text-[10px] text-orange-600 font-bold">
+                                        {t('productDescriptionHint')}
+                                    </p>
+                                </div>
                                 <Input
                                     label="Código"
                                     value={formData.codigo}

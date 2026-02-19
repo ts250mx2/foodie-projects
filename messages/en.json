@@ -356,6 +356,7 @@
         "quantityHelpTooltip": "The quantity to place in this cell must be the quantity taking into account the product's inventory unit of measure. \n\nExample, if you buy by box and your inventory unit of measure is by kilos, you should place the number of kilos contained in the box.",
         "contentHelpQuestion": "How many {recipeUnit} are in {inventoryUnit}?",
         "contentHelpTooltip": "This value represents how many recipe units of measure are contained in a single inventory unit of measure.\n\nExample: If your inventory unit is 'Kilo' and your recipe unit is 'Gram', you should place 1000 (because there are 1000 grams in a kilo).",
+        "productDescriptionHint": "Place the product description same as the invoice description",
         "proteins": "Proteins",
         "vegetables": "Vegetables",
         "units": {

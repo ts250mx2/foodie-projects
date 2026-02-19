@@ -302,6 +302,7 @@
         "iva": "Imposto",
         "purchaseUnit": "Unidade de Medida de Compra",
         "inventoryUnit": "Unidade de Medida de Inventário",
-        "recipeUnit": "Unidade de Medida de Receita"
+        "recipeUnit": "Unidade de Medida de Receita",
+        "productDescriptionHint": "Coloque a descrição do produto igual à descrição da fatura"
     }
 }
