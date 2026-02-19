@@ -1875,35 +1875,13 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 disabled={(UNIT_TYPES[getBaseUnit(unMedidaInventario)] && UNIT_TYPES[getBaseUnit(unMedidaRecetario)] && UNIT_TYPES[getBaseUnit(unMedidaInventario)] === UNIT_TYPES[getBaseUnit(unMedidaRecetario)]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                             />
-                                            {/* Question for content help (Directly below input) */}
-                                            {(unMedidaInventario && unMedidaRecetario && unMedidaInventario !== unMedidaRecetario) && (
-                                                <div className="mt-1 relative">
-                                                    <p
-                                                        className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
-                                                        onMouseEnter={() => setShowContentHelp(true)}
-                                                        onMouseLeave={() => setShowContentHelp(false)}
-                                                    >
-                                                        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
-                                                        {t('contentHelpQuestion', { recipeUnit: unMedidaRecetario, inventoryUnit: unMedidaInventario })}
-                                                    </p>
-
-                                                    {showContentHelp && (
-                                                        <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
-                                                            <div className="flex gap-2 items-start">
-                                                                <span className="text-orange-500 mt-0.5">💡</span>
-                                                                <span>{t('contentHelpTooltip')}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Help Tooltips Row (Now only for Quantity) */}
-                                    <div className="flex flex-col gap-2 -mt-4 mb-2">
-                                        {/* Question for quantity help */}
-                                        {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) && (
+                                    {/* Dedicated Tooltips Row aligned with the grid above */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 -mt-3.5 mb-2 h-0 relative">
+                                        {/* Column 1: Quantity Help (Matches Column 1 of grid above) */}
+                                        {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) ? (
                                             <div className="relative">
                                                 <p
                                                     className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
@@ -1915,7 +1893,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 </p>
 
                                                 {showQuantityHelp && (
-                                                    <div className="absolute bottom-full left-0 mb-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-bottom-1">
+                                                    <div className="absolute top-full left-0 mt-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
                                                         <div className="flex gap-2 items-start">
                                                             <span className="text-orange-500 mt-0.5">💡</span>
                                                             <span>{t('quantityHelpTooltip')}</span>
@@ -1923,7 +1901,36 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
+                                        ) : <div></div>}
+
+                                        {/* Column 2: Empty (Spacer for Inventory Unit) */}
+                                        <div></div>
+
+                                        {/* Column 3: Empty (Spacer for Recipe Unit) */}
+                                        <div></div>
+
+                                        {/* Column 4: Content Help (Matches Column 4 of grid above) */}
+                                        {(unMedidaInventario && unMedidaRecetario && unMedidaInventario !== unMedidaRecetario) ? (
+                                            <div className="relative">
+                                                <p
+                                                    className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
+                                                    onMouseEnter={() => setShowContentHelp(true)}
+                                                    onMouseLeave={() => setShowContentHelp(false)}
+                                                >
+                                                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
+                                                    {t('contentHelpQuestion', { recipeUnit: unMedidaRecetario, inventoryUnit: unMedidaInventario })}
+                                                </p>
+
+                                                {showContentHelp && (
+                                                    <div className="absolute top-full left-0 mt-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
+                                                        <div className="flex gap-2 items-start">
+                                                            <span className="text-orange-500 mt-0.5">💡</span>
+                                                            <span>{t('contentHelpTooltip')}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : <div></div>}
                                     </div>
 
                                     {/* Unit Converter Popup Container */}
