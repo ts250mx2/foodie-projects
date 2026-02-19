@@ -65,8 +65,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'employees', href: '/dashboard/payroll/employees' },
                 { key: 'positions', href: '/dashboard/payroll/positions' },
                 { key: 'documentTypes', href: '/dashboard/settings/document-types' },
-                { key: 'menuSections', href: '/dashboard/production/menu-sections' },
-                { key: 'massiveProductUpload', href: '/dashboard/config/massive-product-upload' }
+                { key: 'menuSections', href: '/dashboard/production/menu-sections' }
             ]
         },
         {
@@ -85,7 +84,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'categories', href: '/dashboard/inventories/categories' },
                 { key: 'presentations', href: '/dashboard/inventories/presentations' },
                 { key: 'products', href: '/dashboard/inventories/products' },
-                { key: 'inventoryCapture', href: '/dashboard/inventories/capture' }
+                { key: 'inventoryCapture', href: '/dashboard/inventories/capture' },
+                { key: 'massiveProductUpload', href: '/dashboard/config/massive-product-upload' }
             ]
         },
         {
