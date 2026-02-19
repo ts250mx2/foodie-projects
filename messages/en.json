@@ -352,6 +352,8 @@
         "recipeUnit": "Recipe Unit of Measure",
         "yieldReference": "Yield Reference",
         "applyYield": "Apply Yield",
+        "quantityHelpQuestion": "What is the number to place in this cell?",
+        "quantityHelpTooltip": "The quantity to place in this cell must be the quantity taking into account the product's inventory unit of measure. \n\nExample, if you buy by box and your inventory unit of measure is by kilos, you should place the number of kilos contained in the box.",
         "proteins": "Proteins",
         "vegetables": "Vegetables",
         "units": {

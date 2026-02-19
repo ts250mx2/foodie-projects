@@ -1876,6 +1876,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                     </div>
 
+                                    {/* Question for quantity help */}
+                                    {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) && (
+                                        <div className="-mt-4 mb-2">
+                                            <p
+                                                className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors"
+                                                title={t('quantityHelpTooltip')}
+                                            >
+                                                <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
+                                                {t('quantityHelpQuestion')}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {/* Unit Converter Popup Container */}
                                     {isConverterOpen && (
                                         <div className="relative">

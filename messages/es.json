@@ -371,6 +371,8 @@
         "recipeUnit": "Unidad Medida Receta",
         "yieldReference": "Referencia de Rendimiento",
         "applyYield": "Aplicar Rendimiento",
+        "quantityHelpQuestion": "¿Cual es el numero a colocar en esta celda?",
+        "quantityHelpTooltip": "La cantidad a colocar en esta celda, debe de ser la cantidad tomando en cuenta la unidad de medida de inventario del producto. \n\nEjemplo, si compras por caja y tu unidad de medida de inventario es por kilos, debes colocar el numero de kilos que contenga la caja.",
         "proteins": "Proteínas",
         "vegetables": "Verduras",
         "units": {
