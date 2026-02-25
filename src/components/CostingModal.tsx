@@ -89,9 +89,10 @@ interface CostingModalProps {
     initialTab?: 'general' | 'photo' | 'costing' | 'instructions' | 'documents';
     productType?: number; // 0=Raw, 1=Dish, 2=Sub-recipe
     onProductUpdate?: (product?: Product, shouldClose?: boolean) => void;
+    zIndexClass?: string;
 }
 
-export default function CostingModal({ isOpen, onClose, product: initialProduct, projectId, productType, onProductUpdate, initialTab = 'general' }: CostingModalProps) {
+export default function CostingModal({ isOpen, onClose, product: initialProduct, projectId, productType, onProductUpdate, initialTab = 'general', zIndexClass = 'z-50' }: CostingModalProps) {
     const t = useTranslations('Products');
     const [product, setProduct] = useState<Product>(initialProduct || {
         IdProducto: 0,
@@ -309,6 +310,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editedQuantities, setEditedQuantities] = useState<Record<number, number>>({});
     const [editedPrices, setEditedPrices] = useState<Record<number, number>>({});
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     const [pesoFinal, setPesoFinal] = useState<number>(0);
     const [pesoInicial, setPesoInicial] = useState<number>(0);
@@ -338,6 +340,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(product.ArchivoImagen || null);
     const [selectedPhotoBase64, setSelectedPhotoBase64] = useState<string | null>(product.ArchivoImagen || null);
+
+    // Camera states
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // Recursive Editing State
     const [subEditingProduct, setSubEditingProduct] = useState<Product | null>(null);
@@ -603,11 +610,64 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     };
 
+    const startCamera = async () => {
+        setIsCameraOpen(true);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            alert('No se pudo acceder a la cámara. Revisa los permisos.');
+            setIsCameraOpen(false);
+        }
+    };
+
+    const stopCamera = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+            tracks.forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
+        setIsCameraOpen(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const base64Image = canvas.toDataURL('image/jpeg');
+
+            setPhotoPreview(base64Image);
+            setSelectedPhotoBase64(base64Image);
+
+            fetch(base64Image)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+                    setSelectedPhoto(file);
+
+                    // Call save right after we ensure everything is populated
+                    setTimeout(() => {
+                        handleSaveAll();
+                    }, 500);
+                });
+
+            stopCamera();
+            setHasUnsavedChanges(true);
+        }
+    };
+
     const handleQuantityChange = (idProductoHijo: number, value: number) => {
         setEditedQuantities(prev => ({ ...prev, [idProductoHijo]: value }));
         setKitItems(prev => prev.map(item =>
             item.IdProductoHijo === idProductoHijo ? { ...item, Cantidad: value } : item
         ));
+        setHasUnsavedChanges(true);
     };
 
     const handlePriceChange = (idProductoHijo: number, value: number) => {
@@ -615,6 +675,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         setKitItems(prev => prev.map(item =>
             item.IdProductoHijo === idProductoHijo ? { ...item, Precio: value } : item
         ));
+        setHasUnsavedChanges(true);
     };
 
     const handleSelectFromAddModal = (selectedProduct: SearchProduct) => {
@@ -654,6 +715,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             cantidad: item.IdProductoHijo === finalItem.IdProductoHijo ? 1 : (editedQuantities[item.IdProductoHijo] ?? item.Cantidad)
         }));
         saveKitsPayload(kitsPayload);
+        setHasUnsavedChanges(true);
     };
 
     const handleDeleteItem = async (idProductoHijo: number) => {
@@ -667,6 +729,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
             if (response.ok) {
                 setKitItems(prev => prev.filter(item => item.IdProductoHijo !== idProductoHijo));
+                setHasUnsavedChanges(true);
             }
         } catch (error) {
             console.error('Error deleting kit item:', error);
@@ -807,6 +870,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             if (costingResponse.ok && (!isProductUpdatePerformed || productUpdateResponse.ok)) {
                 setEditedQuantities({});
                 setEditedPrices({});
+                setHasUnsavedChanges(false);
                 const payload = {
                     ...product,
                     Producto: formData.producto,
@@ -1203,13 +1267,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     };
 
     const handleClose = () => {
-        onClose();
+        stopCamera();
+        if (hasUnsavedChanges) {
+            const confirmClose = window.confirm('Tienes cambios sin guardar en las cantidades. ¿Estás seguro de que quieres salir sin guardar? Estos cambios se perderán.');
+            if (confirmClose) {
+                setHasUnsavedChanges(false);
+                onClose();
+            }
+        } else {
+            onClose();
+        }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 ${isOpen ? '' : 'hidden'}`}>
+        <div className={`fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 ${isOpen ? '' : 'hidden'} ${zIndexClass}`}>
             <div className="bg-white w-[70vw] h-[85vh] rounded-lg shadow-lg flex flex-col">
                 {/* Header with Info Boxes */}
                 <div className="bg-orange-500 text-white px-6 py-2">
@@ -1297,7 +1370,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                         </button>
 
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
                         >
                             ✕
@@ -2151,25 +2224,59 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     {
                         activeTab === 'photo' && (
                             <div className="flex flex-col items-center justify-center space-y-6 py-8">
-                                <div
-                                    onClick={() => document.getElementById('photo-upload')?.click()}
-                                    className="w-80 h-80 border-4 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all overflow-hidden relative group"
-                                >
-                                    {photoPreview ? (
-                                        <>
-                                            <img src={photoPreview} alt="Preview" className="w-full h-full object-fill" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                <span className="text-white font-bold bg-orange-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="text-center p-6">
-                                            <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">📸</div>
-                                            <p className="text-gray-500 font-medium">Click para seleccionar una foto</p>
-                                            <p className="text-gray-400 text-sm mt-2">Formatos: JPG, PNG, WEBP</p>
+                                {!isCameraOpen ? (
+                                    <>
+                                        <div
+                                            onClick={() => document.getElementById('photo-upload')?.click()}
+                                            className="w-80 h-80 border-4 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all overflow-hidden relative group"
+                                        >
+                                            {photoPreview ? (
+                                                <>
+                                                    <img src={photoPreview} alt="Preview" className="w-full h-full object-fill" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <span className="text-white font-bold bg-orange-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center p-6">
+                                                    <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">📸</div>
+                                                    <p className="text-gray-500 font-medium">Click para seleccionar una foto</p>
+                                                    <p className="text-gray-400 text-sm mt-2">Formatos: JPG, PNG, WEBP</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
+
+                                        <div className="flex gap-4">
+                                            <Button
+                                                onClick={startCamera}
+                                                className="bg-purple-600 px-8 py-3 text-lg"
+                                            >
+                                                📷 Tomar Foto
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <div className="w-80 h-80 bg-black rounded-2xl overflow-hidden relative">
+                                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                                        </div>
+                                        <canvas ref={canvasRef} className="hidden" />
+                                        <div className="flex gap-4">
+                                            <Button
+                                                onClick={capturePhoto}
+                                                className="bg-green-600 px-8 py-3 text-lg"
+                                            >
+                                                🟢 Capturar
+                                            </Button>
+                                            <Button
+                                                onClick={stopCamera}
+                                                className="bg-red-500 px-8 py-3 text-lg"
+                                            >
+                                                Cancelar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <input
                                     type="file"
@@ -2179,7 +2286,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     className="hidden"
                                 />
 
-                                {selectedPhoto && !isSaving && (
+                                {selectedPhoto && !isSaving && !isCameraOpen && (
                                     <div className="flex gap-4">
                                         <Button
                                             onClick={() => {
@@ -2533,6 +2640,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         const val = e.target.value.replace(/[^0-9.]/g, '');
                                                                         if ((val.match(/\./g) || []).length > 1) return;
                                                                         setFormData({ ...formData, precio: val });
+                                                                        setHasUnsavedChanges(true);
                                                                     }}
                                                                     onBlur={(e) => {
                                                                         const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
@@ -2725,6 +2833,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     subEditingProduct && (
                         <CostingModal
                             isOpen={true}
+                            zIndexClass="z-[70]"
                             onClose={() => {
                                 setSubEditingProduct(null);
                                 // Refresh current parent data to reflect changes in sub-product

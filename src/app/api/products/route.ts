@@ -139,11 +139,16 @@ export async function POST(request: NextRequest) {
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
+            console.error('Error creating product:', 'Missing required fields');
+
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         // Required only if NOT a Dish (type 1)
-        if (idTipoProducto !== 1 && (!idCategoria || !idPresentacion)) {
+        if (idTipoProducto !== 1 && (!idCategoria)) {
+
+            console.error('Error creating product:', 'Category and Presentation are required');
+
             return NextResponse.json({ success: false, message: 'Category and Presentation are required' }, { status: 400 });
         }
 
@@ -156,6 +161,9 @@ export async function POST(request: NextRequest) {
         );
 
         if (existingProductByName.length > 0) {
+
+            console.error('Error creating product:', 'El producto ya existe');
+
             return NextResponse.json({
                 success: false,
                 error: 'El producto ya existe'
@@ -169,6 +177,10 @@ export async function POST(request: NextRequest) {
         );
 
         if (existingProductByCode.length > 0) {
+
+            console.error('Error creating product:', 'El código ya existe');
+
+
             return NextResponse.json({
                 success: false,
                 error: 'El código ya existe'
@@ -176,6 +188,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Status = 0 (Active), FechaAct = Now()
+
         const [result] = await connection.query(
             `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, CantidadCompra, IdPresentacionInventario, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
             [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null, cantidadCompra || 0, idPresentacionInventario || null, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]

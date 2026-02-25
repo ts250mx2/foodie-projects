@@ -116,7 +116,6 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             title: 'production',
             emoji: '🍳',
             items: [
-                { key: 'rawMaterials', href: '/dashboard/production/raw-materials' },
                 { key: 'subRecipes', href: '/dashboard/production/sub-recipes' },
                 { key: 'dishes', href: '/dashboard/production/dishes' },
                 { key: 'productionCapture', href: '/dashboard/production/capture' }

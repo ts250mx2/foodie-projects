@@ -1673,3 +1673,419 @@ Body: {
   "unidadMedidaRecetario": "Gramo (g)"
 }
 
+[2026-02-24T19:52:48.588Z] PUT /api/products/517
+Body: {
+  "projectId": 9,
+  "producto": "SALMON REGIO",
+  "codigo": "SALMON.",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 259,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 18,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T19:52:59.930Z] PUT /api/products/517
+Body: {
+  "projectId": 9,
+  "producto": "SALMON REGIO",
+  "codigo": "SALMON.",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 259,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 18,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T19:53:03.142Z] PUT /api/products/517
+Body: {
+  "projectId": 9,
+  "producto": "SALMON REGIO",
+  "codigo": "SALMON.",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 259,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 18,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:04:29.164Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:04:37.667Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:05:42.835Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:06:17.929Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:06:32.950Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:06:53.059Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:08:34.576Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:08:42.757Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:12:42.108Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:21:04.868Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:23:39.270Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:24:17.187Z] PUT /api/products/469
+Body: {
+  "projectId": 9,
+  "producto": "JALAPEÑO",
+  "codigo": "MOMIAS",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 94,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 16,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-02-24T20:25:20.972Z] PUT /api/products/37
+Body: {
+  "projectId": 9,
+  "producto": "SALSA VERDE MESA",
+  "codigo": "SALSA VERDE",
+  "idCategoria": 23,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": 1,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": 0,
+  "unidadMedidaCompra": "KILOS",
+  "unidadMedidaInventario": "KILOS",
+  "unidadMedidaRecetario": ""
+}
+
