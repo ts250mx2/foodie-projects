@@ -4,6 +4,49 @@ import { ResultSetHeader } from 'mysql2';
 import fs from 'fs';
 import path from 'path';
 
+export async function GET(
+    request: NextRequest,
+    props: { params: Promise<{ id: string }> }
+) {
+    let connection;
+    try {
+        const { id } = await props.params;
+        const { searchParams } = new URL(request.url);
+        const projectIdStr = searchParams.get('projectId');
+
+        if (!projectIdStr) {
+            return NextResponse.json({ success: false, message: 'Project ID is required' }, { status: 400 });
+        }
+
+        const projectId = parseInt(projectIdStr);
+        connection = await getProjectConnection(projectId);
+
+        const [rows] = await connection.query(
+            'SELECT Producto, ArchivoImagen FROM tblProductos WHERE IdProducto = ? LIMIT 1',
+            [id]
+        );
+
+        if ((rows as any[]).length === 0) {
+            return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
+        }
+
+        const product = (rows as any[])[0];
+        if (product.ArchivoImagen) {
+            product.ArchivoImagen = product.ArchivoImagen.toString();
+        }
+
+        return NextResponse.json({
+            success: true,
+            data: product
+        });
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        return NextResponse.json({ success: false, message: 'Error fetching product' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
 export async function PUT(
     request: NextRequest,
     props: { params: Promise<{ id: string }> }

@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Button from '@/components/Button';
+import QRCode from 'react-qr-code';
+import CryptoJS from 'crypto-js';
+
+const SECRET_KEY = 'foodie-instructions-secret';
 
 interface Instruction {
     numeroPaso: number;
@@ -29,6 +33,25 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
     // Generic file input ref for handling uploads from the grid
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingStep, setUploadingStep] = useState<number | null>(null);
+
+    // QR Code Modal
+    const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+    const [mobileUrl, setMobileUrl] = useState('');
+
+    useEffect(() => {
+        try {
+            const dataString = JSON.stringify({
+                p: projectId,
+                i: product.IdProducto
+            });
+            const encrypted = CryptoJS.AES.encrypt(dataString, SECRET_KEY).toString();
+            const token = encodeURIComponent(encrypted);
+            setMobileUrl(`${window.location.origin}/es/mobile/instructions?q=${token}`);
+        } catch (error) {
+            console.error('Error encoding URL params', error);
+            setMobileUrl(`${window.location.origin}/es/mobile/instructions?projectId=${projectId}&productId=${product.IdProducto}`);
+        }
+    }, [projectId, product.IdProducto]);
 
     useEffect(() => {
         if (product) {
@@ -261,8 +284,41 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                 onChange={handleFileChange}
             />
 
+            {/* QR Modal */}
+            {isQRModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="bg-orange-600 p-4 text-center relative">
+                            <button
+                                onClick={() => setIsQRModalOpen(false)}
+                                className="absolute top-4 right-4 text-white/70 hover:text-white"
+                            >
+                                ✕
+                            </button>
+                            <h3 className="text-white font-bold text-lg">Escanear con el Móvil</h3>
+                        </div>
+                        <div className="p-8 flex flex-col items-center justify-center space-y-6">
+                            <p className="text-gray-500 text-sm text-center">
+                                Escanea este código con tu teléfono para agregar instrucciones y grabar videos directamente desde tu cámara.
+                            </p>
+                            <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-100">
+                                <QRCode value={mobileUrl} size={200} />
+                            </div>
+                            <a
+                                href={mobileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-xs"
+                            >
+                                Abrir enlace directo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Add Instruction Form */}
-            <div className="px-6 py-4 border-b bg-gray-50">
+            <div className="px-6 py-4 border-b bg-gray-50 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
                 <div className="space-y-3">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -272,20 +328,27 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                             <textarea
                                 value={newInstruction}
                                 onChange={(e) => setNewInstruction(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md resize-none"
                                 rows={2}
                                 placeholder="Escriba la instrucción del paso..."
                             />
                             <Button
                                 onClick={handleAddInstruction}
                                 disabled={isSaving}
-                                className="bg-green-600 self-end"
+                                className="bg-green-600 self-end whitespace-nowrap"
                             >
                                 ➕ Agregar
                             </Button>
                         </div>
                     </div>
                 </div>
+
+                <button
+                    onClick={() => setIsQRModalOpen(true)}
+                    className="bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                >
+                    📱 Modo Móvil
+                </button>
             </div>
 
             {/* Instructions Grid */}
