@@ -238,17 +238,12 @@ export default function PositionsPage() {
                                 <label className="text-sm font-medium text-gray-700">
                                     {t('hasTips')}
                                 </label>
-                                <button
-                                    type="button"
+                                <div
                                     onClick={() => setFormData({ ...formData, hasTips: !formData.hasTips })}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${formData.hasTips ? 'bg-orange-500' : 'bg-gray-200'
-                                        }`}
+                                    className={`w-12 h-6 flex-shrink-0 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${formData.hasTips ? 'bg-orange-500' : 'bg-gray-300'}`}
                                 >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.hasTips ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                    />
-                                </button>
+                                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${formData.hasTips ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
                                 <button

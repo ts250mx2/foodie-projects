@@ -11,6 +11,8 @@ interface SubRecipe {
     Producto: string;
     Codigo: string;
     Categoria?: string;
+    ImagenCategoria?: string;
+    IdModuloRecetario?: number;
     Presentacion?: string;
     Costo: number;
     Status: number;
@@ -227,13 +229,34 @@ export default function SubRecipesPage() {
                         {sortedAndFilteredSubRecipes.map((subRecipe) => (
                             <tr key={subRecipe.IdProducto} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {subRecipe.Producto}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            {subRecipe.ArchivoImagen ? (
+                                                <img
+                                                    src={subRecipe.ArchivoImagen}
+                                                    alt={subRecipe.Producto}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-gray-400 text-xl">🥣</span>
+                                            )}
+                                        </div>
+                                        <span>{subRecipe.Producto}</span>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {subRecipe.Codigo}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {subRecipe.Categoria || '-'}
+                                    <span className="flex items-center gap-1">
+                                        {subRecipe.ImagenCategoria && <span>{subRecipe.ImagenCategoria}</span>}
+                                        {subRecipe.Categoria || '-'}
+                                        {subRecipe.IdModuloRecetario && subRecipe.IdModuloRecetario > 0 ? (
+                                            <sup className="text-orange-600 font-bold ml-0.5">
+                                                {subRecipe.IdModuloRecetario}
+                                            </sup>
+                                        ) : null}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {subRecipe.Presentacion || '-'}

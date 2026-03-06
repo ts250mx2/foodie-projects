@@ -6,13 +6,17 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import EmployeeDocumentsModal from '@/components/EmployeeDocumentsModal';
 import EmployeeAccessModal from '@/components/EmployeeAccessModal';
+import DocumentTypesModal from '@/components/DocumentTypesModal';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Employee {
     IdEmpleado: number;
     Empleado: string;
     IdPuesto: number | null;
     Puesto: string | null;
+    ImagenTipoPuesto: string | null;
     IdSucursal: number | null;
     Sucursal: string | null;
     Telefonos: string | null;
@@ -30,6 +34,8 @@ interface Branch {
 interface Position {
     IdPuesto: number;
     Puesto: string;
+    IdTipoPuesto?: number;
+    ImagenTipoPuesto?: string;
 }
 
 export default function EmployeesPage() {
@@ -49,8 +55,15 @@ export default function EmployeesPage() {
         phone: '',
         email: '',
         address: '',
-        photo: '' as string | null
+        photo: '' as string | null,
+        username: '',
+        password: '',
+        repeatPassword: '',
+        isAdmin: false
     });
+    const { colors } = useTheme();
+    const [projectDomain, setProjectDomain] = useState('');
+    const [activeTab, setActiveTab] = useState('general');
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +75,7 @@ export default function EmployeesPage() {
     const [selectedEmployeeForDocuments, setSelectedEmployeeForDocuments] = useState<Employee | null>(null);
     const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
     const [selectedEmployeeForAccess, setSelectedEmployeeForAccess] = useState<Employee | null>(null);
+    const [isDocumentTypesModalOpen, setIsDocumentTypesModalOpen] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -75,8 +89,21 @@ export default function EmployeesPage() {
             fetchEmployees();
             fetchPositions();
             fetchBranches();
+            fetchProjectDomain();
         }
     }, [project]);
+
+    const fetchProjectDomain = async () => {
+        try {
+            const response = await fetch(`/api/employees/0/access?projectId=${project.idProyecto}`);
+            const data = await response.json();
+            if (data.success) {
+                setProjectDomain(data.domain || '');
+            }
+        } catch (error) {
+            console.error('Error fetching domain:', error);
+        }
+    };
 
     const fetchEmployees = async () => {
         try {
@@ -121,6 +148,12 @@ export default function EmployeesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.password !== formData.repeatPassword) {
+            alert('Las contraseñas no coinciden');
+            return;
+        }
+
         try {
             const url = editingEmployee
                 ? `/api/employees/${editingEmployee.IdEmpleado}`
@@ -139,15 +172,22 @@ export default function EmployeesPage() {
                     phone: formData.phone,
                     email: formData.email,
                     address: formData.address,
-                    photo: formData.photo
+                    photo: formData.photo,
+                    username: formData.username,
+                    password: formData.password,
+                    isAdmin: formData.isAdmin
                 })
             });
 
             if (response.ok) {
                 fetchEmployees();
                 setIsModalOpen(false);
-                setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null });
+                setFormData({
+                    name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
+                    username: '', password: '', repeatPassword: '', isAdmin: false
+                });
                 setEditingEmployee(null);
+                setActiveTab('general');
                 stopWebcam();
             }
         } catch (error) {
@@ -172,8 +212,24 @@ export default function EmployeesPage() {
         }
     };
 
-    const openEditModal = (employee: Employee) => {
+    const openEditModal = async (employee: Employee) => {
         setEditingEmployee(employee);
+
+        // Fetch access data
+        let accessData = { username: '', isAdmin: false };
+        try {
+            const response = await fetch(`/api/employees/${employee.IdEmpleado}/access?projectId=${project.idProyecto}`);
+            const data = await response.json();
+            if (data.success) {
+                accessData = {
+                    username: data.username || '',
+                    isAdmin: data.isAdmin || false
+                };
+            }
+        } catch (error) {
+            console.error('Error fetching access data:', error);
+        }
+
         setFormData({
             name: employee.Empleado,
             positionId: employee.IdPuesto?.toString() || '',
@@ -181,8 +237,13 @@ export default function EmployeesPage() {
             phone: employee.Telefonos || '',
             email: employee.CorreoElectronico || '',
             address: employee.Calle || '',
-            photo: employee.ArchivoFoto || null
+            photo: employee.ArchivoFoto || null,
+            username: accessData.username,
+            password: '',
+            repeatPassword: '',
+            isAdmin: accessData.isAdmin
         });
+        setActiveTab('general');
         setIsModalOpen(true);
     };
 
@@ -285,9 +346,19 @@ export default function EmployeesPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsDocumentTypesModalOpen(true)}
+                    >
+                        📑 Tipos de Documento
+                    </Button>
                     <Button onClick={() => {
                         setEditingEmployee(null);
-                        setFormData({ name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null });
+                        setFormData({
+                            name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
+                            username: '', password: '', repeatPassword: '', isAdmin: false
+                        });
+                        setActiveTab('general');
                         setIsModalOpen(true);
                     }}>
                         {t('addEmployee')}
@@ -370,7 +441,10 @@ export default function EmployeesPage() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {employee.Puesto || '-'}
+                                    <div className="flex items-center gap-2">
+                                        <span>{employee.ImagenTipoPuesto}</span>
+                                        <span>{employee.Puesto || '-'}</span>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {employee.Sucursal || '-'}
@@ -398,13 +472,6 @@ export default function EmployeesPage() {
                                         ✏️
                                     </button>
                                     <button
-                                        onClick={() => openAccessModal(employee)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Acceso"
-                                    >
-                                        🔑
-                                    </button>
-                                    <button
                                         onClick={() => openDocumentsModal(employee)}
                                         className="text-xl mr-4 hover:scale-110 transition-transform"
                                         title="Documentos"
@@ -426,219 +493,347 @@ export default function EmployeesPage() {
             </div>
 
             {/* Edit/Create Modal */}
-            {
-                isModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
-                            <button
-                                onClick={() => {
-                                    setIsModalOpen(false);
-                                    stopWebcam();
-                                }}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <span className="text-2xl">✕</span>
-                            </button>
-
-                            <h2 className="text-xl font-bold mb-4">
-                                {editingEmployee ? t('editEmployee') : t('addEmployee')}
-                            </h2>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="flex gap-6 items-start">
-                                    <div className="flex-1 space-y-4">
-                                        <Input
-                                            label={t('employeeName')}
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            required
-                                        />
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('position')}
-                                            </label>
-                                            <select
-                                                value={formData.positionId}
-                                                onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                            >
-                                                <option value="">{t('selectPosition')}</option>
-                                                {positions.map((position) => (
-                                                    <option key={position.IdPuesto} value={position.IdPuesto}>
-                                                        {position.Puesto}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+                        {/* Header with Tabs */}
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            Empleado
+                                        </span>
+                                        {!editingEmployee && (
+                                            <span className="bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                NUEVO
+                                            </span>
+                                        )}
                                     </div>
+                                    <h1 className="text-3xl font-black mb-0 leading-tight">
+                                        {editingEmployee ? editingEmployee.Empleado : t('addEmployee')}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        stopWebcam();
+                                    }}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
+                            </div>
 
-                                    <div className="w-48 space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700">{t('photo')}</label>
-                                        <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
-                                            {isWebcamActive ? (
-                                                <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
-                                            ) : formData.photo ? (
-                                                <img src={formData.photo} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-4xl">👤</span>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {isWebcamActive ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={takeSnapshot}
-                                                    className="col-span-2 py-1 px-2 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                                                >
-                                                    📸 {t('takeSnapshot')}
-                                                </button>
-                                            ) : (
-                                                <>
+                            {/* Tabs Navigation */}
+                            <div className="flex gap-1 mt-6 overflow-x-auto relative px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                                {[
+                                    { id: 'general', label: 'Datos Generales', icon: '👤' },
+                                    { id: 'access', label: 'Datos Acceso', icon: '🔑' },
+                                    { id: 'documents', label: 'Documentos', icon: '📄', show: !!editingEmployee }
+                                ].filter(tab => tab.show !== false).map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`px-4 py-2.5 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
+                                            ? 'bg-white text-gray-900 text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
+                                            : 'bg-white/10 text-xs font-normal hover:bg-white/20 hover:-translate-y-0.5'
+                                            }`}
+                                        style={activeTab === tab.id ? {} : { color: colors.colorLetra }}
+                                    >
+                                        <span className="mr-2">{tab.icon}</span>
+                                        {tab.label}
+                                        {activeTab === tab.id && (
+                                            <div className="absolute -bottom-[2px] left-0 right-0 h-[4px] bg-white z-40"></div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
+                            <form onSubmit={handleSubmit} className="h-full flex flex-col">
+                                {activeTab === 'general' && (
+                                    <div className="space-y-4 max-w-4xl mx-auto w-full">
+                                        <div className="flex gap-6 items-start">
+                                            <div className="flex-1 space-y-4">
+                                                <Input
+                                                    label={t('employeeName')}
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                    required
+                                                />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            {t('position')}
+                                                        </label>
+                                                        <select
+                                                            value={formData.positionId}
+                                                            onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                                                        >
+                                                            <option value="">{t('selectPosition')}</option>
+                                                            {positions.map(pos => {
+                                                                const superscriptMap: { [key: number]: string } = {
+                                                                    1: '¹',
+                                                                    2: '²',
+                                                                    3: '³'
+                                                                };
+                                                                const exponent = pos.IdTipoPuesto ? (superscriptMap[pos.IdTipoPuesto] || pos.IdTipoPuesto.toString()) : '';
+                                                                return (
+                                                                    <option key={pos.IdPuesto} value={pos.IdPuesto.toString()}>
+                                                                        {pos.ImagenTipoPuesto} {pos.Puesto} {exponent}
+                                                                    </option>
+                                                                );
+                                                            })}
+                                                        </select>
+                                                        <div className="mt-1 flex gap-3 text-[10px] text-gray-500 font-medium">
+                                                            <span><span className="text-orange-500">1</span> Cocina</span>
+                                                            <span><span className="text-orange-500">2</span> Servicio</span>
+                                                            <span><span className="text-orange-500">3</span> Administración</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            {t('branch')}
+                                                        </label>
+                                                        <select
+                                                            value={formData.branchId}
+                                                            onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                                                        >
+                                                            <option value="">{t('selectBranch')}</option>
+                                                            {branches.map(branch => (
+                                                                <option key={branch.IdSucursal} value={branch.IdSucursal.toString()}>
+                                                                    {branch.Sucursal}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Input
+                                                        label={t('phone')}
+                                                        value={formData.phone}
+                                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                    />
+                                                    <Input
+                                                        label={t('email')}
+                                                        value={formData.email}
+                                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                        type="email"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="w-48 space-y-2">
+                                                <label className="block text-sm font-medium text-gray-700">{t('photo')}</label>
+                                                <div className="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative group">
+                                                    {formData.photo ? (
+                                                        <>
+                                                            <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, photo: null })}
+                                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </>
+                                                    ) : isWebcamActive ? (
+                                                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs text-center px-4">Arrastra una imagen o usa la cámara</span>
+                                                    )}
+                                                    <canvas ref={canvasRef} className="hidden" width={400} height={400} />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={isWebcamActive ? takeSnapshot : startWebcam}
+                                                        className="flex-1 py-2 bg-gray-800 text-white rounded text-xs hover:bg-gray-700 transition-colors"
+                                                    >
+                                                        {isWebcamActive ? 'Capturar' : 'Cámara'}
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => fileInputRef.current?.click()}
-                                                        className="py-1 px-2 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
+                                                        className="flex-1 py-2 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors"
                                                     >
-                                                        📁 {t('uploadPhoto')}
+                                                        Subir
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={startWebcam}
-                                                        className="py-1 px-2 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300"
-                                                    >
-                                                        📹 {t('takePhoto')}
-                                                    </button>
-                                                </>
-                                            )}
+                                                    <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handlePhotoUpload}
+
+                                        <div className="mt-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                {t('address')}
+                                            </label>
+                                            <textarea
+                                                value={formData.address}
+                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                                rows={3}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'access' && (
+                                    <div className="space-y-6 max-w-4xl mx-auto w-full py-4">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+                                                    <span>🔑</span> Credenciales
+                                                </h3>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Usuario
+                                                    </label>
+                                                    <div className="flex items-center gap-0">
+                                                        <input
+                                                            type="text"
+                                                            value={formData.username}
+                                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                                            placeholder="usuario"
+                                                        />
+                                                        <div className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-500 text-xs font-medium min-w-[120px] flex items-center justify-center">
+                                                            @{projectDomain}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 mt-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <span className="text-sm font-bold text-gray-800 block">Es Administrador</span>
+                                                            <span className="text-[10px] text-gray-500 mt-0.5 block italic">Otorga permisos elevados al usuario</span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
+                                                            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                                        >
+                                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isAdmin ? 'translate-x-7' : 'translate-x-1'}`} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
+                                                    <span>🛡️</span> Seguridad
+                                                </h3>
+                                                <Input
+                                                    label="Contraseña"
+                                                    type="password"
+                                                    value={formData.password}
+                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                    placeholder="••••••••"
+                                                    className="text-sm"
+                                                />
+                                                <Input
+                                                    label="Repetir Contraseña"
+                                                    type="password"
+                                                    value={formData.repeatPassword}
+                                                    onChange={(e) => setFormData({ ...formData, repeatPassword: e.target.value })}
+                                                    placeholder="••••••••"
+                                                    className="text-sm"
+                                                />
+                                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded text-[11px] text-yellow-700 leading-relaxed">
+                                                    <strong>⚠️ Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'documents' && editingEmployee && (
+                                    <div className="flex-1 min-h-[400px]">
+                                        <EmployeeDocumentsModal
+                                            isOpen={true}
+                                            onClose={() => { }}
+                                            employeeId={editingEmployee.IdEmpleado}
+                                            employeeName={editingEmployee.Empleado}
+                                            projectId={project?.idProyecto || 0}
+                                            isTabMode={true}
                                         />
-                                        <canvas ref={canvasRef} className="hidden" />
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="grid grid-cols-2 gap-4 mt-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            {t('branch')}
-                                        </label>
-                                        <select
-                                            value={formData.branchId}
-                                            onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                {activeTab !== 'documents' && (
+                                    <div className="mt-auto pt-6 border-t border-gray-100 flex justify-end gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsModalOpen(false);
+                                                stopWebcam();
+                                            }}
+                                            className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
                                         >
-                                            <option value="">{t('selectBranch')}</option>
-                                            {branches.map((branch) => (
-                                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                                    {branch.Sucursal}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            {t('cancel')}
+                                        </button>
+                                        <Button type="submit" className="px-8 py-2.5">
+                                            {t('save')}
+                                        </Button>
                                     </div>
-
-                                    <Input
-                                        label={t('phone')}
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        type="tel"
-                                    />
-                                </div>
-
-                                <Input
-                                    label={t('email')}
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    type="email"
-                                />
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('address')}
-                                    </label>
-                                    <textarea
-                                        value={formData.address}
-                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        rows={3}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsModalOpen(false);
-                                            stopWebcam();
-                                        }}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                    >
-                                        {t('cancel')}
-                                    </button>
-                                    <Button type="submit">
-                                        {t('save')}
-                                    </Button>
-                                </div>
+                                )}
                             </form>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
-            {
-                isDeleteModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteEmployee')}</h3>
-                            <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    onClick={() => setIsDeleteModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                >
-                                    {t('deleteEmployee')}
-                                </button>
-                            </div>
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+                        <h2 className="text-xl font-bold mb-4">{t('deleteEmployee')}</h2>
+                        <p className="text-gray-600 mb-6 font-medium">
+                            {t('confirmDelete')} <span className="text-red-600 font-bold">{editingEmployee?.Empleado}</span>?
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                            >
+                                {t('cancel')}
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                            >
+                                {t('confirm')}
+                            </button>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
+            {/* Documents Modal (Standalone fallback) */}
+            {isDocumentsModalOpen && selectedEmployeeForDocuments && (
+                <EmployeeDocumentsModal
+                    isOpen={isDocumentsModalOpen}
+                    onClose={() => setIsDocumentsModalOpen(false)}
+                    employeeId={selectedEmployeeForDocuments.IdEmpleado}
+                    employeeName={selectedEmployeeForDocuments.Empleado}
+                    projectId={project?.idProyecto || 0}
+                />
+            )}
 
-            {
-                selectedEmployeeForDocuments && (
-                    <EmployeeDocumentsModal
-                        isOpen={isDocumentsModalOpen}
-                        onClose={() => setIsDocumentsModalOpen(false)}
-                        employeeId={selectedEmployeeForDocuments.IdEmpleado}
-                        employeeName={selectedEmployeeForDocuments.Empleado}
-                        projectId={project?.idProyecto}
-                    />
-                )
-            }
-
-            {
-                selectedEmployeeForAccess && (
-                    <EmployeeAccessModal
-                        isOpen={isAccessModalOpen}
-                        onClose={() => setIsAccessModalOpen(false)}
-                        employeeId={selectedEmployeeForAccess.IdEmpleado}
-                        employeeName={selectedEmployeeForAccess.Empleado}
-                        projectId={project?.idProyecto}
-                    />
-                )
-            }
-        </div >
+            {/* Document Types Modal */}
+            {isDocumentTypesModalOpen && (
+                <DocumentTypesModal
+                    isOpen={isDocumentTypesModalOpen}
+                    onClose={() => setIsDocumentTypesModalOpen(false)}
+                    projectId={project?.idProyecto || 0}
+                />
+            )}
+        </div>
     );
 }

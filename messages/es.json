@@ -338,6 +338,7 @@
     },
     "Products": {
         "title": "Administración de Productos",
+        "massiveProductUpload": "Carga Masiva Productos",
         "productName": "Producto",
         "code": "Código",
         "category": "Categoría",
@@ -377,6 +378,14 @@
         "contentHelpTooltip": "Este valor representa cuántas unidades de medida de receta están contenidas en una sola unidad de medida de inventario.\n\nEjemplo: Si tu unidad de inventario es 'Kilo' y tu unidad de receta es 'Gramo', debes colocar 1000 (porque hay 1000 gramos en un kilo).",
         "productDescriptionHint": "Colocar la descripcion del producto igual a la descripcion de factura",
         "productDescriptionExample": "Ejemplo de descripcion de producto: FORMULA LACTEA NUTRILECHE CAJA 12 PZAS 1 L.",
+        "purchaseUnitHelp": "U. Medida factura compra",
+        "inventoryUnitHelp": "U. Medida para capturar el inventario",
+        "recipeUnitHelp": "U. Medida para las recetas",
+        "taxBreakdownHelp": "Impuesto para desgloce de precio",
+        "priceIncludesTaxes": "Precio incluye impuestos",
+        "barcodeHint": "Preferentemente teclear el codigo de barras del producto",
+        "foodAndBeverage": "Alimentos y Bebidas",
+        "packaging": "Empaque",
         "proteins": "Proteínas",
         "vegetables": "Verduras",
         "units": {

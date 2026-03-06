@@ -4,11 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import BranchCostsModal from '@/components/BranchCostsModal';
-import BranchInventoryDatesModal from '@/components/BranchInventoryDatesModal';
-import BranchDocumentsModal from '@/components/BranchDocumentsModal';
-import BranchShiftsModal from '@/components/BranchShiftsModal';
-import BranchEmployeesModal from '@/components/BranchEmployeesModal';
+import BranchEditModal from '@/components/BranchEditModal';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 
 interface Branch {
@@ -33,7 +29,6 @@ export default function BranchesPage() {
     const t = useTranslations('Branches');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
     const [formData, setFormData] = useState({
@@ -45,16 +40,8 @@ export default function BranchesPage() {
     });
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [project, setProject] = useState<any>(null);
-    const [isCostsModalOpen, setIsCostsModalOpen] = useState(false);
-    const [selectedBranchForCosts, setSelectedBranchForCosts] = useState<Branch | null>(null);
-    const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
-    const [selectedBranchForInventory, setSelectedBranchForInventory] = useState<Branch | null>(null);
-    const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false);
-    const [selectedBranchForDocuments, setSelectedBranchForDocuments] = useState<Branch | null>(null);
-    const [isShiftsModalOpen, setIsShiftsModalOpen] = useState(false);
-    const [selectedBranchForShifts, setSelectedBranchForShifts] = useState<Branch | null>(null);
-    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
-    const [selectedBranchForEmployees, setSelectedBranchForEmployees] = useState<Branch | null>(null);
+    const [activeEditTab, setActiveEditTab] = useState('general');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -102,37 +89,18 @@ export default function BranchesPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const url = editingBranch
-                ? `/api/branches/${editingBranch.IdSucursal}`
-                : '/api/branches';
-
-            const method = editingBranch ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectId: project.idProyecto,
-                    branch: formData.branch,
-                    phone: formData.phone,
-                    email: formData.email,
-                    address: formData.address,
-                    managerId: formData.managerId || null
-                })
-            });
-
-            if (response.ok) {
-                fetchBranches();
-                setIsModalOpen(false);
-                setFormData({ branch: '', phone: '', email: '', address: '', managerId: '' });
-                setEditingBranch(null);
-            }
-        } catch (error) {
-            console.error('Error saving branch:', error);
-        }
+    const openAddModal = () => {
+        setEditingBranch({
+            IdSucursal: 0,
+            Sucursal: '',
+            Telefonos: '',
+            CorreoElectronico: '',
+            Calle: '',
+            IdEmpleadoGerente: null,
+            Status: 0
+        });
+        setActiveEditTab('general');
+        setIsEditModalOpen(true);
     };
 
     const handleDelete = async () => {
@@ -154,14 +122,8 @@ export default function BranchesPage() {
 
     const openEditModal = (branch: Branch) => {
         setEditingBranch(branch);
-        setFormData({
-            branch: branch.Sucursal,
-            phone: branch.Telefonos || '',
-            email: branch.CorreoElectronico || '',
-            address: branch.Calle || '',
-            managerId: branch.IdEmpleadoGerente || ''
-        });
-        setIsModalOpen(true);
+        setActiveEditTab('general');
+        setIsEditModalOpen(true);
     };
 
     const openDeleteModal = (branch: Branch) => {
@@ -170,28 +132,33 @@ export default function BranchesPage() {
     };
 
     const openCostsModal = (branch: Branch) => {
-        setSelectedBranchForCosts(branch);
-        setIsCostsModalOpen(true);
+        setEditingBranch(branch);
+        setActiveEditTab('costs');
+        setIsEditModalOpen(true);
     };
 
     const openInventoryModal = (branch: Branch) => {
-        setSelectedBranchForInventory(branch);
-        setIsInventoryModalOpen(true);
+        setEditingBranch(branch);
+        setActiveEditTab('inventory');
+        setIsEditModalOpen(true);
     };
 
     const openDocumentsModal = (branch: Branch) => {
-        setSelectedBranchForDocuments(branch);
-        setIsDocumentsModalOpen(true);
+        setEditingBranch(branch);
+        setActiveEditTab('documents');
+        setIsEditModalOpen(true);
     };
 
     const openShiftsModal = (branch: Branch) => {
-        setSelectedBranchForShifts(branch);
-        setIsShiftsModalOpen(true);
+        setEditingBranch(branch);
+        setActiveEditTab('shifts');
+        setIsEditModalOpen(true);
     };
 
     const openEmployeesModal = (branch: Branch) => {
-        setSelectedBranchForEmployees(branch);
-        setIsEmployeesModalOpen(true);
+        setEditingBranch(branch);
+        setActiveEditTab('employees');
+        setIsEditModalOpen(true);
     };
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -224,11 +191,7 @@ export default function BranchesPage() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <Button onClick={() => {
-                    setEditingBranch(null);
-                    setFormData({ branch: '', phone: '', email: '', address: '', managerId: '' });
-                    setIsModalOpen(true);
-                }}>
+                <Button onClick={openAddModal}>
                     {t('addBranch')}
                 </Button>
             </div>
@@ -299,41 +262,6 @@ export default function BranchesPage() {
                                         ✏️
                                     </button>
                                     <button
-                                        onClick={() => openCostsModal(branch)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Objetivos y Costos"
-                                    >
-                                        🎯
-                                    </button>
-                                    <button
-                                        onClick={() => openInventoryModal(branch)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Fechas de Inventario"
-                                    >
-                                        📋
-                                    </button>
-                                    <button
-                                        onClick={() => openDocumentsModal(branch)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Documentos"
-                                    >
-                                        📄
-                                    </button>
-                                    <button
-                                        onClick={() => openShiftsModal(branch)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Turnos"
-                                    >
-                                        ⏰
-                                    </button>
-                                    <button
-                                        onClick={() => openEmployeesModal(branch)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Empleados con Acceso"
-                                    >
-                                        👥
-                                    </button>
-                                    <button
                                         onClick={() => openDeleteModal(branch)}
                                         className="text-xl hover:scale-110 transition-transform"
                                         title={t('deleteBranch')}
@@ -347,99 +275,6 @@ export default function BranchesPage() {
                 </table>
             </div>
 
-            {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingBranch ? t('editBranch') : t('addBranch')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('branchName')}
-                                value={formData.branch}
-                                onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                                required
-                            />
-
-                            <Input
-                                label={t('phone')}
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                type="tel"
-                            />
-
-                            <Input
-                                label={t('email')}
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                type="email"
-                            />
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('address')}
-                                </label>
-                                <textarea
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    rows={3}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 p-4 bg-orange-50 rounded-lg border border-orange-100">
-                                <h3 className="text-sm font-bold text-orange-800 uppercase tracking-tight">Gerente de Sucursal</h3>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Seleccionar Gerente</label>
-                                    <select
-                                        value={formData.managerId}
-                                        onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
-                                    >
-                                        <option value="">-- Sin Gerente --</option>
-                                        {employees.map(emp => (
-                                            <option key={emp.IdEmpleado} value={emp.IdEmpleado}>
-                                                {emp.Empleado}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {formData.managerId && (
-                                    <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="bg-white p-2 rounded border border-orange-200">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Teléfono</p>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {employees.find(e => e.IdEmpleado == formData.managerId)?.Telefonos || '-'}
-                                            </p>
-                                        </div>
-                                        <div className="bg-white p-2 rounded border border-orange-200 overflow-hidden">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Correo</p>
-                                            <p className="text-sm font-medium text-gray-900 truncate" title={employees.find(e => e.IdEmpleado == formData.managerId)?.CorreoElectronico || ''}>
-                                                {employees.find(e => e.IdEmpleado == formData.managerId)?.CorreoElectronico || '-'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
 
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && (
@@ -465,53 +300,17 @@ export default function BranchesPage() {
                 </div>
             )}
 
-            {selectedBranchForCosts && (
-                <BranchCostsModal
-                    isOpen={isCostsModalOpen}
-                    onClose={() => setIsCostsModalOpen(false)}
-                    branchId={selectedBranchForCosts.IdSucursal}
-                    branchName={selectedBranchForCosts.Sucursal}
+            {isEditModalOpen && editingBranch && (
+                <BranchEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingBranch(null);
+                    }}
+                    branch={editingBranch}
                     projectId={project?.idProyecto}
-                />
-            )}
-
-            {selectedBranchForInventory && (
-                <BranchInventoryDatesModal
-                    isOpen={isInventoryModalOpen}
-                    onClose={() => setIsInventoryModalOpen(false)}
-                    branchId={selectedBranchForInventory.IdSucursal}
-                    branchName={selectedBranchForInventory.Sucursal}
-                    projectId={project?.idProyecto}
-                />
-            )}
-
-            {selectedBranchForDocuments && (
-                <BranchDocumentsModal
-                    isOpen={isDocumentsModalOpen}
-                    onClose={() => setIsDocumentsModalOpen(false)}
-                    branchId={selectedBranchForDocuments.IdSucursal}
-                    branchName={selectedBranchForDocuments.Sucursal}
-                    projectId={project?.idProyecto}
-                />
-            )}
-
-            {selectedBranchForShifts && (
-                <BranchShiftsModal
-                    isOpen={isShiftsModalOpen}
-                    onClose={() => setIsShiftsModalOpen(false)}
-                    branchId={selectedBranchForShifts.IdSucursal.toString()}
-                    branchName={selectedBranchForShifts.Sucursal}
-                    projectId={project?.idProyecto}
-                />
-            )}
-
-            {selectedBranchForEmployees && (
-                <BranchEmployeesModal
-                    isOpen={isEmployeesModalOpen}
-                    onClose={() => setIsEmployeesModalOpen(false)}
-                    branchId={selectedBranchForEmployees.IdSucursal}
-                    branchName={selectedBranchForEmployees.Sucursal}
-                    projectId={project?.idProyecto}
+                    initialTab={activeEditTab}
+                    onUpdate={fetchBranches}
                 />
             )}
         </div>

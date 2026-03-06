@@ -24,15 +24,16 @@ export async function GET(request: NextRequest) {
                 A.Producto, 
                 A.Codigo,
                 B.Cantidad, 
-                A.PresentacionConversion AS PresentacionInventario, 
+                A.UnidadMedidaInventario,
+                A.UnidadMedidaCompra,
+                A.UnidadMedidaRecetario,
                 A.Costo, 
                 (B.Cantidad * A.Costo) AS Total,
-                A.CategoriaRecetario,
-                A.IdCategoriaRecetario
+                A.IdModuloRecetario
             FROM vlProductos A 
             INNER JOIN tblProductosKits B ON A.IdProducto = B.IdProductoHijo 
             WHERE B.IdProductoPadre = ? 
-            ORDER BY A.IdCategoriaRecetario, A.Producto`,
+            ORDER BY A.IdModuloRecetario, A.Producto`,
             [productId]
         );
 

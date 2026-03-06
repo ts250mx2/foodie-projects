@@ -17,11 +17,17 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         // Build query based on hasTips filter
-        let query = 'SELECT * FROM tblPuestos WHERE Status = 0';
+        let query = `
+            SELECT A.IdPuesto, A.Puesto, A.IdTipoPuesto, B.ImagenTipoPuesto 
+            FROM BDFoodieProjects.tblPuestos A 
+            INNER JOIN BDFoodieProjects.tblTiposPuestos B ON A.IdTipoPuesto = B.IdTipoPuesto 
+            WHERE A.Status = 0
+        `;
+
         if (hasTipsStr === '1') {
-            query += ' AND TienePropina = 1';
+            query += ' AND A.TienePropina = 1';
         }
-        query += ' ORDER BY Puesto ASC';
+        query += ' ORDER BY A.Puesto ASC';
 
         const [rows] = await connection.query(query);
 

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import PaymentChannelsModal from '@/components/PaymentChannelsModal';
 
 interface ExpenseConcept {
     IdConceptoGasto: number;
@@ -28,6 +29,7 @@ export default function ExpenseConceptsPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingConcept, setEditingConcept] = useState<ExpenseConcept | null>(null);
     const [formData, setFormData] = useState({ concept: '', requiredReference: false, paymentChannelId: '' });
+    const [isPaymentChannelsModalOpen, setIsPaymentChannelsModalOpen] = useState(false);
     const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>([]);
     const [paymentChannelSearch, setPaymentChannelSearch] = useState('');
     const [showPaymentChannelDropdown, setShowPaymentChannelDropdown] = useState(false);
@@ -181,15 +183,23 @@ export default function ExpenseConceptsPage() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <Button onClick={() => {
-                    setEditingConcept(null);
-                    setFormData({ concept: '', requiredReference: false, paymentChannelId: '' });
-                    setPaymentChannelSearch('');
-                    setSelectedPaymentChannel(null);
-                    setIsModalOpen(true);
-                }}>
-                    {t('addConcept')}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsPaymentChannelsModalOpen(true)}
+                    >
+                        Canales de Pago
+                    </Button>
+                    <Button onClick={() => {
+                        setEditingConcept(null);
+                        setFormData({ concept: '', requiredReference: false, paymentChannelId: '' });
+                        setPaymentChannelSearch('');
+                        setSelectedPaymentChannel(null);
+                        setIsModalOpen(true);
+                    }}>
+                        {t('addConcept')}
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -383,6 +393,17 @@ export default function ExpenseConceptsPage() {
                     </div>
                 </div>
             )}
+            {/* Payment Channels Modal */}
+            <PaymentChannelsModal
+                isOpen={isPaymentChannelsModalOpen}
+                onClose={() => {
+                    setIsPaymentChannelsModalOpen(false);
+                    if (project?.idProyecto) {
+                        fetchPaymentChannels();
+                    }
+                }}
+                projectId={project?.idProyecto}
+            />
         </div>
     );
 }

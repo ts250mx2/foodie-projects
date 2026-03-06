@@ -21,38 +21,25 @@ export async function GET(request: NextRequest) {
         const params: any[] = [];
 
         if (useView) {
-            query = `SELECT * FROM vlProductos WHERE Status = 0 ORDER BY Producto`;
+            query = `
+                SELECT 
+                    v.*,
+                    c.ImagenCategoria,
+                    c.IdModuloRecetario
+                FROM vlProductos v
+                LEFT JOIN BDFoodieProjects.tblCategorias c ON v.IdCategoria = c.IdCategoria
+                WHERE v.Status = 0 
+                ORDER BY v.Producto
+            `;
         } else if (tipoProductoStr === '2') {
             query = `
                 SELECT 
-                    IdProducto,
-                    Producto,
-                    Codigo,
-                    Categoria,
-                    Presentacion,
-                    COALESCE(Costo, 0) as Costo,
-                    Status,
-                    ArchivoImagen,
-                    NombreArchivo,
-                    IdTipoProducto,
-                    IdCategoria,
-                    IdPresentacion,
-                    COALESCE(Precio, 0) as Precio,
-                    COALESCE(IVA, 0) as IVA,
-                    PesoInicial,
-                    PesoFinal,
-                    ConversionSimple,
-                    IdCategoriaRecetario,
-                    IdPresentacionConversion,
-                    IdSeccionMenu,
-                    PorcentajeCostoIdeal,
-                    CantidadCompra,
-                    IdPresentacionInventario,
-                    UnidadMedidaCompra,
-                    UnidadMedidaInventario,
-                    UnidadMedidaRecetario
-                FROM vlProductos 
-                WHERE Status = 0 AND IdTipoProducto = 2
+                    v.*,
+                    c.ImagenCategoria,
+                    c.IdModuloRecetario
+                FROM vlProductos v
+                LEFT JOIN BDFoodieProjects.tblCategorias c ON v.IdCategoria = c.IdCategoria
+                WHERE v.Status = 0 AND v.IdTipoProducto = 2
             `;
         } else {
             query = `
@@ -61,7 +48,6 @@ export async function GET(request: NextRequest) {
                     p.Producto,
                     p.Codigo,
                     p.IdCategoria,
-                    p.IdPresentacion,
                     p.Precio,
                     p.IVA,
                     p.IdTipoProducto,
@@ -71,29 +57,20 @@ export async function GET(request: NextRequest) {
                     p.PesoInicial,
                     p.PesoFinal,
                     p.ConversionSimple,
-                    p.IdCategoriaRecetario,
-                    p.IdPresentacionConversion,
+                    c.IdModuloRecetario,
                     p.IdSeccionMenu,
                     p.PorcentajeCostoIdeal,
                     p.CantidadCompra,
-                    p.IdPresentacionInventario,
                     p.UnidadMedidaCompra,
                     p.UnidadMedidaInventario,
                     p.UnidadMedidaRecetario,
                     c.Categoria,
-                    pr.Presentacion,
-                    cr.CategoriaRecetario,
-                    pc.Presentacion AS PresentacionConversion,
-                    pi.Presentacion AS PresentacionInventario,
+                    c.ImagenCategoria,
                     COALESCE(v.Costo, vp.Costo) as Costo
                 FROM tblProductos p
                 LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
                 LEFT JOIN vlPlatillos vp ON p.IdProducto = vp.IdProducto
-                LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
-                LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
-                LEFT JOIN tblCategoriasRecetario cr ON p.IdCategoriaRecetario = cr.IdCategoriaRecetario
-                LEFT JOIN tblPresentaciones pc ON p.IdPresentacionConversion = pc.IdPresentacion
-                LEFT JOIN tblPresentaciones pi ON p.IdPresentacionInventario = pi.IdPresentacion
+                LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
                 WHERE p.Status = 0
             `;
 
@@ -135,7 +112,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, producto, codigo, idCategoria, idPresentacion, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, idCategoriaRecetario, cantidadCompra, idPresentacionInventario, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
+        const { projectId, producto, codigo, idCategoria, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, cantidadCompra, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
@@ -190,8 +167,8 @@ export async function POST(request: NextRequest) {
         // Status = 0 (Active), FechaAct = Now()
 
         const [result] = await connection.query(
-            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, IdPresentacion, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, IdCategoriaRecetario, CantidadCompra, IdPresentacionInventario, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
-            [producto, codigo, idCategoria || null, idPresentacion || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, idCategoriaRecetario || null, cantidadCompra || 0, idPresentacionInventario || null, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]
+            `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, CantidadCompra, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, Now())`,
+            [producto, codigo, idCategoria || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]
         );
 
         return NextResponse.json({

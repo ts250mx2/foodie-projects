@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 type MenuItem = {
     key: string;
     href: string;
+    emoji: string;
 };
 
 type MenuSection = {
@@ -55,70 +56,61 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             title: 'configuration',
             emoji: '⚙️',
             items: [
-                { key: 'project', href: '/dashboard/config/project' },
-                { key: 'branches', href: '/dashboard/settings/branches' },
-                { key: 'tips', href: '/dashboard/settings/tips' },
-                { key: 'terminals', href: '/dashboard/sales/terminals' },
-                { key: 'salesChannels', href: '/dashboard/sales/channels' },
-                { key: 'paymentChannels', href: '/dashboard/config/payment-channels' },
-                { key: 'taxes', href: '/dashboard/config/taxes' },
-                { key: 'employees', href: '/dashboard/payroll/employees' },
-                { key: 'positions', href: '/dashboard/payroll/positions' },
-                { key: 'documentTypes', href: '/dashboard/settings/document-types' },
-                { key: 'menuSections', href: '/dashboard/production/menu-sections' }
+                { key: 'project', href: '/dashboard/config/project', emoji: '📋' },
+                { key: 'branches', href: '/dashboard/settings/branches', emoji: '📍' },
+                { key: 'employees', href: '/dashboard/payroll/employees', emoji: '👥' },
+                { key: 'taxes', href: '/dashboard/config/taxes', emoji: '🧾' },
+                { key: 'tips', href: '/dashboard/settings/tips', emoji: '💰' }
             ]
         },
         {
             title: 'sales',
             emoji: '💰',
             items: [
-                { key: 'salesTerminalsCapture', href: '/dashboard/sales/terminals-capture' },
-                { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture' },
-                { key: 'tipsCapture', href: '/dashboard/sales/tips-capture' }
+                { key: 'salesTerminalsCapture', href: '/dashboard/sales/terminals-capture', emoji: '💳' },
+                { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', emoji: '📱' },
+                { key: 'tipsCapture', href: '/dashboard/sales/tips-capture', emoji: '💸' }
             ]
         },
         {
             title: 'inventories',
             emoji: '📦',
             items: [
-                { key: 'categories', href: '/dashboard/inventories/categories' },
-                { key: 'presentations', href: '/dashboard/inventories/presentations' },
-                { key: 'products', href: '/dashboard/inventories/products' },
-                { key: 'inventoryCapture', href: '/dashboard/inventories/capture' },
-                { key: 'massiveProductUpload', href: '/dashboard/config/massive-product-upload' }
+                { key: 'products', href: '/dashboard/inventories/products', emoji: '🏷️' },
+                { key: 'inventoryCapture', href: '/dashboard/inventories/capture', emoji: '📝' }
             ]
         },
         {
             title: 'purchases',
             emoji: '🛒',
             items: [
-                { key: 'suppliers', href: '/dashboard/purchases/suppliers' },
-                { key: 'purchasesCapture', href: '/dashboard/purchases/capture' }
+                { key: 'suppliers', href: '/dashboard/purchases/suppliers', emoji: '🏢' },
+                { key: 'purchasesCapture', href: '/dashboard/purchases/capture', emoji: '📄' }
             ]
         },
         {
             title: 'expenses',
             emoji: '💸',
             items: [
-                { key: 'expenseConcepts', href: '/dashboard/expenses/concepts' },
-                { key: 'expensesCapture', href: '/dashboard/expenses/capture' }
+                { key: 'expenseConcepts', href: '/dashboard/expenses/concepts', emoji: '💡' },
+                { key: 'expensesCapture', href: '/dashboard/expenses/capture', emoji: '🖋️' }
             ]
         },
         {
             title: 'payroll',
             emoji: '👥',
             items: [
-                { key: 'schedules', href: '/dashboard/payroll/schedules' },
-                { key: 'payrollCapture', href: '/dashboard/payroll/capture' }
+                { key: 'schedules', href: '/dashboard/payroll/schedules', emoji: '📅' },
+                { key: 'payrollCapture', href: '/dashboard/payroll/capture', emoji: '🧮' }
             ]
         },
         {
             title: 'production',
             emoji: '🍳',
             items: [
-                { key: 'subRecipes', href: '/dashboard/production/sub-recipes' },
-                { key: 'dishes', href: '/dashboard/production/dishes' },
-                { key: 'productionCapture', href: '/dashboard/production/capture' }
+                { key: 'subRecipes', href: '/dashboard/production/sub-recipes', emoji: '🥣' },
+                { key: 'dishes', href: '/dashboard/production/dishes', emoji: '🍽️' },
+                { key: 'productionCapture', href: '/dashboard/production/capture', emoji: '👨‍🍳' }
             ]
         }
     ];
@@ -230,7 +222,10 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                         color: colors.colorLetra
                                                     }}
                                                 >
-                                                    {t(item.key)}
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{item.emoji}</span>
+                                                        <span>{t(item.key)}</span>
+                                                    </div>
                                                 </Link>
                                             </li>
                                         );

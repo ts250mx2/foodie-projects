@@ -9,6 +9,7 @@ import InstructionsTab from '@/components/InstructionsTab';
 import DocumentsTab from '@/components/DocumentsTab';
 import { generateTechnicalSheetPDF, CostingHeaderData } from '@/utils/generateTechnicalSheetPDF';
 import { YIELD_DATA, YieldReference } from '@/utils/yieldData';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface KitItem {
     IdProductoPadre: number;
@@ -93,6 +94,7 @@ interface CostingModalProps {
 }
 
 export default function CostingModal({ isOpen, onClose, product: initialProduct, projectId, productType, onProductUpdate, initialTab = 'general', zIndexClass = 'z-50' }: CostingModalProps) {
+    const { colors } = useTheme();
     const t = useTranslations('Products');
     const [product, setProduct] = useState<Product>(initialProduct || {
         IdProducto: 0,
@@ -326,6 +328,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     // New State for General Config & Photo
     const [categories, setCategories] = useState<Category[]>([]);
     const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
+    const [globalCategories, setGlobalCategories] = useState<any[]>([]);
     const [presentations, setPresentations] = useState<Presentation[]>([]);
     const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
     const [taxes, setTaxes] = useState<Tax[]>([]);
@@ -517,6 +520,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             setActiveTab(initialTab as any);
             fetchCategories();
             fetchRecipeCategories();
+            fetchGlobalCategories();
             fetchPresentations();
             fetchTaxes();
             fetchMenuSections();
@@ -529,6 +533,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     }, [isOpen, product.IdProducto, initialTab]);
 
+    useEffect(() => {
+        if (unMedidaInventario && unMedidaRecetario && unMedidaInventario === unMedidaRecetario) {
+            setSimpleConversion(1);
+        }
+    }, [unMedidaInventario, unMedidaRecetario]);
+
     const fetchCategories = async () => {
         try {
             const response = await fetch(`/api/categories?projectId=${projectId}`);
@@ -539,6 +549,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             }
         } catch (error) {
             console.error('Error fetching categories:', error);
+        }
+    };
+
+    const fetchGlobalCategories = async () => {
+        try {
+            const locale = window.location.pathname.split('/')[1] || 'es';
+            const response = await fetch(`/api/global-categories?locale=${locale}`);
+            const data = await response.json();
+            if (data.success) {
+                setGlobalCategories(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching global categories:', error);
         }
     };
 
@@ -833,7 +856,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     idPresentacionConversion: finalIdPresentacionConversion,
                     pesoFinal: (productType === 0 && !hasYield) ? 1 : ((productType === 2 && (pesoFinal === undefined || pesoFinal === 0)) ? 1 : pesoFinal),
                     pesoInicial: (productType === 0 && !hasYield) ? 1 : pesoInicial,
-                    idCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
+                    idCategoriaRecetario: productType === 2 ? null : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
                     idTipoProducto: productType, // Ensure backend knows the type
                     archivoImagen: selectedPhotoBase64,
                     nombreArchivo: selectedPhoto?.name || product.NombreArchivo,
@@ -875,8 +898,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     ...product,
                     Producto: formData.producto,
                     Codigo: formData.codigo,
-                    IdCategoria: productType === 2 ? 1 : (formData.idCategoria === '' ? null : parseInt(formData.idCategoria)),
-                    IdCategoriaRecetario: productType === 2 ? 1 : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
+                    IdCategoria: formData.idCategoria === '' ? null : parseInt(formData.idCategoria),
+                    IdCategoriaRecetario: productType === 2 ? null : (idCategoriaRecetario === '' ? null : parseInt(idCategoriaRecetario)),
                     IdPresentacion: parseInt(formData.idPresentacion),
                     Precio: parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0'),
                     IVA: productType === 2 ? 0 : parseFloat(formData.iva || '0'),
@@ -1283,9 +1306,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     return (
         <div className={`fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 ${isOpen ? '' : 'hidden'} ${zIndexClass}`}>
-            <div className="bg-white w-[70vw] h-[85vh] rounded-lg shadow-lg flex flex-col">
+            <div className="bg-white w-[70vw] h-[85vh] rounded-lg shadow-lg flex flex-col overflow-hidden">
                 {/* Header with Info Boxes */}
-                <div className="bg-orange-500 text-white px-6 py-2">
+                <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                             {/* Product Type Label */}
@@ -1378,71 +1401,43 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex gap-1 mt-6 border-b border-white/20 overflow-x-auto">
-                        <button
-                            onClick={() => setActiveTab('general')}
-                            className={`px-4 py-3 rounded-t-lg font-bold transition-all whitespace-nowrap ${activeTab === 'general'
-                                ? 'bg-white text-orange-600 text-base shadow-2xl z-10 translate-y-[1px] border-t-4 border-yellow-400'
-                                : 'bg-orange-700/50 text-white text-sm hover:bg-orange-600/50'
-                                }`}
-                        >
-                            ⚙️ Configuración General
-                        </button>
-
-                        {
-                            product.IdProducto !== 0 && (
-                                <>
-                                    {productType !== 0 && (
-                                        <button
-                                            onClick={() => setActiveTab('costing')}
-                                            className={`px-4 py-3 rounded-t-lg font-bold transition-all whitespace-nowrap ${activeTab === 'costing'
-                                                ? 'bg-white text-orange-600 text-base shadow-2xl z-10 translate-y-[1px] border-t-4 border-yellow-400'
-                                                : 'bg-orange-700/50 text-white text-sm hover:bg-orange-600/50'
-                                                }`}
-                                        >
-                                            💰 Costeo
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setActiveTab('instructions')}
-                                        className={`px-4 py-3 rounded-t-lg font-bold transition-all whitespace-nowrap ${activeTab === 'instructions'
-                                            ? 'bg-white text-orange-600 text-base shadow-2xl z-10 translate-y-[1px] border-t-4 border-yellow-400'
-                                            : 'bg-orange-700/50 text-white text-sm hover:bg-orange-600/50'
-                                            }`}
-                                    >
-                                        📝 Instrucciones
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('documents')}
-                                        className={`px-4 py-3 rounded-t-lg font-bold transition-all whitespace-nowrap ${activeTab === 'documents'
-                                            ? 'bg-white text-orange-600 text-base shadow-2xl z-10 translate-y-[1px] border-t-4 border-yellow-400'
-                                            : 'bg-orange-700/50 text-white text-sm hover:bg-orange-600/50'
-                                            }`}
-                                    >
-                                        ⚠️ Observaciones
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('photo')}
-                                        className={`px-4 py-3 rounded-t-lg font-bold transition-all whitespace-nowrap ${activeTab === 'photo'
-                                            ? 'bg-white text-orange-600 text-base shadow-2xl z-10 translate-y-[1px] border-t-4 border-yellow-400'
-                                            : 'bg-orange-700/50 text-white text-sm hover:bg-orange-600/50'
-                                            }`}
-                                    >
-                                        🖼️ Foto
-                                    </button>
-                                </>
-                            )
-                        }
+                    <div className="flex gap-2 mt-6 overflow-x-auto relative px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {[
+                            { id: 'general', label: '⚙️ Configuración General', show: true },
+                            { id: 'costing', label: '💰 Costeo', show: product.IdProducto !== 0 && productType !== 0 },
+                            { id: 'instructions', label: '📝 Instrucciones', show: product.IdProducto !== 0 },
+                            { id: 'documents', label: '⚠️ Observaciones', show: product.IdProducto !== 0 },
+                            { id: 'photo', label: '🖼️ Foto', show: product.IdProducto !== 0 }
+                        ].filter(t => t.show).map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`px-5 py-3 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
+                                    ? 'bg-white text-gray-900 text-base font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.1)]'
+                                    : 'bg-white/10 text-sm font-normal hover:bg-white/20 hover:-translate-y-1'
+                                    }`}
+                                style={
+                                    activeTab === tab.id
+                                        ? {}
+                                        : { color: colors.colorLetra }
+                                }
+                            >
+                                {tab.label}
+                                {activeTab === tab.id && (
+                                    <div className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-white z-40"></div>
+                                )}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto flex flex-col p-6" >
+                <div className="flex-1 overflow-y-auto flex flex-col p-6 z-20 relative bg-white border-t border-gray-200" >
                     {activeTab === 'general' && (
-                        <form onSubmit={handleSaveGeneral} className="max-w-4xl mx-auto w-full space-y-6">
+                        <form onSubmit={handleSaveGeneral} className="max-w-4xl mx-auto w-full space-y-3">
                             {/* Row 1: Nombre y Código */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex flex-col gap-1 md:col-span-2">
                                     <Input
                                         label="Nombre del Producto"
                                         value={formData.producto}
@@ -1450,113 +1445,100 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         required
                                     />
                                     <p
-                                        className="mt-1 text-[10px] text-orange-600 font-bold cursor-help hover:text-orange-700 transition-colors w-fit relative"
+                                        className="text-[9px] text-gray-500 font-medium cursor-help w-fit relative"
                                         onMouseEnter={() => setShowProductHintTooltip(true)}
                                         onMouseLeave={() => setShowProductHintTooltip(false)}
                                     >
                                         {t('productDescriptionHint')}
 
                                         {showProductHintTooltip && (
-                                            <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
+                                            <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-gray-200 text-gray-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-normal animate-in fade-in slide-in-from-top-1 cursor-default">
                                                 <div className="flex gap-2 items-start">
-                                                    <span className="text-orange-500 mt-0.5">💡</span>
+                                                    <span className="mt-0.5">💡</span>
                                                     <span>{t('productDescriptionExample')}</span>
                                                 </div>
                                             </div>
                                         )}
                                     </p>
                                 </div>
-                                <Input
-                                    label="Código"
-                                    value={formData.codigo}
-                                    onChange={(e) => setFormData({ ...formData, codigo: e.target.value.toUpperCase() })}
-                                    required
-                                />
+                                <div className="flex flex-col gap-1 w-full">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Código</label>
+                                        <button
+                                            type="button"
+                                            onClick={handleFetchMarketPrices}
+                                            disabled={isMarketPricesLoading}
+                                            className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                            title="Buscar Precios en Mercado"
+                                        >
+                                            {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
+                                        </button>
+                                    </div>
+                                    <div className="w-full">
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-orange-500 dark:border-gray-600 dark:focus:border-orange-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200"
+                                            value={formData.codigo}
+                                            onChange={(e) => setFormData({ ...formData, codigo: e.target.value.toUpperCase() })}
+                                            required
+                                        />
+                                    </div>
+                                    <p className="text-[9px] text-gray-500 font-medium">
+                                        {t('barcodeHint', { fallback: 'Preferentemente teclear el codigo de barras del producto' })}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Row 2: Categoría, Módulo de Recetario, Precio y {t('Products.iva')} (For Raw Materials Type 0) */}
                             {productType === 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                                    {/* Categoria */}
-                                    <div>
+                                    {/* Categoria Global */}
+                                    <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                                        <div className="flex gap-2">
-                                            {isCreatingCategory ? (
-                                                <div className="flex gap-2 w-full">
-                                                    <input
-                                                        type="text"
-                                                        value={newCategoryName}
-                                                        onChange={(e) => setNewCategoryName(e.target.value)}
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-[38px]"
-                                                        placeholder="Nueva..."
-                                                        autoFocus
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); }
-                                                            if (e.key === 'Escape') setIsCreatingCategory(false);
-                                                        }}
-                                                    />
-                                                    <button type="button" onClick={handleCreateCategory} className="px-2 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-[38px]">💾</button>
-                                                    <button type="button" onClick={() => setIsCreatingCategory(false)} className="px-2 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-[38px]">✕</button>
-                                                </div>
-                                            ) : (
-                                                <select
-                                                    value={formData.idCategoria}
-                                                    onChange={(e) => {
-                                                        if (e.target.value === 'NEW') {
-                                                            setIsCreatingCategory(true);
-                                                            setNewCategoryName('');
-                                                        } else {
-                                                            setFormData({ ...formData, idCategoria: e.target.value });
-                                                        }
-                                                    }}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                    required
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    {categories.map(cat => (
-                                                        <option key={cat.IdCategoria} value={cat.IdCategoria}>{cat.Categoria}</option>
-                                                    ))}
-                                                    <option value="NEW" className="font-bold text-orange-600">+ Nueva...</option>
-                                                </select>
-                                            )}
+                                        <div className="flex flex-col gap-1">
+                                            <select
+                                                value={formData.idCategoria}
+                                                onChange={(e) => setFormData({ ...formData, idCategoria: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                required
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                {globalCategories.map(cat => (
+                                                    <option key={cat.IdCategoria} value={cat.IdCategoria}>
+                                                        {cat.ImagenCategoria} {cat.Categoria} {cat.IdModuloRecetario === 1 ? ' ¹' : cat.IdModuloRecetario === 2 ? ' ²' : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-[9px] text-gray-500 font-medium">
+                                                ¹ {t('foodAndBeverage', { fallback: 'Alimentos y Bebidas' })} | ² {t('packaging', { fallback: 'Empaque' })}
+                                            </p>
                                         </div>
-                                    </div>
-
-                                    {/* Modulo Recetario */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
-                                        <select
-                                            value={idCategoriaRecetario}
-                                            onChange={(e) => setIdCategoriaRecetario(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            <option value="0">Sin Módulo</option>
-                                            {recipeCategories.map(cat => (
-                                                <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
-                                            ))}
-                                        </select>
                                     </div>
 
                                     {/* Medida de compra (Moved from Row 4) */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('purchaseUnit')}</label>
-                                        <select
-                                            value={unMedidaCompra}
-                                            onChange={(e) => setUnMedidaCompra(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                        >
-                                            <option value="">Selec...</option>
-                                            {(() => {
-                                                const options = new Set<string>();
-                                                if (unMedidaCompra) options.add(unMedidaCompra);
-                                                Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+                                        <div className="flex flex-col gap-1">
+                                            <select
+                                                value={unMedidaCompra}
+                                                onChange={(e) => setUnMedidaCompra(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                            >
+                                                <option value="">Selec...</option>
+                                                {(() => {
+                                                    const options = new Set<string>();
+                                                    if (unMedidaCompra) options.add(unMedidaCompra);
+                                                    Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
 
-                                                return Array.from(options).sort().map(u => (
-                                                    <option key={u} value={u}>{u}</option>
-                                                ));
-                                            })()}
-                                        </select>
+                                                    return Array.from(options).sort().map(u => (
+                                                        <option key={u} value={u}>{u}</option>
+                                                    ));
+                                                })()}
+                                            </select>
+                                            <p className="text-[9px] text-gray-500 font-medium">
+                                                {t('purchaseUnitHelp', { fallback: 'U. Medida factura compra' })}
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* Precio Compra */}
@@ -1565,59 +1547,69 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <label className="block text-sm font-medium text-gray-700">
                                                 {unMedidaCompra ? `Precio ${unMedidaCompra}` : "Precio Compra"}
                                             </label>
-                                            <button
-                                                type="button"
-                                                onClick={handleFetchMarketPrices}
-                                                disabled={isMarketPricesLoading}
-                                                className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
-                                                title="Buscar Precios en Mercado"
-                                            >
-                                                {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
-                                            </button>
                                         </div>
-                                        <Input
-                                            label=""
-                                            type="text"
-                                            value={formData.precio}
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                if ((val.match(/\./g) || []).length > 1) return;
-                                                setFormData({ ...formData, precio: val });
-                                            }}
-                                            onBlur={(e) => {
-                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                                if (!isNaN(val)) {
-                                                    setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                                }
-                                            }}
-                                            onFocus={(e) => {
-                                                const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                if (val === '0.00' || val === '0') {
-                                                    setFormData({ ...formData, precio: '' });
-                                                } else {
+                                        <div className="flex flex-col gap-1">
+                                            <Input
+                                                label=""
+                                                type="text"
+                                                className="h-[38px] !py-2 !px-3"
+                                                value={formData.precio}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                    if ((val.match(/\./g) || []).length > 1) return;
                                                     setFormData({ ...formData, precio: val });
-                                                }
-                                            }}
-                                            required
-                                        />
+                                                }}
+                                                onBlur={(e) => {
+                                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                    if (!isNaN(val)) {
+                                                        setFormData({ ...formData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                    if (val === '0.00' || val === '0') {
+                                                        setFormData({ ...formData, precio: '' });
+                                                    } else {
+                                                        setFormData({ ...formData, precio: val });
+                                                    }
+                                                }}
+                                                required
+                                            />
+                                            <p className="text-[9px] text-gray-500 font-medium">
+                                                {t('priceIncludesTaxes', { fallback: 'Precio incluye impuestos' })}
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* {t('Products.iva')} */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('iva')}</label>
-                                        <select
-                                            value={formData.iva}
-                                            onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            required
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            {taxes.map(tax => (
-                                                <option key={tax.IdImpuesto} value={tax.Impuesto}>
-                                                    {tax.Descripcion} ({tax.Impuesto}%)
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <div className="flex flex-col gap-1">
+                                            <select
+                                                value={formData.iva}
+                                                onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                required
+                                            >
+                                                <option value="">Seleccionar...</option>
+                                                {taxes.map(tax => (
+                                                    <option key={tax.IdImpuesto} value={tax.Impuesto}>
+                                                        {tax.Descripcion} ({tax.Impuesto}%)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-[9px] text-gray-500 font-medium">
+                                                {(() => {
+                                                    try {
+                                                        const text = t('taxBreakdownHelp');
+                                                        if (!text || text.includes('taxBreakdownHelp')) return 'Impuesto para desgloce de precio';
+                                                        return text;
+                                                    } catch {
+                                                        return 'Impuesto para desgloce de precio';
+                                                    }
+                                                })()}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
@@ -1685,47 +1677,25 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             </>
                                         ) : (
                                             <>
-                                                <div className={productType === 0 ? "md:col-span-2" : ""}>
+                                                <div className={productType === 0 ? "md:col-span-2" : "md:col-span-2"}>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                                                    <div className="flex gap-2 h-full">
-                                                        {isCreatingCategory ? (
-                                                            <div className="flex gap-2 w-full h-[38px]">
-                                                                <input
-                                                                    type="text"
-                                                                    value={newCategoryName}
-                                                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
-                                                                    placeholder="Nueva Categoría..."
-                                                                    autoFocus
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); }
-                                                                        if (e.key === 'Escape') setIsCreatingCategory(false);
-                                                                    }}
-                                                                />
-                                                                <button type="button" onClick={handleCreateCategory} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
-                                                                <button type="button" onClick={() => setIsCreatingCategory(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
-                                                            </div>
-                                                        ) : (
-                                                            <select
-                                                                value={formData.idCategoria}
-                                                                onChange={(e) => {
-                                                                    if (e.target.value === 'NEW') {
-                                                                        setIsCreatingCategory(true);
-                                                                        setNewCategoryName('');
-                                                                    } else {
-                                                                        setFormData({ ...formData, idCategoria: e.target.value });
-                                                                    }
-                                                                }}
-                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                                required
-                                                            >
-                                                                <option value="">Seleccionar...</option>
-                                                                {categories.map(cat => (
-                                                                    <option key={cat.IdCategoria} value={cat.IdCategoria}>{cat.Categoria}</option>
-                                                                ))}
-                                                                <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
-                                                            </select>
-                                                        )}
+                                                    <div className="flex flex-col gap-1">
+                                                        <select
+                                                            value={formData.idCategoria}
+                                                            onChange={(e) => setFormData({ ...formData, idCategoria: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                            required
+                                                        >
+                                                            <option value="">Seleccionar...</option>
+                                                            {globalCategories.map(cat => (
+                                                                <option key={cat.IdCategoria} value={cat.IdCategoria}>
+                                                                    {cat.ImagenCategoria} {cat.Categoria} {cat.IdModuloRecetario === 1 ? ' ¹' : cat.IdModuloRecetario === 2 ? ' ²' : ''}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <p className="text-[9px] text-gray-500 font-medium">
+                                                            ¹ {t('foodAndBeverage', { fallback: 'Alimentos y Bebidas' })} | ² {t('packaging', { fallback: 'Empaque' })}
+                                                        </p>
                                                     </div>
                                                 </div>
 
@@ -1776,22 +1746,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </div>
                                                 )}
 
-                                                {productType !== 2 && (
-                                                    <div className={productType === 0 ? "md:col-span-1" : ""}>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Módulo de Recetario</label>
-                                                        <select
-                                                            value={idCategoriaRecetario}
-                                                            onChange={(e) => setIdCategoriaRecetario(e.target.value)}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                        >
-                                                            <option value="">Seleccionar...</option>
-                                                            <option value="0">Sin Módulo de Recetario</option>
-                                                            {recipeCategories.map(cat => (
-                                                                <option key={cat.IdCategoriaRecetario} value={cat.IdCategoriaRecetario}>{cat.CategoriaRecetario}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                )}
+                                                {/* IdModuloRecetario removed from here */}
                                             </>
                                         )}
                                     </div>
@@ -1841,19 +1796,32 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">{t('iva')}</label>
-                                                    <select
-                                                        value={formData.iva}
-                                                        onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                                        required
-                                                    >
-                                                        <option value="">Seleccionar...</option>
-                                                        {taxes.map(tax => (
-                                                            <option key={tax.IdImpuesto} value={tax.Impuesto}>
-                                                                {tax.Descripcion} ({tax.Impuesto}%)
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="flex flex-col gap-1">
+                                                        <select
+                                                            value={formData.iva}
+                                                            onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                            required
+                                                        >
+                                                            <option value="">Seleccionar...</option>
+                                                            {taxes.map(tax => (
+                                                                <option key={tax.IdImpuesto} value={tax.Impuesto}>
+                                                                    {tax.Descripcion} ({tax.Impuesto}%)
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <p className="text-[9px] text-gray-500 font-medium">
+                                                            {(() => {
+                                                                try {
+                                                                    const text = t('taxBreakdownHelp');
+                                                                    if (!text || text.includes('taxBreakdownHelp')) return 'Impuesto para desgloce de precio';
+                                                                    return text;
+                                                                } catch {
+                                                                    return 'Impuesto para desgloce de precio';
+                                                                }
+                                                            })()}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
@@ -1875,156 +1843,152 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         ? "Cantidad"
                                                         : `Cantidad X ${unMedidaCompra}`}
                                                 </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={cantidadCompra}
-                                                    onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
-                                                    disabled={!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
-                                                />
+                                                <div className="flex flex-col gap-1 w-full relative">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={cantidadCompra}
+                                                        onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
+                                                        disabled={!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
+                                                    />
+                                                    <p
+                                                        className="text-[9px] text-gray-500 font-medium cursor-help w-fit relative"
+                                                        onMouseEnter={() => setShowQuantityHelp(true)}
+                                                        onMouseLeave={() => setShowQuantityHelp(false)}
+                                                    >
+                                                        {t('quantityHelpQuestion')}
+
+                                                        {showQuantityHelp && (
+                                                            <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-gray-200 text-gray-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-normal animate-in fade-in slide-in-from-top-1 cursor-default">
+                                                                <div className="flex gap-2 items-start">
+                                                                    <span className="mt-0.5">💡</span>
+                                                                    <span>{t('quantityHelpTooltip')}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </p>
+                                                </div>
                                             </div>
                                         )}
 
                                         {/* 3. Unidad Medida Inventario */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventoryUnit')}</label>
-                                            <select
-                                                value={unMedidaInventario}
-                                                onChange={(e) => setUnMedidaInventario(e.target.value)}
-                                                disabled={!unMedidaCompra || (MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && !initialProduct?.IdProducto) || (!UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] && !unMedidaInventario)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
-                                            >
-                                                {(() => {
-                                                    const baseCompra = getBaseUnit(unMedidaCompra);
-                                                    const children = UNIT_HIERARCHY[baseCompra] || [];
-                                                    const options = new Set<string>();
+                                            <div className="flex flex-col gap-1">
+                                                <select
+                                                    value={unMedidaInventario}
+                                                    onChange={(e) => setUnMedidaInventario(e.target.value)}
+                                                    disabled={!unMedidaCompra || (MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && !initialProduct?.IdProducto) || (!UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] && !unMedidaInventario)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
+                                                >
+                                                    {(() => {
+                                                        const baseCompra = getBaseUnit(unMedidaCompra);
+                                                        const children = UNIT_HIERARCHY[baseCompra] || [];
+                                                        const options = new Set<string>();
 
-                                                    if (unMedidaInventario) options.add(unMedidaInventario);
-                                                    if (unMedidaCompra) options.add(unMedidaCompra);
-                                                    children.forEach(u => options.add(t(`units.${u}`)));
+                                                        if (unMedidaInventario) options.add(unMedidaInventario);
+                                                        if (unMedidaCompra) options.add(unMedidaCompra);
+                                                        children.forEach(u => options.add(t(`units.${u}`)));
 
-                                                    return Array.from(options).sort().map(u => (
-                                                        <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>
-                                                    ));
-                                                })()}
-                                            </select>
+                                                        return Array.from(options).sort().map(u => (
+                                                            <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>
+                                                        ));
+                                                    })()}
+                                                </select>
+                                                <p className="text-[9px] text-gray-500 font-medium">
+                                                    {t('inventoryUnitHelp', { fallback: 'U. Medida para capturar el inventario' })}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {/* 4. Unidad Medida Receta */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('recipeUnit')}</label>
-                                            <select
-                                                value={unMedidaRecetario}
-                                                onChange={(e) => setUnMedidaRecetario(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            >
-                                                <option value="">Selec...</option>
-                                                {(() => {
-                                                    const baseInv = getBaseUnit(unMedidaInventario);
-                                                    const isMeasurement = MEASUREMENT_UNITS.includes(baseInv);
-                                                    const options = new Set<string>();
+                                            <div className="flex flex-col gap-1">
+                                                <select
+                                                    value={unMedidaRecetario}
+                                                    onChange={(e) => setUnMedidaRecetario(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                >
+                                                    <option value="">Selec...</option>
+                                                    {(() => {
+                                                        const baseInv = getBaseUnit(unMedidaInventario);
+                                                        const isMeasurement = MEASUREMENT_UNITS.includes(baseInv);
+                                                        const options = new Set<string>();
 
-                                                    if (unMedidaRecetario) options.add(unMedidaRecetario);
-                                                    options.add(""); // Selec...
+                                                        if (unMedidaRecetario) options.add(unMedidaRecetario);
+                                                        options.add(""); // Selec...
 
-                                                    if (isMeasurement) {
-                                                        if (unMedidaInventario) options.add(unMedidaInventario);
-                                                        (UNIT_HIERARCHY[baseInv] || []).forEach(u => options.add(t(`units.${u}`)));
-                                                    } else {
-                                                        Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
-                                                    }
+                                                        if (isMeasurement) {
+                                                            if (unMedidaInventario) options.add(unMedidaInventario);
+                                                            (UNIT_HIERARCHY[baseInv] || []).forEach(u => options.add(t(`units.${u}`)));
+                                                        } else {
+                                                            Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+                                                        }
 
-                                                    return Array.from(options).sort().map(u => (
-                                                        <option key={u} value={u}>{u || 'Selec...'}</option>
-                                                    ));
-                                                })()}
-                                            </select>
+                                                        return Array.from(options).sort().map(u => (
+                                                            <option key={u} value={u}>{u || 'Selec...'}</option>
+                                                        ));
+                                                    })()}
+                                                </select>
+                                                <p className="text-[9px] text-gray-500 font-medium">
+                                                    {t('recipeUnitHelp', { fallback: 'U. Medida para las recetas' })}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {/* 5. Contenido (ConversionSimple) */}
-                                        <div className="relative">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    {MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) ? "Conversion" : "Contenido"}
-                                                </label>
-                                                {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsConverterOpen(true)}
-                                                        className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full hover:bg-orange-600 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1 border border-orange-400"
-                                                        title="Conversiones de Unidades"
-                                                    >
-                                                        🛠️ CONV.
-                                                    </button>
-                                                )}
+                                        {(unMedidaInventario !== unMedidaRecetario || (!unMedidaInventario && !unMedidaRecetario)) && (
+                                            <div>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="block text-sm font-medium text-gray-700">
+                                                        {MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) ? "Conversion" : "Contenido"}
+                                                    </label>
+                                                    {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsConverterOpen(true)}
+                                                            className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full hover:bg-orange-600 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1 border border-orange-400"
+                                                            title="Conversiones de Unidades"
+                                                        >
+                                                            🛠️ CONV.
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col gap-1 w-full relative">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={simpleConversion}
+                                                        onChange={(e) => setSimpleConversion(parseFloat(e.target.value))}
+                                                        disabled={(UNIT_TYPES[getBaseUnit(unMedidaInventario)] && UNIT_TYPES[getBaseUnit(unMedidaRecetario)] && UNIT_TYPES[getBaseUnit(unMedidaInventario)] === UNIT_TYPES[getBaseUnit(unMedidaRecetario)]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
+                                                    />
+                                                    {(unMedidaInventario && unMedidaRecetario && unMedidaInventario !== unMedidaRecetario) ? (
+                                                        <p
+                                                            className="text-[9px] text-gray-500 font-medium cursor-help w-fit relative"
+                                                            onMouseEnter={() => setShowContentHelp(true)}
+                                                            onMouseLeave={() => setShowContentHelp(false)}
+                                                        >
+                                                            {t('contentHelpQuestion', { recipeUnit: unMedidaRecetario, inventoryUnit: unMedidaInventario })}
+
+                                                            {showContentHelp && (
+                                                                <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-gray-200 text-gray-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-normal animate-in fade-in slide-in-from-top-1 cursor-default">
+                                                                    <div className="flex gap-2 items-start">
+                                                                        <span className="mt-0.5">💡</span>
+                                                                        <span>{t('contentHelpTooltip')}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-[9px] font-medium invisible leading-tight">&nbsp;</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={simpleConversion}
-                                                onChange={(e) => setSimpleConversion(parseFloat(e.target.value))}
-                                                disabled={(UNIT_TYPES[getBaseUnit(unMedidaInventario)] && UNIT_TYPES[getBaseUnit(unMedidaRecetario)] && UNIT_TYPES[getBaseUnit(unMedidaInventario)] === UNIT_TYPES[getBaseUnit(unMedidaRecetario)]) || (unMedidaInventario === unMedidaRecetario && unMedidaInventario !== '')}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
-                                            />
-                                        </div>
+                                        )}
                                     </div>
-
-                                    {/* Dedicated Tooltips Row aligned with the grid above */}
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-1 mb-2 relative">
-                                        {/* Column 1: Quantity Help (Matches Column 1 of grid above) */}
-                                        {(!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra))) ? (
-                                            <div className="relative">
-                                                <p
-                                                    className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
-                                                    onMouseEnter={() => setShowQuantityHelp(true)}
-                                                    onMouseLeave={() => setShowQuantityHelp(false)}
-                                                >
-                                                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
-                                                    {t('quantityHelpQuestion')}
-                                                </p>
-
-                                                {showQuantityHelp && (
-                                                    <div className="absolute top-full left-0 mt-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
-                                                        <div className="flex gap-2 items-start">
-                                                            <span className="text-orange-500 mt-0.5">💡</span>
-                                                            <span>{t('quantityHelpTooltip')}</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : <div></div>}
-
-                                        {/* Column 2: Empty (Spacer for Inventory Unit) */}
-                                        <div></div>
-
-                                        {/* Column 3: Empty (Spacer for Recipe Unit) */}
-                                        <div></div>
-
-                                        {/* Column 4: Content Help (Matches Column 4 of grid above) */}
-                                        {(unMedidaInventario && unMedidaRecetario && unMedidaInventario !== unMedidaRecetario) ? (
-                                            <div className="relative">
-                                                <p
-                                                    className="text-[11px] text-orange-600 font-bold flex items-center gap-1.5 cursor-help hover:text-orange-700 transition-colors w-fit"
-                                                    onMouseEnter={() => setShowContentHelp(true)}
-                                                    onMouseLeave={() => setShowContentHelp(false)}
-                                                >
-                                                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 border border-orange-200 text-[10px]">?</span>
-                                                    {t('contentHelpQuestion', { recipeUnit: unMedidaRecetario, inventoryUnit: unMedidaInventario })}
-                                                </p>
-
-                                                {showContentHelp && (
-                                                    <div className="absolute top-full left-0 mt-2 w-[320px] bg-white border border-orange-200 text-orange-800 text-[11px] p-3 rounded-lg shadow-xl z-[150] whitespace-pre-line font-bold animate-in fade-in slide-in-from-top-1">
-                                                        <div className="flex gap-2 items-start">
-                                                            <span className="text-orange-500 mt-0.5">💡</span>
-                                                            <span>{t('contentHelpTooltip')}</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : <div></div>}
-                                    </div>
-
                                     {/* Unit Converter Popup Container */}
                                     {isConverterOpen && (
                                         <div className="relative">
@@ -2106,110 +2070,120 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                     )}
 
-                                    {/* Sub-row 4: Switch de Rendimiento */}
-                                    <div className="flex items-center gap-2 bg-orange-50 p-3 rounded-lg border border-orange-100 mt-4">
-                                        <div className="flex items-center gap-3">
-                                            <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
-                                            <div
-                                                onClick={() => {
-                                                    const newVal = !hasYield;
-                                                    setHasYield(newVal);
-                                                    if (!newVal) {
-                                                        setPesoInicial(1);
-                                                        setPesoFinal(1);
-                                                    }
-                                                }}
-                                                className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                            >
-                                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-orange-600 font-medium ml-2 italic">
-                                            {hasYield
-                                                ? 'Permite calcular merma y precios procesados basados en pesos.'
-                                                : 'Los pesos inicial y final se mantendrán en 1 (Sin proceso de merma).'}
-                                        </p>
-                                    </div>
-
-                                    {/* Sub-row 5: Pesos y Métricas Combined */}
-                                    {hasYield && (
-                                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 items-end animate-in fade-in slide-in-from-top-2">
-                                            <div className="md:col-span-1">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="block text-sm font-medium text-gray-700">
-                                                        Peso Inicial {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleFetchAiYield}
-                                                        disabled={isAiLoading}
-                                                        className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
-                                                        title="Sugerir Rendimiento con IA"
+                                    {/* Yield Section Container: Side-by-Side Boxes */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        {/* Box 1: Yield Configuration */}
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                                    <div
+                                                        onClick={() => {
+                                                            const newVal = !hasYield;
+                                                            setHasYield(newVal);
+                                                            if (!newVal) {
+                                                                setPesoInicial(1);
+                                                                setPesoFinal(1);
+                                                            }
+                                                        }}
+                                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
                                                     >
-                                                        {isAiLoading ? '⌛...' : '✨ IA YIELD'}
-                                                    </button>
+                                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                    </div>
                                                 </div>
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    value={pesoInicial}
-                                                    onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                />
-                                            </div>
-                                            <div className="md:col-span-1">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Peso Final {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    value={pesoFinal}
-                                                    onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                />
+                                                <p className="text-[10px] text-orange-600 font-medium italic">
+                                                    {hasYield
+                                                        ? 'Permite calcular merma y precios procesados.'
+                                                        : 'Pesos en 1.'}
+                                                </p>
                                             </div>
 
-                                            {/* Metrics */}
-                                            <div className="text-center md:border-l md:border-gray-300 pl-4">
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="text-xl font-bold text-gray-800 leading-none">
-                                                        {(pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0).toFixed(1)}%
+                                            {hasYield && (
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-2 border-t border-gray-100 pt-4">
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <label className="block text-sm font-medium text-gray-700">
+                                                                Peso Inicial {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                                            </label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleFetchAiYield}
+                                                                disabled={isAiLoading}
+                                                                className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm flex items-center gap-1"
+                                                                title="Sugerir Rendimiento con IA"
+                                                            >
+                                                                {isAiLoading ? '⌛...' : '✨ IA YIELD'}
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            step="0.001"
+                                                            value={pesoInicial}
+                                                            onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                        />
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">Utilizable</div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            Peso Final {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.001"
+                                                            value={pesoFinal}
+                                                            onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                        />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="text-xl font-bold text-gray-800 leading-none">
+                                                                {(pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0).toFixed(1)}%
+                                                            </div>
+                                                            <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">% Utilizable</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
+                                                        <span className="text-base font-bold text-red-500">
+                                                            {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Box 2: Price Metrics */}
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                        Precio Rendimiento ({unMedidaInventario})
+                                                    </label>
+                                                    <span className="text-lg font-bold text-green-600">
+                                                        {(() => {
+                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                        Precio Procesado ({unMedidaRecetario})
+                                                    </label>
+                                                    <span className="text-lg font-bold text-purple-600">
+                                                        {(() => {
+                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            const conversion = simpleConversion || 1;
+                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                        })()}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div className="text-center">
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
-                                                <span className="text-base font-bold text-red-500">
-                                                    {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
-                                                </span>
-                                            </div>
-                                            <div className="text-center">
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">
-                                                    Precio {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''} Rendimiento
-                                                </label>
-                                                <span className="text-base font-bold text-green-600">
-                                                    {(() => {
-                                                        const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                        const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
-                                                    })()}
-                                                </span>
-                                            </div>
-                                            <div className="text-center">
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">Precio Procesado</label>
-                                                <span className="text-base font-bold text-purple-600">
-                                                    {(() => {
-                                                        const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                        const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                        const conversion = simpleConversion || 1;
-                                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
-                                                    })()}
-                                                </span>
-                                            </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
 
@@ -2460,79 +2434,107 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="relative">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Peso Inicial {unMedidaInventario ? (t.raw(`units`) && t.raw(`units`)[unMedidaInventario] ? t(`units.${unMedidaInventario}`) : unMedidaInventario) : ''}
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFetchAiYield}
-                                                    disabled={isAiLoading}
-                                                    className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
-                                                    title="Sugerir Rendimiento con IA"
-                                                >
-                                                    {isAiLoading ? '⌛...' : '✨ IA YIELD'}
-                                                </button>
+                                    {/* Yield Section Container: Side-by-Side Boxes */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        {/* Box 1: Yield Configuration */}
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                                    <div
+                                                        onClick={() => {
+                                                            const newVal = !hasYield;
+                                                            setHasYield(newVal);
+                                                            if (!newVal) {
+                                                                setPesoInicial(1);
+                                                                setPesoFinal(1);
+                                                            }
+                                                        }}
+                                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                                    >
+                                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={pesoInicial}
-                                                onChange={(e) => setPesoInicial(parseFloat(e.target.value) || 0)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                            />
-                                        </div>
-                                        <Input
-                                            label={`Peso Final ${unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''}`}
-                                            type="number"
-                                            step="0.01"
-                                            value={pesoFinal}
-                                            onChange={(e) => setPesoFinal(parseFloat(e.target.value) || 0)}
-                                        />
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-4 rounded-lg">
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase">% Rendimiento</label>
-                                            <div className="text-lg font-bold text-gray-900">
-                                                {pesoInicial > 0 ? ((pesoFinal / pesoInicial) * 100).toFixed(2) : '0.00'}%
-                                            </div>
+                                            {hasYield && (
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-2 border-t border-gray-100 pt-4">
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <label className="block text-sm font-medium text-gray-700">
+                                                                Peso Inicial {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                                            </label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleFetchAiYield}
+                                                                disabled={isAiLoading}
+                                                                className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm flex items-center gap-1"
+                                                                title="Sugerir Rendimiento con IA"
+                                                            >
+                                                                {isAiLoading ? '⌛...' : '✨ IA YIELD'}
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={pesoInicial}
+                                                            onChange={(e) => setPesoInicial(parseFloat(e.target.value) || 0)}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                        />
+                                                    </div>
+                                                    <Input
+                                                        label={`Peso Final ${idPresentacionConversion ? `(${idPresentacionConversion})` : ''}`}
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={pesoFinal}
+                                                        onChange={(e) => setPesoFinal(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                    <div className="text-center">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="text-xl font-bold text-gray-800 leading-none">
+                                                                {pesoInicial > 0 ? ((pesoFinal / pesoInicial) * 100).toFixed(2) : '0.00'}%
+                                                            </div>
+                                                            <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">% Utilizable</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
+                                                        <span className="text-base font-bold text-red-600">
+                                                            {pesoInicial > 0 ? (((pesoInicial - pesoFinal) / pesoInicial) * 100).toFixed(2) : '0.00'}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase">% Merma</label>
-                                            <div className="text-lg font-bold text-red-600">
-                                                {pesoInicial > 0 ? (((pesoInicial - pesoFinal) / pesoInicial) * 100).toFixed(2) : '0.00'}%
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase">
-                                                Precio {unMedidaInventario ? t(`units.${unMedidaInventario}`) : ''} Rendimiento
-                                            </label>
-                                            <div className="text-lg font-bold text-green-600">
-                                                {(() => {
-                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
-                                                    const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
-                                                })()}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase">P/U Compra Neto</label>
-                                            <div className="text-lg font-bold text-blue-600">
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * (pesoInicial > 0 ? (pesoFinal / pesoInicial) : 0))}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase">Precio Procesado</label>
-                                            <div className="text-lg font-bold text-orange-600">
-                                                {(() => {
-                                                    const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
-                                                    const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                    const conversion = simpleConversion || 1;
-                                                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
-                                                })()}
+
+                                        {/* Box 2: Price Metrics */}
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                        Precio Rendimiento ({unMedidaInventario})
+                                                    </label>
+                                                    <span className="text-lg font-bold text-green-600">
+                                                        {(() => {
+                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                        Precio Procesado ({unMedidaRecetario})
+                                                    </label>
+                                                    <span className="text-lg font-bold text-orange-600">
+                                                        {(() => {
+                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            const conversion = simpleConversion || 1;
+                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                        })()}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -3046,6 +3048,6 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

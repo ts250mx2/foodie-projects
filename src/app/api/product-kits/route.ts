@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
                 p.Producto,
                 p.Codigo,
                 c.Categoria,
-                pr.Presentacion
+                p.UnidadMedidaInventario,
+                p.UnidadMedidaCompra,
+                p.UnidadMedidaRecetario
             FROM tblProductosKits pk
             INNER JOIN tblProductos p ON pk.IdProductoHijo = p.IdProducto
             LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria

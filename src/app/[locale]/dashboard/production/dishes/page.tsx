@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
+import MenuSectionsModal from '@/components/MenuSectionsModal';
 
 interface Dish {
     IdProducto: number;
@@ -21,6 +22,9 @@ interface Dish {
     AlertaCosto?: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
+    Categoria?: string;
+    ImagenCategoria?: string;
+    IdModuloRecetario?: number;
 }
 
 export default function DishesPage() {
@@ -29,6 +33,7 @@ export default function DishesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
+    const [isMenuSectionsModalOpen, setIsMenuSectionsModalOpen] = useState(false);
     const [editingDish, setEditingDish] = useState<Dish | null>(null);
     const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
     const [project, setProject] = useState<any>(null);
@@ -142,7 +147,15 @@ export default function DishesPage() {
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">🍽️ Platillos Menu</h1>
-                <Button onClick={handleOpenAddModal}>Agregar Platillo</Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => setIsMenuSectionsModalOpen(true)}
+                        className="bg-orange-100 !text-orange-700 hover:bg-orange-200 border border-orange-200"
+                    >
+                        Secciones de Menú
+                    </Button>
+                    <Button onClick={handleOpenAddModal}>Agregar Platillo</Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
@@ -273,7 +286,31 @@ export default function DishesPage() {
                         {sortedAndFilteredDishes.map((dish) => (
                             <tr key={dish.IdProducto} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {dish.Producto}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            {dish.ArchivoImagen ? (
+                                                <img
+                                                    src={dish.ArchivoImagen}
+                                                    alt={dish.Producto}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-gray-400 text-xl">🍽️</span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="flex items-center gap-1">
+                                                {dish.ImagenCategoria && <span>{dish.ImagenCategoria}</span>}
+                                                {dish.Producto}
+                                                {dish.IdModuloRecetario && dish.IdModuloRecetario > 0 ? (
+                                                    <sup className="text-orange-600 font-bold ml-0.5">
+                                                        {dish.IdModuloRecetario}
+                                                    </sup>
+                                                ) : null}
+                                            </span>
+                                            {dish.Categoria && <span className="text-[10px] text-gray-400 font-normal">{dish.Categoria}</span>}
+                                        </div>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {dish.Codigo}
@@ -352,6 +389,14 @@ export default function DishesPage() {
                     productType={1}
                     onProductUpdate={() => fetchDishes()}
                     initialTab="general"
+                />
+            )}
+
+            {isMenuSectionsModalOpen && project && (
+                <MenuSectionsModal
+                    isOpen={isMenuSectionsModalOpen}
+                    onClose={() => setIsMenuSectionsModalOpen(false)}
+                    projectId={project.idProyecto}
                 />
             )}
         </div>

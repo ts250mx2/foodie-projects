@@ -61,9 +61,9 @@ export async function PUT(
         fs.appendFileSync(path.join(process.cwd(), 'api-debug.log'), logData);
 
         console.log('API Received Body:', body);
-        const { projectId, producto, codigo, idCategoria, idCategoriaRecetario, idPresentacion, precio, iva, archivoImagen, nombreArchivo, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto, idSeccionMenu, porcentajeCostoIdeal, cantidadCompra, idPresentacionInventario, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
+        const { projectId, producto, codigo, idCategoria, precio, iva, archivoImagen, nombreArchivo, conversionSimple, idPresentacionConversion, pesoFinal, pesoInicial, idTipoProducto, idSeccionMenu, porcentajeCostoIdeal, cantidadCompra, idPresentacionInventario, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
 
-        console.log('API Extracted Fields:', { cantidadCompra, idPresentacionInventario, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario });
+        console.log('API Extracted Fields:', { cantidadCompra, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario });
 
         // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined || cantidadCompra === undefined) {
@@ -71,14 +71,14 @@ export async function PUT(
         }
 
         // Required only if NOT a Dish (type 1)
-        if (idTipoProducto !== 1 && (!idCategoria || !idPresentacion)) {
-            return NextResponse.json({ success: false, message: 'Category and Presentation are required' }, { status: 400 });
+        if (idTipoProducto !== 1 && (!idCategoria)) {
+            return NextResponse.json({ success: false, message: 'Category is required' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
 
-        const sql = `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, IdCategoriaRecetario = ?, IdPresentacion = ?, Precio = ?, IVA = ?, ArchivoImagen = ?, NombreArchivo = ?, ConversionSimple = ?, IdPresentacionConversion = ?, PesoFinal = ?, PesoInicial = ?, IdSeccionMenu = ?, PorcentajeCostoIdeal = ?, CantidadCompra = ?, IdPresentacionInventario = ?, UnidadMedidaCompra = ?, UnidadMedidaInventario = ?, UnidadMedidaRecetario = ?, FechaAct = Now() WHERE IdProducto = ?`;
-        const params = [producto, codigo, idCategoria, idCategoriaRecetario /* Allow 0 */, idPresentacion, precio, iva, archivoImagen || null, nombreArchivo || null, conversionSimple || 0, idPresentacionConversion || null, pesoFinal || 0, pesoInicial || 0, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, idPresentacionInventario || null, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null, id];
+        const sql = `UPDATE tblProductos SET Producto = ?, Codigo = ?, IdCategoria = ?, Precio = ?, IVA = ?, ArchivoImagen = ?, NombreArchivo = ?, ConversionSimple = ?, PesoFinal = ?, PesoInicial = ?, IdSeccionMenu = ?, PorcentajeCostoIdeal = ?, CantidadCompra = ?, UnidadMedidaCompra = ?, UnidadMedidaInventario = ?, UnidadMedidaRecetario = ?, FechaAct = Now() WHERE IdProducto = ?`;
+        const params = [producto, codigo, idCategoria, precio, iva, archivoImagen || null, nombreArchivo || null, conversionSimple || 0, pesoFinal || 0, pesoInicial || 0, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null, id];
 
         console.log('API executing SQL:', sql);
         console.log('API SQL Params:', params);

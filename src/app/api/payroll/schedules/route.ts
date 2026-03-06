@@ -22,10 +22,11 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         let query = `
-            SELECT h.*, e.Empleado, p.Puesto
+            SELECT h.*, e.Empleado, p.Puesto, tp.ImagenTipoPuesto
             FROM tblHorarios h
             JOIN tblEmpleados e ON h.IdEmpleado = e.IdEmpleado
-            LEFT JOIN tblPuestos p ON e.IdPuesto = p.IdPuesto
+            LEFT JOIN BDFoodieProjects.tblPuestos p ON e.IdPuesto = p.IdPuesto
+            LEFT JOIN BDFoodieProjects.tblTiposPuestos tp ON p.IdTipoPuesto = tp.IdTipoPuesto
             WHERE 0 = 0
         `;
         const queryParams: any[] = [];

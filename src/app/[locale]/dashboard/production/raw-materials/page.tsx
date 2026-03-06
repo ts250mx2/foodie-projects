@@ -27,6 +27,7 @@ interface RawMaterial {
     IVA: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
+    ImagenCategoria?: string;
     CantidadCompra: number;
     IdPresentacionInventario: number | null;
 }
@@ -457,7 +458,25 @@ export default function RawMaterialsPage() {
                                     return (
                                         <tr key={material.IdProducto} className="hover:bg-gray-50">
                                             <td className="px-3 py-2 text-sm text-gray-900">{material.Codigo}</td>
-                                            <td className="px-3 py-2 text-sm text-gray-900">{material.Producto}</td>
+                                            <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                                        {material.ArchivoImagen ? (
+                                                            <img
+                                                                src={material.ArchivoImagen}
+                                                                alt={material.Producto}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs">📦</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="flex items-center gap-1">
+                                                        {material.ImagenCategoria && <span>{material.ImagenCategoria}</span>}
+                                                        {material.Producto}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td className="px-3 py-2 text-sm text-gray-600">{material.UnidadCompra}</td>
                                             <td className="px-3 py-2 text-right">
                                                 <input

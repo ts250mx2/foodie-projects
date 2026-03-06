@@ -20,14 +20,9 @@ export async function GET(request: NextRequest) {
             'SELECT Codigo, Producto FROM tblProductos WHERE Status = 0'
         ) as [RowDataPacket[], any];
 
-        // Fetch categories where Status = 0
+        // Fetch categories where Status = 0 from global table
         const [categories] = await connection.query(
-            'SELECT Categoria FROM tblCategorias WHERE Status = 0'
-        ) as [RowDataPacket[], any];
-
-        // Fetch recipe modules where Status = 0
-        const [recipeModules] = await connection.query(
-            'SELECT CategoriaRecetario FROM tblCategoriasRecetario'
+            'SELECT Categoria FROM BDFoodieProjects.tblCategorias WHERE Status = 0'
         ) as [RowDataPacket[], any];
 
         return NextResponse.json({
@@ -36,8 +31,7 @@ export async function GET(request: NextRequest) {
                 code: p.Codigo?.toString(),
                 name: p.Producto
             })),
-            categories: categories.map(c => c.Categoria),
-            recipeModules: recipeModules.map(r => r.CategoriaRecetario)
+            categories: categories.map(c => c.Categoria)
         });
 
     } catch (error) {

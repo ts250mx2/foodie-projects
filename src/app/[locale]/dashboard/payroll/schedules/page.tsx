@@ -18,6 +18,7 @@ interface Employee {
     Puesto: string;
     IdSucursal: number;
     ArchivoFoto: string | null;
+    ImagenTipoPuesto?: string | null;
 }
 
 interface ScheduleEntry {
@@ -606,7 +607,9 @@ export default function SchedulesPage() {
                                                 )}
                                                 <div>
                                                     <div className="font-bold text-gray-800 text-sm whitespace-nowrap">{employee.Empleado}</div>
-                                                    <div className="text-[10px] text-gray-500 uppercase tracking-tighter">{employee.Puesto || '-'}</div>
+                                                    <div className="text-[10px] text-gray-500 uppercase tracking-tighter">
+                                                        {employee.ImagenTipoPuesto} {employee.Puesto || '-'}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>

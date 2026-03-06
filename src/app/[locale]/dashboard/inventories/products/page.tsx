@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
+import MassiveProductUpload from '@/components/MassiveProductUpload';
 
 interface Product {
     IdProducto: number;
@@ -27,6 +28,9 @@ interface Product {
     UnidadMedidaCompra?: string;
     UnidadMedidaInventario?: string;
     UnidadMedidaRecetario?: string;
+    ImagenCategoria?: string;
+    ArchivoImagen?: string;
+    IdModuloRecetario?: number;
 }
 
 interface Category {
@@ -59,6 +63,7 @@ export default function ProductsPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isKitsModalOpen, setIsKitsModalOpen] = useState(false);
     const [isDeleteKitModalOpen, setIsDeleteKitModalOpen] = useState(false);
+    const [isMassiveModalOpen, setIsMassiveModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [kitItems, setKitItems] = useState<KitItem[]>([]);
@@ -346,6 +351,13 @@ export default function ProductsPage() {
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
                     <Button
+                        onClick={() => setIsMassiveModalOpen(true)}
+                        variant="primary"
+                        className="bg-orange-600 hover:bg-orange-700"
+                    >
+                        {t('massiveProductUpload')}
+                    </Button>
+                    <Button
                         onClick={() => {
                             const XLSX = require('xlsx');
                             const dataToExport = sortedAndFilteredProducts.map(p => ({
@@ -495,13 +507,34 @@ export default function ProductsPage() {
                         {sortedAndFilteredProducts.map((product) => (
                             <tr key={product.IdProducto} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {product.Producto}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            {product.ArchivoImagen ? (
+                                                <img
+                                                    src={product.ArchivoImagen}
+                                                    alt={product.Producto}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-gray-400 text-xl">📦</span>
+                                            )}
+                                        </div>
+                                        <span>{product.Producto}</span>
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {product.Codigo}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {product.Categoria}
+                                    <span className="flex items-center gap-1">
+                                        {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
+                                        {product.Categoria}
+                                        {product.IdModuloRecetario && product.IdModuloRecetario > 0 ? (
+                                            <sup className="text-orange-600 font-bold ml-0.5">
+                                                {product.IdModuloRecetario}
+                                            </sup>
+                                        ) : null}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {(product as any).UnidadMedidaCompra}
@@ -585,6 +618,42 @@ export default function ProductsPage() {
                             >
                                 {t('deleteProduct')}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Massive Upload Modal */}
+            {isMassiveModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                📊 {t('massiveProductUpload')}
+                            </h2>
+                            <button
+                                onClick={() => setIsMassiveModalOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <MassiveProductUpload
+                                hideHeader={true}
+                                onSuccess={() => {
+                                    fetchProducts();
+                                    // Optional: Keep open or close? User usually wants to see success message in component first.
+                                }}
+                            />
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
+                            <Button
+                                onClick={() => setIsMassiveModalOpen(false)}
+                                variant="secondary"
+                            >
+                                {t('cancel')}
+                            </Button>
                         </div>
                     </div>
                 </div>

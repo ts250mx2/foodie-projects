@@ -19,6 +19,7 @@ interface Product {
     Status: number;
     RutaFoto?: string;
     Categoria?: string;
+    ImagenCategoria?: string;
     Presentacion?: string;
 }
 
@@ -195,7 +196,10 @@ export default function ProductGrid({ productType, pageTitle }: ProductGridProps
                                     {product.Codigo}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {product.Categoria}
+                                    <span className="flex items-center gap-1">
+                                        {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
+                                        {product.Categoria}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {product.Presentacion}

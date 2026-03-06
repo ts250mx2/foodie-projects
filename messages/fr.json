@@ -55,6 +55,7 @@
         "positions": "Postes",
         "shifts": "Quarts",
         "payrollCapture": "Saisie de la paie",
+        "massiveProductUpload": "Téléchargement en Masse de Produits",
         "productionCapture": "Capture de Production"
     },
     "Terminals": {
@@ -290,9 +291,21 @@
         "nextWeek": "Semaine Prochaine"
     },
     "Products": {
+        "title": "Gestion des Produits",
+        "massiveProductUpload": "Téléchargement en Masse de Produits",
         "iva": "Impôt",
         "purchaseUnit": "Unité de Mesure d'Achat",
         "inventoryUnit": "Unité de Mesure d'Inventaire",
-        "recipeUnit": "Unité de Mesure de Recette"
+        "recipeUnit": "Unité de Mesure de Recette",
+        "productDescriptionHint": "Placez la description du produit identique à la description de la facture",
+        "productDescriptionExample": "Exemple de description de produit: FORMULA LACTEA NUTRILECHE CAJA 12 PZAS 1 L.",
+        "purchaseUnitHelp": "U. Mesure facture achat",
+        "inventoryUnitHelp": "U. Mesure pour capturer l'inventaire",
+        "recipeUnitHelp": "U. Mesure pour les recettes",
+        "taxBreakdownHelp": "Taxe à ventiler dans le prix",
+        "priceIncludesTaxes": "Le prix inclut les taxes",
+        "barcodeHint": "Saisissez de préférence le code-barres du produit",
+        "foodAndBeverage": "Aliments et Boissons",
+        "packaging": "Emballage"
     }
 }
