@@ -21,11 +21,10 @@ export async function GET(request: NextRequest) {
         // Get purchase details with product information
         const [rows] = await connection.query(
             `SELECT D.IdDetalleCompra, D.IdProducto, D.Cantidad, D.Costo, D.Status,
-                    P.Codigo, P.Producto, PR.Presentacion,
+                    P.Codigo, P.Producto, P.UnidadMedidaCompra AS UnidadMedidaCompra,
                     (D.Cantidad * D.Costo) as Total
              FROM tblDetalleCompras D
              INNER JOIN tblProductos P ON D.IdProducto = P.IdProducto
-             LEFT JOIN tblPresentaciones PR ON P.IdPresentacion = PR.IdPresentacion
              WHERE D.IdCompra = ?
              ORDER BY D.IdDetalleCompra`,
             [purchaseId]

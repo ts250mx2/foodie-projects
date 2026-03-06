@@ -5058,3 +5058,57 @@ Body: {
   "unidadMedidaRecetario": ""
 }
 
+[2026-03-06T19:21:54.888Z] PUT /api/products/529
+Body: {
+  "projectId": 9,
+  "producto": "1800 BLANCO ",
+  "codigo": "1800B",
+  "idCategoria": 14,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Pieza (pza)",
+  "unidadMedidaInventario": "Pieza (pza)",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-03-06T19:39:29.003Z] PUT /api/products/38
+Body: {
+  "projectId": 9,
+  "producto": "AGUJA NORTEÑA",
+  "codigo": "AGUJA",
+  "idCategoria": 1,
+  "idPresentacion": null,
+  "precio": 459.33,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Kilogramo (kg)",
+  "unidadMedidaInventario": "Kilogramo (kg)",
+  "unidadMedidaRecetario": "Kilogramo (kg)"
+}
+

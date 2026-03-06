@@ -88,12 +88,8 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        //query += ' ORDER BY Producto ASC';
-
         const [rows] = await connection.query(query, params);
 
-
-        // Convert ArchivoImagen Buffer to string if necessary
         const formattedRows = (rows as any[]).map(row => ({
             ...row,
             ArchivoImagen: row.ArchivoImagen ? row.ArchivoImagen.toString() : null
@@ -114,67 +110,46 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { projectId, producto, codigo, idCategoria, precio, iva, idTipoProducto, archivoImagen, nombreArchivo, idSeccionMenu, porcentajeCostoIdeal, cantidadCompra, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario } = body;
 
-        // Validation: Required for all
         if (!projectId || !producto || !codigo || precio === undefined || iva === undefined) {
-            console.error('Error creating product:', 'Missing required fields');
-
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
-        // Required only if NOT a Dish (type 1)
         if (idTipoProducto !== 1 && (!idCategoria)) {
-
-            console.error('Error creating product:', 'Category and Presentation are required');
-
-            return NextResponse.json({ success: false, message: 'Category and Presentation are required' }, { status: 400 });
+            return NextResponse.json({ success: false, message: 'Category is required' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
 
-        // Check for duplicate product name
         const [existingProductByName] = await connection.query(
             'SELECT IdProducto FROM tblProductos WHERE Producto = ? AND Status = 0',
             [producto]
         );
 
         if (existingProductByName.length > 0) {
-
-            console.error('Error creating product:', 'El producto ya existe');
-
-            return NextResponse.json({
-                success: false,
-                error: 'El producto ya existe'
-            }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'El producto ya existe' }, { status: 400 });
         }
 
-        // Check for duplicate product code
         const [existingProductByCode] = await connection.query(
             'SELECT IdProducto FROM tblProductos WHERE Codigo = ? AND Status = 0',
             [codigo]
         );
 
         if (existingProductByCode.length > 0) {
-
-            console.error('Error creating product:', 'El código ya existe');
-
-
-            return NextResponse.json({
-                success: false,
-                error: 'El código ya existe'
-            }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'El código ya existe' }, { status: 400 });
         }
-
-        // Status = 0 (Active), FechaAct = Now()
 
         const [result] = await connection.query(
             `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, CantidadCompra, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, Now())`,
             [producto, codigo, idCategoria || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]
         );
 
+        const insertId = (result as ResultSetHeader).insertId;
+
         return NextResponse.json({
             success: true,
             message: 'Product created successfully',
-            id: result.insertId // Fixed key to match expected frontend prop (data.id)
+            id: insertId,
+            productId: insertId
         });
     } catch (error) {
         console.error('Error creating product:', error);
@@ -183,4 +158,3 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
-

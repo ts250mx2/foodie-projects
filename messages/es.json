@@ -904,6 +904,11 @@
         "close": "Cerrar"
     },
     "Common": {
-        "errorFutureDate": "No se pueden capturar datos para fechas futuras."
+        "errorFutureDate": "No se pueden capturar datos para fechas futuras.",
+        "save": "Guardar",
+        "loading": "Cargando...",
+        "cancel": "Cancelar",
+        "successUpdate": "Actualizado exitosamente",
+        "errorUpdate": "Error al actualizar"
     }
 }

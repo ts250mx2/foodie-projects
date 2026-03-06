@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
 
 interface Branch {
     IdSucursal: number;
@@ -36,18 +39,12 @@ interface Product {
     IdProducto: number;
     Producto: string;
     Codigo: string;
-    Presentacion: string;
-    IdPresentacion: number;
+    UnidadMedidaCompra: string;
 }
 
 interface Category {
     IdCategoria: number;
     Categoria: string;
-}
-
-interface Presentation {
-    IdPresentacion: number;
-    Presentacion: string;
 }
 
 interface PurchaseDetail {
@@ -58,11 +55,12 @@ interface PurchaseDetail {
     Status: number;
     Codigo: string;
     Producto: string;
-    Presentacion: string;
+    UnidadMedidaCompra: string;
     Total: number;
 }
 
 export default function PurchasesCapturePage() {
+    const { colors } = useTheme();
     const t = useTranslations('PurchasesCapture');
     const tModal = useTranslations('PurchasesModal');
     const tDetails = useTranslations('PurchaseDetailsModal');
@@ -122,12 +120,11 @@ export default function PurchasesCapturePage() {
     // Product creation modal state
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [presentations, setPresentations] = useState<Presentation[]>([]);
     const [productFormData, setProductFormData] = useState({
         producto: '',
         codigo: '',
         idCategoria: '',
-        idPresentacion: '',
+        unidadMedidaCompra: '',
         precio: '',
         iva: ''
     });
@@ -165,11 +162,11 @@ export default function PurchasesCapturePage() {
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonthPurchases', selectedMonth.toString());
+        localStorage.setItem('lastSelectedMonthPurchases', (selectedMonth ?? 0).toString());
     }, [selectedMonth]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedYearPurchases', selectedYear.toString());
+        localStorage.setItem('lastSelectedYearPurchases', (selectedYear ?? 0).toString());
     }, [selectedYear]);
 
     useEffect(() => {
@@ -187,7 +184,7 @@ export default function PurchasesCapturePage() {
 
                 const savedBranch = localStorage.getItem('lastSelectedBranchPurchases');
                 if (!savedBranch && !selectedBranch) {
-                    setSelectedBranch(data.data[0].IdSucursal.toString());
+                    setSelectedBranch(data.data[0].IdSucursal?.toString() || '');
                 }
             }
         } catch (error) {
@@ -243,24 +240,11 @@ export default function PurchasesCapturePage() {
         }
     };
 
-    const fetchPresentations = async () => {
-        try {
-            const response = await fetch(`/api/presentations?projectId=${project.idProyecto}`);
-            const data = await response.json();
-            if (data.success) {
-                setPresentations(data.data);
-            }
-        } catch (error) {
-            console.error('Error fetching presentations:', error);
-        }
-    };
-
     const handleOpenDetailsModal = async (purchase: Purchase) => {
         setSelectedPurchaseForDetails(purchase);
         await fetchPurchaseDetails(purchase.IdCompra);
         await fetchProducts();
         await fetchCategories();
-        await fetchPresentations();
         setIsDetailsModalOpen(true);
     };
 
@@ -269,7 +253,7 @@ export default function PurchasesCapturePage() {
         try {
             const params = new URLSearchParams({
                 projectId: project.idProyecto,
-                purchaseId: purchaseId.toString()
+                purchaseId: purchaseId?.toString() || ''
             });
             const response = await fetch(`/api/purchases/details?${params}`);
             const data = await response.json();
@@ -343,7 +327,7 @@ export default function PurchasesCapturePage() {
                     producto: productFormData.producto,
                     codigo: productFormData.codigo,
                     idCategoria: parseInt(productFormData.idCategoria),
-                    idPresentacion: parseInt(productFormData.idPresentacion),
+                    unidadMedidaCompra: productFormData.unidadMedidaCompra,
                     precio: parseFloat(productFormData.precio.replace(/[^0-9.]/g, '')),
                     iva: parseFloat(productFormData.iva.replace(/[^0-9.]/g, ''))
                 })
@@ -356,10 +340,10 @@ export default function PurchasesCapturePage() {
 
                 // Auto-select the newly created product
                 const newProduct = products.find(p => p.IdProducto === data.productId) ||
-                    { IdProducto: data.productId, Producto: productFormData.producto, Codigo: productFormData.codigo, Presentacion: '', IdPresentacion: parseInt(productFormData.idPresentacion) };
+                    { IdProducto: data.productId, Producto: productFormData.producto, Codigo: productFormData.codigo, UnidadMedidaCompra: productFormData.unidadMedidaCompra };
 
                 setSelectedProduct(newProduct);
-                setDetailFormData({ ...detailFormData, productId: data.productId.toString() });
+                setDetailFormData({ ...detailFormData, productId: data.productId?.toString() || '' });
                 setProductSearch(`${productFormData.codigo} - ${productFormData.producto}`);
 
                 // Reset and close modal
@@ -367,7 +351,7 @@ export default function PurchasesCapturePage() {
                     producto: '',
                     codigo: '',
                     idCategoria: '',
-                    idPresentacion: '',
+                    unidadMedidaCompra: '',
                     precio: '',
                     iva: ''
                 });
@@ -394,7 +378,7 @@ export default function PurchasesCapturePage() {
             producto: productSearch,
             codigo: '',
             idCategoria: '',
-            idPresentacion: '',
+            unidadMedidaCompra: '',
             precio: '',
             iva: ''
         });
@@ -488,12 +472,12 @@ export default function PurchasesCapturePage() {
         setEditingPurchase(purchase);
         setIsFormOpen(true);
         setFormData({
-            providerId: purchase.IdProveedor.toString(),
+            providerId: purchase.IdProveedor?.toString() || '',
             invoiceNumber: purchase.NumeroFactura,
-            paymentChannelId: purchase.IdCanalPago.toString(),
+            paymentChannelId: purchase.IdCanalPago?.toString() || '',
             reference: purchase.Referencia || '',
             payTo: purchase.PagarA || '',
-            total: purchase.Total.toString()
+            total: purchase.Total?.toString() || ''
         });
 
         const provider = providers.find(p => p.IdProveedor === purchase.IdProveedor);
@@ -724,284 +708,303 @@ export default function PurchasesCapturePage() {
             {/* Modal */}
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {tModal('title')} - {selectedDate.toLocaleDateString()}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
+                    <div className="bg-white w-[90vw] h-[90vh] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            {tModal('title')}
+                                        </span>
+                                    </div>
+                                    <h1 className="text-3xl font-black mb-4 leading-tight">
+                                        📅 {selectedDate.toLocaleDateString()}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         </div>
 
-                        {/* New Purchase Button */}
-                        {!isFormOpen && (
-                            <button
-                                onClick={handleNewPurchase}
-                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-medium shadow-sm transition-colors self-start"
-                            >
-                                {tModal('new')}
-                            </button>
-                        )}
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
 
-                        {/* Form */}
-                        {isFormOpen && (
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                                {/* Provider */}
-                                <div className="flex flex-col relative">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('provider')} *</label>
-                                    <input
-                                        type="text"
-                                        value={providerSearch}
-                                        onChange={(e) => {
-                                            setProviderSearch(e.target.value);
-                                            setShowProviderDropdown(true);
-                                            setFormData({ ...formData, providerId: '' });
-                                            setSelectedProvider(null);
-                                        }}
-                                        onFocus={() => setShowProviderDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
-                                        placeholder={tModal('searchProvider')}
-                                        className="p-2 border rounded text-sm w-full"
-                                        required
-                                    />
-                                    {showProviderDropdown && (
-                                        <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                            {providers
-                                                .filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true)
-                                                .map(p => (
-                                                    <div
-                                                        key={p.IdProveedor}
-                                                        onClick={() => {
-                                                            setSelectedProvider(p);
-                                                            setFormData({ ...formData, providerId: p.IdProveedor.toString() });
-                                                            setProviderSearch(p.Proveedor);
-                                                            setShowProviderDropdown(false);
-                                                        }}
-                                                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                                    >
-                                                        <div className="font-medium text-sm">{p.Proveedor}</div>
-                                                    </div>
-                                                ))}
-                                            {providers.filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true).length === 0 && (
-                                                <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                    {tModal('noResults')}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                            {/* New Purchase Button */}
+                            {!isFormOpen && (
+                                <Button
+                                    onClick={handleNewPurchase}
+                                    className="mb-4"
+                                >
+                                    ✨ {tModal('new')}
+                                </Button>
+                            )}
 
-                                {/* Invoice Number */}
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('invoiceNumber')} *</label>
-                                    <input
-                                        type="text"
-                                        className="p-2 border rounded text-sm uppercase"
-                                        value={formData.invoiceNumber}
-                                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value.toUpperCase() })}
-                                        required
-                                    />
-                                </div>
-
-                                {/* Payment Channel */}
-                                <div className="flex flex-col relative">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('paymentChannel')} *</label>
-                                    <input
-                                        type="text"
-                                        value={paymentChannelSearch}
-                                        onChange={(e) => {
-                                            setPaymentChannelSearch(e.target.value);
-                                            setShowPaymentChannelDropdown(true);
-                                            setFormData({ ...formData, paymentChannelId: '' });
-                                            setSelectedPaymentChannel(null);
-                                        }}
-                                        onFocus={() => setShowPaymentChannelDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
-                                        placeholder="Buscar canal de pago..."
-                                        className="p-2 border rounded text-sm w-full"
-                                        required
-                                    />
-                                    {showPaymentChannelDropdown && (
-                                        <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                            {paymentChannels
-                                                .filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
-                                                .map(pc => (
-                                                    <div
-                                                        key={pc.IdCanalPago}
-                                                        onClick={() => {
-                                                            setSelectedPaymentChannel(pc);
-                                                            setFormData({ ...formData, paymentChannelId: pc.IdCanalPago.toString() });
-                                                            setPaymentChannelSearch(pc.CanalPago);
-                                                            setShowPaymentChannelDropdown(false);
-                                                        }}
-                                                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                                    >
-                                                        <div className="font-medium text-sm">{pc.CanalPago}</div>
-                                                    </div>
-                                                ))}
-                                            {paymentChannels.filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
-                                                <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                    {tModal('noResults')}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Reference */}
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('reference')}</label>
-                                    <input
-                                        type="text"
-                                        className="p-2 border rounded text-sm"
-                                        value={formData.reference}
-                                        onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Pay To */}
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('payTo')}</label>
-                                    <input
-                                        type="text"
-                                        className="p-2 border rounded text-sm"
-                                        value={formData.payTo}
-                                        onChange={(e) => setFormData({ ...formData, payTo: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Total */}
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('total')} *</label>
-                                    <input
-                                        type="text"
-                                        className="p-2 border rounded text-sm"
-                                        value={formData.total}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setFormData({ ...formData, total: val });
-                                        }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            if (!isNaN(val)) {
-                                                setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                            }
-                                        }}
-                                        onFocus={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if (val === '0.00' || val === '0') {
-                                                setFormData({ ...formData, total: '' });
-                                            } else {
-                                                setFormData({ ...formData, total: val });
-                                            }
-                                        }}
-                                        required
-                                    />
-                                </div>
-
-                                <div className="md:col-span-3 flex gap-2">
-                                    <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium shadow-sm transition-colors">
-                                        {tModal('save')}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsFormOpen(false);
-                                            setEditingPurchase(null);
-                                        }}
-                                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 font-medium shadow-sm transition-colors"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {/* Grid */}
-                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('date')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('provider')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('invoiceNumber')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('paymentChannel')}</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('total')}</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {dailyPurchases.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tModal('noRecords')}</td>
-                                        </tr>
-                                    ) : (
-                                        dailyPurchases.map((purchase) => (
-                                            <tr
-                                                key={purchase.IdCompra}
-                                                className={`hover:bg-gray-50 transition-colors ${purchase.Status === 2 ? 'line-through text-gray-400' : ''}`}
-                                            >
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.IdCompra}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {new Date(purchase.FechaCompra).toLocaleDateString()}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.Proveedor}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.NumeroFactura}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{purchase.CanalPago}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(purchase.Total.toString()))}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                    {purchase.Status === 0 && (
-                                                        <button
-                                                            onClick={() => handleOpenDetailsModal(purchase)}
-                                                            className="text-green-600 hover:text-green-800 mr-3"
-                                                            title="Productos"
+                            {/* Form */}
+                            {isFormOpen && (
+                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                                    {/* Provider */}
+                                    <div className="flex flex-col relative">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('provider')} *</label>
+                                        <input
+                                            type="text"
+                                            value={providerSearch}
+                                            onChange={(e) => {
+                                                setProviderSearch(e.target.value);
+                                                setShowProviderDropdown(true);
+                                                setFormData({ ...formData, providerId: '' });
+                                                setSelectedProvider(null);
+                                            }}
+                                            onFocus={() => setShowProviderDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
+                                            placeholder={tModal('searchProvider')}
+                                            className="p-2 border rounded text-sm w-full"
+                                            required
+                                        />
+                                        {showProviderDropdown && (
+                                            <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                {providers
+                                                    .filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true)
+                                                    .map(p => (
+                                                        <div
+                                                            key={p.IdProveedor}
+                                                            onClick={() => {
+                                                                setSelectedProvider(p);
+                                                                setFormData({ ...formData, providerId: p.IdProveedor?.toString() || '' });
+                                                                setProviderSearch(p.Proveedor);
+                                                                setShowProviderDropdown(false);
+                                                            }}
+                                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
                                                         >
-                                                            📦
-                                                        </button>
-                                                    )}
-                                                    {purchase.Status !== 2 && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleEditPurchase(purchase)}
-                                                                className="text-blue-600 hover:text-blue-800 mr-3"
-                                                                title={tModal('edit')}
-                                                            >
-                                                                ✏️
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeletePurchase(purchase)}
-                                                                className="text-red-600 hover:text-red-800"
-                                                                title={tModal('delete')}
-                                                            >
-                                                                🗑️
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+                                                            <div className="font-medium text-sm">{p.Proveedor}</div>
+                                                        </div>
+                                                    ))}
+                                                {providers.filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true).length === 0 && (
+                                                    <div className="px-3 py-2 text-sm text-gray-400 italic">
+                                                        {tModal('noResults')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-                            >
-                                {tModal('close')}
-                            </button>
+                                    {/* Invoice Number */}
+                                    <div className="flex flex-col">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('invoiceNumber')} *</label>
+                                        <input
+                                            type="text"
+                                            className="p-2 border rounded text-sm uppercase"
+                                            value={formData.invoiceNumber}
+                                            onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value.toUpperCase() })}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Payment Channel */}
+                                    <div className="flex flex-col relative">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('paymentChannel')} *</label>
+                                        <input
+                                            type="text"
+                                            value={paymentChannelSearch}
+                                            onChange={(e) => {
+                                                setPaymentChannelSearch(e.target.value);
+                                                setShowPaymentChannelDropdown(true);
+                                                setFormData({ ...formData, paymentChannelId: '' });
+                                                setSelectedPaymentChannel(null);
+                                            }}
+                                            onFocus={() => setShowPaymentChannelDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
+                                            placeholder="Buscar canal de pago..."
+                                            className="p-2 border rounded text-sm w-full"
+                                            required
+                                        />
+                                        {showPaymentChannelDropdown && (
+                                            <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                                {paymentChannels
+                                                    .filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
+                                                    .map(pc => (
+                                                        <div
+                                                            key={pc.IdCanalPago}
+                                                            onClick={() => {
+                                                                setSelectedPaymentChannel(pc);
+                                                                setFormData({ ...formData, paymentChannelId: pc.IdCanalPago?.toString() || '' });
+                                                                setPaymentChannelSearch(pc.CanalPago);
+                                                                setShowPaymentChannelDropdown(false);
+                                                            }}
+                                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                                                        >
+                                                            <div className="font-medium text-sm">{pc.CanalPago}</div>
+                                                        </div>
+                                                    ))}
+                                                {paymentChannels.filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
+                                                    <div className="px-3 py-2 text-sm text-gray-400 italic">
+                                                        {tModal('noResults')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Reference */}
+                                    <div className="flex flex-col">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('reference')}</label>
+                                        <input
+                                            type="text"
+                                            className="p-2 border rounded text-sm"
+                                            value={formData.reference}
+                                            onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Pay To */}
+                                    <div className="flex flex-col">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('payTo')}</label>
+                                        <input
+                                            type="text"
+                                            className="p-2 border rounded text-sm"
+                                            value={formData.payTo}
+                                            onChange={(e) => setFormData({ ...formData, payTo: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Total */}
+                                    <div className="flex flex-col">
+                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('total')} *</label>
+                                        <input
+                                            type="text"
+                                            className="p-2 border rounded text-sm"
+                                            value={formData.total}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if ((val.match(/\./g) || []).length > 1) return;
+                                                setFormData({ ...formData, total: val });
+                                            }}
+                                            onBlur={(e) => {
+                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                if (!isNaN(val)) {
+                                                    setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                                }
+                                            }}
+                                            onFocus={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if (val === '0.00' || val === '0') {
+                                                    setFormData({ ...formData, total: '' });
+                                                } else {
+                                                    setFormData({ ...formData, total: val });
+                                                }
+                                            }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-3 flex gap-2">
+                                        <Button type="submit">
+                                            💾 {tModal('save')}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsFormOpen(false);
+                                                setEditingPurchase(null);
+                                            }}
+                                            variant="secondary"
+                                        >
+                                            {tCommon('cancel')}
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {/* Grid */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('date')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('provider')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('invoiceNumber')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('paymentChannel')}</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('total')}</th>
+                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {dailyPurchases.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tModal('noRecords')}</td>
+                                            </tr>
+                                        ) : (
+                                            dailyPurchases.map((purchase) => (
+                                                <tr
+                                                    key={purchase.IdCompra}
+                                                    className={`hover:bg-gray-50 transition-colors ${purchase.Status === 2 ? 'line-through text-gray-400' : ''}`}
+                                                >
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.IdCompra}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {new Date(purchase.FechaCompra).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.Proveedor}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.NumeroFactura}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{purchase.CanalPago}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(purchase.Total?.toString() || '0'))}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                        {purchase.Status === 0 && (
+                                                            <button
+                                                                onClick={() => handleOpenDetailsModal(purchase)}
+                                                                className="text-green-600 hover:text-green-800 mr-3"
+                                                                title="Productos"
+                                                            >
+                                                                📦
+                                                            </button>
+                                                        )}
+                                                        {purchase.Status !== 2 && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleEditPurchase(purchase)}
+                                                                    className="text-blue-600 hover:text-blue-800 mr-3"
+                                                                    title={tModal('edit')}
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeletePurchase(purchase)}
+                                                                    className="text-red-600 hover:text-red-800"
+                                                                    title={tModal('delete')}
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
+                                            <td className="px-6 py-4 text-right text-blue-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t border-gray-100">
+                                <Button
+                                    onClick={() => setIsModalOpen(false)}
+                                    variant="secondary"
+                                >
+                                    {tModal('close')}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1010,203 +1013,222 @@ export default function PurchasesCapturePage() {
             {/* Purchase Details Modal */}
             {isDetailsModalOpen && selectedPurchaseForDetails && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {tDetails('title')} - {selectedPurchaseForDetails.NumeroFactura}
-                            </h2>
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
+                    <div className="bg-white w-[80vw] h-[85vh] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            {tDetails('title')}
+                                        </span>
+                                    </div>
+                                    <h1 className="text-3xl font-black mb-4 leading-tight">
+                                        {selectedPurchaseForDetails.NumeroFactura} - {selectedPurchaseForDetails.Proveedor}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => setIsDetailsModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Add Product Form */}
-                        <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg items-end">
-                            {/* Product Drilldown */}
-                            <div className="flex flex-col relative">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('product')} *</label>
-                                <input
-                                    type="text"
-                                    value={productSearch}
-                                    onChange={(e) => {
-                                        setProductSearch(e.target.value);
-                                        setShowProductDropdown(true);
-                                        setDetailFormData({ ...detailFormData, productId: '' });
-                                        setSelectedProduct(null);
-                                    }}
-                                    onFocus={() => setShowProductDropdown(true)}
-                                    placeholder={tDetails('searchProduct')}
-                                    className="p-2 border rounded text-sm w-full"
-                                    required
-                                />
-                                {showProductDropdown && (
-                                    <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        {products
-                                            .filter(p => productSearch ?
-                                                p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
-                                                p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
-                                                : true)
-                                            .map(p => (
-                                                <div
-                                                    key={p.IdProducto}
-                                                    onClick={() => {
-                                                        setSelectedProduct(p);
-                                                        setDetailFormData({ ...detailFormData, productId: p.IdProducto.toString() });
-                                                        setProductSearch(`${p.Codigo} - ${p.Producto}`);
-                                                        setShowProductDropdown(false);
-                                                    }}
-                                                    className="px-3 py-2 hover:bg-green-50 cursor-pointer"
-                                                >
-                                                    <div className="font-medium text-sm">{p.Codigo} - {p.Producto}</div>
-                                                    <div className="text-xs text-gray-500">{p.Presentacion}</div>
-                                                </div>
-                                            ))}
-                                        {products.filter(p => productSearch ?
-                                            p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
-                                            p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
-                                            : true).length === 0 && productSearch && (
-                                                <div className="px-3 py-2">
-                                                    <div className="text-sm text-gray-400 italic mb-2">
-                                                        {tDetails('noResults')}
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={openProductModal}
-                                                        className="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-medium text-sm transition-colors flex items-center justify-center gap-2"
-                                                    >
-                                                        {tDetails('createProductButton')}
-                                                    </button>
-                                                </div>
-                                            )}
-                                    </div>
-                                )}
-                            </div>
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
 
-                            {/* Quantity */}
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('quantity')} *</label>
-                                <div className="flex items-center gap-2">
+                            {/* Add Product Form */}
+                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg items-end">
+                                {/* Product Drilldown */}
+                                <div className="flex flex-col relative">
+                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('product')} *</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        className="p-2 border rounded text-sm flex-1"
-                                        value={detailFormData.quantity}
-                                        onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
+                                        type="text"
+                                        value={productSearch}
+                                        onChange={(e) => {
+                                            setProductSearch(e.target.value);
+                                            setShowProductDropdown(true);
+                                            setDetailFormData({ ...detailFormData, productId: '' });
+                                            setSelectedProduct(null);
+                                        }}
+                                        onFocus={() => setShowProductDropdown(true)}
+                                        placeholder={tDetails('searchProduct')}
+                                        className="p-2 border rounded text-sm w-full"
                                         required
                                     />
-                                    {selectedProduct && (
-                                        <span className="text-xs text-gray-600 whitespace-nowrap">{selectedProduct.Presentacion}</span>
+                                    {showProductDropdown && (
+                                        <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                            {products
+                                                .filter(p => productSearch ?
+                                                    p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
+                                                    p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
+                                                    : true)
+                                                .map(p => (
+                                                    <div
+                                                        key={p.IdProducto}
+                                                        onClick={() => {
+                                                            setSelectedProduct(p);
+                                                            setDetailFormData({ ...detailFormData, productId: p.IdProducto?.toString() || '' });
+                                                            setProductSearch(`${p.Codigo} - ${p.Producto}`);
+                                                            setShowProductDropdown(false);
+                                                        }}
+                                                        className="px-3 py-2 hover:bg-green-50 cursor-pointer"
+                                                    >
+                                                        <div className="font-medium text-sm">{p.Codigo} - {p.Producto}</div>
+                                                        <div className="text-xs text-gray-500">{p.UnidadMedidaCompra}</div>
+                                                    </div>
+                                                ))}
+                                            {products.filter(p => productSearch ?
+                                                p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
+                                                p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
+                                                : true).length === 0 && productSearch && (
+                                                    <div className="px-3 py-2">
+                                                        <div className="text-sm text-gray-400 italic mb-2">
+                                                            {tDetails('noResults')}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={openProductModal}
+                                                            className="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                                                        >
+                                                            {tDetails('createProductButton')}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                        </div>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Cost */}
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('cost')} *</label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm"
-                                    value={detailFormData.cost}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if ((val.match(/\./g) || []).length > 1) return;
-                                        setDetailFormData({ ...detailFormData, cost: val });
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                        if (!isNaN(val)) {
-                                            setDetailFormData({ ...detailFormData, cost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                        }
-                                    }}
-                                    onFocus={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if (val === '0.00' || val === '0') {
-                                            setDetailFormData({ ...detailFormData, cost: '' });
-                                        } else {
+                                {/* Quantity */}
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('quantity')} *</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className="p-2 border rounded text-sm flex-1"
+                                            value={detailFormData.quantity}
+                                            onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
+                                            required
+                                        />
+                                        {selectedProduct && (
+                                            <span className="text-xs text-gray-600 whitespace-nowrap">{selectedProduct.UnidadMedidaCompra}</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Cost */}
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('cost')} *</label>
+                                    <input
+                                        type="text"
+                                        className="p-2 border rounded text-sm"
+                                        value={detailFormData.cost}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
                                             setDetailFormData({ ...detailFormData, cost: val });
-                                        }
-                                    }}
-                                    required
-                                />
-                            </div>
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            if (!isNaN(val)) {
+                                                setDetailFormData({ ...detailFormData, cost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
+                                            }
+                                        }}
+                                        onFocus={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if (val === '0.00' || val === '0') {
+                                                setDetailFormData({ ...detailFormData, cost: '' });
+                                            } else {
+                                                setDetailFormData({ ...detailFormData, cost: val });
+                                            }
+                                        }}
+                                        required
+                                    />
+                                </div>
 
-                            {/* Total (calculated) */}
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('total')}</label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm bg-gray-100"
-                                    value={detailFormData.quantity && detailFormData.cost ?
-                                        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '')))
-                                        : '$0.00'}
-                                    disabled
-                                />
-                            </div>
+                                {/* Total (calculated) */}
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('total')}</label>
+                                    <input
+                                        type="text"
+                                        className="p-2 border rounded text-sm bg-gray-100"
+                                        value={detailFormData.quantity && detailFormData.cost ?
+                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '')))
+                                            : '$0.00'}
+                                        disabled
+                                    />
+                                </div>
 
-                            {/* Add Button */}
-                            <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-medium shadow-sm transition-colors md:col-span-4">
-                                {tDetails('add')}
-                            </button>
-                        </form>
+                                {/* Add Button */}
+                                <Button type="submit" className="md:col-span-4">
+                                    ➕ {tDetails('add')}
+                                </Button>
+                            </form>
 
-                        {/* Details Grid */}
-                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('quantity')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('presentation')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('code')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('product')}</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('cost')}</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('total')}</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {purchaseDetails.length === 0 ? (
+                            {/* Details Grid */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
                                         <tr>
-                                            <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tDetails('noDetails')}</td>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('quantity')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('presentation')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('code')}</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('product')}</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('cost')}</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('total')}</th>
+                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                                         </tr>
-                                    ) : (
-                                        purchaseDetails.map((detail) => (
-                                            <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Cantidad}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.Presentacion}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo.toString()))}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                    <button
-                                                        onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
-                                                        className="text-red-600 hover:text-red-800"
-                                                        title={tDetails('delete')}
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {purchaseDetails.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tDetails('noDetails')}</td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tDetails('total')}</td>
-                                        <td className="px-6 py-4 text-right text-green-600 text-lg">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+                                        ) : (
+                                            purchaseDetails.map((detail) => (
+                                                <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Cantidad}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.UnidadMedidaCompra}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo?.toString() || '0'))}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                        <button
+                                                            onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
+                                                            className="text-red-600 hover:text-red-800"
+                                                            title={tDetails('delete')}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tDetails('total')}</td>
+                                            <td className="px-6 py-4 text-right text-green-600 text-lg">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
 
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
-                            <button
-                                onClick={() => setIsDetailsModalOpen(false)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-                            >
-                                {tDetails('close')}
-                            </button>
+                            <div className="flex justify-end pt-4 border-t border-gray-100">
+                                <Button
+                                    onClick={() => setIsDetailsModalOpen(false)}
+                                    variant="secondary"
+                                >
+                                    {tDetails('close')}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1215,11 +1237,23 @@ export default function PurchasesCapturePage() {
             {/* Product Creation Modal */}
             {isProductModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {tDetails('createProduct')}
-                        </h2>
-                        <form onSubmit={handleCreateProduct} className="space-y-4">
+                    <div className="bg-white w-full max-w-md rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 py-4" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-xl font-bold">
+                                    ✨ {tDetails('createProduct')}
+                                </h1>
+                                <button
+                                    onClick={() => setIsProductModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleCreateProduct} className="p-6 space-y-4 bg-white border-t border-gray-200">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     {tDetails('product')} *
@@ -1262,24 +1296,21 @@ export default function PurchasesCapturePage() {
                                     ))}
                                 </select>
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {tDetails('presentation')} *
+                                    Unidad de Medida Compra *
                                 </label>
-                                <select
-                                    value={productFormData.idPresentacion}
-                                    onChange={(e) => setProductFormData({ ...productFormData, idPresentacion: e.target.value })}
+                                <input
+                                    type="text"
+                                    value={productFormData.unidadMedidaCompra}
+                                    onChange={(e) => setProductFormData({ ...productFormData, unidadMedidaCompra: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="p.ej. Kg, Litro, Caja"
                                     required
-                                >
-                                    <option value="">Seleccionar...</option>
-                                    {presentations.map((presentation) => (
-                                        <option key={presentation.IdPresentacion} value={presentation.IdPresentacion}>
-                                            {presentation.Presentacion}
-                                        </option>
-                                    ))}
-                                </select>
+                                />
                             </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Precio *
@@ -1324,19 +1355,18 @@ export default function PurchasesCapturePage() {
                                 />
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => setIsProductModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                                    variant="secondary"
                                 >
-                                    Cancelar
-                                </button>
-                                <button
+                                    {tCommon('cancel')}
+                                </Button>
+                                <Button
                                     type="submit"
-                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                                 >
-                                    Guardar
-                                </button>
+                                    💾 {tCommon('save')}
+                                </Button>
                             </div>
                         </form>
                     </div>

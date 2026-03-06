@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import * as XLSX from 'xlsx';
+import { useTheme } from '@/contexts/ThemeContext';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
 
 interface Branch {
     IdSucursal: number;
@@ -33,6 +36,8 @@ interface InventoryEntry {
     IdCategoria: number;
     Categoria: string;
     Total: number;
+    UnidadMedidaInventario?: string;
+    ImagenCategoria?: string;
 }
 
 interface GroupedInventory {
@@ -43,6 +48,7 @@ export default function InventoryCapturePage() {
     const t = useTranslations('InventoryCapture');
     const tModal = useTranslations('InventoryModal');
     const tCommon = useTranslations('Common');
+    const { colors } = useTheme();
 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -205,6 +211,7 @@ export default function InventoryCapturePage() {
             const response = await fetch(`/api/inventories/daily?${params}`);
             const data = await response.json();
             if (data.success) {
+                console.log('Fetched inventory entries:', data.data.length);
                 setInventoryEntries(data.data);
 
                 // Initialize edited quantities with current values
@@ -251,12 +258,17 @@ export default function InventoryCapturePage() {
             });
 
             if (response.ok) {
+                alert(tCommon('successUpdate') || '¡Guardado con éxito!');
                 await fetchInventoryEntries(selectedDate);
                 await fetchInventoryDates();
                 setIsModalOpen(false);
+            } else {
+                const errorData = await response.json();
+                alert(`${tCommon('errorUpdate') || 'Error al guardar'}: ${errorData.message || ''}`);
             }
         } catch (error) {
             console.error('Error saving inventory:', error);
+            alert(tCommon('errorUpdate') || 'Error al guardar');
         } finally {
             setIsLoading(false);
         }
@@ -520,21 +532,32 @@ export default function InventoryCapturePage() {
             {/* Excel-like Inventory Modal */}
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col">
+                    <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                         {/* Header */}
-                        <div className="flex flex-col p-6 border-b gap-4">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-xl font-bold text-gray-800">
-                                    {tModal('title')} - {selectedDate.toLocaleDateString()}
-                                </h2>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            {tModal('title')}
+                                        </span>
+                                    </div>
+                                    <h1 className="text-3xl font-black mb-4 leading-tight">
+                                        📅 {selectedDate.toLocaleDateString()}
+                                    </h1>
+                                </div>
                                 <button
                                     onClick={() => setIsModalOpen(false)}
-                                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
                                     disabled={isLoading}
                                 >
                                     ✕
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Search and Actions */}
+                        <div className="flex flex-col p-6 border-b gap-4 bg-gray-50/50">
                             <div className="relative">
                                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                                     🔍
@@ -548,20 +571,22 @@ export default function InventoryCapturePage() {
                                 />
                             </div>
                             <div className="flex gap-2 justify-end">
-                                <button
+                                <Button
                                     onClick={handlePrint}
-                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors flex items-center gap-2 text-sm"
+                                    variant="secondary"
+                                    className="flex items-center gap-2"
                                     disabled={isLoading}
                                 >
                                     🖨️ Imprimir
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleExport}
-                                    className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium transition-colors flex items-center gap-2 text-sm"
+                                    variant="secondary"
+                                    className="flex items-center gap-2"
                                     disabled={isLoading}
                                 >
                                     📊 Exportar Excel
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
@@ -572,12 +597,21 @@ export default function InventoryCapturePage() {
                                     {/* Category Header */}
                                     <div
                                         onClick={() => toggleCategory(categoria)}
-                                        className="bg-orange-500 text-white px-4 py-2 font-bold rounded-t-lg flex justify-between items-center cursor-pointer hover:bg-orange-600 transition-colors"
+                                        className="px-6 py-3 font-black rounded-t-lg flex justify-between items-center cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-md"
+                                        style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <span>{collapsedCategories[categoria] ? '▶' : '▼'}</span>
-                                            <span>{categoria}</span>
-                                            <div className="text-sm font-semibold text-gray-900">Subtotal: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}</div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">{collapsedCategories[categoria] ? '▶' : '▼'}</span>
+                                            <span className="text-lg uppercase tracking-tight">
+                                                {entries[0]?.ImagenCategoria ? `${entries[0].ImagenCategoria} ` : '📁 '}
+                                                {categoria}
+                                            </span>
+                                        </div>
+                                        <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/30">
+                                            <span className="text-sm font-bold opacity-90">Subtotal:</span>
+                                            <span className="ml-2 text-base font-black">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -604,7 +638,7 @@ export default function InventoryCapturePage() {
                                                             <tr key={entry.IdProducto} className="hover:bg-gray-50">
                                                                 <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Codigo}</td>
                                                                 <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Producto}</td>
-                                                                <td className="px-4 py-2 text-sm text-gray-600 truncate">{entry.Presentacion}</td>
+                                                                <td className="px-4 py-2 text-sm text-gray-600 truncate">{entry.UnidadMedidaInventario || entry.Presentacion || '-'}</td>
                                                                 <td className="px-4 py-2 text-center">
                                                                     <input
                                                                         type="number"
@@ -639,21 +673,20 @@ export default function InventoryCapturePage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex justify-end gap-3 p-6 border-t">
-                            <button
+                        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                            <Button
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                                variant="secondary"
                                 disabled={isLoading}
                             >
                                 {tModal('close')}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleSaveAll}
-                                className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors disabled:bg-gray-400"
-                                disabled={isLoading}
+                                isLoading={isLoading}
                             >
-                                {isLoading ? 'Guardando...' : 'Guardar Todo'}
-                            </button>
+                                💾 {tCommon('save')}
+                            </Button>
                         </div>
                     </div>
                 </div>
