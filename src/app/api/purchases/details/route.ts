@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
             [purchaseId, productId, quantity, cost]
         );
 
+        // Update product price in catalog to reflect most recent purchase cost
+        await connection.query(
+            `UPDATE tblProductos SET Precio = ?, FechaAct = NOW() WHERE IdProducto = ?`,
+            [cost, productId]
+        );
+
         return NextResponse.json({
             success: true,
             message: 'Purchase detail added successfully',
@@ -100,6 +106,54 @@ export async function DELETE(request: NextRequest) {
     } catch (error) {
         console.error('Error deleting purchase detail:', error);
         return NextResponse.json({ success: false, message: 'Error deleting purchase detail' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function PUT(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, detailId, quantity, cost } = body;
+
+        if (!projectId || !detailId || quantity === undefined || cost === undefined) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(projectId);
+
+        // Get product ID first to update catalog
+        const [rows]: [RowDataPacket[], any] = await connection.query(
+            'SELECT IdProducto FROM tblDetalleCompras WHERE IdDetalleCompra = ?',
+            [detailId]
+        );
+
+        if (rows.length === 0) {
+            return NextResponse.json({ success: false, message: 'Detail not found' }, { status: 404 });
+        }
+
+        const productId = rows[0].IdProducto;
+
+        // Update purchase detail
+        await connection.query(
+            'UPDATE tblDetalleCompras SET Cantidad = ?, Costo = ?, FechaAct = NOW() WHERE IdDetalleCompra = ?',
+            [quantity, cost, detailId]
+        );
+
+        // Update product price in catalog
+        await connection.query(
+            'UPDATE tblProductos SET Precio = ?, FechaAct = NOW() WHERE IdProducto = ?',
+            [cost, productId]
+        );
+
+        return NextResponse.json({
+            success: true,
+            message: 'Purchase detail updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating purchase detail:', error);
+        return NextResponse.json({ success: false, message: 'Error updating purchase detail' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }

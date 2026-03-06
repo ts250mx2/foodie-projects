@@ -129,6 +129,11 @@ export default function PurchasesCapturePage() {
         iva: ''
     });
 
+    // Inline editing state for purchase details
+    const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
+    const [editQuantity, setEditQuantity] = useState('');
+    const [editCost, setEditCost] = useState('');
+
     // Generate years
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 7 }, (_, i) => currentYear - 5 + i);
@@ -311,6 +316,44 @@ export default function PurchasesCapturePage() {
             }
         } catch (error) {
             console.error('Error deleting purchase detail:', error);
+        }
+    };
+
+    const handleEditDetailStart = (detail: PurchaseDetail) => {
+        setEditingDetailId(detail.IdDetalleCompra);
+        setEditQuantity(detail.Cantidad.toString());
+        setEditCost(detail.Costo.toString());
+    };
+
+    const handleEditDetailCancel = () => {
+        setEditingDetailId(null);
+        setEditQuantity('');
+        setEditCost('');
+    };
+
+    const handleEditDetailSave = async (detailId: number) => {
+        if (!project || !selectedPurchaseForDetails) return;
+
+        try {
+            const response = await fetch('/api/purchases/details', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    detailId,
+                    quantity: parseFloat(editQuantity),
+                    cost: parseFloat(editCost.replace(/[^0-9.]/g, ''))
+                })
+            });
+
+            if (response.ok) {
+                await fetchPurchaseDetails(selectedPurchaseForDetails.IdCompra);
+                setEditingDetailId(null);
+                setEditQuantity('');
+                setEditCost('');
+            }
+        } catch (error) {
+            console.error('Error updating purchase detail:', error);
         }
     };
 
@@ -1189,21 +1232,79 @@ export default function PurchasesCapturePage() {
                                             </tr>
                                         ) : (
                                             purchaseDetails.map((detail) => (
-                                                <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Cantidad}</td>
+                                                <tr key={detail.IdDetalleCompra} className={`hover:bg-gray-50 transition-colors ${editingDetailId === detail.IdDetalleCompra ? 'bg-blue-50' : ''}`}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {editingDetailId === detail.IdDetalleCompra ? (
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                className="w-20 p-1 border rounded"
+                                                                value={editQuantity}
+                                                                onChange={(e) => setEditQuantity(e.target.value)}
+                                                                autoFocus
+                                                            />
+                                                        ) : detail.Cantidad}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.UnidadMedidaCompra}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo?.toString() || '0'))}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                                        {editingDetailId === detail.IdDetalleCompra ? (
+                                                            <input
+                                                                type="text"
+                                                                className="w-24 p-1 border rounded text-right"
+                                                                value={editCost}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                    if ((val.match(/\./g) || []).length > 1) return;
+                                                                    setEditCost(val);
+                                                                }}
+                                                            />
+                                                        ) : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo?.toString() || '0'))}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                                                        {editingDetailId === detail.IdDetalleCompra ? (
+                                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(editQuantity || '0') * parseFloat(editCost || '0'))
+                                                        ) : (
+                                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                        <button
-                                                            onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
-                                                            className="text-red-600 hover:text-red-800"
-                                                            title={tDetails('delete')}
-                                                        >
-                                                            🗑️
-                                                        </button>
+                                                        {editingDetailId === detail.IdDetalleCompra ? (
+                                                            <div className="flex justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleEditDetailSave(detail.IdDetalleCompra)}
+                                                                    className="text-green-600 hover:text-green-800"
+                                                                    title={tCommon('save')}
+                                                                >
+                                                                    ✅
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleEditDetailCancel}
+                                                                    className="text-gray-600 hover:text-gray-800"
+                                                                    title={tCommon('cancel')}
+                                                                >
+                                                                    ❌
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleEditDetailStart(detail)}
+                                                                    className="text-blue-600 hover:text-blue-800"
+                                                                    title={tModal('edit')}
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
+                                                                    className="text-red-600 hover:text-red-800"
+                                                                    title={tDetails('delete')}
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))

@@ -540,7 +540,7 @@ export default function ProductsPage() {
                                     {(product as any).UnidadMedidaCompra}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    ${product.Precio.toFixed(2)}
+                                    ${(product.Precio || 0).toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                                     {product.IVA}%
