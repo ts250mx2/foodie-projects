@@ -31,7 +31,6 @@ export async function GET(request: NextRequest) {
             FROM tblProductosKits pk
             INNER JOIN tblProductos p ON pk.IdProductoHijo = p.IdProducto
             LEFT JOIN tblCategorias c ON p.IdCategoria = c.IdCategoria
-            LEFT JOIN tblPresentaciones pr ON p.IdPresentacion = pr.IdPresentacion
             WHERE pk.IdProductoPadre = ?
             ORDER BY p.Producto ASC`,
             [productId]

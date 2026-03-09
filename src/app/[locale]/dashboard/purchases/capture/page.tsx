@@ -40,6 +40,8 @@ interface Product {
     Producto: string;
     Codigo: string;
     UnidadMedidaCompra: string;
+    Precio?: number;
+    Costo?: number;
 }
 
 interface Category {
@@ -283,7 +285,7 @@ export default function PurchasesCapturePage() {
                     purchaseId: selectedPurchaseForDetails.IdCompra,
                     productId: parseInt(detailFormData.productId),
                     quantity: parseFloat(detailFormData.quantity),
-                    cost: parseFloat(detailFormData.cost)
+                    cost: parseFloat(detailFormData.cost.replace(/[^0-9.]/g, ''))
                 })
             });
 
@@ -382,11 +384,18 @@ export default function PurchasesCapturePage() {
                 await fetchProducts();
 
                 // Auto-select the newly created product
+                const parsedPrice = productFormData.precio ? parseFloat(productFormData.precio.replace(/[^0-9.]/g, '')) : 0;
                 const newProduct = products.find(p => p.IdProducto === data.productId) ||
-                    { IdProducto: data.productId, Producto: productFormData.producto, Codigo: productFormData.codigo, UnidadMedidaCompra: productFormData.unidadMedidaCompra };
+                    { IdProducto: data.productId, Producto: productFormData.producto, Codigo: productFormData.codigo, UnidadMedidaCompra: productFormData.unidadMedidaCompra, Precio: parsedPrice };
 
-                setSelectedProduct(newProduct);
-                setDetailFormData({ ...detailFormData, productId: data.productId?.toString() || '' });
+                setSelectedProduct(newProduct as Product);
+                const formattedPrice = parsedPrice > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parsedPrice) : '';
+
+                setDetailFormData({
+                    ...detailFormData,
+                    productId: data.productId?.toString() || '',
+                    cost: formattedPrice
+                });
                 setProductSearch(`${productFormData.codigo} - ${productFormData.producto}`);
 
                 // Reset and close modal
@@ -1083,9 +1092,9 @@ export default function PurchasesCapturePage() {
                         <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
 
                             {/* Add Product Form */}
-                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg items-end">
+                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-gray-50 p-4 rounded-lg items-end">
                                 {/* Product Drilldown */}
-                                <div className="flex flex-col relative">
+                                <div className="flex flex-col relative md:col-span-4">
                                     <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('product')} *</label>
                                     <input
                                         type="text"
@@ -1113,7 +1122,15 @@ export default function PurchasesCapturePage() {
                                                         key={p.IdProducto}
                                                         onClick={() => {
                                                             setSelectedProduct(p);
-                                                            setDetailFormData({ ...detailFormData, productId: p.IdProducto?.toString() || '' });
+
+                                                            const rawCost = p.Costo ? parseFloat(p.Costo.toString()) : p.Precio ? parseFloat(p.Precio.toString()) : 0;
+                                                            const formattedCost = rawCost > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rawCost) : '';
+
+                                                            setDetailFormData({
+                                                                ...detailFormData,
+                                                                productId: p.IdProducto?.toString() || '',
+                                                                cost: formattedCost
+                                                            });
                                                             setProductSearch(`${p.Codigo} - ${p.Producto}`);
                                                             setShowProductDropdown(false);
                                                         }}
@@ -1145,8 +1162,10 @@ export default function PurchasesCapturePage() {
                                 </div>
 
                                 {/* Quantity */}
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('quantity')} *</label>
+                                <div className="flex flex-col md:col-span-2">
+                                    <label className="text-xs font-semibold text-gray-600 mb-1">
+                                        {tDetails('quantity')} {selectedProduct && `(${selectedProduct.UnidadMedidaCompra})`} *
+                                    </label>
                                     <div className="flex items-center gap-2">
                                         <input
                                             type="number"
@@ -1156,14 +1175,11 @@ export default function PurchasesCapturePage() {
                                             onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
                                             required
                                         />
-                                        {selectedProduct && (
-                                            <span className="text-xs text-gray-600 whitespace-nowrap">{selectedProduct.UnidadMedidaCompra}</span>
-                                        )}
                                     </div>
                                 </div>
 
                                 {/* Cost */}
-                                <div className="flex flex-col">
+                                <div className="flex flex-col relative md:col-span-2">
                                     <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('cost')} *</label>
                                     <input
                                         type="text"
@@ -1190,10 +1206,36 @@ export default function PurchasesCapturePage() {
                                         }}
                                         required
                                     />
+                                    {selectedProduct && detailFormData.cost && (
+                                        (() => {
+                                            const defaultCost = selectedProduct.Costo || selectedProduct.Precio || 0;
+                                            const currentCost = parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '') || '0');
+                                            if (defaultCost > 0 && currentCost > 0 && currentCost !== defaultCost) {
+                                                const diff = currentCost - defaultCost;
+                                                const diffPercentage = (diff / defaultCost) * 100;
+                                                const isIncrease = diff > 0;
+                                                return (
+                                                    <div className={`absolute top-full left-0 mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-[13px] font-bold px-2.5 py-1 rounded shadow-md z-10 border ${isIncrease ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                                                        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white bg-opacity-60 shadow-sm">
+                                                            {isIncrease ? '↑' : '↓'}
+                                                        </span>
+                                                        <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(defaultCost)}</span>
+                                                        <span className="opacity-40">|</span>
+                                                        <span>{isIncrease ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diff)}</span>
+                                                        <span className="opacity-40">|</span>
+                                                        <span className={`px-1 rounded bg-white bg-opacity-60 ${isIncrease ? 'text-red-800' : 'text-green-800'}`}>
+                                                            {Math.abs(diffPercentage).toFixed(2)}%
+                                                        </span>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()
+                                    )}
                                 </div>
 
                                 {/* Total (calculated) */}
-                                <div className="flex flex-col">
+                                <div className="flex flex-col md:col-span-2">
                                     <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('total')}</label>
                                     <input
                                         type="text"
@@ -1206,13 +1248,13 @@ export default function PurchasesCapturePage() {
                                 </div>
 
                                 {/* Add Button */}
-                                <Button type="submit" className="md:col-span-4">
+                                <Button type="submit" className="md:col-span-2 w-full">
                                     ➕ {tDetails('add')}
                                 </Button>
                             </form>
 
                             {/* Details Grid */}
-                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-6">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>

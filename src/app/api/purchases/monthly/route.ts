@@ -28,12 +28,11 @@ export async function GET(request: NextRequest) {
                 DAY(C.FechaCompra) as day, 
                 P.Proveedor,
                 SUM(C.Total) as total,
-                COUNT(DISTINCT D.IdDetalleCompra) as itemCount
+                SUM((SELECT COUNT(*) FROM tblDetalleCompras D WHERE D.IdCompra = C.IdCompra)) as itemCount
              FROM tblCompras C
              INNER JOIN tblProveedores P ON C.IdProveedor = P.IdProveedor
-             LEFT JOIN tblDetalleCompras D ON C.IdCompra = D.IdCompra
              WHERE C.IdSucursal = ? AND MONTH(C.FechaCompra) = ? AND YEAR(C.FechaCompra) = ? AND C.Status != 2
-             GROUP BY DAY(C.FechaCompra), P.Proveedor
+             GROUP BY DAY(C.FechaCompra), P.Proveedor, P.IdProveedor
              ORDER BY day, P.Proveedor`,
             [branchId, month, year]
         );
