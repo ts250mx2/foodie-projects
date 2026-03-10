@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS `tblInventarios` (
 
 
 CREATE TABLE IF NOT EXISTS `tblNomina` (
+  `IdNomina` int NOT NULL AUTO_INCREMENT,
   `Dia` int NOT NULL,
   `Mes` int NOT NULL,
   `Anio` int NOT NULL,
@@ -116,7 +117,8 @@ CREATE TABLE IF NOT EXISTS `tblNomina` (
   `Pago` double DEFAULT NULL,
   `FechaAct` datetime DEFAULT NULL,
   `IdSucursal` int NOT NULL,
-  PRIMARY KEY (`Dia`,`Mes`,`Anio`,`IdUsuario`,`IdSucursal`)
+  PRIMARY KEY (`IdNomina`),
+  INDEX `idx_payroll_lookup` (`Dia`, `Mes`, `Anio`, `IdSucursal`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_bin;
 
 CREATE TABLE IF NOT EXISTS `tblPlataformas` (

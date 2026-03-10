@@ -863,6 +863,11 @@
         "confirmDelete": "Are you sure you want to delete this tax?"
     },
     "Common": {
-        "errorFutureDate": "Cannot capture data for future dates."
+        "errorFutureDate": "Cannot capture data for future dates.",
+        "confirmDelete": "Are you sure you want to delete this record?",
+        "save": "Save",
+        "close": "Close",
+        "loading": "Loading...",
+        "cancel": "Cancel"
     }
 }

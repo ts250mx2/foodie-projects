@@ -2163,7 +2163,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <span className="text-lg font-bold text-green-600">
                                                         {(() => {
                                                             const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
                                                             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
                                                         })()}
                                                     </span>
@@ -2175,7 +2175,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <span className="text-lg font-bold text-purple-600">
                                                         {(() => {
                                                             const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                            const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
                                                             const conversion = simpleConversion || 1;
                                                             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
                                                         })()}

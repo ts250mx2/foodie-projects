@@ -909,6 +909,7 @@
         "loading": "Cargando...",
         "cancel": "Cancelar",
         "successUpdate": "Actualizado exitosamente",
-        "errorUpdate": "Error al actualizar"
+        "errorUpdate": "Error al actualizar",
+        "confirmDelete": "¿Estás seguro de que deseas borrar este registro?"
     }
 }

@@ -21,14 +21,14 @@ export async function GET(request: NextRequest) {
         const monthNum = parseInt(month) + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        // Get daily payroll with employee names, filtered by branch
+        // Get daily payroll with employee names and IdNomina
         const [rows] = await connection.query(
-            `SELECT n.*, e.Empleado
+            `SELECT n.Dia, n.Mes, n.Anio, n.IdUsuario, n.Pago, e.Empleado
              FROM tblNomina n
-             LEFT JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
-             WHERE n.Dia = ? AND n.Mes = ? AND n.Anio = ? AND e.IdSucursal = ?
-             ORDER BY e.Empleado`,
-            [day, monthNum, year, branchId]
+             INNER JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
+             WHERE n.IdSucursal = ? AND n.Dia = ? AND n.Mes = ? AND n.Anio = ?
+             ORDER BY n.FechaAct`,
+            [branchId, day, monthNum, year]
         );
 
         return NextResponse.json({ success: true, data: rows });
@@ -53,12 +53,12 @@ export async function POST(request: NextRequest) {
         const monthNum = month + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        // Insert or update payroll record
+        // Incremental: Add to existing amount if already exists for this employee/day/branch
         const [result] = await connection.query(
-            `INSERT INTO tblNomina (Dia, Mes, Anio, IdUsuario, Pago, FechaAct)
-             VALUES (?, ?, ?, ?, ?, Now())
-             ON DUPLICATE KEY UPDATE Pago = Pago + ?, FechaAct = Now()`,
-            [day, monthNum, year, employeeId, amount, amount]
+            `INSERT INTO tblNomina (Dia, Mes, Anio, IdUsuario, Pago, IdSucursal, FechaAct)
+             VALUES (?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE Pago = Pago + VALUES(Pago), FechaAct = NOW()`,
+            [day, monthNum, year, employeeId, amount, branchId]
         );
 
         return NextResponse.json({
@@ -73,3 +73,38 @@ export async function POST(request: NextRequest) {
     }
 }
 
+export async function DELETE(request: NextRequest) {
+    let connection;
+    try {
+        const { searchParams } = new URL(request.url);
+        const projectIdStr = searchParams.get('projectId');
+        const branchIdStr = searchParams.get('branchId');
+        const employeeIdStr = searchParams.get('employeeId');
+        const day = searchParams.get('day');
+        const month = searchParams.get('month'); // 0-11
+        const year = searchParams.get('year');
+
+        if (!projectIdStr || !branchIdStr || !employeeIdStr || !day || month === null || !year) {
+            return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
+        }
+
+        const projectId = parseInt(projectIdStr);
+        const branchId = parseInt(branchIdStr);
+        const employeeId = parseInt(employeeIdStr);
+        const monthNum = parseInt(month) + 1; // 1-12
+
+        connection = await getProjectConnection(projectId);
+
+        await connection.query(
+            'DELETE FROM tblNomina WHERE IdSucursal = ? AND Dia = ? AND Mes = ? AND Anio = ? AND IdUsuario = ?',
+            [branchId, day, monthNum, year, employeeId]
+        );
+
+        return NextResponse.json({ success: true, message: 'Payroll deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting payroll:', error);
+        return NextResponse.json({ success: false, message: 'Error deleting payroll' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}

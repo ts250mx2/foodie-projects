@@ -2,16 +2,28 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import Button from '@/components/Button';
 
 interface Employee {
     IdEmpleado: number;
     Empleado: string;
     IdSucursal: number | null;
+    Puesto?: string;
+    ImagenTipoPuesto?: string;
 }
 
 interface Branch {
     IdSucursal: number;
     Sucursal: string;
+}
+
+interface PayrollEntry {
+    Dia: number;
+    Mes: number;
+    Anio: number;
+    IdUsuario: number;
+    Pago: number;
+    Empleado: string;
 }
 
 export default function PayrollCapturePage() {
@@ -25,7 +37,7 @@ export default function PayrollCapturePage() {
 
     // Data for modal
     const [employees, setEmployees] = useState<Employee[]>([]);
-    const [dailyPayroll, setDailyPayroll] = useState<any[]>([]);
+    const [dailyPayroll, setDailyPayroll] = useState<PayrollEntry[]>([]);
     const [monthlyPayrollDetails, setMonthlyPayrollDetails] = useState<Record<number, Array<{ employeeName: string, total: number }>>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -35,6 +47,9 @@ export default function PayrollCapturePage() {
         employeeId: '',
         amount: ''
     });
+
+    const [employeeSearch, setEmployeeSearch] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -103,14 +118,10 @@ export default function PayrollCapturePage() {
     const fetchEmployees = async () => {
         if (!selectedBranch) return;
         try {
-            const response = await fetch(`/api/employees?projectId=${project.idProyecto}`);
+            const response = await fetch(`/api/employees?projectId=${project.idProyecto}&branchId=${selectedBranch}`);
             const data = await response.json();
             if (data.success) {
-                // Filter employees by selected branch
-                const filteredEmployees = data.data.filter(
-                    (emp: Employee) => emp.IdSucursal === parseInt(selectedBranch)
-                );
-                setEmployees(filteredEmployees);
+                setEmployees(data.data);
             }
         } catch (error) {
             console.error('Error fetching employees:', error);
@@ -182,7 +193,7 @@ export default function PayrollCapturePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedDate || !project || !selectedBranch) return;
+        if (!selectedDate || !project || !selectedBranch || !formData.employeeId || !formData.amount) return;
 
         try {
             const response = await fetch('/api/payroll/daily', {
@@ -202,10 +213,55 @@ export default function PayrollCapturePage() {
             if (response.ok) {
                 fetchDailyPayroll(selectedDate);
                 fetchMonthlyPayroll(); // Refresh monthly totals
-                setFormData({ ...formData, amount: '' });
+                setFormData({ ...formData, amount: '', employeeId: '' });
+                setEmployeeSearch('');
             }
         } catch (error) {
             console.error('Error saving payroll:', error);
+        }
+    };
+
+    const filteredEmployees = useMemo(() => {
+        if (!employeeSearch) return employees;
+        return employees.filter(e =>
+            e.Empleado.toLowerCase().includes(employeeSearch.toLowerCase())
+        );
+    }, [employees, employeeSearch]);
+
+    const handleDelete = async (employeeId: number) => {
+        let confirmMsg = '¿Estás seguro de que deseas borrar este registro?';
+        try {
+            const translated = tCommon('confirmDelete');
+            if (translated && translated !== 'Common.confirmDelete') {
+                confirmMsg = translated;
+            }
+        } catch (e) {
+            console.warn('Translation missing');
+        }
+
+        if (!window.confirm(confirmMsg)) return;
+        if (!project || !selectedDate || !selectedBranch) return;
+
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto.toString(),
+                branchId: selectedBranch,
+                employeeId: employeeId.toString(),
+                day: selectedDate.getDate().toString(),
+                month: selectedDate.getMonth().toString(),
+                year: selectedDate.getFullYear().toString()
+            });
+
+            const response = await fetch(`/api/payroll/daily?${params}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await fetchDailyPayroll(selectedDate);
+                await fetchMonthlyPayroll();
+            }
+        } catch (error) {
+            console.error('Error deleting payroll:', error);
         }
     };
 
@@ -366,92 +422,155 @@ export default function PayrollCapturePage() {
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {tModal('title')} - {selectedDate.toLocaleDateString()}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
-                        </div>
-
-                        {/* Form */}
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg items-end">
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('employee')}</label>
-                                <select
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.employeeId}
-                                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">{tModal('select')}</option>
-                                    {employees.map(e => <option key={e.IdEmpleado} value={e.IdEmpleado}>{e.Empleado}</option>)}
-                                </select>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h2 className="text-2xl font-black text-gray-800">
+                                    {tModal('title')}
+                                </h2>
+                                <p className="text-sm text-gray-500 font-medium">{selectedDate.toLocaleDateString()}</p>
                             </div>
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.amount}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (/^[0-9.$,]*$/.test(val)) {
-                                            setFormData({ ...formData, amount: val });
-                                        }
-                                    }}
-                                    onBlur={handleAmountBlur}
-                                    onFocus={handleAmountFocus}
-                                    required
-                                />
-                            </div>
-                            <button type="submit" className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 font-medium h-10 shadow-sm transition-colors">
-                                Agregar
-                            </button>
-                        </form>
-
-                        {/* Grid */}
-                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('employee')}</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('amount')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {dailyPayroll.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={2} className="px-6 py-8 text-center text-sm text-gray-400 italic">No records found</td>
-                                        </tr>
-                                    ) : (
-                                        dailyPayroll.map((pay, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pay.Empleado}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    {formatCurrency(parseFloat(pay.Pago))}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                    <tr>
-                                        <td className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">{formatCurrency(totalPayroll)}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-all font-bold text-xl"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
+                            {/* Form */}
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/50 p-6 rounded-2xl items-end border border-blue-100/50 shadow-sm">
+                                <div className="flex flex-col relative">
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('employee')}</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            className="w-full p-3 border-0 rounded-xl text-sm bg-white shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                                            placeholder={tModal('select')}
+                                            value={employeeSearch}
+                                            onChange={(e) => {
+                                                setEmployeeSearch(e.target.value);
+                                                setIsDropdownOpen(true);
+                                                if (!e.target.value) setFormData({ ...formData, employeeId: '' });
+                                            }}
+                                            onFocus={() => setIsDropdownOpen(true)}
+                                            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                                            required
+                                        />
+                                        {isDropdownOpen && (
+                                            <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                                {filteredEmployees.length === 0 ? (
+                                                    <div className="p-3 text-sm text-gray-500 italic">No se encontraron resultados</div>
+                                                ) : (
+                                                    filteredEmployees.map(e => (
+                                                        <div
+                                                            key={e.IdEmpleado}
+                                                            className="p-3 text-sm hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, employeeId: e.IdEmpleado.toString() });
+                                                                setEmployeeSearch(e.Empleado);
+                                                                setIsDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-gray-800">{e.Empleado}</span>
+                                                                {e.Puesto && (
+                                                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-1">
+                                                                        {e.ImagenTipoPuesto || '👤'} {e.Puesto}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <input
+                                        type="text"
+                                        className="p-3 border-0 rounded-xl text-sm bg-white shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                                        value={formData.amount}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (/^[0-9.$,-]*$/.test(val)) {
+                                                setFormData({ ...formData, amount: val });
+                                            }
+                                        }}
+                                        onBlur={handleAmountBlur}
+                                        onFocus={handleAmountFocus}
+                                        required
+                                    />
+                                </div>
+                                <Button type="submit" className="h-[46px]">
+                                    {tModal('save')}
+                                </Button>
+                            </form>
+
+                            {/* Grid */}
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
+                                <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                            <tr>
+                                                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
+                                                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50 bg-white">
+                                            {dailyPayroll.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={3} className="px-6 py-20 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                </tr>
+                                            ) : (
+                                                dailyPayroll.map((pay, idx) => (
+                                                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{pay.Empleado}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                            {formatCurrency(pay.Pago)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(pay.IdUsuario)}
+                                                                className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-all font-bold"
+                                                                title="Borrar registro"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="bg-gray-50/80 p-6 border-t border-gray-100 mt-auto">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</span>
+                                        <span className="text-2xl font-black text-blue-600">{formatCurrency(totalPayroll)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/30 flex justify-end">
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-10"
                             >
                                 {tModal('close')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

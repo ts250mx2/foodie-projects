@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
             [branchId, month + 1, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
-        // Payroll: tblNomina uses 1-12 for Mes index
+        // Payroll: tblNomina uses 1-12 for Mes index. Sum of 'Pago' column as requested.
         const [payrollRows] = (await connection.query(
             `SELECT SUM(Pago) as totalPayroll 
              FROM tblNomina 

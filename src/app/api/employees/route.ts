@@ -28,13 +28,14 @@ export async function GET(request: NextRequest) {
         `;
         const queryParams: any[] = [];
 
-        if (branchIdStr) {
+        /*if (branchIdStr) {
             query += ` AND e.IdSucursal = ? `;
             queryParams.push(parseInt(branchIdStr));
-        }
+        }*/
 
         query += ` ORDER BY e.Empleado ASC `;
-
+        console.log(query);
+        console.log(branchIdStr);
         // Join with tblPuestos and tblSucursales to get position and branch names
         const [rows] = await connection.query(query, queryParams);
 
