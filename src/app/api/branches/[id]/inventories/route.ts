@@ -20,7 +20,12 @@ export async function GET(
         connection = await getProjectConnection(projectId);
 
         const [rows] = await connection.query(
-            `SELECT * FROM tblSucursalesInventarios 
+            `SELECT IdSucursal, 
+                    DAY(FechaInventario) as Dia, 
+                    MONTH(FechaInventario) as Mes, 
+                    YEAR(FechaInventario) as Anio, 
+                    DATE_FORMAT(FechaInventario, '%Y-%m-%d') as FechaInventario 
+             FROM tblSucursalesInventarios 
              WHERE IdSucursal = ? 
              ORDER BY FechaInventario DESC`,
             [id]
@@ -49,17 +54,12 @@ export async function POST(
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
-        const inventoryDate = new Date(date);
-        const dia = inventoryDate.getDate();
-        const mes = inventoryDate.getMonth() + 1;
-        const anio = inventoryDate.getFullYear();
-
         connection = await getProjectConnection(projectId);
 
         await connection.query(
             `REPLACE INTO tblSucursalesInventarios (IdSucursal, Dia, Mes, Anio, FechaInventario, FechaAct) 
-             VALUES (?, ?, ?, ?, ?, Now())`,
-            [id, dia, mes, anio, date]
+             VALUES (?, DAY(?), MONTH(?), YEAR(?), ?, Now())`,
+            [id, date, date, date, date]
         );
 
         return NextResponse.json({

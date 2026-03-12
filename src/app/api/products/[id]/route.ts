@@ -22,7 +22,7 @@ export async function GET(
         connection = await getProjectConnection(projectId);
 
         const [rows] = await connection.query(
-            'SELECT Producto, ArchivoImagen FROM tblProductos WHERE IdProducto = ? LIMIT 1',
+            'SELECT * FROM tblProductos WHERE IdProducto = ? LIMIT 1',
             [id]
         );
 

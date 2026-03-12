@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import CostingModal from '@/components/CostingModal';
 
 interface Branch {
     IdSucursal: number;
@@ -65,6 +66,8 @@ export default function InventoryCapturePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+    const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<any>(null);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -81,7 +84,7 @@ export default function InventoryCapturePage() {
         if (project?.idProyecto) {
             fetchBranches();
 
-            const savedBranch = localStorage.getItem('lastSelectedBranchInventory');
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
             const savedMonth = localStorage.getItem('lastSelectedMonthInventory');
             const savedYear = localStorage.getItem('lastSelectedYearInventory');
 
@@ -92,7 +95,7 @@ export default function InventoryCapturePage() {
     }, [project]);
 
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranchInventory', selectedBranch);
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
@@ -116,7 +119,7 @@ export default function InventoryCapturePage() {
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
 
-                const savedBranch = localStorage.getItem('lastSelectedBranchInventory');
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
@@ -185,7 +188,7 @@ export default function InventoryCapturePage() {
                     day: date.getDate(),
                     month: date.getMonth(),
                     year: date.getFullYear(),
-                    inventoryDate: date.toISOString().split('T')[0]
+                    inventoryDate: `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
                 })
             });
 
@@ -216,10 +219,14 @@ export default function InventoryCapturePage() {
 
                 // Initialize edited quantities with current values
                 const quantities: Record<number, number> = {};
+                const initialCollapsed: Record<string, boolean> = {};
                 data.data.forEach((entry: InventoryEntry) => {
                     quantities[entry.IdProducto] = entry.Cantidad;
+                    const cat = entry.Categoria || 'Sin Categoría';
+                    initialCollapsed[cat] = true;
                 });
                 setEditedQuantities(quantities);
+                setCollapsedCategories(initialCollapsed);
             }
         } catch (error) {
             console.error('Error fetching inventory entries:', error);
@@ -269,6 +276,26 @@ export default function InventoryCapturePage() {
         } catch (error) {
             console.error('Error saving inventory:', error);
             alert(tCommon('errorUpdate') || 'Error al guardar');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEditProduct = async (productId: number) => {
+        if (!project) return;
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/products/${productId}?projectId=${project.idProyecto}`);
+            const data = await response.json();
+            if (data.success) {
+                setEditingProduct(data.data);
+                setIsCostingModalOpen(true);
+            } else {
+                alert('Error al cargar detalles del producto');
+            }
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            alert('Error al cargar detalles del producto');
         } finally {
             setIsLoading(false);
         }
@@ -626,7 +653,8 @@ export default function InventoryCapturePage() {
                                                         <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Presentación</th>
                                                         <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[15%]">Cantidad</th>
                                                         <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[10%]">Precio</th>
-                                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-[10%]">Total</th>
+                                                        <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[10%]">Acciones</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -652,6 +680,15 @@ export default function InventoryCapturePage() {
                                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
                                                                 <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
                                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
+                                                                </td>
+                                                                <td className="px-4 py-2 text-center">
+                                                                    <button
+                                                                        onClick={() => handleEditProduct(entry.IdProducto)}
+                                                                        className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors"
+                                                                        title="Editar Producto"
+                                                                    >
+                                                                        ✏️
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                         );
@@ -690,6 +727,26 @@ export default function InventoryCapturePage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {isCostingModalOpen && editingProduct && (
+                <CostingModal
+                    isOpen={isCostingModalOpen}
+                    onClose={() => {
+                        setIsCostingModalOpen(false);
+                        setEditingProduct(null);
+                        // Refresh inventory entries after editing a product (price might have changed)
+                        if (selectedDate) fetchInventoryEntries(selectedDate);
+                    }}
+                    product={editingProduct}
+                    projectId={project?.idProyecto}
+                    productType={editingProduct.IdTipoProducto || 0}
+                    onProductUpdate={() => {
+                        // This will trigger the onClose branch
+                        setIsCostingModalOpen(false);
+                    }}
+                    zIndexClass="z-[60]"
+                />
             )}
         </div>
     );

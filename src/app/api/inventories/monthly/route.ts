@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
         // Get inventory dates combining both tblInventarios and tblSucursalesInventarios
         const [rows] = await connection.query(
             `SELECT 
-                COALESCE(I.Dia, SI.Dia) as Dia,
-                COALESCE(I.Mes, SI.Mes) as Mes,
-                COALESCE(I.Anio, SI.Anio) as Anio,
+                DAY(SI.FechaInventario) as Dia,
+                MONTH(SI.FechaInventario) as Mes,
+                YEAR(SI.FechaInventario) as Anio,
                 COALESCE(I.total, 0) as total,
                 COALESCE(I.productCount, 0) as productCount,
-                CASE WHEN SI.IdSucursal IS NOT NULL THEN 1 ELSE 0 END as isMarkedInventoryDay
+                1 as isMarkedInventoryDay
              FROM (
                 SELECT Dia, Mes, Anio, 
                        SUM(Precio * Cantidad) as total,
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
                 GROUP BY Dia, Mes, Anio
              ) I
              RIGHT JOIN tblSucursalesInventarios SI 
-                ON I.Dia = SI.Dia AND I.Mes = SI.Mes AND I.Anio = SI.Anio
-             WHERE SI.IdSucursal = ? AND SI.Mes = ? AND SI.Anio = ?
+                ON I.Dia = DAY(SI.FechaInventario) AND I.Mes = MONTH(SI.FechaInventario) AND I.Anio = YEAR(SI.FechaInventario)
+             WHERE SI.IdSucursal = ? AND MONTH(SI.FechaInventario) = ? AND YEAR(SI.FechaInventario) = ?
              
              UNION
              
@@ -51,12 +51,17 @@ export async function GET(request: NextRequest) {
                     CASE WHEN SI.IdSucursal IS NOT NULL THEN 1 ELSE 0 END as isMarkedInventoryDay
              FROM tblInventarios I
              LEFT JOIN tblSucursalesInventarios SI 
-                ON I.IdSucursal = SI.IdSucursal AND I.Dia = SI.Dia AND I.Mes = SI.Mes AND I.Anio = SI.Anio
+                ON I.IdSucursal = SI.IdSucursal 
+                AND I.Dia = DAY(SI.FechaInventario) 
+                AND I.Mes = MONTH(SI.FechaInventario) 
+                AND I.Anio = YEAR(SI.FechaInventario)
              WHERE I.IdSucursal = ? AND I.Mes = ? AND I.Anio = ?
                 AND NOT EXISTS (
                     SELECT 1 FROM tblSucursalesInventarios SI2
                     WHERE SI2.IdSucursal = I.IdSucursal 
-                        AND SI2.Dia = I.Dia AND SI2.Mes = I.Mes AND SI2.Anio = I.Anio
+                        AND DAY(SI2.FechaInventario) = I.Dia 
+                        AND MONTH(SI2.FechaInventario) = I.Mes 
+                        AND YEAR(SI2.FechaInventario) = I.Anio
                 )
              GROUP BY I.Dia, I.Mes, I.Anio, SI.IdSucursal
              

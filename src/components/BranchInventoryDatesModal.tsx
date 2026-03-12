@@ -85,12 +85,26 @@ export default function BranchInventoryDatesModal({ isOpen, onClose, branchId, b
     if (!isOpen && !isTabMode) return null;
 
     const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
+        const [year, month, day] = dateStr.split('-').map(Number);
         const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
+        const dayStr = day.toString().padStart(2, '0');
+        const monthName = months[month - 1];
+        return `${dayStr}-${monthName}-${year}`;
+    };
+
+    const getDegradationClass = (dateStr: string) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const itemDate = new Date(year, month - 1, day);
+
+        if (itemDate >= today) return "";
+
+        const isOlderMonth = year < today.getFullYear() || (year === today.getFullYear() && (month - 1) < today.getMonth());
+
+        if (isOlderMonth) return "opacity-40 grayscale brightness-95 transition-opacity hover:opacity-100";
+        return "opacity-70 transition-opacity hover:opacity-100";
     };
 
     const content = (
@@ -138,7 +152,7 @@ export default function BranchInventoryDatesModal({ isOpen, onClose, branchId, b
                                     <tr><td colSpan={2} className="px-3 py-4 text-center text-sm text-gray-500">No hay registros</td></tr>
                                 ) : (
                                     inventories.map((item, idx) => (
-                                        <tr key={`${item.Anio}-${item.Mes}-${item.Dia}`} className="hover:bg-gray-50 text-xs">
+                                        <tr key={`${item.Anio}-${item.Mes}-${item.Dia}`} className={`hover:bg-gray-50 text-xs ${getDegradationClass(item.FechaInventario)}`}>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
                                                 {formatDate(item.FechaInventario)}
                                             </td>

@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
         const branchId = parseInt(branchIdStr);
 
         // Parse date to ensure format YYYY-MM-DD
-        const date = new Date(dateStr);
-        const formattedDate = date.toISOString().split('T')[0];
+        // Parse date to ensure format YYYY-MM-DD
+        const formattedDate = dateStr; // Already in YYYY-MM-DD format from client
 
         connection = await getProjectConnection(projectId);
 
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse date for FechaProduccion
-        const prodDate = new Date(date);
-        const formattedDate = prodDate.toISOString().split('T')[0];
+        // Parse date for FechaProduccion
+        const formattedDate = date; // Already in YYYY-MM-DD format from client
 
         connection = await getProjectConnection(projectId);
 
