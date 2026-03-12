@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 
 interface Employee {
@@ -29,6 +30,9 @@ interface PayrollEntry {
 export default function PayrollCapturePage() {
     const t = useTranslations('PayrollCapture');
     const tCommon = useTranslations('Common');
+    const tModal = useTranslations('PayrollModal');
+    const { colors } = useTheme();
+
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
@@ -65,10 +69,9 @@ export default function PayrollCapturePage() {
     useEffect(() => {
         if (project?.idProyecto) {
             fetchBranches();
-            fetchEmployees();
 
             // Load persisted filters
-            const savedBranch = localStorage.getItem('lastSelectedBranch');
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
             const savedMonth = localStorage.getItem('lastSelectedMonth');
             const savedYear = localStorage.getItem('lastSelectedYear');
 
@@ -78,8 +81,19 @@ export default function PayrollCapturePage() {
         }
     }, [project]);
 
+    // Listen for global branch changes
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranch', selectedBranch);
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch' && e.newValue) {
+                setSelectedBranch(e.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    useEffect(() => {
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
@@ -104,8 +118,7 @@ export default function PayrollCapturePage() {
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
 
-                // Only set default if no branch is selected or persisted
-                const savedBranch = localStorage.getItem('lastSelectedBranch');
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
@@ -140,7 +153,6 @@ export default function PayrollCapturePage() {
             const response = await fetch(`/api/payroll/monthly?${params}`);
             const data = await response.json();
             if (data.success) {
-                // Group payroll by day and employee
                 const detailsMap: Record<number, Array<{ employeeName: string, total: number }>> = {};
                 data.data.forEach((item: any) => {
                     if (!detailsMap[item.day]) {
@@ -178,7 +190,7 @@ export default function PayrollCapturePage() {
                 projectId: project.idProyecto,
                 branchId: selectedBranch,
                 day: date.getDate().toString(),
-                month: date.getMonth().toString(), // 0-11
+                month: date.getMonth().toString(),
                 year: date.getFullYear().toString()
             });
             const response = await fetch(`/api/payroll/daily?${params}`);
@@ -212,7 +224,7 @@ export default function PayrollCapturePage() {
 
             if (response.ok) {
                 fetchDailyPayroll(selectedDate);
-                fetchMonthlyPayroll(); // Refresh monthly totals
+                fetchMonthlyPayroll();
                 setFormData({ ...formData, amount: '', employeeId: '' });
                 setEmployeeSearch('');
             }
@@ -229,17 +241,7 @@ export default function PayrollCapturePage() {
     }, [employees, employeeSearch]);
 
     const handleDelete = async (employeeId: number) => {
-        let confirmMsg = '¿Estás seguro de que deseas borrar este registro?';
-        try {
-            const translated = tCommon('confirmDelete');
-            if (translated && translated !== 'Common.confirmDelete') {
-                confirmMsg = translated;
-            }
-        } catch (e) {
-            console.warn('Translation missing');
-        }
-
-        if (!window.confirm(confirmMsg)) return;
+        if (!window.confirm(tCommon('confirmDelete'))) return;
         if (!project || !selectedDate || !selectedBranch) return;
 
         try {
@@ -265,29 +267,20 @@ export default function PayrollCapturePage() {
         }
     };
 
-    // Calendar logic
     const getDaysInMonth = (month: number, year: number) => {
         const date = new Date(year, month, 1);
         const days = [];
         const firstDayOfWeek = (date.getDay() + 6) % 7; // Monday = 0
-
-        for (let i = 0; i < firstDayOfWeek; i++) {
-            days.push(null);
-        }
-
+        for (let i = 0; i < firstDayOfWeek; i++) days.push(null);
         while (date.getMonth() === month) {
             days.push(new Date(date));
             date.setDate(date.getDate() + 1);
         }
-
         return days;
     };
 
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
     const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-    // Modal translations
-    const tModal = useTranslations('PayrollModal');
 
     const totalPayroll = dailyPayroll.reduce((sum, pay) => sum + (pay.Pago || 0), 0);
 
@@ -312,6 +305,7 @@ export default function PayrollCapturePage() {
 
     return (
         <div className="flex flex-col min-h-screen p-6 gap-4">
+            {/* Standardized Header */}
             <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     👥 {t('title')}
@@ -324,7 +318,7 @@ export default function PayrollCapturePage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         >
                             {branches.length === 0 && <option>{t('noBranches')}</option>}
                             {branches.map(branch => (
@@ -335,12 +329,13 @@ export default function PayrollCapturePage() {
                         </select>
                     </div>
 
+                    {/* Month Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{t(`months.${i}`)}</option>
@@ -348,12 +343,13 @@ export default function PayrollCapturePage() {
                         </select>
                     </div>
 
+                    {/* Year Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -363,93 +359,127 @@ export default function PayrollCapturePage() {
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-blue-500 border-b border-blue-600">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) {
-                            return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-300" />;
-                        }
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
 
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                            const dayNum = date.getDate();
+                            const details = monthlyPayrollDetails[dayNum];
+                            const hasPayroll = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
 
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`
-                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-blue-50 cursor-pointer group min-h-[120px] flex flex-col
-                                    ${isToday ? 'bg-blue-50/30' : ''}
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-white border-2 border-indigo-400 shadow-indigo-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
-                            >
-                                <span className={`
-                                    text-sm font-medium
-                                    ${isToday ? 'bg-blue-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
-                                `}>
-                                    {date.getDate()}
-                                </span>
-                                {monthlyPayrollDetails[date.getDate()] && (
-                                    <>
-                                        <div className="mt-6 space-y-1 flex-1">
-                                            {monthlyPayrollDetails[date.getDate()].map((emp, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <div className="font-medium text-gray-700">{emp.employeeName}</div>
-                                                    <div className="font-semibold text-green-600">{formatCurrency(emp.total)}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                            <div className="text-xs font-bold text-blue-700">
-                                                Total: {formatCurrency(monthlyPayrollDetails[date.getDate()].reduce((sum, emp) => sum + emp.total, 0))}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${isToday ? 'text-indigo-600' : hasPayroll ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[9px] font-extrabold bg-indigo-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                {t('today') || 'HOY'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {hasPayroll && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-indigo-600 leading-tight">
+                                                {formatCurrency(details.reduce((sum, d) => sum + d.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.length} {details.length === 1 ? 'Pago' : 'Pagos'}
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${isToday ? 'bg-indigo-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
                             <div>
-                                <h2 className="text-2xl font-black text-gray-800">
-                                    {tModal('title')}
-                                </h2>
-                                <p className="text-sm text-gray-500 font-medium">{selectedDate.toLocaleDateString()}</p>
+                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
+                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
                             </div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-all font-bold text-xl"
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
                             >
                                 ✕
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Nómina Total</label>
+                                    <div className="text-xl font-black text-indigo-600">
+                                        {formatCurrency(totalPayroll)}
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">👥 Colaboradores Pagados</label>
+                                    <div className="text-xl font-black text-gray-800">
+                                        {dailyPayroll.length}
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/50 p-6 rounded-2xl items-end border border-blue-100/50 shadow-sm">
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-indigo-50 p-6 rounded-xl border border-indigo-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                                 <div className="flex flex-col relative">
-                                    <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('employee')}</label>
+                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('employee')}</label>
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className="w-full p-3 border-0 rounded-xl text-sm bg-white shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                                            className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
                                             placeholder={tModal('select')}
                                             value={employeeSearch}
                                             onChange={(e) => {
@@ -462,14 +492,14 @@ export default function PayrollCapturePage() {
                                             required
                                         />
                                         {isDropdownOpen && (
-                                            <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                                                 {filteredEmployees.length === 0 ? (
-                                                    <div className="p-3 text-sm text-gray-500 italic">No se encontraron resultados</div>
+                                                    <div className="px-4 py-3 text-sm text-gray-400 italic">No se encontraron colaboradores</div>
                                                 ) : (
                                                     filteredEmployees.map(e => (
                                                         <div
                                                             key={e.IdEmpleado}
-                                                            className="p-3 text-sm hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                                                            className="px-4 py-2 hover:bg-indigo-50 cursor-pointer border-b last:border-0 border-gray-50"
                                                             onClick={() => {
                                                                 setFormData({ ...formData, employeeId: e.IdEmpleado.toString() });
                                                                 setEmployeeSearch(e.Empleado);
@@ -477,9 +507,9 @@ export default function PayrollCapturePage() {
                                                             }}
                                                         >
                                                             <div className="flex flex-col">
-                                                                <span className="font-bold text-gray-800">{e.Empleado}</span>
+                                                                <span className="font-bold text-sm text-gray-800">{e.Empleado}</span>
                                                                 {e.Puesto && (
-                                                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-1">
+                                                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">
                                                                         {e.ImagenTipoPuesto || '👤'} {e.Puesto}
                                                                     </span>
                                                                 )}
@@ -492,10 +522,10 @@ export default function PayrollCapturePage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
                                     <input
                                         type="text"
-                                        className="p-3 border-0 rounded-xl text-sm bg-white shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                                        className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-black text-indigo-600"
                                         value={formData.amount}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -506,41 +536,42 @@ export default function PayrollCapturePage() {
                                         onBlur={handleAmountBlur}
                                         onFocus={handleAmountFocus}
                                         required
+                                        placeholder="0.00"
                                     />
                                 </div>
-                                <Button type="submit" className="h-[46px]">
-                                    {tModal('save')}
-                                </Button>
+                                <button type="submit" className="bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 font-bold transition-all shadow-md active:scale-95">
+                                    💾 {tModal('save')}
+                                </button>
                             </form>
 
-                            {/* Grid */}
-                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex-1 flex flex-col">
-                                <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                            {/* Payroll Table */}
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
+                                <div className="overflow-y-auto max-h-[400px]">
                                     <table className="min-w-full divide-y divide-gray-100">
-                                        <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
                                             <tr>
-                                                <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
-                                                <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-50 bg-white">
+                                        <tbody className="bg-white divide-y divide-gray-50">
                                             {dailyPayroll.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={3} className="px-6 py-20 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                    <td colSpan={3} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros para este día</td>
                                                 </tr>
                                             ) : (
                                                 dailyPayroll.map((pay, idx) => (
-                                                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
+                                                    <tr key={idx} className="hover:bg-indigo-50/30 transition-colors group">
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{pay.Empleado}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 text-right font-black">
                                                             {formatCurrency(pay.Pago)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDelete(pay.IdUsuario)}
-                                                                className="text-gray-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-all font-bold"
+                                                                className="text-gray-300 hover:text-red-500 transition-colors p-2"
                                                                 title="Borrar registro"
                                                             >
                                                                 🗑️
@@ -552,25 +583,14 @@ export default function PayrollCapturePage() {
                                         </tbody>
                                     </table>
                                 </div>
-
-                                <div className="bg-gray-50/80 p-6 border-t border-gray-100 mt-auto">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</span>
-                                        <span className="text-2xl font-black text-blue-600">{formatCurrency(totalPayroll)}</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="p-6 border-t border-gray-100 bg-gray-50/30 flex justify-end">
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-10"
-                            >
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
                                 {tModal('close')}
-                            </Button>
+                            </button>
                         </div>
                     </div>
                 </div>

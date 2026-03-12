@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import Button from '@/components/Button';
 
@@ -36,6 +37,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
     const [isLoading, setIsLoading] = useState(true);
     const [groupedData, setGroupedData] = useState<GroupedCategory[]>([]);
     const [grandTotal, setGrandTotal] = useState(0);
+    const { colors } = useTheme();
 
     useEffect(() => {
         if (isOpen && productionItem?.IdProducto && projectId) {
@@ -93,7 +95,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-orange-500 text-white rounded-t-lg">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
                             📝 Detalle de Producción

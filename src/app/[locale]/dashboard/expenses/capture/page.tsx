@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Branch {
     IdSucursal: number;
@@ -24,6 +25,10 @@ interface PaymentChannel {
 export default function ExpensesCapturePage() {
     const t = useTranslations('ExpensesCapture');
     const tCommon = useTranslations('Common');
+    const tModal = useTranslations('ExpensesModal');
+    const { colors } = useTheme();
+
+    // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
@@ -74,8 +79,8 @@ export default function ExpensesCapturePage() {
             fetchExpenseConcepts();
             fetchPaymentChannels();
 
-            // Load persisted filters
-            const savedBranch = localStorage.getItem('lastSelectedBranch');
+            // Load persisted filters - Standardized to dashboardSelectedBranch
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
             const savedMonth = localStorage.getItem('lastSelectedMonth');
             const savedYear = localStorage.getItem('lastSelectedYear');
 
@@ -85,8 +90,19 @@ export default function ExpensesCapturePage() {
         }
     }, [project]);
 
+    // Listen for global branch changes
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranch', selectedBranch);
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch' && e.newValue) {
+                setSelectedBranch(e.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    useEffect(() => {
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
@@ -111,7 +127,7 @@ export default function ExpensesCapturePage() {
                 setBranches(data.data);
 
                 // Only set default if no branch is selected or persisted
-                const savedBranch = localStorage.getItem('lastSelectedBranch');
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
@@ -157,7 +173,6 @@ export default function ExpensesCapturePage() {
             const response = await fetch(`/api/expenses/monthly?${params}`);
             const data = await response.json();
             if (data.success) {
-                // Group expenses by day and concept
                 const detailsMap: Record<number, Array<{ conceptName: string, total: number }>> = {};
                 data.data.forEach((item: any) => {
                     if (!detailsMap[item.day]) {
@@ -195,7 +210,7 @@ export default function ExpensesCapturePage() {
                 projectId: project.idProyecto,
                 branchId: selectedBranch,
                 day: date.getDate().toString(),
-                month: date.getMonth().toString(), // 0-11
+                month: date.getMonth().toString(),
                 year: date.getFullYear().toString()
             });
             const response = await fetch(`/api/expenses/daily?${params}`);
@@ -231,7 +246,7 @@ export default function ExpensesCapturePage() {
 
             if (response.ok) {
                 fetchDailyExpenses(selectedDate);
-                fetchMonthlyExpenses(); // Refresh monthly totals
+                fetchMonthlyExpenses();
                 setFormData({ conceptId: '', amount: '', reference: '', paymentChannelId: '' });
                 setConceptSearch('');
                 setSelectedConcept(null);
@@ -253,7 +268,7 @@ export default function ExpensesCapturePage() {
 
             if (response.ok && selectedDate) {
                 fetchDailyExpenses(selectedDate);
-                fetchMonthlyExpenses(); // Refresh monthly totals
+                fetchMonthlyExpenses();
             }
         } catch (error) {
             console.error('Error deleting expense:', error);
@@ -285,7 +300,7 @@ export default function ExpensesCapturePage() {
             formDataToSend.append('projectId', project.idProyecto.toString());
             formDataToSend.append('branchId', selectedBranch);
             formDataToSend.append('day', day.toString());
-            formDataToSend.append('month', (month - 1).toString()); // Convert from SQL (1-12) to JS (0-11)
+            formDataToSend.append('month', (month - 1).toString());
             formDataToSend.append('year', year.toString());
             formDataToSend.append('conceptId', conceptId.toString());
             formDataToSend.append('file', file);
@@ -310,30 +325,21 @@ export default function ExpensesCapturePage() {
         }
     };
 
-
     // Calendar logic
     const getDaysInMonth = (month: number, year: number) => {
         const date = new Date(year, month, 1);
         const days = [];
         const firstDayOfWeek = (date.getDay() + 6) % 7; // Monday = 0
-
-        for (let i = 0; i < firstDayOfWeek; i++) {
-            days.push(null);
-        }
-
+        for (let i = 0; i < firstDayOfWeek; i++) days.push(null);
         while (date.getMonth() === month) {
             days.push(new Date(date));
             date.setDate(date.getDate() + 1);
         }
-
         return days;
     };
 
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
     const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-    // Modal translations
-    const tModal = useTranslations('ExpensesModal');
 
     const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (exp.Gasto || 0), 0);
 
@@ -362,6 +368,7 @@ export default function ExpensesCapturePage() {
                         </select>
                     </div>
 
+                    {/* Month Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
                         <select
@@ -375,6 +382,7 @@ export default function ExpensesCapturePage() {
                         </select>
                     </div>
 
+                    {/* Year Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
                         <select
@@ -390,72 +398,99 @@ export default function ExpensesCapturePage() {
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-red-500 border-b border-red-600">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) {
-                            return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-300" />;
-                        }
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
 
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                            const dayNum = date.getDate();
+                            const details = monthlyExpensesDetails[dayNum];
+                            const hasExpenses = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
 
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`
-                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-red-50 cursor-pointer group min-h-[120px] flex flex-col
-                                    ${isToday ? 'bg-red-50/30' : ''}
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-white border-2 border-red-400 shadow-red-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
-                            >
-                                <span className={`
-                                    text-sm font-medium
-                                    ${isToday ? 'bg-red-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
-                                `}>
-                                    {date.getDate()}
-                                </span>
-                                {monthlyExpensesDetails[date.getDate()] && (
-                                    <>
-                                        <div className="mt-6 space-y-1 flex-1">
-                                            {monthlyExpensesDetails[date.getDate()].map((exp, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <div className="font-medium text-gray-700">{exp.conceptName}</div>
-                                                    <div className="font-semibold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(exp.total)}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                            <div className="text-xs font-bold text-red-700">
-                                                Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlyExpensesDetails[date.getDate()].reduce((sum, exp) => sum + exp.total, 0))}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${isToday ? 'text-red-600' : hasExpenses ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[9px] font-extrabold bg-red-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                {t('today') || 'HOY'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {hasExpenses && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-red-600 leading-tight">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, d) => sum + d.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.length} {details.length === 1 ? 'Concepto' : 'Conceptos'}
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${isToday ? 'bg-red-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {tModal('title')} - {selectedDate.toLocaleDateString()}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <div>
+                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
+                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
+                            </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                            >
+                                ✕
+                            </button>
                         </div>
 
                         {/* Hidden File Input */}
@@ -467,252 +502,236 @@ export default function ExpensesCapturePage() {
                             onChange={handleFileChange}
                         />
 
-
-                        {/* Form */}
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg items-end">
-                            {/* 1. Concepto */}
-                            <div className="flex flex-col relative">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('concept')}</label>
-                                <input
-                                    type="text"
-                                    value={conceptSearch}
-                                    onChange={(e) => {
-                                        setConceptSearch(e.target.value);
-                                        setShowConceptDropdown(true);
-                                        setFormData({ ...formData, conceptId: '' });
-                                        setSelectedConcept(null);
-                                    }}
-                                    onFocus={() => setShowConceptDropdown(true)}
-                                    onBlur={() => setTimeout(() => setShowConceptDropdown(false), 200)}
-                                    placeholder={tModal('searchConcept')}
-                                    className="p-2 border rounded text-sm w-full"
-                                    required
-                                />
-                                {showConceptDropdown && (
-                                    <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        {expenseConcepts
-                                            .filter(c => conceptSearch ? c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase()) : true)
-                                            .map(c => (
-                                                <div
-                                                    key={c.IdConceptoGasto}
-                                                    onClick={() => {
-                                                        setSelectedConcept(c);
-                                                        setFormData({ ...formData, conceptId: c.IdConceptoGasto.toString(), paymentChannelId: c.IdCanalPago?.toString() || '' });
-                                                        setConceptSearch(c.ConceptoGasto);
-                                                        setShowConceptDropdown(false);
-
-                                                        // Auto-fill payment channel if concept has default
-                                                        if (c.IdCanalPago && c.CanalPago) {
-                                                            setSelectedPaymentChannel({
-                                                                IdCanalPago: c.IdCanalPago,
-                                                                CanalPago: c.CanalPago
-                                                            });
-                                                            setPaymentChannelSearch(c.CanalPago);
-                                                        } else {
-                                                            setSelectedPaymentChannel(null);
-                                                            setPaymentChannelSearch('');
-                                                        }
-                                                    }}
-                                                    className="px-3 py-2 hover:bg-red-50 cursor-pointer"
-                                                >
-                                                    <div className="font-medium text-sm">{c.ConceptoGasto}</div>
-                                                </div>
-                                            ))}
-                                        {expenseConcepts.filter(c => conceptSearch ? c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase()) : true).length === 0 && (
-                                            <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                {tModal('noResults')}
-                                            </div>
-                                        )}
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Gasto Total Capturado</label>
+                                    <div className="text-xl font-black text-red-600">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalExpenses)}
                                     </div>
-                                )}
-                            </div>
-
-                            {/* 2. Referencia */}
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">
-                                    Referencia/Concepto
-                                    {selectedConcept?.ReferenciaObligatoria === 1 && (
-                                        <span className="text-red-500 ml-1">*</span>
-                                    )}
-                                </label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.reference}
-                                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                                    placeholder={selectedConcept?.ReferenciaObligatoria === 1 ? "Referencia requerida" : "Referencia opcional"}
-                                    required={selectedConcept?.ReferenciaObligatoria === 1}
-                                />
-                            </div>
-
-                            {/* 3. Canal de Pago */}
-                            <div className="flex flex-col relative">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">Canal de Pago</label>
-                                <input
-                                    type="text"
-                                    value={paymentChannelSearch}
-                                    onChange={(e) => {
-                                        setPaymentChannelSearch(e.target.value);
-                                        setShowPaymentChannelDropdown(true);
-                                        setFormData({ ...formData, paymentChannelId: '' });
-                                        setSelectedPaymentChannel(null);
-                                    }}
-                                    onFocus={() => setShowPaymentChannelDropdown(true)}
-                                    onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
-                                    placeholder="Buscar canal de pago"
-                                    className="p-2 border rounded text-sm w-full"
-                                />
-                                {showPaymentChannelDropdown && (
-                                    <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        {paymentChannels
-                                            .filter(p => paymentChannelSearch ? p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
-                                            .map(p => (
-                                                <div
-                                                    key={p.IdCanalPago}
-                                                    onClick={() => {
-                                                        setSelectedPaymentChannel(p);
-                                                        setFormData({ ...formData, paymentChannelId: p.IdCanalPago.toString() });
-                                                        setPaymentChannelSearch(p.CanalPago);
-                                                        setShowPaymentChannelDropdown(false);
-                                                    }}
-                                                    className="px-3 py-2 hover:bg-red-50 cursor-pointer"
-                                                >
-                                                    <div className="font-medium text-sm">{p.CanalPago}</div>
-                                                </div>
-                                            ))}
-                                        {paymentChannels.filter(p => paymentChannelSearch ? p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
-                                            <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                No se encontraron canales de pago
-                                            </div>
-                                        )}
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🏷️ Conceptos Registrados</label>
+                                    <div className="text-xl font-black text-gray-800">
+                                        {dailyExpenses.length}
                                     </div>
-                                )}
+                                </div>
                             </div>
 
-                            {/* 4. Monto */}
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.amount}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if ((val.match(/\./g) || []).length > 1) return;
-                                        setFormData({ ...formData, amount: val });
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                        if (!isNaN(val)) {
-                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                        }
-                                    }}
-                                    onFocus={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if (val === '0.00' || val === '0') {
-                                            setFormData({ ...formData, amount: '' });
-                                        } else {
-                                            setFormData({ ...formData, amount: val });
-                                        }
-                                    }}
-                                    required
-                                />
-                            </div>
-
-                            <button type="submit" className="bg-red-500 text-white p-2 rounded hover:bg-red-600 font-medium h-10 shadow-sm transition-colors md:col-span-4">
-                                Agregar
-                            </button>
-                        </form>
-
-                        {/* Grid */}
-                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('concept')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Referencia</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Canal de Pago</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('amount')}</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Archivo</th>
-                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {dailyExpenses.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-400 italic">No records found</td>
-                                        </tr>
-                                    ) : (
-                                        dailyExpenses.map((exp, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{exp.ConceptoGasto}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.Referencia || '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{exp.CanalPago || '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Gasto))}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                    {exp.NombreArchivo ? (
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <a
-                                                                href={`/api/expenses/download?projectId=${project.idProyecto}&branchId=${selectedBranch}&day=${exp.Dia}&month=${exp.Mes - 1}&year=${exp.Anio}&conceptId=${exp.IdConceptoGasto}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-blue-600 hover:underline text-[10px] flex items-center gap-1"
-                                                                title={exp.NombreArchivo}
-                                                            >
-                                                                📎 {exp.NombreArchivo.length > 20 ? exp.NombreArchivo.substring(0, 17) + '...' : exp.NombreArchivo}
-                                                            </a>
-                                                            <button
-                                                                onClick={() => handleFileSelect(exp)}
-                                                                className="text-gray-400 hover:text-blue-600 text-[10px] border rounded px-1"
-                                                                disabled={isUploading}
-                                                                title="Cambiar Archivo"
-                                                            >
-                                                                🔄
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleFileSelect(exp)}
-                                                            className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto"
-                                                            disabled={isUploading}
-                                                        >
-                                                            📤 Subir
-                                                        </button>
-                                                    )}
-                                                    {isUploading && uploadingExpenseKey === `${exp.Dia}-${exp.Mes}-${exp.Anio}-${exp.IdConceptoGasto}` && (
-                                                        <span className="text-[10px] text-blue-500 animate-pulse block mt-1">Subiendo...</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                    <button
-                                                        onClick={() => handleDeleteExpense(exp)}
-                                                        className="text-xl hover:scale-110 transition-transform"
-                                                        title="Eliminar gasto"
+                            {/* Form */}
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm">
+                                <div className="flex flex-col relative">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('concept')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={conceptSearch}
+                                        onChange={(e) => {
+                                            setConceptSearch(e.target.value);
+                                            setShowConceptDropdown(true);
+                                            setFormData({ ...formData, conceptId: '' });
+                                            setSelectedConcept(null);
+                                        }}
+                                        onFocus={() => setShowConceptDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowConceptDropdown(false), 200)}
+                                        placeholder={tModal('searchConcept')}
+                                        required
+                                    />
+                                    {showConceptDropdown && (
+                                        <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                            {expenseConcepts
+                                                .filter(c => conceptSearch ? c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase()) : true)
+                                                .map(c => (
+                                                    <div
+                                                        key={c.IdConceptoGasto}
+                                                        onClick={() => {
+                                                            setSelectedConcept(c);
+                                                            setFormData({ ...formData, conceptId: c.IdConceptoGasto.toString(), paymentChannelId: c.IdCanalPago?.toString() || '' });
+                                                            setConceptSearch(c.ConceptoGasto);
+                                                            setShowConceptDropdown(false);
+                                                            if (c.IdCanalPago && c.CanalPago) {
+                                                                setSelectedPaymentChannel({ IdCanalPago: c.IdCanalPago, CanalPago: c.CanalPago });
+                                                                setPaymentChannelSearch(c.CanalPago);
+                                                            } else {
+                                                                setSelectedPaymentChannel(null);
+                                                                setPaymentChannelSearch('');
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
                                                     >
-                                                        🗑️
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                        <div className="font-bold text-sm text-gray-800">{c.ConceptoGasto}</div>
+                                                    </div>
+                                                ))}
+                                        </div>
                                     )}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                    <tr>
-                                        <td colSpan={3} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-red-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalExpenses)}</td>
-                                        <td colSpan={2}></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">
+                                        Referencia
+                                        {selectedConcept?.ReferenciaObligatoria === 1 && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={formData.reference}
+                                        onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                                        placeholder={selectedConcept?.ReferenciaObligatoria === 1 ? "Requerida" : "Opcional"}
+                                        required={selectedConcept?.ReferenciaObligatoria === 1}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col relative">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">Canal de Pago</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={paymentChannelSearch}
+                                        onChange={(e) => {
+                                            setPaymentChannelSearch(e.target.value);
+                                            setShowPaymentChannelDropdown(true);
+                                            setFormData({ ...formData, paymentChannelId: '' });
+                                            setSelectedPaymentChannel(null);
+                                        }}
+                                        onFocus={() => setShowPaymentChannelDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
+                                        placeholder="Buscar canal..."
+                                    />
+                                    {showPaymentChannelDropdown && (
+                                        <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                            {paymentChannels
+                                                .filter(p => paymentChannelSearch ? p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
+                                                .map(p => (
+                                                    <div
+                                                        key={p.IdCanalPago}
+                                                        onClick={() => {
+                                                            setSelectedPaymentChannel(p);
+                                                            setFormData({ ...formData, paymentChannelId: p.IdCanalPago.toString() });
+                                                            setPaymentChannelSearch(p.CanalPago);
+                                                            setShowPaymentChannelDropdown(false);
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
+                                                    >
+                                                        <div className="font-bold text-sm text-gray-800">{p.CanalPago}</div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={formData.amount}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setFormData({ ...formData, amount: val });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                        }}
+                                        onFocus={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            setFormData({ ...formData, amount: val === '0.00' || val === '0' ? '' : val });
+                                        }}
+                                        required
+                                        placeholder="0.00"
+                                    />
+                                </div>
+
+                                <button type="submit" className="bg-red-500 text-white p-2.5 rounded-lg hover:bg-red-600 font-bold transition-all shadow-md active:scale-95 lg:col-span-4">
+                                    {tModal('add') || 'Agregar Gasto'}
+                                </button>
+                            </form>
+
+                            {/* Table */}
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
+                                <div className="overflow-y-auto max-h-[400px]">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('concept')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Referencia</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Archivo</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-50">
+                                            {dailyExpenses.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                </tr>
+                                            ) : (
+                                                dailyExpenses.map((exp, idx) => (
+                                                    <tr key={idx} className="hover:bg-red-50/30 transition-colors group">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{exp.ConceptoGasto}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.Referencia || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.CanalPago || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 text-right font-black">
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Gasto))}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                            {exp.NombreArchivo ? (
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <a
+                                                                        href={`/api/expenses/download?projectId=${project.idProyecto}&branchId=${selectedBranch}&day=${exp.Dia}&month=${exp.Mes - 1}&year=${exp.Anio}&conceptId=${exp.IdConceptoGasto}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-blue-600 hover:scale-110 transition-transform flex items-center gap-1"
+                                                                        title={exp.NombreArchivo}
+                                                                    >
+                                                                        📎
+                                                                    </a>
+                                                                    <button
+                                                                        onClick={() => handleFileSelect(exp)}
+                                                                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                                                                        disabled={isUploading}
+                                                                        title="Cambiar Archivo"
+                                                                    >
+                                                                        🔄
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleFileSelect(exp)}
+                                                                    className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto font-bold uppercase"
+                                                                    disabled={isUploading}
+                                                                >
+                                                                    📤 Subir
+                                                                </button>
+                                                            )}
+                                                            {isUploading && uploadingExpenseKey === `${exp.Dia}-${exp.Mes}-${exp.Anio}-${exp.IdConceptoGasto}` && (
+                                                                <span className="text-[10px] text-blue-500 animate-pulse block mt-1">Subiendo...</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <button
+                                                                onClick={() => handleDeleteExpense(exp)}
+                                                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
-                            >
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
                                 {tModal('close')}
                             </button>
                         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
 
 import TipsCaptureModal from '@/components/TipsCaptureModal';
 
@@ -13,6 +14,7 @@ interface Branch {
 export default function TipsCapturePage() {
     const t = useTranslations('TipsCapture');
     const tCommon = useTranslations('Common');
+    const { colors } = useTheme();
 
     // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -40,29 +42,44 @@ export default function TipsCapturePage() {
     useEffect(() => {
         if (project?.idProyecto) {
             fetchBranches();
+
+            // Load persisted filters - Standardized to dashboardSelectedBranch
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
+            const savedMonth = localStorage.getItem('lastSelectedMonth');
+            const savedYear = localStorage.getItem('lastSelectedYear');
+
+            if (savedBranch) setSelectedBranch(savedBranch);
+            if (savedMonth) setSelectedMonth(parseInt(savedMonth));
+            if (savedYear) setSelectedYear(parseInt(savedYear));
         }
     }, [project]);
 
+    // Listen for global branch changes
     useEffect(() => {
-        // Load persisted filters
-        const lastBranch = localStorage.getItem('lastSelectedBranch');
-        const lastMonth = localStorage.getItem('lastSelectedMonth');
-        const lastYear = localStorage.getItem('lastSelectedYear');
-
-        if (lastMonth) setSelectedMonth(parseInt(lastMonth));
-        if (lastYear) setSelectedYear(parseInt(lastYear));
-        if (lastBranch && !selectedBranch) {
-            setSelectedBranch(lastBranch);
-        }
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch' && e.newValue) {
+                setSelectedBranch(e.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+
+    useEffect(() => {
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
+    }, [selectedBranch]);
+
+    useEffect(() => {
+        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
+    }, [selectedMonth]);
+
+    useEffect(() => {
+        localStorage.setItem('lastSelectedYear', selectedYear.toString());
+    }, [selectedYear]);
 
     useEffect(() => {
         if (selectedBranch && selectedMonth !== null && selectedYear && project?.idProyecto) {
             fetchMonthlySummary();
-            // Persist filters
-            localStorage.setItem('lastSelectedBranch', selectedBranch);
-            localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
-            localStorage.setItem('lastSelectedYear', selectedYear.toString());
         }
     }, [selectedBranch, selectedMonth, selectedYear, project]);
 
@@ -70,12 +87,12 @@ export default function TipsCapturePage() {
         try {
             const response = await fetch(`/api/branches?projectId=${project.idProyecto}`);
             const data = await response.json();
-            if (data.success) {
+            if (data.success && data.data.length > 0) {
                 setBranches(data.data);
-                const lastSelectedBranch = localStorage.getItem('lastSelectedBranch');
-                if (lastSelectedBranch && !selectedBranch) {
-                    setSelectedBranch(lastSelectedBranch);
-                } else if (data.data.length > 0 && !selectedBranch && !lastSelectedBranch) {
+
+                // Only set default if no branch is selected or persisted
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
+                if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
             }
@@ -117,25 +134,21 @@ export default function TipsCapturePage() {
         fetchMonthlySummary();
     };
 
-    // Calendar calculations
-    const daysInMonth = useMemo(() => {
-        return new Date(selectedYear, selectedMonth + 1, 0).getDate();
-    }, [selectedYear, selectedMonth]);
-
-    const firstDayOfMonth = useMemo(() => {
-        return new Date(selectedYear, selectedMonth, 1).getDay();
-    }, [selectedYear, selectedMonth]);
-
-    const calendarDays = useMemo(() => {
+    // Calendar logic
+    const getDaysInMonth = (month: number, year: number) => {
+        const date = new Date(year, month, 1);
         const days = [];
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            days.push(null);
-        }
-        for (let i = 1; i <= daysInMonth; i++) {
-            days.push(i);
+        const firstDayOfWeek = (date.getDay() + 6) % 7; // Monday = 0
+        for (let i = 0; i < firstDayOfWeek; i++) days.push(null);
+        while (date.getMonth() === month) {
+            days.push(new Date(date));
+            date.setDate(date.getDate() + 1);
         }
         return days;
-    }, [firstDayOfMonth, daysInMonth]);
+    };
+
+    const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
+    const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     return (
         <div className="flex flex-col min-h-screen p-6 gap-4">
@@ -143,86 +156,129 @@ export default function TipsCapturePage() {
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     💵 {t('title')}
                 </h1>
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <select
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                    >
-                        <option value="">{t('selectBranch')}</option>
-                        {branches.map((branch) => (
-                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                {branch.Sucursal}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                    >
-                        {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i} value={i}>
-                                {t(`months.${i}`)}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                    >
-                        {years.map((year) => (
-                            <option key={year} value={year}>
-                                {year}
-                            </option>
-                        ))}
-                    </select>
+
+                <div className="flex items-center gap-4">
+                    {/* Branch Selector */}
+                    <div className="flex flex-col">
+                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
+                        <select
+                            value={selectedBranch}
+                            onChange={(e) => setSelectedBranch(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                        >
+                            {branches.length === 0 && <option>{t('noBranches')}</option>}
+                            {branches.map(branch => (
+                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                    {branch.Sucursal}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Month Selector */}
+                    <div className="flex flex-col">
+                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                        >
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <option key={i} value={i}>{t(`months.${i}`)}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Year Selector */}
+                    <div className="flex flex-col">
+                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                        >
+                            {years.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                {/* Day headers */}
-                <div className="grid grid-cols-7 bg-gradient-to-r from-orange-500 to-pink-500">
-                    {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((day) => (
-                        <div key={day} className="p-4 text-center text-white font-semibold uppercase text-sm">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
+                    {weekDays.map(day => (
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-px bg-gray-200">
-                    {calendarDays.map((day, index) => (
-                        <div
-                            key={index}
-                            className={`min-h-[120px] bg-white p-2 ${day ? 'cursor-pointer hover:bg-orange-50 transition-colors' : ''
-                                }`}
-                            onClick={() => day && handleDayClick(day)}
-                        >
-                            {day && (
-                                <>
-                                    <div className="font-bold text-gray-700 mb-2">{day}</div>
-                                    {monthlySalesDetails[day] && (
-                                        <div className="space-y-1">
-                                            {monthlySalesDetails[day].map((shift, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <span className="font-semibold text-orange-600">{shift.shiftName}:</span>
-                                                    <span className="ml-1 text-gray-700">
-                                                        ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(shift.total)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            <div className="text-xs font-bold text-pink-600 pt-1 border-t border-gray-200">
-                                                Total: ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(monthlySalesDetails[day].reduce((sum, s) => sum + s.total, 0))}
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
+
+                            const dayNum = date.getDate();
+                            const details = monthlySalesDetails[dayNum];
+                            const hasSales = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
+
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(dayNum)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-white border-2 border-orange-400 shadow-orange-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                `}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${isToday ? 'text-orange-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                {t('today') || 'HOY'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {hasSales && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-green-600 leading-tight">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, s) => sum + s.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.length} {details.length === 1 ? 'Turno' : 'Turnos'}
                                             </div>
                                         </div>
                                     )}
-                                </>
-                            )}
-                        </div>
-                    ))}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${isToday ? 'bg-orange-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 

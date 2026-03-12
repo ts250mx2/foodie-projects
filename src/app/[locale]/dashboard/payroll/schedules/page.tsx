@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
 import BulkScheduleModal from '@/components/BulkScheduleModal';
 import Button from '@/components/Button';
 import jsPDF from 'jspdf';
@@ -34,6 +35,7 @@ interface ScheduleEntry {
 }
 
 export default function SchedulesPage() {
+    const { colors } = useTheme();
     const t = useTranslations('SchedulesCapture');
     const tModal = useTranslations('SchedulesModal');
 
@@ -67,8 +69,20 @@ export default function SchedulesPage() {
     useEffect(() => {
         if (project?.idProyecto) {
             fetchBranches();
+
+            // Handle drilldown branchId (Priority: Dashboard > Last Selected)
+            const drilldownBranchId = localStorage.getItem('dashboardSelectedBranch') || localStorage.getItem('lastSelectedBranch');
+            if (drilldownBranchId) {
+                setSelectedBranch(drilldownBranchId);
+            }
         }
     }, [project]);
+
+    useEffect(() => {
+        if (selectedBranch) {
+            localStorage.setItem('lastSelectedBranch', selectedBranch);
+        }
+    }, [selectedBranch]);
 
     useEffect(() => {
         if (project?.idProyecto) {
@@ -88,11 +102,15 @@ export default function SchedulesPage() {
             const data = await response.json();
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
-                const savedBranch = localStorage.getItem('lastSelectedBranch');
-                if (savedBranch) {
-                    setSelectedBranch(savedBranch);
-                } else {
-                    setSelectedBranch(data.data[0].IdSucursal.toString());
+
+                // If no branch is selected yet, try to load from localStorage or default to first
+                if (!selectedBranch) {
+                    const savedBranch = localStorage.getItem('dashboardSelectedBranch') || localStorage.getItem('lastSelectedBranch');
+                    if (savedBranch) {
+                        setSelectedBranch(savedBranch);
+                    } else {
+                        setSelectedBranch(data.data[0].IdSucursal.toString());
+                    }
                 }
             }
         } catch (error) {
@@ -529,13 +547,18 @@ export default function SchedulesPage() {
                 <div className="overflow-x-auto">
                     <table className="min-w-full border-collapse">
                         <thead>
-                            <tr className="bg-orange-600 text-white">
-                                <th className="sticky left-0 z-30 bg-orange-600 p-4 text-center border-r border-orange-500 w-16">
+                            <tr
+                                style={{
+                                    background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                                    color: colors.colorLetra
+                                }}
+                            >
+                                <th className="sticky left-0 z-30 p-4 text-center border-r border-white/10 w-16" style={{ background: 'inherit' }}>
                                     <div
                                         onClick={() => handleSelectAll(selectedEmployeeIds.length !== employees.length || employees.length === 0)}
                                         className={`w-7 h-7 mx-auto rounded-md border-2 flex items-center justify-center cursor-pointer transition-all shadow-md ${selectedEmployeeIds.length === employees.length && employees.length > 0
                                             ? 'bg-white border-white text-orange-600'
-                                            : 'bg-orange-700 border-orange-400'
+                                            : 'bg-black/20 border-white/30'
                                             }`}
                                     >
                                         {(selectedEmployeeIds.length === employees.length && employees.length > 0) && (
@@ -545,9 +568,9 @@ export default function SchedulesPage() {
                                         )}
                                     </div>
                                 </th>
-                                <th className="sticky left-16 z-20 bg-orange-600 p-4 text-left border-r border-orange-400 min-w-[200px]">
+                                <th className="sticky left-16 z-20 p-4 text-left border-r border-white/10 min-w-[200px]" style={{ background: 'inherit' }}>
                                     <div className="flex flex-col gap-2">
-                                        <span>{t('employee')}</span>
+                                        <span className="font-black uppercase tracking-widest text-[10px] opacity-80">{t('employee')}</span>
                                         <input
                                             type="text"
                                             value={filterText}
@@ -558,15 +581,15 @@ export default function SchedulesPage() {
                                     </div>
                                 </th>
                                 {weekDays.map((date, i) => (
-                                    <th key={i} className="p-2 border-r border-orange-400/30 text-center min-w-[150px]">
+                                    <th key={i} className="p-2 border-r border-white/10 text-center min-w-[150px]">
                                         <div className="flex flex-col gap-2">
                                             <div className="flex flex-col">
-                                                <span className="text-xs opacity-80 uppercase tracking-widest">{t(`days.${weekDaysLabels[i]}`)}</span>
-                                                <span className="text-lg font-bold">{date.getDate()}</span>
+                                                <span className="text-[10px] opacity-70 uppercase tracking-[0.2em] font-bold">{t(`days.${weekDaysLabels[i]}`)}</span>
+                                                <span className="text-xl font-black">{date.getDate()}</span>
                                             </div>
                                             <button
                                                 onClick={() => handleAssignBulk(date)}
-                                                className="bg-white/20 hover:bg-white/30 transition-colors py-1 px-2 rounded-md text-[10px] font-bold uppercase"
+                                                className="bg-white/10 hover:bg-white/30 transition-colors py-1 px-2 rounded-md text-[9px] font-black uppercase tracking-tighter"
                                             >
                                                 ➕ {t('assignSchedules')}
                                             </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Branch {
     IdSucursal: number;
@@ -12,6 +13,7 @@ export default function SalesChannelsCapturePage() {
     const t = useTranslations('SalesChannelsCapture');
     const tModal = useTranslations('SalesModal');
     const tCommon = useTranslations('Common');
+    const { colors } = useTheme();
 
     // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -53,8 +55,8 @@ export default function SalesChannelsCapturePage() {
             fetchBranches();
             fetchDropdowns();
 
-            // Load persisted filters
-            const savedBranch = localStorage.getItem('lastSelectedBranch');
+            // Load persisted filters - Standardized to dashboardSelectedBranch
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
             const savedMonth = localStorage.getItem('lastSelectedMonth');
             const savedYear = localStorage.getItem('lastSelectedYear');
 
@@ -64,8 +66,19 @@ export default function SalesChannelsCapturePage() {
         }
     }, [project]);
 
+    // Listen for global branch changes
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranch', selectedBranch);
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch' && e.newValue) {
+                setSelectedBranch(e.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    useEffect(() => {
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
@@ -90,7 +103,7 @@ export default function SalesChannelsCapturePage() {
                 setBranches(data.data);
 
                 // Only set default if no branch is selected or persisted
-                const savedBranch = localStorage.getItem('lastSelectedBranch');
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
@@ -318,6 +331,7 @@ export default function SalesChannelsCapturePage() {
                 </h1>
 
                 <div className="flex items-center gap-4">
+                    {/* Branch Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
                         <select
@@ -334,6 +348,7 @@ export default function SalesChannelsCapturePage() {
                         </select>
                     </div>
 
+                    {/* Month Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
                         <select
@@ -347,6 +362,7 @@ export default function SalesChannelsCapturePage() {
                         </select>
                     </div>
 
+                    {/* Year Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
                         <select
@@ -362,228 +378,256 @@ export default function SalesChannelsCapturePage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-orange-500 border-b border-orange-600">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-300" />;
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`relative border-b border-r border-gray-300 p-2 transition-all hover:bg-orange-50 cursor-pointer group min-h-[120px] flex flex-col ${isToday ? 'bg-orange-50/30' : ''}`}
-                            >
-                                <span className={`text-sm font-medium ${isToday ? 'bg-orange-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}`}>
-                                    {date.getDate()}
-                                </span>
-                                {monthlySalesDetails[date.getDate()] && (
-                                    <>
-                                        <div className="mt-6 space-y-1 flex-1">
-                                            {monthlySalesDetails[date.getDate()].map((shift, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <div className="font-medium text-gray-700">{shift.shiftName}</div>
-                                                    <div className="font-semibold text-green-600">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shift.total)} ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(shift.commission)})
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                            <div className="text-xs font-bold text-blue-700">
-                                                Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0))} ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.commission, 0))})
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
+
+                            const dayNum = date.getDate();
+                            const details = monthlySalesDetails[dayNum];
+                            const hasSales = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
+
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-white border-2 border-orange-400 shadow-orange-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                `}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${isToday ? 'text-orange-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                {t('today') || 'HOY'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {hasSales && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-green-600 leading-tight">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, s) => sum + s.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.length} {details.length === 1 ? 'Turno' : 'Turnos'}
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${isToday ? 'bg-orange-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
+            {/* Modal */}
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col gap-6">
-                        <div className="bg-gray-50 p-4 rounded-lg flex flex-col md:flex-row items-end gap-4">
-                            <div className="flex flex-col flex-1">
-                                <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-2">
-                                    💰 Venta Total del día
-                                </label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm w-full"
-                                    value={dailyTotalSale}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if ((val.match(/\./g) || []).length > 1) return;
-                                        setDailyTotalSale(val);
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                        setDailyTotalSale(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val));
-                                    }}
-                                    onFocus={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        setDailyTotalSale(val === '0.00' || val === '0' ? '' : val);
-                                    }}
-                                    placeholder="$0.00"
-                                />
+                    <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <div>
+                                <h2 className="text-2xl font-black">{t('title')}</h2>
+                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
                             </div>
                             <button
-                                onClick={handleSaveDailyTotal}
-                                disabled={isSavingDailyTotal}
-                                className="bg-orange-500 text-white p-2 rounded hover:bg-orange-600 font-medium h-10 shadow-sm transition-colors px-6"
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
                             >
-                                {isSavingDailyTotal ? '...' : '💾 Guardar Venta Total'}
+                                ✕
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg items-end">
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('shift')}</label>
-                                <select
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.shiftId}
-                                    onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">{tModal('select')}</option>
-                                    {filteredShifts.map(s => <option key={s.IdTurno} value={s.IdTurno}>{s.Turno}</option>)}
-                                </select>
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Venta Total Reportada</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="bg-transparent text-xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-orange-200 rounded p-1"
+                                            value={dailyTotalSale}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                if ((val.match(/\./g) || []).length > 1) return;
+                                                setDailyTotalSale(val);
+                                            }}
+                                            onBlur={(e) => {
+                                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                setDailyTotalSale(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val));
+                                            }}
+                                            onFocus={(e) => {
+                                                const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                setDailyTotalSale(val === '0.00' || val === '0' ? '' : val);
+                                            }}
+                                            placeholder="$0.00"
+                                        />
+                                        <button
+                                            onClick={handleSaveDailyTotal}
+                                            disabled={isSavingDailyTotal}
+                                            className="bg-orange-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors"
+                                        >
+                                            {isSavingDailyTotal ? '...' : '💾'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🛒 Venta Capturada</label>
+                                    <div className="text-xl font-black text-orange-600">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales)}
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">⚖️ Diferencia</label>
+                                    <div className={`text-xl font-black ${(parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales < -0.01 ? 'text-red-500' : 'text-blue-500'}`}>
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales)}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">Canal</label>
-                                <select
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.channelId}
-                                    onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
-                                    required
-                                >
-                                    <option value="">{tModal('select')}</option>
-                                    {channels.map(c => <option key={c.IdCanalVenta} value={c.IdCanalVenta}>{c.CanalVenta}</option>)}
-                                </select>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('amount')}</label>
-                                <input
-                                    type="text"
-                                    className="p-2 border rounded text-sm"
-                                    value={formData.amount}
-                                    onChange={(e) => {
-                                        // Allow only numbers and dots
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        // Prevent multiple dots
-                                        if ((val.match(/\./g) || []).length > 1) return;
-                                        setFormData({ ...formData, amount: val });
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                        if (!isNaN(val)) {
-                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                        }
-                                    }}
-                                    onFocus={(e) => {
-                                        // Remove currency symbols and commas for editing
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if (val === '0.00' || val === '0') {
-                                            setFormData({ ...formData, amount: '' });
-                                        } else {
+
+                            {/* Form */}
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-orange-50 p-6 rounded-xl border border-orange-100 items-end shadow-sm">
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('shift')}</label>
+                                    <select
+                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        value={formData.shiftId}
+                                        onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
+                                        required
+                                    >
+                                        <option value="">{tModal('select')}</option>
+                                        {filteredShifts.map(s => <option key={s.IdTurno} value={s.IdTurno}>{s.Turno}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">Canal</label>
+                                    <select
+                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        value={formData.channelId}
+                                        onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
+                                        required
+                                    >
+                                        <option value="">{tModal('select')}</option>
+                                        {channels.map(c => <option key={c.IdCanalVenta} value={c.IdCanalVenta}>{c.CanalVenta}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        value={formData.amount}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
                                             setFormData({ ...formData, amount: val });
-                                        }
-                                    }}
-                                    required
-                                    placeholder="0.00"
-                                />
-                            </div>
-                            <button type="submit" className="bg-orange-500 text-white p-2 rounded hover:bg-orange-600 font-medium h-10 shadow-sm transition-colors">
-                                {tModal('add')}
-                            </button>
-                        </form>
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                        }}
+                                        onFocus={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            setFormData({ ...formData, amount: val === '0.00' || val === '0' ? '' : val });
+                                        }}
+                                        required
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <button type="submit" className="bg-orange-500 text-white p-2.5 rounded-lg hover:bg-orange-600 font-bold transition-all shadow-md active:scale-95">
+                                    {tModal('add')}
+                                </button>
+                            </form>
 
-                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('shift')}</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Canal</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('amount')}</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Comisión</th>
-                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {dailySales.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400 italic">No records found</td>
-                                        </tr>
-                                    ) : (
-                                        dailySales.map((sale, idx) => {
-                                            const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
-                                            return (
-                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.Turno}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-medium">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                                        <button
-                                                            onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
-                                                            className="text-red-600 hover:text-red-900 font-bold"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </td>
+                            {/* Table */}
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
+                                <div className="overflow-y-auto max-h-[300px]">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-50">
+                                            {dailySales.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
                                                 </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                    <tr>
-                                        <td colSpan={2} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                        <td className="px-6 py-4 text-right text-orange-600 text-lg">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales)}
-                                        </td>
-                                        <td className="px-6 py-4 text-right text-blue-600 text-lg">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-                                                dailySales.reduce((sum, sale) => sum + (parseFloat(sale.Venta) * ((sale.Comision || 0) / 100)), 0)
+                                            ) : (
+                                                dailySales.map((sale, idx) => {
+                                                    const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
+                                                    return (
+                                                        <tr key={idx} className="hover:bg-orange-50/30 transition-colors group">
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                                <button
+                                                                    onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
+                                                                    className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
                                             )}
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                    {Math.abs((parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales) > 0.01 && (
-                                        <tr className="bg-blue-50/50">
-                                            <td colSpan={2} className={`px-6 py-4 text-right uppercase text-xs font-bold tracking-wider ${(parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales < 0 ? 'text-red-600' : 'text-blue-600'
-                                                }`}>
-                                                Diferencia
-                                                <span className="ml-2">⚠️</span>
-                                            </td>
-                                            <td className={`px-6 py-4 text-right text-lg font-bold ${(parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales < 0 ? 'text-red-600' : 'text-blue-600'
-                                                }`}>
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0) - totalSales)}
-                                            </td>
-                                            <td colSpan={2}></td>
-                                        </tr>
-                                    )}
-                                </tfoot>
-                            </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
-                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
                                 {tModal('close')}
                             </button>
                         </div>

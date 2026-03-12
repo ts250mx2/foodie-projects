@@ -508,51 +508,80 @@ export default function InventoryCapturePage() {
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="grid grid-cols-7 gap-2">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="text-center font-bold text-gray-600 py-2 text-sm uppercase">
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
-                    {calendarDays.map((date, index) => {
-                        if (!date) {
-                            return <div key={`empty-${index}`} className="aspect-square" />;
-                        }
+                </div>
 
-                        const dayNum = date.getDate();
-                        const details = inventoryDaysDetails[dayNum];
-                        const hasInventory = details && details.productCount > 0;
-                        const isMarkedDay = details?.isMarkedInventoryDay;
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
 
-                        return (
-                            <div
-                                key={index}
-                                onClick={() => handleDayClick(date)}
-                                className="aspect-square border-2 border-gray-200 rounded-lg p-2 cursor-pointer hover:border-green-500 hover:shadow-md transition-all flex flex-col justify-between bg-gradient-to-br from-white to-gray-50"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <span className="text-lg font-semibold text-gray-700">{dayNum}</span>
-                                    {isMarkedDay && (
-                                        <span className="text-xs bg-blue-100 text-blue-600 px-1 rounded">
-                                            📦 {t('inventoryDay')}
+                            const dayNum = date.getDate();
+                            const details = inventoryDaysDetails[dayNum];
+                            const hasInventory = details && details.productCount > 0;
+                            const isMarkedDay = details?.isMarkedInventoryDay;
+
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${hasInventory
+                                            ? 'bg-white border-2 border-green-100 shadow-sm hover:border-green-400 hover:shadow-green-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl
+                                `}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${hasInventory ? 'text-green-700' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
                                         </span>
-                                    )}
-                                </div>
-                                {hasInventory && (
-                                    <div className="text-xs space-y-1">
-                                        <div className="text-green-600 font-semibold">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(details.total)}
-                                        </div>
-                                        <div className="text-gray-500">
-                                            {details.productCount} productos
-                                        </div>
+                                        {isMarkedDay && (
+                                            <span className="text-[9px] font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 animate-pulse">
+                                                📦 <span className="hidden sm:inline">{t('inventoryDay')}</span>
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    {hasInventory && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-green-600 leading-tight">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(details.total)}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.productCount} {details.productCount === 1 ? 'Producto' : 'Productos'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${hasInventory ? 'bg-green-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
@@ -561,7 +590,7 @@ export default function InventoryCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                        <div className="px-6 pt-4 pb-0 text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0">

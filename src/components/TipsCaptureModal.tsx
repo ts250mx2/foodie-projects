@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import Button from './Button';
-import Input from './Input';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TipsCaptureModalProps {
     isOpen: boolean;
@@ -12,8 +11,6 @@ interface TipsCaptureModalProps {
     branchId: string;
     projectId: number;
 }
-
-
 
 interface Employee {
     IdEmpleado: number;
@@ -43,6 +40,7 @@ interface DailyTip {
 
 export default function TipsCaptureModal({ isOpen, onClose, date, branchId, projectId }: TipsCaptureModalProps) {
     const t = useTranslations('TipsCaptureModal');
+    const { colors } = useTheme();
 
     const [shifts, setShifts] = useState<any[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -261,231 +259,207 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
 
     if (!isOpen) return null;
 
+    const totalTips = dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0);
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">
-                        {t('title')} - {date.toLocaleDateString()}
-                    </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                    <div>
+                        <h2 className="text-2xl font-black">{t('title')}</h2>
+                        <p className="text-sm font-medium opacity-90">{date.toLocaleDateString()}</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                    >
+                        ✕
+                    </button>
                 </div>
 
-                <div className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Form Section */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-6 rounded-xl border border-orange-200">
-                                <h3 className="text-sm font-bold text-orange-600 mb-4 uppercase">{t('addNew')}</h3>
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    {/* Shift Selector */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            {t('shift')}
-                                        </label>
-                                        <select
-                                            value={formData.shiftId}
-                                            onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                            required
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Propina Capturada</label>
+                            <div className="text-xl font-black text-orange-600">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalTips)}
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">👥 Colaboradores</label>
+                            <div className="text-xl font-black text-gray-800">
+                                {dailyTips.length}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Form Section */}
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-orange-50 p-6 rounded-xl border border-orange-100 items-end shadow-sm">
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('shift')}</label>
+                            <select
+                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                value={formData.shiftId}
+                                onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
+                                required
+                            >
+                                <option value="">{t('selectShift')}</option>
+                                {shifts.map((shift) => (
+                                    <option key={shift.IdTurno} value={shift.IdTurno}>
+                                        {shift.Turno}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col relative">
+                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('employee')}</label>
+                            <input
+                                type="text"
+                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                value={formData.employeeSearch}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, employeeSearch: e.target.value });
+                                    setShowEmployeeDropdown(true);
+                                }}
+                                onFocus={() => setShowEmployeeDropdown(true)}
+                                onBlur={() => setTimeout(() => setShowEmployeeDropdown(false), 200)}
+                                placeholder={t('searchEmployee')}
+                                required
+                            />
+                            {showEmployeeDropdown && filteredEmployees.length > 0 && (
+                                <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                    {filteredEmployees.map((emp) => (
+                                        <div
+                                            key={emp.IdEmpleado}
+                                            onClick={() => handleEmployeeSelect(emp)}
+                                            className="px-4 py-2 hover:bg-orange-50 cursor-pointer border-b last:border-0 border-gray-50"
                                         >
-                                            <option value="">{t('selectShift')}</option>
-                                            {shifts.map((shift) => (
-                                                <option key={shift.IdTurno} value={shift.IdTurno}>
-                                                    {shift.Turno}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Employee Search */}
-                                    <div className="relative">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            {t('employee')}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.employeeSearch}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, employeeSearch: e.target.value });
-                                                setShowEmployeeDropdown(true);
-                                            }}
-                                            onFocus={() => setShowEmployeeDropdown(true)}
-                                            onBlur={() => setTimeout(() => setShowEmployeeDropdown(false), 200)}
-                                            placeholder={t('searchEmployee')}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                            required
-                                        />
-                                        {showEmployeeDropdown && filteredEmployees.length > 0 && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                                {filteredEmployees.map((emp) => (
-                                                    <div
-                                                        key={emp.IdEmpleado}
-                                                        onClick={() => handleEmployeeSelect(emp)}
-                                                        className="px-3 py-2 hover:bg-orange-50 cursor-pointer"
-                                                    >
-                                                        <div className="font-medium">{emp.Empleado}</div>
-                                                        <div className="text-xs text-gray-500">{emp.Puesto}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Position Display */}
-                                    {selectedEmployee && (
-                                        <Input
-                                            label={t('position')}
-                                            value={selectedEmployee.Puesto}
-                                            disabled
-                                        />
-                                    )}
-
-                                    {/* Tip Profile Selector */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            {t('tipProfile')}
-                                        </label>
-                                        <select
-                                            value={formData.profileId}
-                                            onChange={(e) => setFormData({ ...formData, profileId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                            required
-                                        >
-                                            <option value="">{t('selectProfile')}</option>
-                                            {tipProfiles.map((profile) => (
-                                                <option key={profile.IdPerfilPropina} value={profile.IdPerfilPropina}>
-                                                    {profile.PerfilPropina}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Percentage (disabled) */}
-                                    <Input
-                                        label={t('percentage')}
-                                        value={formData.percentage}
-                                        disabled
-                                        type="number"
-                                    />
-
-                                    {/* Amount (disabled) */}
-                                    <Input
-                                        label={t('amount')}
-                                        value={formData.amount}
-                                        disabled
-                                        type="text"
-                                    />
-
-                                    {/* Sales Input */}
-                                    <Input
-                                        label={t('sales')}
-                                        value={formData.sales}
-                                        onChange={(e) => {
-                                            // Allow only numbers and dots
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            // Prevent multiple dots
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setFormData({ ...formData, sales: val });
-                                        }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            if (!isNaN(val)) {
-                                                setFormData({ ...formData, sales: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                            }
-                                        }}
-                                        onFocus={(e) => {
-                                            // Remove currency symbols and commas for editing
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if (val === '0.00' || val === '0') {
-                                                setFormData({ ...formData, sales: '' });
-                                            } else {
-                                                setFormData({ ...formData, sales: val });
-                                            }
-                                        }}
-                                        type="text"
-                                        placeholder="0.00"
-                                        required
-                                    />
-
-                                    {/* Calculated Tip */}
-                                    <div className="bg-white p-3 rounded-lg border-2 border-orange-300">
-                                        <div className="text-xs text-gray-600 mb-1">{t('calculatedTip')}</div>
-                                        <div className="text-2xl font-bold text-orange-600">
-                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateTip())}
+                                            <div className="font-bold text-sm text-gray-800">{emp.Empleado}</div>
+                                            <div className="text-[10px] uppercase font-bold text-gray-400">{emp.Puesto}</div>
                                         </div>
-                                    </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
-                                    <Button type="submit" className="w-full">
-                                        Agregar
-                                    </Button>
-                                </form>
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('tipProfile')}</label>
+                            <select
+                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                value={formData.profileId}
+                                onChange={(e) => setFormData({ ...formData, profileId: e.target.value })}
+                                required
+                            >
+                                <option value="">{t('selectProfile')}</option>
+                                {tipProfiles.map((profile) => (
+                                    <option key={profile.IdPerfilPropina} value={profile.IdPerfilPropina}>
+                                        {profile.PerfilPropina}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('sales')}</label>
+                            <input
+                                type="text"
+                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                value={formData.sales}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    if ((val.match(/\./g) || []).length > 1) return;
+                                    setFormData({ ...formData, sales: val });
+                                }}
+                                onBlur={(e) => {
+                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                    setFormData({ ...formData, sales: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                }}
+                                onFocus={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    setFormData({ ...formData, sales: val === '0.00' || val === '0' ? '' : val });
+                                }}
+                                required
+                                placeholder="0.00"
+                            />
+                        </div>
+
+                        <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
+                            <div className="bg-white/50 p-2 rounded-lg border border-orange-100">
+                                <span className="text-[10px] font-bold text-orange-900/40 uppercase block mb-1">Porcentaje</span>
+                                <span className="text-sm font-bold text-gray-700">{formData.percentage}%</span>
+                            </div>
+                            <div className="bg-white/50 p-2 rounded-lg border border-orange-100">
+                                <span className="text-[10px] font-bold text-orange-900/40 uppercase block mb-1">Fijo</span>
+                                <span className="text-sm font-bold text-gray-700">{formData.amount}</span>
+                            </div>
+                            <div className="bg-white p-2 rounded-lg border-2 border-orange-300 col-span-2 md:col-span-1">
+                                <span className="text-[10px] font-bold text-orange-600 uppercase block mb-1">Cálculo Estimado</span>
+                                <span className="text-lg font-black text-orange-600 block leading-none">
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateTip())}
+                                </span>
                             </div>
                         </div>
 
-                        {/* Daily Tips Grid */}
-                        <div className="lg:col-span-2">
-                            <h3 className="text-sm font-bold text-gray-600 mb-4 uppercase">{t('dailyTips')}</h3>
-                            {dailyTips.length === 0 ? (
-                                <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg">
-                                    {t('noTips')}
-                                </div>
-                            ) : (
-                                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('employee')}</th>
-                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('shift')}</th>
-                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('profile')}</th>
-                                                <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">{t('sales')}</th>
-                                                <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">{t('tipAmount')}</th>
-                                                <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">{t('actions')}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {dailyTips.map((tip) => (
-                                                <tr key={tip.IdPropinaEmpleado} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{tip.Empleado}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600">{tip.Turno}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-600">{tip.PerfilPropina}</td>
-                                                    <td className="px-4 py-3 text-sm text-right text-gray-900">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.Venta)}</td>
-                                                    <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.MontoPropina)}</td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <button
-                                                            onClick={() => handleDelete(tip)}
-                                                            className="text-lg hover:scale-125 transition-transform"
-                                                            title={t('delete')}
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                                            <tr>
-                                                <td colSpan={4} className="px-4 py-3 text-right text-sm font-bold text-gray-700">
-                                                    {t('total')}:
+                        <button type="submit" className="bg-orange-500 text-white p-2.5 rounded-lg hover:bg-orange-600 font-bold transition-all shadow-md active:scale-95">
+                            {t('add') || 'Agregar'}
+                        </button>
+                    </form>
+
+                    {/* Table */}
+                    <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
+                        <div className="overflow-y-auto max-h-[400px]">
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('employee')}</th>
+                                        <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('shift')}</th>
+                                        <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile')}</th>
+                                        <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('sales')}</th>
+                                        <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('tipAmount')}</th>
+                                        <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-50">
+                                    {dailyTips.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">{t('noTips')}</td>
+                                        </tr>
+                                    ) : (
+                                        dailyTips.map((tip) => (
+                                            <tr key={tip.IdPropinaEmpleado} className="hover:bg-orange-50/30 transition-colors group">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{tip.Empleado}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tip.Turno}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tip.PerfilPropina}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.Venta)}
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-lg font-bold text-orange-600">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailyTips.reduce((sum, tip) => sum + tip.MontoPropina, 0))}
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 text-right font-black">
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.MontoPropina)}
                                                 </td>
-                                                <td></td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <button
+                                                        onClick={() => handleDelete(tip)}
+                                                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </td>
                                             </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            )}
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md text-sm font-medium"
-                    >
+                {/* Footer */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                    <button onClick={onClose} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
                         {t('close')}
                     </button>
                 </div>

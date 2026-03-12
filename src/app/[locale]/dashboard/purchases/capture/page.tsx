@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
-import Button from '@/components/Button';
-import Input from '@/components/Input';
 
 interface Branch {
     IdSucursal: number;
@@ -62,11 +60,11 @@ interface PurchaseDetail {
 }
 
 export default function PurchasesCapturePage() {
-    const { colors } = useTheme();
     const t = useTranslations('PurchasesCapture');
     const tModal = useTranslations('PurchasesModal');
     const tDetails = useTranslations('PurchaseDetailsModal');
     const tCommon = useTranslations('Common');
+    const { colors } = useTheme();
 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -153,10 +151,10 @@ export default function PurchasesCapturePage() {
             fetchProviders();
             fetchPaymentChannels();
 
-            // Load persisted filters
-            const savedBranch = localStorage.getItem('lastSelectedBranchPurchases');
-            const savedMonth = localStorage.getItem('lastSelectedMonthPurchases');
-            const savedYear = localStorage.getItem('lastSelectedYearPurchases');
+            // Load persisted filters - Standardized to dashboardSelectedBranch
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
+            const savedMonth = localStorage.getItem('lastSelectedMonth');
+            const savedYear = localStorage.getItem('lastSelectedYear');
 
             if (savedBranch) setSelectedBranch(savedBranch);
             if (savedMonth) setSelectedMonth(parseInt(savedMonth));
@@ -164,16 +162,27 @@ export default function PurchasesCapturePage() {
         }
     }, [project]);
 
+    // Listen for global branch changes
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranchPurchases', selectedBranch);
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch' && e.newValue) {
+                setSelectedBranch(e.newValue);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    useEffect(() => {
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonthPurchases', (selectedMonth ?? 0).toString());
+        localStorage.setItem('lastSelectedMonth', (selectedMonth ?? 0).toString());
     }, [selectedMonth]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedYearPurchases', (selectedYear ?? 0).toString());
+        localStorage.setItem('lastSelectedYear', (selectedYear ?? 0).toString());
     }, [selectedYear]);
 
     useEffect(() => {
@@ -189,7 +198,7 @@ export default function PurchasesCapturePage() {
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
 
-                const savedBranch = localStorage.getItem('lastSelectedBranchPurchases');
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal?.toString() || '');
                 }
@@ -383,7 +392,6 @@ export default function PurchasesCapturePage() {
             if (response.ok) {
                 await fetchProducts();
 
-                // Auto-select the newly created product
                 const parsedPrice = productFormData.precio ? parseFloat(productFormData.precio.replace(/[^0-9.]/g, '')) : 0;
                 const newProduct = products.find(p => p.IdProducto === data.productId) ||
                     { IdProducto: data.productId, Producto: productFormData.producto, Codigo: productFormData.codigo, UnidadMedidaCompra: productFormData.unidadMedidaCompra, Precio: parsedPrice };
@@ -398,7 +406,6 @@ export default function PurchasesCapturePage() {
                 });
                 setProductSearch(`${productFormData.codigo} - ${productFormData.producto}`);
 
-                // Reset and close modal
                 setProductFormData({
                     producto: '',
                     codigo: '',
@@ -410,7 +417,6 @@ export default function PurchasesCapturePage() {
                 setIsProductModalOpen(false);
                 setShowProductDropdown(false);
             } else {
-                // Show error message
                 if (data.error) {
                     alert(data.error);
                 } else if (data.message) {
@@ -436,7 +442,6 @@ export default function PurchasesCapturePage() {
         });
         setIsProductModalOpen(true);
     };
-
 
     const fetchMonthlyPurchases = async () => {
         if (!project || !selectedBranch) return;
@@ -550,7 +555,7 @@ export default function PurchasesCapturePage() {
         if (!selectedDate || !project || !selectedBranch || !formData.providerId || !formData.invoiceNumber || !formData.paymentChannelId || !formData.total) return;
 
         try {
-            const url = editingPurchase ? '/api/purchases/daily' : '/api/purchases/daily';
+            const url = '/api/purchases/daily';
             const method = editingPurchase ? 'PUT' : 'POST';
 
             const body = editingPurchase ? {
@@ -627,16 +632,11 @@ export default function PurchasesCapturePage() {
         const date = new Date(year, month, 1);
         const days = [];
         const firstDayOfWeek = (date.getDay() + 6) % 7; // Monday = 0
-
-        for (let i = 0; i < firstDayOfWeek; i++) {
-            days.push(null);
-        }
-
+        for (let i = 0; i < firstDayOfWeek; i++) days.push(null);
         while (date.getMonth() === month) {
             days.push(new Date(date));
             date.setDate(date.getDate() + 1);
         }
-
         return days;
     };
 
@@ -649,6 +649,7 @@ export default function PurchasesCapturePage() {
 
     return (
         <div className="flex flex-col min-h-screen p-6 gap-4">
+            {/* Standardized Header */}
             <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                     🛒 {t('title')}
@@ -672,6 +673,7 @@ export default function PurchasesCapturePage() {
                         </select>
                     </div>
 
+                    {/* Month Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
                         <select
@@ -685,6 +687,7 @@ export default function PurchasesCapturePage() {
                         </select>
                     </div>
 
+                    {/* Year Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
                         <select
@@ -700,235 +703,217 @@ export default function PurchasesCapturePage() {
                 </div>
             </div>
 
-            {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-blue-500 border-b border-blue-600">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
+                {/* Continuous Header */}
+                <div
+                    className="grid grid-cols-7"
+                    style={{
+                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
+                        <div
+                            key={day}
+                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) {
-                            return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-300" />;
-                        }
+                <div className="p-4 bg-gray-50/30">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
 
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        const dayDetails = monthlyPurchasesDetails[date.getDate()];
-                        const dayTotal = dayDetails ? dayDetails.reduce((sum, d) => sum + d.total, 0) : 0;
+                            const dayNum = date.getDate();
+                            const details = monthlyPurchasesDetails[dayNum];
+                            const hasPurchases = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
 
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`
-                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-blue-50 cursor-pointer group min-h-[120px] flex flex-col
-                                    ${isToday ? 'bg-blue-50/30' : ''}
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-white border-2 border-blue-400 shadow-blue-100'
+                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                        }
+                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
-                            >
-                                <span className={`
-                                    text-sm font-medium
-                                    ${isToday ? 'bg-blue-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
-                                `}>
-                                    {date.getDate()}
-                                </span>
-                                {dayDetails && (
-                                    <div className="mt-2 space-y-1 flex-1">
-                                        <div className="text-xs font-bold text-blue-800 border-b border-blue-200 pb-1 mb-1">
-                                            Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dayTotal)}
-                                        </div>
-                                        {dayDetails.map((detail, idx) => (
-                                            <div key={idx} className="text-xs">
-                                                <div className="font-medium text-gray-700">{detail.provider}</div>
-                                                <div className="font-semibold text-blue-600">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.total)} ({detail.itemCount} {detail.itemCount === 1 ? 'producto' : 'productos'})
-                                                </div>
-                                            </div>
-                                        ))}
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black ${isToday ? 'text-blue-600' : hasPurchases ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[9px] font-extrabold bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                {t('today') || 'HOY'}
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    {hasPurchases && (
+                                        <div className="space-y-0.5 z-10">
+                                            <div className="text-sm font-black text-blue-600 leading-tight">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, d) => sum + d.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                {details.length} {details.length === 1 ? 'Factura' : 'Facturas'}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Decorative background element for hover */}
+                                    <div className={`
+                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
+                                    ${isToday ? 'bg-blue-600' : 'bg-blue-600'}
+                                `} />
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Main Day Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white w-[90vw] h-[90vh] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {tModal('title')}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-4 leading-tight">
-                                        📅 {selectedDate.toLocaleDateString()}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <div>
+                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
+                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
                             </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                            >
+                                ✕
+                            </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Compras Totales</label>
+                                    <div className="text-xl font-black text-blue-600">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">📄 Facturas Registradas</label>
+                                    <div className="text-xl font-black text-gray-800">
+                                        {dailyPurchases.length}
+                                    </div>
+                                </div>
+                            </div>
 
-                            {/* New Purchase Button */}
                             {!isFormOpen && (
-                                <Button
+                                <button
                                     onClick={handleNewPurchase}
-                                    className="mb-4"
+                                    className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 font-bold transition-all shadow-md active:scale-95 self-start flex items-center gap-2"
                                 >
                                     ✨ {tModal('new')}
-                                </Button>
+                                </button>
                             )}
 
-                            {/* Form */}
+                            {/* Purchase Form */}
                             {isFormOpen && (
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                                    {/* Provider */}
+                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-blue-50 p-6 rounded-xl border border-blue-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                                     <div className="flex flex-col relative">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('provider')} *</label>
+                                        <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('provider')} *</label>
                                         <input
                                             type="text"
+                                            className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             value={providerSearch}
                                             onChange={(e) => {
                                                 setProviderSearch(e.target.value);
                                                 setShowProviderDropdown(true);
-                                                setFormData({ ...formData, providerId: '' });
-                                                setSelectedProvider(null);
                                             }}
                                             onFocus={() => setShowProviderDropdown(true)}
                                             onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
                                             placeholder={tModal('searchProvider')}
-                                            className="p-2 border rounded text-sm w-full"
                                             required
                                         />
                                         {showProviderDropdown && (
-                                            <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                                {providers
-                                                    .filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true)
-                                                    .map(p => (
-                                                        <div
-                                                            key={p.IdProveedor}
-                                                            onClick={() => {
-                                                                setSelectedProvider(p);
-                                                                setFormData({ ...formData, providerId: p.IdProveedor?.toString() || '' });
-                                                                setProviderSearch(p.Proveedor);
-                                                                setShowProviderDropdown(false);
-                                                            }}
-                                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                                        >
-                                                            <div className="font-medium text-sm">{p.Proveedor}</div>
-                                                        </div>
-                                                    ))}
-                                                {providers.filter(p => providerSearch ? p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()) : true).length === 0 && (
-                                                    <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                        {tModal('noResults')}
+                                            <div className="absolute z-50 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                                {providers.filter(p => !providerSearch || p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase())).map(p => (
+                                                    <div
+                                                        key={p.IdProveedor}
+                                                        onClick={() => {
+                                                            setSelectedProvider(p);
+                                                            setFormData({ ...formData, providerId: p.IdProveedor.toString() });
+                                                            setProviderSearch(p.Proveedor);
+                                                            setShowProviderDropdown(false);
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-0 border-gray-50 font-bold text-sm text-gray-800"
+                                                    >
+                                                        {p.Proveedor}
                                                     </div>
-                                                )}
+                                                ))}
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Invoice Number */}
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('invoiceNumber')} *</label>
+                                    <div className="flex flex-col text-sm">
+                                        <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('invoiceNumber')} *</label>
                                         <input
                                             type="text"
-                                            className="p-2 border rounded text-sm uppercase"
+                                            className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all uppercase"
                                             value={formData.invoiceNumber}
                                             onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value.toUpperCase() })}
                                             required
                                         />
                                     </div>
 
-                                    {/* Payment Channel */}
-                                    <div className="flex flex-col relative">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('paymentChannel')} *</label>
+                                    <div className="flex flex-col relative text-sm">
+                                        <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('paymentChannel')} *</label>
                                         <input
                                             type="text"
+                                            className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             value={paymentChannelSearch}
                                             onChange={(e) => {
                                                 setPaymentChannelSearch(e.target.value);
                                                 setShowPaymentChannelDropdown(true);
-                                                setFormData({ ...formData, paymentChannelId: '' });
-                                                setSelectedPaymentChannel(null);
                                             }}
                                             onFocus={() => setShowPaymentChannelDropdown(true)}
                                             onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
-                                            placeholder="Buscar canal de pago..."
-                                            className="p-2 border rounded text-sm w-full"
+                                            placeholder="Buscar canal..."
                                             required
                                         />
                                         {showPaymentChannelDropdown && (
-                                            <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                                {paymentChannels
-                                                    .filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
-                                                    .map(pc => (
-                                                        <div
-                                                            key={pc.IdCanalPago}
-                                                            onClick={() => {
-                                                                setSelectedPaymentChannel(pc);
-                                                                setFormData({ ...formData, paymentChannelId: pc.IdCanalPago?.toString() || '' });
-                                                                setPaymentChannelSearch(pc.CanalPago);
-                                                                setShowPaymentChannelDropdown(false);
-                                                            }}
-                                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                                        >
-                                                            <div className="font-medium text-sm">{pc.CanalPago}</div>
-                                                        </div>
-                                                    ))}
-                                                {paymentChannels.filter(pc => paymentChannelSearch ? pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
-                                                    <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                        {tModal('noResults')}
+                                            <div className="absolute z-50 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                                {paymentChannels.filter(pc => !paymentChannelSearch || pc.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase())).map(pc => (
+                                                    <div
+                                                        key={pc.IdCanalPago}
+                                                        onClick={() => {
+                                                            setSelectedPaymentChannel(pc);
+                                                            setFormData({ ...formData, paymentChannelId: pc.IdCanalPago.toString() });
+                                                            setPaymentChannelSearch(pc.CanalPago);
+                                                            setShowPaymentChannelDropdown(false);
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-0 border-gray-50 font-bold text-sm text-gray-800"
+                                                    >
+                                                        {pc.CanalPago}
                                                     </div>
-                                                )}
+                                                ))}
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Reference */}
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('reference')}</label>
+                                    <div className="flex flex-col text-sm">
+                                        <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('total')} *</label>
                                         <input
                                             type="text"
-                                            className="p-2 border rounded text-sm"
-                                            value={formData.reference}
-                                            onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Pay To */}
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('payTo')}</label>
-                                        <input
-                                            type="text"
-                                            className="p-2 border rounded text-sm"
-                                            value={formData.payTo}
-                                            onChange={(e) => setFormData({ ...formData, payTo: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Total */}
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-semibold text-gray-600 mb-1">{tModal('total')} *</label>
-                                        <input
-                                            type="text"
-                                            className="p-2 border rounded text-sm"
+                                            className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-blue-600"
                                             value={formData.total}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -937,579 +922,414 @@ export default function PurchasesCapturePage() {
                                             }}
                                             onBlur={(e) => {
                                                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                                if (!isNaN(val)) {
-                                                    setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                                }
+                                                setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
                                             }}
                                             onFocus={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                if (val === '0.00' || val === '0') {
-                                                    setFormData({ ...formData, total: '' });
-                                                } else {
-                                                    setFormData({ ...formData, total: val });
-                                                }
+                                                setFormData({ ...formData, total: val === '0.00' || val === '0' ? '' : val });
                                             }}
                                             required
+                                            placeholder="0.00"
                                         />
                                     </div>
 
-                                    <div className="md:col-span-3 flex gap-2">
-                                        <Button type="submit">
+                                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="flex flex-col text-sm">
+                                            <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('reference')}</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                value={formData.reference}
+                                                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col text-sm">
+                                            <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('payTo')}</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                value={formData.payTo}
+                                                onChange={(e) => setFormData({ ...formData, payTo: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button type="submit" className="flex-1 bg-blue-500 text-white p-2.5 rounded-lg hover:bg-blue-600 font-bold transition-all shadow-md active:scale-95">
                                             💾 {tModal('save')}
-                                        </Button>
-                                        <Button
+                                        </button>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 setIsFormOpen(false);
                                                 setEditingPurchase(null);
                                             }}
-                                            variant="secondary"
+                                            className="px-4 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 font-bold transition-all"
                                         >
                                             {tCommon('cancel')}
-                                        </Button>
+                                        </button>
                                     </div>
                                 </form>
                             )}
 
-                            {/* Grid */}
-                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('date')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('provider')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('invoiceNumber')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('paymentChannel')}</th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('total')}</th>
-                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">{tModal('actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {dailyPurchases.length === 0 ? (
+                            {/* Purchase Table */}
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
+                                <div className="overflow-y-auto max-h-[400px]">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
                                             <tr>
-                                                <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tModal('noRecords')}</td>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
                                             </tr>
-                                        ) : (
-                                            dailyPurchases.map((purchase) => (
-                                                <tr
-                                                    key={purchase.IdCompra}
-                                                    className={`hover:bg-gray-50 transition-colors ${purchase.Status === 2 ? 'line-through text-gray-400' : ''}`}
-                                                >
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.IdCompra}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {new Date(purchase.FechaCompra).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.Proveedor}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{purchase.NumeroFactura}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{purchase.CanalPago}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(purchase.Total?.toString() || '0'))}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                        {purchase.Status === 0 && (
-                                                            <button
-                                                                onClick={() => handleOpenDetailsModal(purchase)}
-                                                                className="text-green-600 hover:text-green-800 mr-3"
-                                                                title="Productos"
-                                                            >
-                                                                📦
-                                                            </button>
-                                                        )}
-                                                        {purchase.Status !== 2 && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => handleEditPurchase(purchase)}
-                                                                    className="text-blue-600 hover:text-blue-800 mr-3"
-                                                                    title={tModal('edit')}
-                                                                >
-                                                                    ✏️
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeletePurchase(purchase)}
-                                                                    className="text-red-600 hover:text-red-800"
-                                                                    title={tModal('delete')}
-                                                                >
-                                                                    🗑️
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </td>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-50">
+                                            {dailyPurchases.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">{tModal('noRecords')}</td>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                    <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tModal('total')}</td>
-                                            <td className="px-6 py-4 text-right text-blue-600 text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}</td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                            ) : (
+                                                dailyPurchases.map((purchase) => (
+                                                    <tr
+                                                        key={purchase.IdCompra}
+                                                        className={`hover:bg-blue-50/30 transition-colors group ${purchase.Status === 2 ? 'bg-red-50 opacity-40 grayscale' : ''}`}
+                                                    >
+                                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono">#{purchase.IdCompra}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{purchase.Proveedor}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">{purchase.NumeroFactura}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.CanalPago}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-black">
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchase.Total)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {purchase.Status === 0 && (
+                                                                    <button
+                                                                        onClick={() => handleOpenDetailsModal(purchase)}
+                                                                        className="text-gray-300 hover:text-green-600 transition-colors p-1"
+                                                                        title="Productos"
+                                                                    >
+                                                                        📦
+                                                                    </button>
+                                                                )}
+                                                                {purchase.Status !== 2 && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleEditPurchase(purchase)}
+                                                                            className="text-gray-300 hover:text-blue-600 transition-colors p-1"
+                                                                            title={tModal('edit')}
+                                                                        >
+                                                                            ✏️
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeletePurchase(purchase)}
+                                                                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                                            title={tModal('delete')}
+                                                                        >
+                                                                            🗑️
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {purchase.Status === 2 && (
+                                                                    <span className="text-[10px] font-black text-red-600 uppercase tracking-wider">Anulada</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
+                        </div>
 
-                            <div className="flex justify-end pt-4 border-t border-gray-100">
-                                <Button
-                                    onClick={() => setIsModalOpen(false)}
-                                    variant="secondary"
-                                >
-                                    {tModal('close')}
-                                </Button>
-                            </div>
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
+                                {tModal('close')}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Purchase Details Modal */}
+            {/* Purchase Details Modal (Standardized Nested) */}
             {isDetailsModalOpen && selectedPurchaseForDetails && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white w-[80vw] h-[85vh] rounded-lg shadow-2xl flex flex-col overflow-hidden">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {tDetails('title')}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-4 leading-tight">
-                                        {selectedPurchaseForDetails.NumeroFactura} - {selectedPurchaseForDetails.Proveedor}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsDetailsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-green-600 text-white">
+                            <div>
+                                <h2 className="text-xl font-black">{tDetails('title')}</h2>
+                                <p className="text-sm font-medium opacity-90">{selectedPurchaseForDetails.NumeroFactura} — {selectedPurchaseForDetails.Proveedor}</p>
                             </div>
+                            <button
+                                onClick={() => setIsDetailsModalOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold"
+                            >
+                                ✕
+                            </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
+                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                            {/* Summary Card */}
+                            <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex items-center justify-between">
+                                <div>
+                                    <label className="text-[10px] font-black text-green-700 uppercase tracking-widest block mb-0.5">Total Productos</label>
+                                    <div className="text-2xl font-black text-green-700">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <label className="text-[10px] font-black text-green-700 uppercase tracking-widest block mb-0.5">Partidas</label>
+                                    <div className="text-2xl font-black text-gray-800">{purchaseDetails.length}</div>
+                                </div>
+                            </div>
 
-                            {/* Add Product Form */}
-                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-gray-50 p-4 rounded-lg items-end">
-                                {/* Product Drilldown */}
-                                <div className="flex flex-col relative md:col-span-4">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('product')} *</label>
+                            {/* Add Item Form */}
+                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 items-end shadow-inner">
+                                <div className="flex flex-col relative md:col-span-4 lg:col-span-5">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{tDetails('product')} *</label>
                                     <input
                                         type="text"
+                                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none transition-all"
                                         value={productSearch}
                                         onChange={(e) => {
                                             setProductSearch(e.target.value);
                                             setShowProductDropdown(true);
-                                            setDetailFormData({ ...detailFormData, productId: '' });
-                                            setSelectedProduct(null);
                                         }}
                                         onFocus={() => setShowProductDropdown(true)}
                                         placeholder={tDetails('searchProduct')}
-                                        className="p-2 border rounded text-sm w-full"
                                         required
                                     />
                                     {showProductDropdown && (
-                                        <div className="absolute z-10 w-full mt-1 top-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                            {products
-                                                .filter(p => productSearch ?
-                                                    p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
-                                                    p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
-                                                    : true)
-                                                .map(p => (
-                                                    <div
-                                                        key={p.IdProducto}
-                                                        onClick={() => {
-                                                            setSelectedProduct(p);
-
-                                                            const rawCost = p.Costo ? parseFloat(p.Costo.toString()) : p.Precio ? parseFloat(p.Precio.toString()) : 0;
-                                                            const formattedCost = rawCost > 0 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(rawCost) : '';
-
-                                                            setDetailFormData({
-                                                                ...detailFormData,
-                                                                productId: p.IdProducto?.toString() || '',
-                                                                cost: formattedCost
-                                                            });
-                                                            setProductSearch(`${p.Codigo} - ${p.Producto}`);
-                                                            setShowProductDropdown(false);
-                                                        }}
-                                                        className="px-3 py-2 hover:bg-green-50 cursor-pointer"
+                                        <div className="absolute z-60 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                            {products.filter(p => !productSearch || p.Producto.toLowerCase().includes(productSearch.toLowerCase()) || p.Codigo.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                                                <div
+                                                    key={p.IdProducto}
+                                                    onClick={() => {
+                                                        setSelectedProduct(p);
+                                                        const rawCost = p.Costo || p.Precio || 0;
+                                                        setDetailFormData({
+                                                            ...detailFormData,
+                                                            productId: p.IdProducto.toString(),
+                                                            cost: rawCost > 0 ? rawCost.toString() : ''
+                                                        });
+                                                        setProductSearch(`${p.Codigo} - ${p.Producto}`);
+                                                        setShowProductDropdown(false);
+                                                    }}
+                                                    className="px-4 py-2 hover:bg-green-50 cursor-pointer border-b last:border-0 border-gray-50"
+                                                >
+                                                    <div className="font-bold text-sm text-gray-800">{p.Codigo} — {p.Producto}</div>
+                                                    <div className="text-[10px] uppercase font-bold text-gray-400">{p.UnidadMedidaCompra}</div>
+                                                </div>
+                                            ))}
+                                            {productSearch && products.filter(p => p.Producto.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                                                <div className="p-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={openProductModal}
+                                                        className="w-full bg-green-100 text-green-700 p-2 rounded-lg font-bold text-xs hover:bg-green-200 transition-colors"
                                                     >
-                                                        <div className="font-medium text-sm">{p.Codigo} - {p.Producto}</div>
-                                                        <div className="text-xs text-gray-500">{p.UnidadMedidaCompra}</div>
-                                                    </div>
-                                                ))}
-                                            {products.filter(p => productSearch ?
-                                                p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
-                                                p.Codigo.toLowerCase().includes(productSearch.toLowerCase())
-                                                : true).length === 0 && productSearch && (
-                                                    <div className="px-3 py-2">
-                                                        <div className="text-sm text-gray-400 italic mb-2">
-                                                            {tDetails('noResults')}
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={openProductModal}
-                                                            className="w-full px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-medium text-sm transition-colors flex items-center justify-center gap-2"
-                                                        >
-                                                            {tDetails('createProductButton')}
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                        ✨ {tDetails('createProductButton')}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Quantity */}
                                 <div className="flex flex-col md:col-span-2">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">
-                                        {tDetails('quantity')} {selectedProduct && `(${selectedProduct.UnidadMedidaCompra})`} *
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            className="p-2 border rounded text-sm flex-1"
-                                            value={detailFormData.quantity}
-                                            onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
-                                            required
-                                        />
-                                    </div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{tDetails('quantity')} *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                        value={detailFormData.quantity}
+                                        onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
+                                        required
+                                    />
                                 </div>
 
-                                {/* Cost */}
-                                <div className="flex flex-col relative md:col-span-2">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('cost')} *</label>
+                                <div className="flex flex-col md:col-span-2">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{tDetails('cost')} *</label>
                                     <input
                                         type="text"
-                                        className="p-2 border rounded text-sm"
+                                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none text-right font-bold text-green-600"
                                         value={detailFormData.cost}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setDetailFormData({ ...detailFormData, cost: val });
-                                        }}
+                                        onChange={(e) => setDetailFormData({ ...detailFormData, cost: e.target.value.replace(/[^0-9.]/g, '') })}
                                         onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            if (!isNaN(val)) {
-                                                setDetailFormData({ ...detailFormData, cost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                            }
-                                        }}
-                                        onFocus={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if (val === '0.00' || val === '0') {
-                                                setDetailFormData({ ...detailFormData, cost: '' });
-                                            } else {
-                                                setDetailFormData({ ...detailFormData, cost: val });
-                                            }
+                                            const val = parseFloat(e.target.value || '0');
+                                            setDetailFormData({ ...detailFormData, cost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
                                         }}
                                         required
                                     />
-                                    {selectedProduct && detailFormData.cost && (
-                                        (() => {
-                                            const defaultCost = selectedProduct.Costo || selectedProduct.Precio || 0;
-                                            const currentCost = parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '') || '0');
-                                            if (defaultCost > 0 && currentCost > 0 && currentCost !== defaultCost) {
-                                                const diff = currentCost - defaultCost;
-                                                const diffPercentage = (diff / defaultCost) * 100;
-                                                const isIncrease = diff > 0;
-                                                return (
-                                                    <div className={`absolute top-full left-0 mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-[13px] font-bold px-2.5 py-1 rounded shadow-md z-10 border ${isIncrease ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
-                                                        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white bg-opacity-60 shadow-sm">
-                                                            {isIncrease ? '↑' : '↓'}
-                                                        </span>
-                                                        <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(defaultCost)}</span>
-                                                        <span className="opacity-40">|</span>
-                                                        <span>{isIncrease ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diff)}</span>
-                                                        <span className="opacity-40">|</span>
-                                                        <span className={`px-1 rounded bg-white bg-opacity-60 ${isIncrease ? 'text-red-800' : 'text-green-800'}`}>
-                                                            {Math.abs(diffPercentage).toFixed(2)}%
-                                                        </span>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()
-                                    )}
                                 </div>
 
-                                {/* Total (calculated) */}
                                 <div className="flex flex-col md:col-span-2">
-                                    <label className="text-xs font-semibold text-gray-600 mb-1">{tDetails('total')}</label>
-                                    <input
-                                        type="text"
-                                        className="p-2 border rounded text-sm bg-gray-100"
-                                        value={detailFormData.quantity && detailFormData.cost ?
-                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detailFormData.quantity) * parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '')))
-                                            : '$0.00'}
-                                        disabled
-                                    />
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 ml-1">{tDetails('total')}</label>
+                                    <div className="w-full p-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-black text-gray-600 text-right">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(detailFormData.quantity) || 0) * (parseFloat(detailFormData.cost.replace(/[^0-9.]/g, '')) || 0))}
+                                    </div>
                                 </div>
 
-                                {/* Add Button */}
-                                <Button type="submit" className="md:col-span-2 w-full">
-                                    ➕ {tDetails('add')}
-                                </Button>
+                                <button type="submit" className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 font-bold transition-all shadow-md active:scale-95 md:col-span-1 py-2.5">
+                                    ➕
+                                </button>
                             </form>
 
-                            {/* Details Grid */}
-                            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mt-6">
-                                <table className="min-w-full divide-y divide-gray-200">
+                            {/* Details Table */}
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-100">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('quantity')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('presentation')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('code')}</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('product')}</th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('cost')}</th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">{tDetails('total')}</th>
-                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cant.</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Producto</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Costo</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {purchaseDetails.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tDetails('noDetails')}</td>
+                                    <tbody className="bg-white divide-y divide-gray-50">
+                                        {purchaseDetails.map((detail) => (
+                                            <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm font-bold text-gray-700">
+                                                    {editingDetailId === detail.IdDetalleCompra ? (
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="w-20 p-1 border rounded text-sm"
+                                                            value={editQuantity}
+                                                            onChange={(e) => setEditQuantity(e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            {detail.Cantidad} <span className="text-[10px] font-normal text-gray-400">{detail.UnidadMedidaCompra}</span>
+                                                        </>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="text-sm font-bold text-gray-800">{detail.Producto}</div>
+                                                    <div className="text-[10px] text-gray-400 font-mono">#{detail.Codigo}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-sm">
+                                                    {editingDetailId === detail.IdDetalleCompra ? (
+                                                        <input
+                                                            type="text"
+                                                            className="w-24 p-1 border rounded text-right text-sm font-bold text-green-600"
+                                                            value={editCost}
+                                                            onChange={(e) => setEditCost(e.target.value.replace(/[^0-9.]/g, ''))}
+                                                        />
+                                                    ) : (
+                                                        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Costo)
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-sm font-black text-green-600">
+                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {editingDetailId === detail.IdDetalleCompra ? (
+                                                            <>
+                                                                <button onClick={() => handleEditDetailSave(detail.IdDetalleCompra)} className="text-green-600 hover:scale-125 transition-all">✅</button>
+                                                                <button onClick={handleEditDetailCancel} className="text-red-500 hover:scale-125 transition-all">✕</button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleEditDetailStart(detail)} className="text-gray-300 hover:text-blue-500 transition-colors">✏️</button>
+                                                                <button onClick={() => handleDeleteDetail(detail.IdDetalleCompra)} className="text-gray-300 hover:text-red-500 transition-colors">🗑️</button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        ) : (
-                                            purchaseDetails.map((detail) => (
-                                                <tr key={detail.IdDetalleCompra} className={`hover:bg-gray-50 transition-colors ${editingDetailId === detail.IdDetalleCompra ? 'bg-blue-50' : ''}`}>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {editingDetailId === detail.IdDetalleCompra ? (
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                className="w-20 p-1 border rounded"
-                                                                value={editQuantity}
-                                                                onChange={(e) => setEditQuantity(e.target.value)}
-                                                                autoFocus
-                                                            />
-                                                        ) : detail.Cantidad}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{detail.UnidadMedidaCompra}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Codigo}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.Producto}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                                        {editingDetailId === detail.IdDetalleCompra ? (
-                                                            <input
-                                                                type="text"
-                                                                className="w-24 p-1 border rounded text-right"
-                                                                value={editCost}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                                    if ((val.match(/\./g) || []).length > 1) return;
-                                                                    setEditCost(val);
-                                                                }}
-                                                            />
-                                                        ) : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(detail.Costo?.toString() || '0'))}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
-                                                        {editingDetailId === detail.IdDetalleCompra ? (
-                                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(editQuantity || '0') * parseFloat(editCost || '0'))
-                                                        ) : (
-                                                            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                        {editingDetailId === detail.IdDetalleCompra ? (
-                                                            <div className="flex justify-center gap-2">
-                                                                <button
-                                                                    onClick={() => handleEditDetailSave(detail.IdDetalleCompra)}
-                                                                    className="text-green-600 hover:text-green-800"
-                                                                    title={tCommon('save')}
-                                                                >
-                                                                    ✅
-                                                                </button>
-                                                                <button
-                                                                    onClick={handleEditDetailCancel}
-                                                                    className="text-gray-600 hover:text-gray-800"
-                                                                    title={tCommon('cancel')}
-                                                                >
-                                                                    ❌
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex justify-center gap-2">
-                                                                <button
-                                                                    onClick={() => handleEditDetailStart(detail)}
-                                                                    className="text-blue-600 hover:text-blue-800"
-                                                                    title={tModal('edit')}
-                                                                >
-                                                                    ✏️
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
-                                                                    className="text-red-600 hover:text-red-800"
-                                                                    title={tDetails('delete')}
-                                                                >
-                                                                    🗑️
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
+                                        ))}
                                     </tbody>
-                                    <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-4 text-right text-gray-700 uppercase text-xs tracking-wider">{tDetails('total')}</td>
-                                            <td className="px-6 py-4 text-right text-green-600 text-lg">
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchaseDetails.reduce((sum, d) => sum + d.Total, 0))}
-                                            </td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
+                        </div>
 
-                            <div className="flex justify-end pt-4 border-t border-gray-100">
-                                <Button
-                                    onClick={() => setIsDetailsModalOpen(false)}
-                                    variant="secondary"
-                                >
-                                    {tDetails('close')}
-                                </Button>
-                            </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
+                                {tDetails('close')}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Product Creation Modal */}
+            {/* Product Creation Modal (Standardized Nested) */}
             {isProductModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-                    <div className="bg-white w-full max-w-md rounded-lg shadow-2xl flex flex-col overflow-hidden">
-                        {/* Header */}
-                        <div className="px-6 py-4" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-center">
-                                <h1 className="text-xl font-bold">
-                                    ✨ {tDetails('createProduct')}
-                                </h1>
-                                <button
-                                    onClick={() => setIsProductModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
-                            </div>
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4 backdrop-blur-md">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-800 text-white">
+                            <h2 className="text-xl font-black">✨ {tDetails('createProduct')}</h2>
+                            <button onClick={() => setIsProductModalOpen(false)} className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
                         </div>
-
-                        <form onSubmit={handleCreateProduct} className="p-6 space-y-4 bg-white border-t border-gray-200">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {tDetails('product')} *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={productFormData.producto}
-                                    onChange={(e) => setProductFormData({ ...productFormData, producto: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
+                        <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre del Producto *</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none font-bold"
+                                        value={productFormData.producto}
+                                        onChange={(e) => setProductFormData({ ...productFormData, producto: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Código *</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none uppercase font-mono"
+                                        value={productFormData.codigo}
+                                        onChange={(e) => setProductFormData({ ...productFormData, codigo: e.target.value.toUpperCase() })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Categoría *</label>
+                                    <select
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none font-bold"
+                                        value={productFormData.idCategoria}
+                                        onChange={(e) => setProductFormData({ ...productFormData, idCategoria: e.target.value })}
+                                        required
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        {categories.map((c) => <option key={c.IdCategoria} value={c.IdCategoria}>{c.Categoria}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">U.M. Compra *</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                        value={productFormData.unidadMedidaCompra}
+                                        onChange={(e) => setProductFormData({ ...productFormData, unidadMedidaCompra: e.target.value })}
+                                        placeholder="Kg, Litro, etc."
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Costo Base *</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none text-right font-black text-green-600"
+                                        value={productFormData.precio}
+                                        onChange={(e) => setProductFormData({ ...productFormData, precio: e.target.value.replace(/[^0-9.]/g, '') })}
+                                        required
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {tDetails('code')} *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={productFormData.codigo}
-                                    onChange={(e) => setProductFormData({ ...productFormData, codigo: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Categoría *
-                                </label>
-                                <select
-                                    value={productFormData.idCategoria}
-                                    onChange={(e) => setProductFormData({ ...productFormData, idCategoria: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                >
-                                    <option value="">Seleccionar...</option>
-                                    {categories.map((category) => (
-                                        <option key={category.IdCategoria} value={category.IdCategoria}>
-                                            {category.Categoria}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Unidad de Medida Compra *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={productFormData.unidadMedidaCompra}
-                                    onChange={(e) => setProductFormData({ ...productFormData, unidadMedidaCompra: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="p.ej. Kg, Litro, Caja"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Precio *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={productFormData.precio}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if ((val.match(/\./g) || []).length > 1) return;
-                                        setProductFormData({ ...productFormData, precio: val });
-                                    }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                        if (!isNaN(val)) {
-                                            setProductFormData({ ...productFormData, precio: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) });
-                                        }
-                                    }}
-                                    onFocus={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        if (val === '0.00' || val === '0') {
-                                            setProductFormData({ ...productFormData, precio: '' });
-                                        } else {
-                                            setProductFormData({ ...productFormData, precio: val });
-                                        }
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    IVA (%) *
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={productFormData.iva}
-                                    onChange={(e) => setProductFormData({ ...productFormData, iva: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsProductModalOpen(false)}
-                                    variant="secondary"
-                                >
-                                    {tCommon('cancel')}
-                                </Button>
-                                <Button
-                                    type="submit"
-                                >
-                                    💾 {tCommon('save')}
-                                </Button>
+                            <div className="flex gap-2 pt-4">
+                                <button type="submit" className="flex-1 bg-green-600 text-white p-3 rounded-xl font-black shadow-lg hover:bg-green-700 active:scale-95 transition-all">Crear Producto</button>
+                                <button type="button" onClick={() => setIsProductModalOpen(false)} className="px-6 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancelar</button>
                             </div>
                         </form>
                     </div>
