@@ -20,6 +20,7 @@ interface Employee {
     IdSucursal: number;
     ArchivoFoto: string | null;
     ImagenTipoPuesto?: string | null;
+    Sueldo?: number | null;
 }
 
 interface ScheduleEntry {
@@ -32,6 +33,10 @@ interface ScheduleEntry {
     HoraFin: string;
     HoraInicioDescanso?: string;
     HoraFinDescanso?: string;
+    HorasLaboradas?: number;
+    Sueldo?: number | null;
+    BonoDescuento?: number;
+    ConceptoBonoDescuento?: string;
 }
 
 export default function SchedulesPage() {
@@ -58,6 +63,7 @@ export default function SchedulesPage() {
     const [loading, setLoading] = useState(false);
     const [filterText, setFilterText] = useState('');
     const [viewAllEmployees, setViewAllEmployees] = useState(false);
+    const [isAttendanceMode, setIsAttendanceMode] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -247,7 +253,10 @@ export default function SchedulesPage() {
                 startTime: schedule.HoraInicio.substring(0, 5),
                 endTime: schedule.HoraFin.substring(0, 5),
                 breakStart: schedule.HoraInicioDescanso?.substring(0, 5) || '',
-                breakEnd: schedule.HoraFinDescanso?.substring(0, 5) || ''
+                breakEnd: schedule.HoraFinDescanso?.substring(0, 5) || '',
+                horasLaboradas: schedule.HorasLaboradas || 0,
+                bonoDescuento: schedule.BonoDescuento || 0,
+                conceptoBonoDescuento: schedule.ConceptoBonoDescuento || ''
             });
         } else {
             setInitialModalData(null);
@@ -477,6 +486,19 @@ export default function SchedulesPage() {
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setIsAttendanceMode(!isAttendanceMode)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all shadow-sm active:scale-95 group font-black uppercase tracking-tight text-xs ${
+                                isAttendanceMode 
+                                ? 'bg-blue-600 border-blue-400 text-white shadow-blue-200' 
+                                : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'
+                            }`}
+                        >
+                            <span className={`text-sm transition-transform duration-300 ${isAttendanceMode ? 'rotate-0 scale-125' : 'rotate-180 scale-100 opacity-50'}`}>
+                                {isAttendanceMode ? '✅' : '⚪'}
+                            </span>
+                            Modo Asistencia: {isAttendanceMode ? 'ON' : 'OFF'}
+                        </button>
                         <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200">
                             <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600">◀</button>
                             <span className="px-4 font-bold text-gray-700 min-w-[200px] text-center">{formatWeekRange()}</span>
@@ -631,7 +653,9 @@ export default function SchedulesPage() {
                                                 <div>
                                                     <div className="font-bold text-gray-800 text-sm whitespace-nowrap">{employee.Empleado}</div>
                                                     <div className="text-[10px] text-gray-500 uppercase tracking-tighter">
-                                                        {employee.ImagenTipoPuesto} {employee.Puesto || '-'}
+                                                        {employee.ImagenTipoPuesto} {employee.Puesto || '-'} {isAttendanceMode && employee.Sueldo !== undefined && employee.Sueldo !== null && (
+                                                            <span className="text-blue-600 font-bold ml-1">(${employee.Sueldo})</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -650,14 +674,34 @@ export default function SchedulesPage() {
                                                         <div
                                                             draggable
                                                             onDragStart={(e) => handleDragStart(e, schedule)}
-                                                            className="relative bg-orange-100 p-2 rounded-lg border border-orange-200 text-orange-800 shadow-sm animate-in fade-in slide-in-from-top-1 cursor-grab active:cursor-grabbing hover:border-orange-400 hover:shadow-md transition-all h-full flex flex-col justify-center"
+                                                            className={`relative p-2 rounded-lg border shadow-sm animate-in fade-in slide-in-from-top-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-all h-full flex flex-col justify-center ${isAttendanceMode ? 'bg-blue-100 border-blue-200 text-blue-800 hover:border-blue-400' : 'bg-orange-100 border-orange-200 text-orange-800 hover:border-orange-400'}`}
                                                         >
-                                                            <div className="font-bold text-xs">{schedule.HoraInicio.substring(0, 5)} - {schedule.HoraFin.substring(0, 5)}</div>
-                                                            {schedule.HoraInicioDescanso && schedule.HoraFinDescanso && (
-                                                                <div className="mt-1 bg-white/50 rounded flex items-center justify-center gap-1 text-[9px] font-bold border border-orange-200/50 uppercase tracking-tighter pointer-events-none">
-                                                                    <span className="opacity-60">☕</span>
-                                                                    <span>{schedule.HoraInicioDescanso.substring(0, 5)} - {schedule.HoraFinDescanso.substring(0, 5)}</span>
+                                                            {isAttendanceMode ? (
+                                                                <div className="flex flex-col items-center justify-center py-1">
+                                                                    <div className="text-sm font-black bg-white/40 px-2 rounded-md border border-blue-200/50 leading-tight">
+                                                                        {schedule.HorasLaboradas || 0} hrs
+                                                                    </div>
+                                                                    <div className="text-[8px] font-bold text-blue-600/80 uppercase mt-1 tracking-tighter">Asistencia</div>
+                                                                    {schedule.BonoDescuento !== 0 && (
+                                                                        <div className={`mt-1 text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm border ${
+                                                                            schedule.BonoDescuento > 0 
+                                                                            ? 'bg-green-100 text-green-700 border-green-200' 
+                                                                            : 'bg-red-100 text-red-700 border-red-200'
+                                                                        }`}>
+                                                                            {schedule.BonoDescuento > 0 ? '+' : ''}{schedule.BonoDescuento}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="font-bold text-xs">{schedule.HoraInicio.substring(0, 5)} - {schedule.HoraFin.substring(0, 5)}</div>
+                                                                    {schedule.HoraInicioDescanso && schedule.HoraFinDescanso && (
+                                                                        <div className="mt-1 bg-white/50 rounded flex items-center justify-center gap-1 text-[9px] font-bold border border-orange-200/50 uppercase tracking-tighter pointer-events-none">
+                                                                            <span className="opacity-60">☕</span>
+                                                                            <span>{schedule.HoraInicioDescanso.substring(0, 5)} - {schedule.HoraFinDescanso.substring(0, 5)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </>
                                                             )}
                                                             <button
                                                                 onClick={(e) => {
@@ -697,6 +741,7 @@ export default function SchedulesPage() {
                         projectId={project.idProyecto}
                         branchId={selectedBranch}
                         initialData={initialModalData}
+                        isAttendanceMode={isAttendanceMode}
                         onSaveSuccess={fetchSchedules}
                     />
                 </>

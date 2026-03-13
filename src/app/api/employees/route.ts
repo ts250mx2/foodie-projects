@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     let foodieProjectsConnection;
     try {
         const body = await request.json();
-        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin } = body;
+        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin, salary } = body;
 
         if (!projectId || !name) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
 
         // 1. Insert Employee
         const [result] = await connection.query(
-            `INSERT INTO tblEmpleados (Empleado, IdPuesto, IdSucursal, Telefonos, CorreoElectronico, Calle, ArchivoFoto, Status, FechaAct) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, Now())`,
-            [name, positionId || null, branchId || null, phone || null, email || null, address || null, photo || null]
+            `INSERT INTO tblEmpleados (Empleado, IdPuesto, IdSucursal, Telefonos, CorreoElectronico, Calle, ArchivoFoto, Sueldo, Status, FechaAct) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
+            [name, positionId || null, branchId || null, phone || null, email || null, address || null, photo || null, salary || 0]
         );
 
         const employeeId = (result as ResultSetHeader).insertId;

@@ -9,6 +9,7 @@ import BranchShiftsModal from './BranchShiftsModal';
 import BranchEmployeesModal from './BranchEmployeesModal';
 import BranchSalesChannelsModal from './BranchSalesChannelsModal';
 import BranchPaymentMethodsModal from './BranchPaymentMethodsModal';
+import BranchPayrollModal from './BranchPayrollModal';
 import Input from './Input';
 import Button from './Button';
 import { useEffect } from 'react';
@@ -40,8 +41,10 @@ export default function BranchEditModal({
         address: branch?.Calle || '',
         phone: branch?.Telefonos || '',
         email: branch?.CorreoElectronico || '',
-        managerId: branch?.IdEmpleadoGerente || ''
+        managerId: branch?.IdEmpleadoGerente || '',
+        tipoNomina: branch?.TipoNomina || 0
     });
+    const [initialTipoNomina, setInitialTipoNomina] = useState(branch?.TipoNomina || 0);
     const [employees, setEmployees] = useState<any[]>([]);
 
     useEffect(() => {
@@ -53,8 +56,10 @@ export default function BranchEditModal({
                     address: branch?.Calle || '',
                     phone: branch?.Telefonos || '',
                     email: branch?.CorreoElectronico || '',
-                    managerId: branch?.IdEmpleadoGerente || ''
+                    managerId: branch?.IdEmpleadoGerente || '',
+                    tipoNomina: branch?.TipoNomina || 0
                 });
+                setInitialTipoNomina(branch?.TipoNomina || 0);
             }
         }
     }, [isOpen, branch]);
@@ -90,11 +95,13 @@ export default function BranchEditModal({
                     phone: formData.phone,
                     email: formData.email,
                     address: formData.address,
-                    managerId: formData.managerId || null
+                    managerId: formData.managerId || null,
+                    tipoNomina: formData.tipoNomina
                 })
             });
             if (response.ok) {
                 onUpdate();
+                setInitialTipoNomina(formData.tipoNomina);
                 if (isNew) {
                     onClose();
                 }
@@ -106,12 +113,41 @@ export default function BranchEditModal({
         }
     };
 
+    const handleSaveTipoNomina = async () => {
+        setIsSaving(true);
+        try {
+            const endpoint = `/api/branches/${branch.IdSucursal}`;
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    branch: formData.name,
+                    phone: formData.phone,
+                    email: formData.email,
+                    address: formData.address,
+                    managerId: formData.managerId || null,
+                    tipoNomina: formData.tipoNomina
+                })
+            });
+            if (response.ok) {
+                onUpdate();
+                setInitialTipoNomina(formData.tipoNomina);
+            }
+        } catch (error) {
+            console.error('Error saving payroll type:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const isNewBranch = !branch || branch.IdSucursal === 0;
 
     const tabs = [
         { id: 'general', label: 'Configuración General', icon: '✏️', show: true },
         { id: 'costs', label: 'Objetivos y Costos', icon: '🎯', show: !isNewBranch },
         { id: 'inventory', label: 'Fechas de Inventario', icon: '📋', show: !isNewBranch },
+        { id: 'payroll', label: 'Nomina', icon: '📁', show: !isNewBranch },
         { id: 'documents', label: 'Documentos', icon: '📄', show: !isNewBranch },
         { id: 'shifts', label: 'Turnos', icon: '⏰', show: !isNewBranch },
         { id: 'employees', label: 'Empleados', icon: '👥', show: !isNewBranch },
@@ -253,6 +289,21 @@ export default function BranchEditModal({
                             branchId={branch.IdSucursal}
                             branchName={branch.Sucursal}
                             projectId={projectId}
+                            isTabMode={true}
+                        />
+                    )}
+
+                    {!isNewBranch && activeTab === 'payroll' && (
+                        <BranchPayrollModal
+                            isOpen={true}
+                            onClose={onClose}
+                            branchId={branch.IdSucursal}
+                            branchName={branch.Sucursal}
+                            projectId={projectId}
+                            tipoNomina={formData.tipoNomina}
+                            initialTipoNomina={initialTipoNomina}
+                            onTipoNominaChange={(value) => setFormData({ ...formData, tipoNomina: value })}
+                            onSaveTipoNomina={handleSaveTipoNomina}
                             isTabMode={true}
                         />
                     )}

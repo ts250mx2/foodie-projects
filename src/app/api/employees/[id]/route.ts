@@ -13,7 +13,7 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin } = body;
+        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin, salary } = body;
 
         if (!projectId || !name) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -24,9 +24,9 @@ export async function PUT(
         // 1. Update Employee
         const [result]: any = await connection.query(
             `UPDATE tblEmpleados 
-             SET Empleado = ?, IdPuesto = ?, IdSucursal = ?, Telefonos = ?, CorreoElectronico = ?, Calle = ?, ArchivoFoto = ?, FechaAct = Now() 
+             SET Empleado = ?, IdPuesto = ?, IdSucursal = ?, Telefonos = ?, CorreoElectronico = ?, Calle = ?, ArchivoFoto = ?, Sueldo = ?, FechaAct = Now() 
              WHERE IdEmpleado = ?`,
-            [name, positionId || null, branchId || null, phone || null, email || null, address || null, photo || null, id]
+            [name, positionId || null, branchId || null, phone || null, email || null, address || null, photo || null, salary || 0, id]
         );
 
         if (result.affectedRows === 0) {

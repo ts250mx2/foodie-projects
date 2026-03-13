@@ -23,12 +23,14 @@ interface Employee {
     CorreoElectronico: string | null;
     Calle: string | null;
     ArchivoFoto: string | null;
+    Sueldo: number | null;
     Status: number;
 }
 
 interface Branch {
     IdSucursal: number;
     Sucursal: string;
+    TipoNomina?: number;
 }
 
 interface Position {
@@ -59,7 +61,8 @@ export default function EmployeesPage() {
         username: '',
         password: '',
         repeatPassword: '',
-        isAdmin: false
+        isAdmin: false,
+        salary: ''
     });
     const { colors } = useTheme();
     const [projectDomain, setProjectDomain] = useState('');
@@ -175,7 +178,8 @@ export default function EmployeesPage() {
                     photo: formData.photo,
                     username: formData.username,
                     password: formData.password,
-                    isAdmin: formData.isAdmin
+                    isAdmin: formData.isAdmin,
+                    salary: formData.salary ? parseFloat(formData.salary) : 0
                 })
             });
 
@@ -184,7 +188,7 @@ export default function EmployeesPage() {
                 setIsModalOpen(false);
                 setFormData({
                     name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
-                    username: '', password: '', repeatPassword: '', isAdmin: false
+                    username: '', password: '', repeatPassword: '', isAdmin: false, salary: ''
                 });
                 setEditingEmployee(null);
                 setActiveTab('general');
@@ -241,7 +245,8 @@ export default function EmployeesPage() {
             username: accessData.username,
             password: '',
             repeatPassword: '',
-            isAdmin: accessData.isAdmin
+            isAdmin: accessData.isAdmin,
+            salary: employee.Sueldo?.toString() || ''
         });
         setActiveTab('general');
         setIsModalOpen(true);
@@ -356,7 +361,7 @@ export default function EmployeesPage() {
                         setEditingEmployee(null);
                         setFormData({
                             name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
-                            username: '', password: '', repeatPassword: '', isAdmin: false
+                            username: '', password: '', repeatPassword: '', isAdmin: false, salary: ''
                         });
                         setActiveTab('general');
                         setIsModalOpen(true);
@@ -624,6 +629,15 @@ export default function EmployeesPage() {
                                                         value={formData.email}
                                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                         type="email"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Input
+                                                        label={formData.branchId ? (branches.find(b => b.IdSucursal === parseInt(formData.branchId))?.TipoNomina === 1 ? 'Sueldo Por Hora' : 'Sueldo Por Turno') : 'Sueldo'}
+                                                        value={formData.salary}
+                                                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                                        type="number"
+                                                        step="0.01"
                                                     />
                                                 </div>
                                             </div>

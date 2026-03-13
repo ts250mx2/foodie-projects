@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         let query = `
-            SELECT h.*, e.Empleado, p.Puesto, tp.ImagenTipoPuesto
+            SELECT h.*, e.Empleado, p.Puesto, tp.ImagenTipoPuesto, e.Sueldo
             FROM tblHorarios h
             JOIN tblEmpleados e ON h.IdEmpleado = e.IdEmpleado
             LEFT JOIN BDFoodieProjects.tblPuestos p ON e.IdPuesto = p.IdPuesto
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, employeeId, employeeIds, branchId, date, startTime, endTime, breakStartTime, breakEndTime, bulk } = body;
+        const { projectId, employeeId, employeeIds, branchId, date, startTime, endTime, breakStartTime, breakEndTime, horasLaboradas, bonoDescuento, conceptoBonoDescuento, bulk } = body;
 
         if (!projectId) {
             return NextResponse.json({ success: false, message: 'Missing project ID' }, { status: 400 });
@@ -80,14 +80,17 @@ export async function POST(request: NextRequest) {
         await connection.beginTransaction();
 
         const query = `
-            INSERT INTO tblHorarios (IdEmpleado, IdSucursal, Fecha, HoraInicio, HoraFin, HoraInicioDescanso, HoraFinDescanso, FechaAct)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO tblHorarios (IdEmpleado, IdSucursal, Fecha, HoraInicio, HoraFin, HoraInicioDescanso, HoraFinDescanso, HorasLaboradas, BonoDescuento, ConceptoBonoDescuento, FechaAct)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ON DUPLICATE KEY UPDATE 
             IdSucursal = VALUES(IdSucursal),
             HoraInicio = VALUES(HoraInicio),
             HoraFin = VALUES(HoraFin),
             HoraInicioDescanso = VALUES(HoraInicioDescanso),
             HoraFinDescanso = VALUES(HoraFinDescanso),
+            HorasLaboradas = VALUES(HorasLaboradas),
+            BonoDescuento = VALUES(BonoDescuento),
+            ConceptoBonoDescuento = VALUES(ConceptoBonoDescuento),
             FechaAct = NOW()
         `;
 
@@ -100,7 +103,10 @@ export async function POST(request: NextRequest) {
                     item.startTime || null,
                     item.endTime || null,
                     item.breakStartTime || null,
-                    item.breakEndTime || null
+                    item.breakEndTime || null,
+                    item.horasLaboradas || 0,
+                    item.bonoDescuento || 0,
+                    item.conceptoBonoDescuento || null
                 ]);
             }
         } else {
@@ -117,7 +123,10 @@ export async function POST(request: NextRequest) {
                     startTime || null,
                     endTime || null,
                     breakStartTime || null,
-                    breakEndTime || null
+                    breakEndTime || null,
+                    horasLaboradas || 0,
+                    bonoDescuento || 0,
+                    conceptoBonoDescuento || null
                 ]);
             }
         }

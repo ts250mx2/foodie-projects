@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
+import Button from '@/components/Button';
 
 interface Branch {
     IdSucursal: number;
@@ -542,7 +543,11 @@ export default function ExpensesCapturePage() {
                                     {showConceptDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {expenseConcepts
-                                                .filter(c => conceptSearch ? c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase()) : true)
+                                                .filter(c => {
+                                                    if (!conceptSearch) return true;
+                                                    if (selectedConcept && conceptSearch === selectedConcept.ConceptoGasto) return true;
+                                                    return c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase());
+                                                })
                                                 .map(c => (
                                                     <div
                                                         key={c.IdConceptoGasto}
@@ -602,7 +607,11 @@ export default function ExpensesCapturePage() {
                                     {showPaymentChannelDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {paymentChannels
-                                                .filter(p => paymentChannelSearch ? p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
+                                                .filter(p => {
+                                                    if (!paymentChannelSearch) return true;
+                                                    if (selectedPaymentChannel && paymentChannelSearch === selectedPaymentChannel.CanalPago) return true;
+                                                    return p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase());
+                                                })
                                                 .map(p => (
                                                     <div
                                                         key={p.IdCanalPago}
@@ -645,9 +654,9 @@ export default function ExpensesCapturePage() {
                                     />
                                 </div>
 
-                                <button type="submit" className="bg-red-500 text-white p-2.5 rounded-lg hover:bg-red-600 font-bold transition-all shadow-md active:scale-95 lg:col-span-4">
-                                    {tModal('add') || 'Agregar Gasto'}
-                                </button>
+                                <Button type="submit" className="lg:col-span-4">
+                                    {tModal('add')}
+                                </Button>
                             </form>
 
                             {/* Table */}

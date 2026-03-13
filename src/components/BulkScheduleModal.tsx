@@ -23,7 +23,11 @@ interface BulkScheduleModalProps {
         endTime: string;
         breakStart: string;
         breakEnd: string;
+        horasLaboradas?: number;
+        bonoDescuento?: number;
+        conceptoBonoDescuento?: string;
     } | null;
+    isAttendanceMode: boolean;
     onSaveSuccess: () => void;
 }
 
@@ -36,6 +40,7 @@ export default function BulkScheduleModal({
     projectId,
     branchId,
     initialData,
+    isAttendanceMode,
     onSaveSuccess
 }: BulkScheduleModalProps) {
     const t = useTranslations('SchedulesModal');
@@ -49,7 +54,12 @@ export default function BulkScheduleModal({
         startTime: '',
         endTime: '',
         breakStart: '',
-        breakEnd: ''
+        breakEnd: '',
+        horasLaboradas: 0,
+        attended: true,
+        amountType: 'Bono',
+        amountValue: 0,
+        concept: ''
     });
 
     const [loading, setLoading] = useState(false);
@@ -58,13 +68,25 @@ export default function BulkScheduleModal({
     useEffect(() => {
         if (isOpen) {
             if (selectedEmployeeIds.length === 1 && initialData) {
-                setFormData(initialData);
+                setFormData({
+                    ...initialData,
+                    horasLaboradas: initialData.horasLaboradas || 0,
+                    attended: (initialData.horasLaboradas || 0) > 0,
+                    amountType: (initialData.bonoDescuento || 0) < 0 ? 'Descuento' : 'Bono',
+                    amountValue: Math.abs(initialData.bonoDescuento || 0),
+                    concept: initialData.conceptoBonoDescuento || ''
+                });
             } else {
                 setFormData({
                     startTime: '',
                     endTime: '',
                     breakStart: '',
-                    breakEnd: ''
+                    breakEnd: '',
+                    horasLaboradas: 0,
+                    attended: true,
+                    amountType: 'Bono',
+                    amountValue: 0,
+                    concept: ''
                 });
             }
         }
@@ -102,7 +124,12 @@ export default function BulkScheduleModal({
                     startTime: prevSchedule.HoraInicio.substring(0, 5),
                     endTime: prevSchedule.HoraFin.substring(0, 5),
                     breakStart: prevSchedule.HoraInicioDescanso?.substring(0, 5) || '',
-                    breakEnd: prevSchedule.HoraFinDescanso?.substring(0, 5) || ''
+                    breakEnd: prevSchedule.HoraFinDescanso?.substring(0, 5) || '',
+                    horasLaboradas: prevSchedule.HorasLaboradas || 0,
+                    attended: (prevSchedule.HorasLaboradas || 0) > 0,
+                    amountType: (prevSchedule.BonoDescuento || 0) < 0 ? 'Descuento' : 'Bono',
+                    amountValue: Math.abs(prevSchedule.BonoDescuento || 0),
+                    concept: prevSchedule.ConceptoBonoDescuento || ''
                 });
             } else {
                 alert(t('noPreviousSchedule'));
@@ -142,6 +169,40 @@ export default function BulkScheduleModal({
         }
     };
 
+    const calculateWorkedHours = (start: string, end: string, bStart: string, bEnd: string) => {
+        if (!start || !end) return 0;
+        
+        try {
+            const getMinutes = (timeStr: string) => {
+                if (!timeStr) return 0;
+                const [h, m] = timeStr.split(':').map(Number);
+                return (h * 60) + m;
+            };
+
+            let workMinutes = getMinutes(end) - getMinutes(start);
+            if (workMinutes < 0) workMinutes += 1440; // Over midnight
+
+            let breakMinutes = 0;
+            if (bStart && bEnd) {
+                breakMinutes = getMinutes(bEnd) - getMinutes(bStart);
+                if (breakMinutes < 0) breakMinutes += 1440;
+            }
+
+            return Math.max(0, (workMinutes - breakMinutes) / 60);
+        } catch (e) {
+            return 0;
+        }
+    };
+
+    const handleAttendanceToggle = (attended: boolean) => {
+        if (attended) {
+            const hours = calculateWorkedHours(formData.startTime, formData.endTime, formData.breakStart, formData.breakEnd);
+            setFormData({ ...formData, attended: true, horasLaboradas: hours });
+        } else {
+            setFormData({ ...formData, attended: false, horasLaboradas: 0 });
+        }
+    };
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDate || selectedEmployeeIds.length === 0) return;
@@ -160,7 +221,10 @@ export default function BulkScheduleModal({
                     startTime: formData.startTime,
                     endTime: formData.endTime,
                     breakStartTime: formData.breakStart,
-                    breakEndTime: formData.breakEnd
+                    breakEndTime: formData.breakEnd,
+                    horasLaboradas: formData.horasLaboradas,
+                    bonoDescuento: formData.amountType === 'Descuento' ? -Math.abs(formData.amountValue) : Math.abs(formData.amountValue),
+                    conceptoBonoDescuento: formData.concept
                 })
             });
 
@@ -257,6 +321,85 @@ export default function BulkScheduleModal({
                             </div>
                         </div>
                     </div>
+
+                    {isAttendanceMode && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-4">
+                            <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider">Control de Asistencia</h3>
+                            <div className="flex items-center gap-6">
+                                <div className="flex bg-white p-1 rounded-lg border border-blue-200 shadow-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAttendanceToggle(true)}
+                                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${formData.attended 
+                                            ? 'bg-blue-600 text-white shadow-md' 
+                                            : 'text-blue-600 hover:bg-blue-50'}`}
+                                    >
+                                        Asistió
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAttendanceToggle(false)}
+                                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${!formData.attended 
+                                            ? 'bg-red-600 text-white shadow-md' 
+                                            : 'text-red-600 hover:bg-red-50'}`}
+                                    >
+                                        No asistió
+                                    </button>
+                                </div>
+                                <div className="flex flex-col">
+                                    <label className="text-xs text-blue-800 font-medium mb-1 uppercase tracking-tighter">Horas Laboradas</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-24 p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold text-blue-900"
+                                        value={formData.horasLaboradas}
+                                        onChange={(e) => setFormData({ ...formData, horasLaboradas: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-blue-100 flex flex-col gap-4">
+                                <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider">Bonos / Descuentos</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-blue-800 font-medium mb-1 uppercase tracking-tighter">Tipo</label>
+                                        <select
+                                            className="w-full p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold text-blue-900"
+                                            value={formData.amountType}
+                                            onChange={(e) => setFormData({ ...formData, amountType: e.target.value as 'Bono' | 'Descuento' })}
+                                        >
+                                            <option value="Bono">Bono</option>
+                                            <option value="Descuento">Descuento</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-blue-800 font-medium mb-1 uppercase tracking-tighter">Monto</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className="w-full p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold text-blue-900"
+                                            placeholder="0.00"
+                                            value={formData.amountValue || ''}
+                                            onChange={(e) => setFormData({ ...formData, amountValue: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col md:col-span-3">
+                                        <label className="text-xs text-blue-800 font-medium mb-1 uppercase tracking-tighter">
+                                            Concepto {formData.amountValue > 0 && <span className="text-red-500 font-bold">*</span>}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all ${formData.amountValue > 0 && !formData.concept ? 'border-red-400 bg-red-50' : 'border-blue-300'}`}
+                                            placeholder="Motivo del bono o descuento..."
+                                            value={formData.concept}
+                                            onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                                            required={formData.amountValue > 0}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-100">
                         <div>

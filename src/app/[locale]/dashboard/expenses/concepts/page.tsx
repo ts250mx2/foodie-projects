@@ -91,7 +91,7 @@ export default function ExpenseConceptsPage() {
                 body: JSON.stringify({
                     projectId: project.idProyecto,
                     concept: formData.concept,
-                    requiredReference: formData.requiredReference ? 1 : 0,
+                    requiredReference: 0,
                     paymentChannelId: formData.paymentChannelId || null
                 })
             });
@@ -226,9 +226,7 @@ export default function ExpenseConceptsPage() {
                                 />
                             </div>
                         </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            Ref. Obligatoria
-                        </ThemedGridHeaderCell>
+
                         <ThemedGridHeaderCell>
                             Canal de Pago Default
                         </ThemedGridHeaderCell>
@@ -245,9 +243,7 @@ export default function ExpenseConceptsPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {concept.ConceptoGasto}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {concept.ReferenciaObligatoria === 1 ? 'Sí' : 'No'}
-                                </td>
+
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                     {concept.CanalPago || '-'}
                                 </td>
@@ -296,20 +292,7 @@ export default function ExpenseConceptsPage() {
                                 required
                             />
 
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                                <span className="text-sm font-medium text-gray-700">Referencia Obligatoria</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, requiredReference: !formData.requiredReference })}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${formData.requiredReference ? 'bg-orange-500' : 'bg-gray-200'
-                                        }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.requiredReference ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                    />
-                                </button>
-                            </div>
+
 
                             <div className="relative">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Canal de Pago Default</label>
