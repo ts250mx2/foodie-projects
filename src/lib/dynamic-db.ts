@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+import mysql, { Connection } from 'mysql2/promise';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 
@@ -16,7 +16,7 @@ interface ProjectConfig extends RowDataPacket {
  * @returns A Promise that resolves to a MySQL connection. 
  *          IMPORTANT: The caller is responsible for calling .end() on this connection.
  */
-export async function getProjectConnection(projectId: number) {
+export async function getProjectConnection(projectId: number): Promise<Connection> {
     try {
         // 1. Get project details from main DB
         // Use * to handle inconsistent naming between BDFoodieProjects and BDIntegraProjects
