@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
             query = `
                 SELECT 
                     v.*,
+                    c.Categoria,
                     c.ImagenCategoria,
                     c.IdModuloRecetario
                 FROM vlProductos v
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
             query = `
                 SELECT 
                     v.*,
+                    c.Categoria,
                     c.ImagenCategoria,
                     c.IdModuloRecetario
                 FROM vlProductos v

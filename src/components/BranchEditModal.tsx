@@ -42,9 +42,11 @@ export default function BranchEditModal({
         phone: branch?.Telefonos || '',
         email: branch?.CorreoElectronico || '',
         managerId: branch?.IdEmpleadoGerente || '',
-        tipoNomina: branch?.TipoNomina || 0
+        tipoNomina: branch?.TipoNomina || 0,
+        diaInicio: branch?.DiaInicio || 1
     });
     const [initialTipoNomina, setInitialTipoNomina] = useState(branch?.TipoNomina || 0);
+    const [initialDiaInicio, setInitialDiaInicio] = useState(branch?.DiaInicio || 1);
     const [employees, setEmployees] = useState<any[]>([]);
 
     useEffect(() => {
@@ -57,9 +59,11 @@ export default function BranchEditModal({
                     phone: branch?.Telefonos || '',
                     email: branch?.CorreoElectronico || '',
                     managerId: branch?.IdEmpleadoGerente || '',
-                    tipoNomina: branch?.TipoNomina || 0
+                    tipoNomina: branch?.TipoNomina || 0,
+                    diaInicio: branch?.DiaInicio || 1
                 });
                 setInitialTipoNomina(branch?.TipoNomina || 0);
+                setInitialDiaInicio(branch?.DiaInicio || 1);
             }
         }
     }, [isOpen, branch]);
@@ -96,12 +100,14 @@ export default function BranchEditModal({
                     email: formData.email,
                     address: formData.address,
                     managerId: formData.managerId || null,
-                    tipoNomina: formData.tipoNomina
+                    tipoNomina: formData.tipoNomina,
+                    diaInicio: formData.diaInicio
                 })
             });
             if (response.ok) {
                 onUpdate();
                 setInitialTipoNomina(formData.tipoNomina);
+                setInitialDiaInicio(formData.diaInicio);
                 if (isNew) {
                     onClose();
                 }
@@ -127,12 +133,14 @@ export default function BranchEditModal({
                     email: formData.email,
                     address: formData.address,
                     managerId: formData.managerId || null,
-                    tipoNomina: formData.tipoNomina
+                    tipoNomina: formData.tipoNomina,
+                    diaInicio: formData.diaInicio
                 })
             });
             if (response.ok) {
                 onUpdate();
                 setInitialTipoNomina(formData.tipoNomina);
+                setInitialDiaInicio(formData.diaInicio);
             }
         } catch (error) {
             console.error('Error saving payroll type:', error);
@@ -302,7 +310,10 @@ export default function BranchEditModal({
                             projectId={projectId}
                             tipoNomina={formData.tipoNomina}
                             initialTipoNomina={initialTipoNomina}
+                            diaInicio={formData.diaInicio}
+                            initialDiaInicio={initialDiaInicio}
                             onTipoNominaChange={(value) => setFormData({ ...formData, tipoNomina: value })}
+                            onDiaInicioChange={(value) => setFormData({ ...formData, diaInicio: value })}
                             onSaveTipoNomina={handleSaveTipoNomina}
                             isTabMode={true}
                         />

@@ -36,6 +36,9 @@ export default function DashboardPage() {
     const [totalRawMaterial, setTotalRawMaterial] = useState<number>(0);
     const [rawMaterialObjective, setRawMaterialObjective] = useState<number>(0);
 
+    // Waste KPI State
+    const [totalWaste, setTotalWaste] = useState<number>(0);
+
     const [isLoadingKpi, setIsLoadingKpi] = useState<boolean>(true);
 
     // Generate years
@@ -121,6 +124,8 @@ export default function DashboardPage() {
                 setOperatingExpenseObjective(data.data.operatingExpenseObjective);
                 setTotalRawMaterial(data.data.totalRawMaterial);
                 setRawMaterialObjective(data.data.rawMaterialObjective);
+                setTotalWaste(data.data.totalWaste || 0);
+
             } else {
                 setTotalSales(0);
                 setSalesObjective(0);
@@ -130,6 +135,8 @@ export default function DashboardPage() {
                 setOperatingExpenseObjective(0);
                 setTotalRawMaterial(0);
                 setRawMaterialObjective(0);
+                setTotalWaste(0);
+
             }
         } catch (error) {
             console.error('Error fetching sales KPI:', error);
@@ -206,7 +213,7 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-2">
                 {/* Sales KPI Card */}
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group text-left">
                     <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -356,6 +363,44 @@ export default function DashboardPage() {
                                     <span className="text-slate-500">% Presupuesto</span>
                                     <span className="text-slate-700">
                                         {rawMaterialObjective > 0 ? `${rawMaterialObjective}%` : 'Sin presu.'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Waste KPI Card */}
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group text-left">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <svg className="w-20 h-20 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div className="flex flex-col h-full justify-between relative z-10">
+                        <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Mermas</span>
+                            {isLoadingKpi ? (
+                                <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
+                            ) : (
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
+                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalWaste)}
+                                </h2>
+                            )}
+                        </div>
+
+                        {!isLoadingKpi && (
+                            <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
+                                <div className="flex justify-between items-center text-xs font-bold">
+                                    <span className="text-slate-500">% Mermas</span>
+                                    <span className={`px-2 py-0.5 rounded-sm ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
+                                        {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(2)}%` : '0.00%'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs font-bold">
+                                    <span className="text-slate-500">Sobre Ventas</span>
+                                    <span className="text-slate-400 italic text-right text-[10px]">
+                                        {totalSales > 0 ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSales) : 'Sin ventas'}
                                     </span>
                                 </div>
                             </div>

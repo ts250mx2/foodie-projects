@@ -65,6 +65,14 @@ export async function GET(request: NextRequest) {
             [branchId, month + 1, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
+        // Waste: tblMermas uses 1-12 for Mes index
+        const [wasteRows] = (await connection.query(
+            `SELECT SUM(Cantidad * Precio) as totalWaste 
+             FROM tblMermas 
+             WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
+            [branchId, month + 1, year]
+        )) as [RowDataPacket[], FieldPacket[]];
+
         const totalSales = salesRows[0]?.totalSales || 0;
         const salesObjective = targetRows[0]?.salesObjective || 0;
 
@@ -77,6 +85,8 @@ export async function GET(request: NextRequest) {
         const totalRawMaterial = purchaseRows[0]?.totalRawMaterial || 0;
         const rawMaterialObjective = targetRows[0]?.rawMaterialObjective || 0;
 
+        const totalWaste = wasteRows[0]?.totalWaste || 0;
+
         return NextResponse.json({
             success: true,
             data: {
@@ -87,7 +97,8 @@ export async function GET(request: NextRequest) {
                 totalOperatingExpense,
                 operatingExpenseObjective,
                 totalRawMaterial,
-                rawMaterialObjective
+                rawMaterialObjective,
+                totalWaste
             }
         });
     } catch (error) {

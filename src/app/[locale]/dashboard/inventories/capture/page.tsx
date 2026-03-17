@@ -39,6 +39,7 @@ interface InventoryEntry {
     Total: number;
     UnidadMedidaInventario?: string;
     ImagenCategoria?: string;
+    ArchivoImagen?: string;
 }
 
 interface GroupedInventory {
@@ -246,10 +247,34 @@ export default function InventoryCapturePage() {
 
         setIsLoading(true);
         try {
-            const updates = Object.entries(editedQuantities).map(([productId, quantity]) => ({
-                productId: parseInt(productId),
-                quantity
-            }));
+            const updates = Object.entries(editedQuantities)
+                .map(([productId, quantity]) => {
+                    const id = parseInt(productId);
+                    const originalEntry = inventoryEntries.find(e => e.IdProducto === id);
+                    const originalQuantity = originalEntry ? originalEntry.Cantidad : 0;
+                    
+                    return {
+                        productId: id,
+                        quantity,
+                        originalQuantity
+                    };
+                })
+                .filter(update => {
+                    // Only save if:
+                    // 1. Quantity is > 0 (it has inventory)
+                    // 2. OR Quantity has changed from original
+                    return update.quantity > 0 || update.quantity !== update.originalQuantity;
+                })
+                .map(update => ({
+                    productId: update.productId,
+                    quantity: update.quantity
+                }));
+
+            if (updates.length === 0) {
+                alert(tCommon('noChanges') || 'No hay cambios para guardar');
+                setIsLoading(false);
+                return;
+            }
 
             const response = await fetch('/api/inventories/daily', {
                 method: 'PUT',
@@ -305,10 +330,9 @@ export default function InventoryCapturePage() {
     const filteredEntries = inventoryEntries.filter(entry => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
-        return (
-            entry.Producto.toLowerCase().includes(query) ||
-            entry.Codigo.toLowerCase().includes(query)
-        );
+        const product = entry.Producto?.toLowerCase() || '';
+        const code = entry.Codigo?.toLowerCase() || '';
+        return product.includes(query) || code.includes(query);
     });
 
     // Group inventory by category
@@ -653,19 +677,19 @@ export default function InventoryCapturePage() {
                                     {/* Category Header */}
                                     <div
                                         onClick={() => toggleCategory(categoria)}
-                                        className="px-6 py-3 font-black rounded-t-lg flex justify-between items-center cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-md"
+                                        className="px-4 py-2 font-bold rounded-t-lg flex justify-between items-center cursor-pointer transition-all duration-300 transform hover:scale-[1.005] hover:shadow-sm"
                                         style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xl">{collapsedCategories[categoria] ? '▶' : '▼'}</span>
-                                            <span className="text-lg uppercase tracking-tight">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm">{collapsedCategories[categoria] ? '▶' : '▼'}</span>
+                                            <span className="text-sm uppercase tracking-wide">
                                                 {entries[0]?.ImagenCategoria ? `${entries[0].ImagenCategoria} ` : '📁 '}
                                                 {categoria}
                                             </span>
                                         </div>
-                                        <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/30">
-                                            <span className="text-sm font-bold opacity-90">Subtotal:</span>
-                                            <span className="ml-2 text-base font-black">
+                                        <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                                            <span className="text-xs font-medium opacity-90">Subtotal:</span>
+                                            <span className="ml-2 text-sm font-bold">
                                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}
                                             </span>
                                         </div>
@@ -677,8 +701,9 @@ export default function InventoryCapturePage() {
                                             <table className="min-w-full table-fixed">
                                                 <thead className="bg-gray-50">
                                                     <tr>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Código</th>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[30%]">Producto</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[5%]">Foto</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[10%]">Código</th>
+                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[25%]">Producto</th>
                                                         <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Presentación</th>
                                                         <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[15%]">Cantidad</th>
                                                         <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[10%]">Precio</th>
@@ -693,8 +718,21 @@ export default function InventoryCapturePage() {
 
                                                         return (
                                                             <tr key={entry.IdProducto} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-2 text-center">
+                                                                    {entry.ArchivoImagen ? (
+                                                                        <img 
+                                                                            src={entry.ArchivoImagen} 
+                                                                            alt={entry.Producto} 
+                                                                            className="w-8 h-8 object-cover rounded shadow-sm border mx-auto"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-[10px] mx-auto">
+                                                                            📷
+                                                                        </div>
+                                                                    )}
+                                                                </td>
                                                                 <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Codigo}</td>
-                                                                <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Producto}</td>
+                                                                <td className="px-4 py-2 text-sm font-medium text-gray-900 truncate">{entry.Producto}</td>
                                                                 <td className="px-4 py-2 text-sm text-gray-600 truncate">{entry.UnidadMedidaInventario || entry.Presentacion || '-'}</td>
                                                                 <td className="px-4 py-2 text-center">
                                                                     <input

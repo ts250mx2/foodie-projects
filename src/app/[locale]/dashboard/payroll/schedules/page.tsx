@@ -11,6 +11,7 @@ import autoTable from 'jspdf-autotable';
 interface Branch {
     IdSucursal: number;
     Sucursal: string;
+    DiaInicio?: number;
 }
 
 interface Employee {
@@ -100,7 +101,7 @@ export default function SchedulesPage() {
         if (project?.idProyecto && selectedBranch) {
             fetchSchedules();
         }
-    }, [project, selectedBranch, currentDate]);
+    }, [project, selectedBranch, currentDate, branches]);
 
     const fetchBranches = async () => {
         try {
@@ -147,7 +148,7 @@ export default function SchedulesPage() {
     };
 
     const fetchSchedules = async () => {
-        if (!project?.idProyecto || !selectedBranch) return;
+        if (!project?.idProyecto || !selectedBranch || branches.length === 0) return;
         try {
             const currentWeek = getWeekDays();
             const startDate = formatLocalDate(currentWeek[0]);
@@ -191,9 +192,17 @@ export default function SchedulesPage() {
 
     const getWeekDays = () => {
         const startOfWeek = new Date(currentDate);
+        
+        // Get configured start day (1: Mon, 7: Sun)
+        const currentBranch = branches.find(b => b.IdSucursal === parseInt(selectedBranch));
+        const diaInicio = currentBranch?.DiaInicio || 1;
+        const startDayIndex = diaInicio === 7 ? 0 : diaInicio; // Convert to JS getDay(): 0-6
+
         const day = startOfWeek.getDay();
-        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-        startOfWeek.setDate(diff);
+        let diff = day - startDayIndex;
+        if (diff < 0) diff += 7; // Ensure we go back to the most recent start day
+        
+        startOfWeek.setDate(startOfWeek.getDate() - diff);
         startOfWeek.setHours(0, 0, 0, 0);
 
         return Array.from({ length: 7 }, (_, i) => {
@@ -211,7 +220,18 @@ export default function SchedulesPage() {
     };
 
     const weekDays = getWeekDays();
-    const weekDaysLabels = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const weekDaysLabels = (() => {
+        const currentBranch = branches.find(b => b.IdSucursal === parseInt(selectedBranch));
+        const diaInicio = currentBranch?.DiaInicio || 1;
+        const startDayIndex = diaInicio === 7 ? 0 : diaInicio;
+        
+        const labels = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const result = [];
+        for (let i = 0; i < 7; i++) {
+            result.push(labels[(startDayIndex + i) % 7]);
+        }
+        return result;
+    })();
 
     const filteredEmployees = employees.filter(emp => {
         const matchesSearch = emp.Empleado.toLowerCase().includes(filterText.toLowerCase()) ||

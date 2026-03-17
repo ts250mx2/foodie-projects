@@ -64,7 +64,7 @@
         "paymentChannels": "Payment Channels",
         "taxes": "Taxes",
         "salesTerminalsCapture": "Sales by Payment Method",
-        "salesChannelsCapture": "Sales by Channel",
+        "salesChannelsCapture": "Sales Capture",
         "tipsCapture": "Tips Capture",
         "salesCapture": "Sales Capture",
         "inventories": "Inventories",
@@ -646,7 +646,7 @@
         "select": "Select..."
     },
     "SalesChannelsCapture": {
-        "title": "Sales by Channel",
+        "title": "Sales Capture",
         "selectBranch": "Select Branch",
         "month": "Month",
         "year": "Year",

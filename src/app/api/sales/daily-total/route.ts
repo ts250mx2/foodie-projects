@@ -12,21 +12,30 @@ export async function GET(request: NextRequest) {
         const monthStr = searchParams.get('month');
         const yearStr = searchParams.get('year');
 
-        if (!projectIdStr || !branchIdStr || !dayStr || monthStr === null || !yearStr) {
+        if (!projectIdStr || !branchIdStr || monthStr === null || !yearStr) {
             return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
         }
 
-        connection = await getProjectConnection(parseInt(projectIdStr));
+        const projectId = parseInt(projectIdStr);
+        connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(
-            `SELECT Ventas FROM tblVentasDia 
-             WHERE IdSucursal = ? AND Dia = ? AND Mes = ? AND Anio = ?`,
-            [branchIdStr, dayStr, monthStr, yearStr]
-        );
+        let query = `SELECT Dia as day, Ventas as sales FROM tblVentasDia 
+                     WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`;
+        const params: any[] = [branchIdStr, monthStr, yearStr];
 
-        const sales = (rows as RowDataPacket[])[0]?.Ventas || 0;
+        if (dayStr) {
+            query += ` AND Dia = ?`;
+            params.push(dayStr);
+        }
 
-        return NextResponse.json({ success: true, data: { sales } });
+        const [rows] = await connection.query(query, params);
+
+        if (dayStr) {
+            const sales = (rows as RowDataPacket[])[0]?.sales || 0;
+            return NextResponse.json({ success: true, data: { sales } });
+        }
+
+        return NextResponse.json({ success: true, data: rows });
     } catch (error) {
         console.error('Error fetching daily total sales:', error);
         return NextResponse.json({ success: false, message: 'Error fetching daily total sales' }, { status: 500 });

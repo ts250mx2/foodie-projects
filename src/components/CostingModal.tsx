@@ -201,7 +201,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             // Delayed initialization for dependent units to ensure purchase unit children are "loaded" first
             setTimeout(() => {
                 const invLabel = ensureLabel(initialProduct.UnidadMedidaInventario || '');
-                const recLabel = ensureLabel(initialProduct.UnidadMedidaRecetario || '');
+                const recLabel = ensureLabel(initialProduct.UnidadMedidaRecetario || initialProduct.UnidadMedidaInventario || '');
                 setUnMedidaInventario(invLabel);
                 setUnMedidaRecetario(recLabel);
 
@@ -483,6 +483,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             }
         }
     }, [unMedidaInventario, unMedidaRecetario]);
+
+    // Auto-sync Recipe Unit with Inventory Unit
+    useEffect(() => {
+        if (isInitialLoad.current) return;
+        if (unMedidaInventario) {
+            setUnMedidaRecetario(unMedidaInventario);
+        }
+    }, [unMedidaInventario]);
 
     // Add Material Modal Integration
     const [addMaterialRefreshKey, setAddMaterialRefreshKey] = useState(0);
@@ -1699,8 +1707,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </div>
                                                 </div>
 
-                                                {/* Show Presentation here ONLY if NOT Type 0 (Raw Material) - i.e. for Sub-recipes */}
-                                                {productType !== 0 && (
+                                                {/* Show Presentation here ONLY if Type 1 (Dish) - Sub-recipes (2) moved to inventory unit logic or hidden */}
+                                                {productType === 1 && (
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-1">Presentación</label>
                                                         <div className="flex gap-2 h-full">
@@ -1836,7 +1844,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
 
                                         {/* 2. Cantidad */}
-                                        {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
+                                        {productType !== 2 && !MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     {(!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0)
@@ -2070,120 +2078,122 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                     )}
 
-                                    {/* Yield Section Container: Side-by-Side Boxes */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                        {/* Box 1: Yield Configuration */}
-                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
-                                                    <div
-                                                        onClick={() => {
-                                                            const newVal = !hasYield;
-                                                            setHasYield(newVal);
-                                                            if (!newVal) {
-                                                                setPesoInicial(1);
-                                                                setPesoFinal(1);
-                                                            }
-                                                        }}
-                                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                                    >
-                                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
+                                     {/* Yield Section Container: Side-by-Side Boxes - Hidden for Sub-recipes (2) */}
+                                     {productType === 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                            {/* Box 1: Yield Configuration */}
+                                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                                        <div
+                                                            onClick={() => {
+                                                                const newVal = !hasYield;
+                                                                setHasYield(newVal);
+                                                                if (!newVal) {
+                                                                    setPesoInicial(1);
+                                                                    setPesoFinal(1);
+                                                                }
+                                                            }}
+                                                            className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                                        >
+                                                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                        </div>
                                                     </div>
+                                                    <p className="text-[10px] text-orange-600 font-medium italic">
+                                                        {hasYield
+                                                            ? 'Permite calcular merma y precios procesados.'
+                                                            : 'Pesos en 1.'}
+                                                    </p>
                                                 </div>
-                                                <p className="text-[10px] text-orange-600 font-medium italic">
-                                                    {hasYield
-                                                        ? 'Permite calcular merma y precios procesados.'
-                                                        : 'Pesos en 1.'}
-                                                </p>
+
+                                                {hasYield && (
+                                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-2 border-t border-gray-100 pt-4">
+                                                        <div>
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label className="block text-sm font-medium text-gray-700">
+                                                                    Peso Inicial {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                                                </label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleFetchAiYield}
+                                                                    disabled={isAiLoading}
+                                                                    className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm flex items-center gap-1"
+                                                                    title="Sugerir Rendimiento con IA"
+                                                                >
+                                                                    {isAiLoading ? '⌛...' : '✨ IA YIELD'}
+                                                                </button>
+                                                            </div>
+                                                            <input
+                                                                type="number"
+                                                                step="0.001"
+                                                                value={pesoInicial}
+                                                                onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                Peso Final {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                step="0.001"
+                                                                value={pesoFinal}
+                                                                onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
+                                                            />
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="text-xl font-bold text-gray-800 leading-none">
+                                                                    {(pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0).toFixed(1)}%
+                                                                </div>
+                                                                <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">% Utilizable</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
+                                                            <span className="text-base font-bold text-red-500">
+                                                                {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {hasYield && (
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-2 border-t border-gray-100 pt-4">
-                                                    <div>
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <label className="block text-sm font-medium text-gray-700">
-                                                                Peso Inicial {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
-                                                            </label>
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleFetchAiYield}
-                                                                disabled={isAiLoading}
-                                                                className="text-[9px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 transition-all font-bold shadow-sm flex items-center gap-1"
-                                                                title="Sugerir Rendimiento con IA"
-                                                            >
-                                                                {isAiLoading ? '⌛...' : '✨ IA YIELD'}
-                                                            </button>
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            step="0.001"
-                                                            value={pesoInicial}
-                                                            onChange={(e) => setPesoInicial(parseFloat(e.target.value))}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                            Peso Final {idPresentacionConversion ? `(${idPresentacionConversion})` : ''}
+                                            {/* Box 2: Price Metrics */}
+                                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                            Precio Rendimiento ({unMedidaInventario})
                                                         </label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.001"
-                                                            value={pesoFinal}
-                                                            onChange={(e) => setPesoFinal(parseFloat(e.target.value))}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px]"
-                                                        />
+                                                        <span className="text-lg font-bold text-green-600">
+                                                            {(() => {
+                                                                const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                                const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                            })()}
+                                                        </span>
                                                     </div>
-                                                    <div className="text-center">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="text-xl font-bold text-gray-800 leading-none">
-                                                                {(pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0).toFixed(1)}%
-                                                            </div>
-                                                            <div className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">% Utilizable</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-tight">% Merma</label>
-                                                        <span className="text-base font-bold text-red-500">
-                                                            {pesoInicial > 0 ? (100 - ((pesoFinal / pesoInicial) * 100)).toFixed(2) : '0.00'}%
+                                                    <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                            Precio Procesado ({unMedidaRecetario})
+                                                        </label>
+                                                        <span className="text-lg font-bold text-purple-600">
+                                                            {(() => {
+                                                                const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
+                                                                const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
+                                                                const conversion = simpleConversion || 1;
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                            })()}
                                                         </span>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        {/* Box 2: Price Metrics */}
-                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
-                                                        Precio Rendimiento ({unMedidaInventario})
-                                                    </label>
-                                                    <span className="text-lg font-bold text-green-600">
-                                                        {(() => {
-                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
-                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
-                                                        Precio Procesado ({unMedidaRecetario})
-                                                    </label>
-                                                    <span className="text-lg font-bold text-purple-600">
-                                                        {(() => {
-                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
-                                                            const conversion = simpleConversion || 1;
-                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
-                                                        })()}
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                     )}
                                 </div>
                             )}
 
@@ -2507,36 +2517,38 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             )}
                                         </div>
 
-                                        {/* Box 2: Price Metrics */}
-                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
-                                                        Precio Rendimiento ({unMedidaInventario})
-                                                    </label>
-                                                    <span className="text-lg font-bold text-green-600">
-                                                        {(() => {
-                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
-                                                        Precio Procesado ({unMedidaRecetario})
-                                                    </label>
-                                                    <span className="text-lg font-bold text-orange-600">
-                                                        {(() => {
-                                                            const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
-                                                            const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
-                                                            const conversion = simpleConversion || 1;
-                                                            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
-                                                        })()}
-                                                    </span>
+                                        {/* Box 2: Price Metrics - Only for Raw Materials (0) */}
+                                        {productType === 0 && (
+                                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                            Precio Rendimiento ({unMedidaInventario})
+                                                        </label>
+                                                        <span className="text-lg font-bold text-green-600">
+                                                            {(() => {
+                                                                const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
+                                                                const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice);
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center bg-white p-3 rounded border border-gray-100 shadow-sm">
+                                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                                            Precio Procesado ({unMedidaRecetario})
+                                                        </label>
+                                                        <span className="text-lg font-bold text-orange-600">
+                                                            {(() => {
+                                                                const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
+                                                                const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
+                                                                const conversion = simpleConversion || 1;
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                            })()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     <div className="flex justify-end pt-4">
@@ -2576,21 +2588,23 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <div className="flex flex-col">
                                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1">Unidad de Inventario</label>
                                                         <select
-                                                            value={idPresentacionConversion || ''}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value ? parseInt(e.target.value) : null;
-                                                                setIdPresentacionConversion(val);
-                                                                setIdPresentacionInventario(val);
-                                                                if (productType === 2 && val) {
-                                                                    setFormData({ ...formData, idPresentacion: val.toString() });
-                                                                }
-                                                            }}
+                                                            value={unMedidaInventario}
+                                                            onChange={(e) => setUnMedidaInventario(e.target.value)}
                                                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
                                                         >
-                                                            <option value="">(Usar Pres. Prod)</option>
-                                                            {presentations.map(p => (
-                                                                <option key={p.IdPresentacion} value={p.IdPresentacion}>{p.Presentacion}</option>
-                                                            ))}
+                                                            {(() => {
+                                                                const baseCompra = getBaseUnit(unMedidaCompra);
+                                                                const children = UNIT_HIERARCHY[baseCompra] || [];
+                                                                const options = new Set<string>();
+
+                                                                if (unMedidaInventario) options.add(unMedidaInventario);
+                                                                if (unMedidaCompra) options.add(unMedidaCompra);
+                                                                children.forEach(u => options.add(t(`units.${u}`)));
+
+                                                                return Array.from(options).sort().map(u => (
+                                                                    <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>
+                                                                ));
+                                                            })()}
                                                         </select>
                                                     </div>
                                                     <div className="flex flex-col bg-blue-50 p-1 px-2 rounded border border-blue-100">

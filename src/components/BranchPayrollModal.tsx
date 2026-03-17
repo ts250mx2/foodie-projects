@@ -19,7 +19,10 @@ interface BranchPayrollModalProps {
     projectId: number;
     tipoNomina: number;
     initialTipoNomina: number;
+    diaInicio: number;
+    initialDiaInicio: number;
     onTipoNominaChange: (value: number) => void;
+    onDiaInicioChange: (value: number) => void;
     onSaveTipoNomina: () => Promise<void>;
     isTabMode?: boolean;
 }
@@ -32,7 +35,10 @@ export default function BranchPayrollModal({
     projectId, 
     tipoNomina,
     initialTipoNomina,
+    diaInicio,
+    initialDiaInicio,
     onTipoNominaChange,
+    onDiaInicioChange,
     onSaveTipoNomina,
     isTabMode 
 }: BranchPayrollModalProps) {
@@ -145,13 +151,31 @@ export default function BranchPayrollModal({
                                 <option value={1}>Por Hora</option>
                             </select>
                         </div>
+                        <div className="max-w-xs flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Día de Inicio de Semana
+                            </label>
+                            <select
+                                value={diaInicio}
+                                onChange={(e) => onDiaInicioChange(parseInt(e.target.value))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                            >
+                                <option value={1}>Lunes</option>
+                                <option value={2}>Martes</option>
+                                <option value={3}>Miércoles</option>
+                                <option value={4}>Jueves</option>
+                                <option value={5}>Viernes</option>
+                                <option value={6}>Sábado</option>
+                                <option value={7}>Domingo</option>
+                            </select>
+                        </div>
                         <Button 
                             onClick={async () => {
                                 setIsSavingTipo(true);
                                 await onSaveTipoNomina();
                                 setIsSavingTipo(false);
                             }}
-                            disabled={isSavingTipo || tipoNomina === initialTipoNomina}
+                            disabled={isSavingTipo || (tipoNomina === initialTipoNomina && diaInicio === initialDiaInicio)}
                         >
                             {isSavingTipo ? 'Guardando...' : 'Guardar'}
                         </Button>

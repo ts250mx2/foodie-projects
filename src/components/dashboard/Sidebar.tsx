@@ -41,6 +41,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
         expenses: false,
         payroll: false,
         production: false,
+        ocrProcessing: false,
     });
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -67,8 +68,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             title: 'sales',
             emoji: '💰',
             items: [
-                { key: 'salesTerminalsCapture', href: '/dashboard/sales/terminals-capture', emoji: '💳' },
-                { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', emoji: '📱' },
+                { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', emoji: '🏪' },
                 { key: 'tipsCapture', href: '/dashboard/sales/tips-capture', emoji: '💸' }
             ]
         },
@@ -77,7 +77,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '📦',
             items: [
                 { key: 'products', href: '/dashboard/inventories/products', emoji: '🏷️' },
-                { key: 'inventoryCapture', href: '/dashboard/inventories/capture', emoji: '📝' }
+                { key: 'inventoryCapture', href: '/dashboard/inventories/capture', emoji: '📝' },
+                { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', emoji: '🗑️' }
             ]
         },
         {
@@ -111,6 +112,13 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'subRecipes', href: '/dashboard/production/sub-recipes', emoji: '🥣' },
                 { key: 'dishes', href: '/dashboard/production/dishes', emoji: '🍽️' },
                 { key: 'productionCapture', href: '/dashboard/production/capture', emoji: '👨‍🍳' }
+            ]
+        },
+        {
+            title: 'ocrProcessing',
+            emoji: '🧠',
+            items: [
+                { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', emoji: '📸' }
             ]
         }
     ];

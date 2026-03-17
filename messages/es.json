@@ -64,7 +64,7 @@
         "paymentChannels": "Canales de Pago",
         "taxes": "Impuestos",
         "salesTerminalsCapture": "Ventas por Forma de Pago",
-        "salesChannelsCapture": "Ventas por Canal",
+        "salesChannelsCapture": "Captura de Ventas",
         "tipsCapture": "Captura de Propinas",
         "salesCapture": "Captura de Ventas",
         "inventories": "Inventarios",
@@ -92,7 +92,10 @@
         "subRecipes": "Subrecetas",
         "menuSections": "Secciones Menu",
         "massiveProductUpload": "Carga Masiva Productos",
-        "productionCapture": "Captura de Producción"
+        "productionCapture": "Captura de Producción",
+        "wasteCapture": "Captura de Mermas",
+        "ocrProcessing": "Procesamiento OCR",
+        "receiptCapture": "Captura de Recibos"
     },
     "Production": {
         "title": "Captura de Producción",
@@ -538,7 +541,22 @@
         "save": "Guardar",
         "add": "Agregar Gasto",
         "total": "Total",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "scanReceipt": "Escanear Recibo"
+    },
+    "ReceiptCapture": {
+        "title": "Capturar Recibo",
+        "subtitle": "Toma una foto del recibo para procesarlo",
+        "takePhoto": "Tomar Foto",
+        "processing": "Procesando con Claude...",
+        "extractedInfo": "Información Extraída",
+        "provider": "Proveedor",
+        "concept": "Concepto",
+        "amount": "Monto",
+        "confirm": "Confirmar y Guardar",
+        "cancel": "Cancelar",
+        "error": "Error al procesar el recibo",
+        "success": "Gasto guardado exitosamente"
     },
     "PurchasesCapture": {
         "title": "Captura de Compras",
@@ -589,6 +607,51 @@
         "date": "Fecha",
         "actions": "Acciones",
         "noRecords": "No hay compras registradas"
+    },
+    "WasteCapture": {
+        "title": "Captura de Mermas",
+        "modalTitle": "Mermas del Día",
+        "selectBranch": "Seleccionar Sucursal",
+        "noBranches": "No hay sucursales",
+        "month": "Mes",
+        "year": "Año",
+        "wasteDate": "Día de Merma",
+        "selectProduct": "Seleccionar Producto",
+        "product": "Producto",
+        "quantity": "Cantidad",
+        "unit": "Unidad",
+        "price": "Precio",
+        "total": "Total",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "close": "Cerrar",
+        "confirmDelete": "¿Está seguro de eliminar esta merma?",
+        "noRecords": "No hay registros para este día",
+        "searchProduct": "Buscar producto...",
+        "items": "ítems",
+        "months": {
+            "0": "Enero",
+            "1": "Febrero",
+            "2": "Marzo",
+            "3": "Abril",
+            "4": "Mayo",
+            "5": "Junio",
+            "6": "Julio",
+            "7": "Agosto",
+            "8": "Septiembre",
+            "9": "Octubre",
+            "10": "Noviembre",
+            "11": "Diciembre"
+        },
+        "days": {
+            "mon": "Lun",
+            "tue": "Mar",
+            "wed": "Mié",
+            "thu": "Jue",
+            "fri": "Vie",
+            "sat": "Sáb",
+            "sun": "Dom"
+        }
     },
     "PurchaseDetailsModal": {
         "title": "Productos de la Compra",
@@ -700,7 +763,7 @@
         "add": "Agregar"
     },
     "SalesChannelsCapture": {
-        "title": "Ventas por Canal",
+        "title": "Captura de Ventas",
         "selectBranch": "Seleccionar Sucursal",
         "month": "Mes",
         "year": "Año",

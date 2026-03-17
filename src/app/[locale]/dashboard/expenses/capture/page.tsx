@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
+import QRCode from 'react-qr-code';
 
 interface Branch {
     IdSucursal: number;
@@ -747,6 +748,7 @@ export default function ExpensesCapturePage() {
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

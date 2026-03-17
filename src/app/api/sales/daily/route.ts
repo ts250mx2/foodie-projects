@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         const query = `
             SELECT 
                 A.IdTurno, B.Turno, 
-                A.IdTerminal, C.Terminal, 
+                A.IdTerminal, C.Terminal, C.Comision,
                 A.IdPlataforma, D.Plataforma, 
                 A.Venta
             FROM tblVentas A
@@ -89,6 +89,40 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Error saving sale:', error);
         return NextResponse.json({ success: false, message: 'Error saving sale' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    let connection;
+    try {
+        const { searchParams } = new URL(request.url);
+        const projectIdStr = searchParams.get('projectId');
+        const branchIdStr = searchParams.get('branchId');
+        const dayStr = searchParams.get('day');
+        const monthStr = searchParams.get('month');
+        const yearStr = searchParams.get('year');
+        const shiftIdStr = searchParams.get('shiftId');
+        const terminalIdStr = searchParams.get('terminalId');
+        const platformIdStr = searchParams.get('platformId');
+
+        if (!projectIdStr || !branchIdStr || !dayStr || !monthStr || !yearStr || !shiftIdStr || !terminalIdStr || !platformIdStr) {
+            return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(parseInt(projectIdStr));
+
+        await connection.query(
+            `DELETE FROM tblVentas
+             WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdTurno = ? AND IdTerminal = ? AND IdPlataforma = ? AND IdSucursal = ?`,
+            [dayStr, monthStr, yearStr, shiftIdStr, terminalIdStr, platformIdStr, branchIdStr]
+        );
+
+        return NextResponse.json({ success: true, message: 'Sale deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting sale:', error);
+        return NextResponse.json({ success: false, message: 'Error deleting sale' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export interface SearchProduct {
     IdProducto: number;
@@ -21,6 +22,10 @@ export interface SearchProduct {
     Costo: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
+    ImagenCategoria?: string;
+    UnidadMedidaRecetario?: string;
+    UnidadMedidaCompra?: string;
+    UnidadMedidaInventario?: string;
 }
 
 interface Category {
@@ -56,6 +61,7 @@ export default function AddMaterialModal({
     const [categories, setCategories] = useState<Category[]>([]);
     const [activeTab, setActiveTab] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { colors } = useTheme();
 
     // Refresh data when opened or refreshKey changes
     useEffect(() => {
@@ -74,11 +80,7 @@ export default function AddMaterialModal({
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Always fetch raw materials (type 0) for now, as per simplified logic
-            // Or if productType is passed, use it?
-            // The previous logic (Step 1705) hardcoded tipoProducto=0 in some places?
-            // Let's stick to existing fetchData logic but ensure dependency on refreshKey works.
-            const typesToFetch = (productType === 1 || productType === 2) ? '0,2' : '0';
+            const typesToFetch = '0,2';
             const response = await fetch(`/api/products?projectId=${projectId}&tipoProducto=${typesToFetch}`);
             if (response.ok) {
                 const data = await response.json();
@@ -104,14 +106,17 @@ export default function AddMaterialModal({
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
-                {/* Header - CostingModal Style (Orange) */}
-                <div className="bg-orange-500 text-white px-6 py-4 flex justify-between items-center shadow-md">
+                {/* Header - Themed Style */}
+                <div 
+                    className="px-6 py-4 flex justify-between items-center shadow-md"
+                    style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
+                >
                     <h3 className="text-xl font-bold flex items-center gap-2">
-                        {productType === 0 ? '🥕 Agregar Materia Prima' : '🍽️ Agregar Producto'}
+                        {productType === 0 ? '🥕 Agregar Materia Prima' : '🍽️ Agregar Insumo/Producto'}
                     </h3>
                     <button
                         onClick={onClose}
-                        className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+                        className="hover:bg-white/20 rounded-full p-2 transition-colors text-white"
                     >
                         ✕
                     </button>
@@ -123,7 +128,8 @@ export default function AddMaterialModal({
                         placeholder="🔍 Buscar por código o producto..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:border-transparent outline-none transition-all"
+                        style={{ focusRingColor: colors.colorFondo1 } as any}
                         autoFocus
                     />
 
@@ -145,20 +151,12 @@ export default function AddMaterialModal({
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                                 <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Foto</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Código</th>
                                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Producto</th>
-                                    {productType > 0 ? (
-                                        <>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mód. Recetario</th>
-                                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Costo</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Pres. Conversión</th>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Categoría</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Presentación</th>
-                                        </>
-                                    )}
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Categoría</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Costo</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Unidad Receta</th>
                                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Acción</th>
                                 </tr>
                             </thead>
@@ -168,24 +166,34 @@ export default function AddMaterialModal({
                                     // Calculation removed as cell is removed
 
                                     return (
-                                        <tr key={p.IdProducto} className="hover:bg-orange-50 transition-colors">
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{p.Codigo}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-800">{p.Producto}</td>
-
-                                            {productType > 0 ? (
-                                                <>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{p.CategoriaRecetario || '-'}</td>
-                                                    <td className="px-4 py-3 text-sm text-right font-bold text-blue-600">
-                                                        ${(p.Costo || p.Precio || 0).toFixed(2)}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{p.PresentacionConversion || '-'}</td>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{p.Categoria || '-'}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{p.Presentacion || '-'}</td>
-                                                </>
-                                            )}
+                                        <tr key={p.IdProducto} className="hover:bg-orange-50 transition-colors border-b">
+                                            <td className="px-4 py-3">
+                                                {p.ArchivoImagen ? (
+                                                    <img 
+                                                        src={p.ArchivoImagen} 
+                                                        alt={p.Producto} 
+                                                        className="w-10 h-10 object-cover rounded shadow-sm border"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">
+                                                        📷
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm font-bold text-gray-900">{p.Codigo}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-800 font-medium">{p.Producto}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-base">{p.ImagenCategoria || '📁'}</span>
+                                                    <span>{p.Categoria || '-'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-right font-black text-blue-700">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(p.Costo || p.Precio || 0)}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-500 font-medium">
+                                                {p.UnidadMedidaRecetario || '-'}
+                                            </td>
 
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex justify-center gap-2">
@@ -194,18 +202,13 @@ export default function AddMaterialModal({
                                                             onSelect(p);
                                                             setSearchTerm('');
                                                         }}
-                                                        disabled={productType > 0 && (!p.IdCategoriaRecetario || p.IdCategoriaRecetario <= 0)}
-                                                        className={`px-3 py-1.5 text-xs shadow-sm ${productType > 0 && (!p.IdCategoriaRecetario || p.IdCategoriaRecetario <= 0)
-                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                                                            }`}
-                                                        title={productType > 0 && (!p.IdCategoriaRecetario || p.IdCategoriaRecetario <= 0) ? 'Debe asignar un Módulo de Recetario antes de agregar' : 'Agregar al Kit'}
+                                                        className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 px-3 py-1.5 text-xs shadow-sm"
                                                     >
                                                         ➕ Agregar
                                                     </Button>
-                                                    {(onEdit || productType > 0) && (
+                                                    {onEdit && (
                                                         <Button
-                                                            onClick={() => onEdit && onEdit(p)}
+                                                            onClick={() => onEdit(p)}
                                                             className="px-3 py-1.5 text-xs bg-gray-600 hover:bg-gray-700 active:bg-gray-800 shadow-sm"
                                                         >
                                                             ✏️ Editar

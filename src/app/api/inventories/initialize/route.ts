@@ -16,6 +16,9 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
+        // Workaround for Division by 0 in vlProductos view
+        await connection.query("SET SESSION sql_mode = (SELECT REPLACE(@@sql_mode, 'ERROR_FOR_DIVISION_BY_ZERO', ''))");
+
         // Check if inventory already exists for this day
         const [existing] = await connection.query(
             'SELECT COUNT(*) as count FROM tblInventarios WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?',
@@ -40,18 +43,20 @@ export async function POST(request: NextRequest) {
                 // Copy products from previous inventory with quantity = 0
                 await connection.query(
                     `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
-                     SELECT IdProducto, ?, ?, ?, ?, ?, 0, Precio, NOW()
-                     FROM tblInventarios
-                     WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?`,
+                     SELECT i.IdProducto, ?, ?, ?, ?, ?, 0, COALESCE(v.CostoInventario, i.Precio), NOW()
+                     FROM tblInventarios i
+                     LEFT JOIN vlProductos v ON i.IdProducto = v.IdProducto
+                     WHERE i.Dia = ? AND i.Mes = ? AND i.Anio = ? AND i.IdSucursal = ?`,
                     [day, monthNum, year, inventoryDate, branchId, previousDay[0].Dia, previousDay[0].Mes, previousDay[0].Anio, branchId]
                 );
             } else {
                 // No previous inventory, initialize with all active products
                 await connection.query(
                     `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
-                     SELECT IdProducto, ?, ?, ?, ?, ?, 0, Precio, NOW()
-                     FROM tblProductos
-                     WHERE Status = 0`,
+                     SELECT p.IdProducto, ?, ?, ?, ?, ?, 0, COALESCE(v.CostoInventario, p.Precio / NULLIF(p.CantidadCompra, 0), p.Precio), NOW()
+                     FROM tblProductos p
+                     LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
+                     WHERE p.Status = 0`,
                     [day, monthNum, year, inventoryDate, branchId]
                 );
             }
@@ -61,8 +66,9 @@ export async function POST(request: NextRequest) {
         // This runs whether it's the first time or subsequent opens
         await connection.query(
             `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
-             SELECT P.IdProducto, ?, ?, ?, ?, ?, 0, P.Precio, NOW()
+             SELECT P.IdProducto, ?, ?, ?, ?, ?, 0, COALESCE(V.CostoInventario, P.Precio), NOW()
              FROM tblProductos P
+             LEFT JOIN vlProductos V ON P.IdProducto = V.IdProducto
              WHERE P.Status = 0
              AND P.IdProducto NOT IN (
                  SELECT IdProducto FROM tblInventarios 

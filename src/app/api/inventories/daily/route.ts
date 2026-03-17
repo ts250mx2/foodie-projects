@@ -24,21 +24,23 @@ export async function GET(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
+        // Workaround for Division by 0 in vlProductos view
+        await connection.query("SET SESSION sql_mode = (SELECT REPLACE(@@sql_mode, 'ERROR_FOR_DIVISION_BY_ZERO', ''))");
+
         // Get inventory entries for the selected day with product and category information
         const [rows] = await connection.query(
-            `SELECT I.IdProducto, I.Cantidad, I.Precio/P.CantidadCompra as Precio, I.FechaInventario, I.Dia, I.Mes, I.Anio, I.IdSucursal,
-                    P.Codigo, P.Producto, 
-                    COALESCE(P.UnidadMedidaInventario, PR.Presentacion) as Presentacion, 
-                    P.IdCategoria,
-                    C.Categoria,
-                    C.ImagenCategoria,
-                    (I.Cantidad * I.Precio/P.CantidadCompra) as Total
+            `SELECT I.IdProducto, I.Cantidad, COALESCE(v.CostoInventario, I.Precio) as Precio, I.FechaInventario, I.Dia, I.Mes, I.Anio, I.IdSucursal,
+                    v.Codigo AS Codigo, v.Producto AS Producto, 
+                    v.UnidadMedidaInventario AS Presentacion, 
+                    v.IdCategoria AS IdCategoria,
+                    v.Categoria AS Categoria,
+                    v.ImagenCategoria AS ImagenCategoria,
+                    v.ArchivoImagen AS ArchivoImagen,
+                    (I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) as Total
              FROM tblInventarios I
-             INNER JOIN tblProductos P ON I.IdProducto = P.IdProducto
-             LEFT JOIN tblPresentaciones PR ON P.IdPresentacion = PR.IdPresentacion
-             LEFT JOIN BDFoodieProjects.tblCategorias C ON P.IdCategoria = C.IdCategoria
+             LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
              WHERE I.IdSucursal = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ?
-             ORDER BY C.Categoria, P.Producto`,
+             ORDER BY v.Categoria, v.Producto`,
             [branchId, day, month, year]
         );
 
@@ -65,11 +67,19 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        // Use REPLACE INTO to insert or update
+        // Workaround for Division by 0 in vlProductos view
+        await connection.query("SET SESSION sql_mode = (SELECT REPLACE(@@sql_mode, 'ERROR_FOR_DIVISION_BY_ZERO', ''))");
+
+        // Use INSERT ... ON DUPLICATE KEY UPDATE to prioritize CostoInventario from vlProductos
+        // If not in view, we keep the incoming price (or existing one)
         await connection.query(
-            `REPLACE INTO tblInventarios (IdProducto, Dia, Mes, Anio, IdSucursal, FechaInventario, Precio, Cantidad, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-            [productId, day, monthNum, year, branchId, inventoryDate, price, quantity]
+            `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, IdSucursal, FechaInventario, Precio, Cantidad, FechaAct)
+             SELECT ?, ?, ?, ?, ?, ?, COALESCE((SELECT v.CostoInventario FROM vlProductos v WHERE v.IdProducto = ? LIMIT 1), ?), ?, NOW()
+             ON DUPLICATE KEY UPDATE 
+                Precio = VALUES(Precio),
+                Cantidad = VALUES(Cantidad),
+                FechaAct = NOW()`,
+            [productId, day, monthNum, year, branchId, inventoryDate, productId, price, quantity]
         );
 
         return NextResponse.json({
@@ -104,11 +114,18 @@ export async function PUT(request: NextRequest) {
         try {
             // Update all products in batch
             for (const update of updates) {
+                // Update quantity and also refresh price with the latest CostoInventario from the view
                 await connection.query(
-                    `UPDATE tblInventarios 
-                     SET Cantidad = ?, FechaAct = NOW()
-                     WHERE IdProducto = ? AND Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ?`,
-                    [update.quantity, update.productId, day, monthNum, year, branchId]
+                    `UPDATE tblInventarios I
+                     SET I.Cantidad = ?, 
+                         I.Precio = (
+                            SELECT CostoInventario 
+                            FROM vlProductos 
+                            WHERE IdProducto = ?
+                         ),
+                         I.FechaAct = NOW()
+                     WHERE I.IdProducto = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ? AND I.IdSucursal = ?`,
+                    [update.quantity, update.productId, update.productId, day, monthNum, year, branchId]
                 );
             }
 
