@@ -78,6 +78,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             items: [
                 { key: 'products', href: '/dashboard/inventories/products', emoji: '🏷️' },
                 { key: 'inventoryCapture', href: '/dashboard/inventories/capture', emoji: '📝' },
+                { key: 'minMax', href: '/dashboard/inventories/min-max', emoji: '⚖️' },
                 { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', emoji: '🗑️' }
             ]
         },

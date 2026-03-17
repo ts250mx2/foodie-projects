@@ -71,6 +71,7 @@
         "inventoryDates": "Inventory Dates",
         "products": "Products",
         "inventoryCapture": "Inventory Capture",
+        "minMax": "Max / Min",
         "purchases": "Purchases",
         "suppliers": "Suppliers",
         "purchasesCapture": "Purchases Capture",
@@ -624,6 +625,7 @@
         "cost": "Cost",
         "total": "Total",
         "add": "Save",
+        "reabastecimiento": "Max/Min Replenishment",
         "delete": "Delete",
         "close": "Close",
         "searchProduct": "Search product...",
@@ -632,6 +634,22 @@
         "presentation": "Presentation",
         "code": "Code",
         "confirmDelete": "Are you sure you want to delete this product from inventory?"
+    },
+    "InventoryComparison": {
+        "title": "Replenishment Comparison",
+        "product": "Product",
+        "code": "Code",
+        "min": "Min",
+        "max": "Max",
+        "captured": "Captured",
+        "status": "Status",
+        "statusOK": "OK",
+        "statusOverstock": "Overstock",
+        "statusShortage": "Shortage",
+        "exportExcel": "Export Excel",
+        "exportPdf": "Export PDF",
+        "noData": "No products with replenishment levels configured.",
+        "close": "Close"
     },
     "SalesModal": {
         "title": "Capture Sales",
@@ -869,6 +887,25 @@
         "save": "Save",
         "close": "Close",
         "loading": "Loading...",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "branch": "Branch",
+        "category": "Category",
+        "noChanges": "No changes to save"
+    },
+    "BranchMinMax": {
+        "title": "Min & Max",
+        "addProduct": "Add Min / Max",
+        "product": "Product",
+        "code": "Code",
+        "presentation": "Presentation",
+        "min": "Min",
+        "max": "Max",
+        "add": "Add",
+        "actions": "Actions",
+        "searchProduct": "Search product...",
+        "noRecords": "No settings recorded.",
+        "confirmDelete": "Are you sure you want to delete this record?",
+        "loading": "Loading...",
+        "exportExcel": "Export Excel"
     }
 }

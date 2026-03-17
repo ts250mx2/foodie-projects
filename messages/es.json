@@ -73,6 +73,7 @@
         "categories": "Categorias",
         "presentations": "Presentaciones",
         "inventoryCapture": "Captura de Inventario",
+        "minMax": "Máximos y Mínimos",
         "purchases": "Compras",
         "suppliers": "Proveedores",
         "purchasesCapture": "Captura de Compras",
@@ -710,6 +711,7 @@
         "cost": "Costo",
         "total": "Total",
         "add": "Guardar",
+        "reabastecimiento": "Reabastecimiento Max/Min",
         "delete": "Eliminar",
         "close": "Cerrar",
         "searchProduct": "Buscar producto...",
@@ -718,6 +720,22 @@
         "presentation": "Presentación",
         "code": "Código",
         "confirmDelete": "¿Está seguro de eliminar este producto del inventario?"
+    },
+    "InventoryComparison": {
+        "title": "Comparativa de Reabastecimiento",
+        "product": "Producto",
+        "code": "Código",
+        "min": "Mínimo",
+        "max": "Máximo",
+        "captured": "Capturado",
+        "status": "Estado",
+        "statusOK": "OK",
+        "statusOverstock": "Sobreinventario",
+        "statusShortage": "Faltante",
+        "exportExcel": "Exportar Excel",
+        "exportPdf": "Exportar PDF",
+        "noData": "No hay productos con niveles de reabastecimiento configurados.",
+        "close": "Cerrar"
     },
     "SalesCapture": {
         "title": "Captura de Ventas",
@@ -974,6 +992,25 @@
         "cancel": "Cancelar",
         "successUpdate": "Actualizado exitosamente",
         "errorUpdate": "Error al actualizar",
-        "confirmDelete": "¿Estás seguro de que deseas borrar este registro?"
+        "confirmDelete": "¿Estás seguro de que deseas borrar este registro?",
+        "branch": "Sucursal",
+        "category": "Categoría",
+        "noChanges": "No hay cambios para guardar"
+    },
+    "BranchMinMax": {
+        "title": "Mínimos y Máximos",
+        "addProduct": "Agregar Mínimo / Máximo",
+        "product": "Producto",
+        "code": "Código",
+        "presentation": "Presentación",
+        "min": "Mínimo",
+        "max": "Máximo",
+        "add": "Agregar",
+        "actions": "Acciones",
+        "searchProduct": "Buscar producto...",
+        "noRecords": "No hay configuraciones registradas.",
+        "confirmDelete": "¿Estás seguro de que deseas eliminar este registro?",
+        "loading": "Cargando...",
+        "exportExcel": "Exportar Excel"
     }
 }

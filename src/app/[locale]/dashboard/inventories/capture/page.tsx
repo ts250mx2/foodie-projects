@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CostingModal from '@/components/CostingModal';
+import InventoryMaxMinComparisonModal from '@/components/InventoryMaxMinComparisonModal';
 
 interface Branch {
     IdSucursal: number;
@@ -69,6 +70,7 @@ export default function InventoryCapturePage() {
     const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
     const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<any>(null);
+    const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -652,6 +654,14 @@ export default function InventoryCapturePage() {
                             </div>
                             <div className="flex gap-2 justify-end">
                                 <Button
+                                    onClick={() => setIsComparisonModalOpen(true)}
+                                    variant="secondary"
+                                    className="flex items-center gap-2"
+                                    disabled={isLoading}
+                                >
+                                    ⚖️ {tModal('reabastecimiento')}
+                                </Button>
+                                <Button
                                     onClick={handlePrint}
                                     variant="secondary"
                                     className="flex items-center gap-2"
@@ -794,6 +804,18 @@ export default function InventoryCapturePage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {isComparisonModalOpen && selectedDate && (
+                <InventoryMaxMinComparisonModal
+                    isOpen={isComparisonModalOpen}
+                    onClose={() => setIsComparisonModalOpen(false)}
+                    inventoryEntries={inventoryEntries}
+                    editedQuantities={editedQuantities}
+                    branchId={selectedBranch}
+                    projectId={project.idProyecto}
+                    dateLabel={selectedDate.toLocaleDateString()}
+                />
             )}
 
             {isCostingModalOpen && editingProduct && (
