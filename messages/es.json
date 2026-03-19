@@ -96,7 +96,8 @@
         "productionCapture": "Captura de Producción",
         "wasteCapture": "Captura de Mermas",
         "ocrProcessing": "Procesamiento OCR",
-        "receiptCapture": "Captura de Recibos"
+        "receiptCapture": "Captura de Recibos",
+        "ocrDocuments": "Documentos OCR"
     },
     "Production": {
         "title": "Captura de Producción",
@@ -558,6 +559,42 @@
         "cancel": "Cancelar",
         "error": "Error al procesar el recibo",
         "success": "Gasto guardado exitosamente"
+    },
+    "OCRDocuments": {
+        "title": "Documentos OCR",
+        "addDocument": "Agregar Documento",
+        "search": "Buscar",
+        "startDate": "Fecha Inicio",
+        "endDate": "Fecha Fin",
+        "id": "ID",
+        "description": "Descripción",
+        "creationDate": "Fecha Alta",
+        "actions": "Acciones",
+        "process": "Procesar",
+        "edit": "Editar",
+        "uploadFiles": "Subir Archivos",
+        "qrCode": "Código QR",
+        "dropFiles": "Suelta los archivos aquí o haz clic para seleccionar",
+        "processing": "Procesando...",
+        "success": "Documentos agregados correctamente",
+        "error": "Error al procesar documentos",
+        "deleteDocument": "Eliminar Documento",
+        "confirmDelete": "¿Está seguro de eliminar este lote de documentos?",
+        "deleteSuccess": "Lote de documentos eliminado exitosamente"
+    },
+    "OCRSimpleUpload": {
+        "title": "Subir Documentos",
+        "subtitle": "Captura fotos de tus facturas o recibos",
+        "project": "Proyecto",
+        "description": "Descripción del Lote",
+        "addPhoto": "Tomar Foto",
+        "photosCount": "{count} fotos seleccionadas",
+        "save": "Guardar Documentos",
+        "saving": "Guardando...",
+        "success": "¡Documentos subidos con éxito!",
+        "error": "Error al subir documentos",
+        "noProject": "Error: No se especificó el proyecto",
+        "back": "Volver"
     },
     "PurchasesCapture": {
         "title": "Captura de Compras",

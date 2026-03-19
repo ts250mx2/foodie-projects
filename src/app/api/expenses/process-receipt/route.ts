@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const OCR_PROMPT = 'Analyze these receipt images. Extract the provider name, the total amount, and a detailed list of concepts/items with their quantity and price. Return ONLY a JSON object with this structure: {"provider": "NAME", "total": 0.00, "concepts": [{"description": "Item Name", "quantity": 1, "price": 0.00, "total": 0.00}]}. Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly, do not leave it truncated.';
+const OCR_PROMPT = 'Analyze these receipt images. Extract the provider name, the total amount, the ticket/receipt number (if available), the date of the receipt (YYYY-MM-DD), and a detailed list of concepts/items with their quantity and price. Return ONLY a JSON object with this structure: {"provider": "NAME", "total": 0.00, "ticketNumber": "12345", "date": "2024-03-19", "concepts": [{"description": "Item Name", "quantity": 1, "price": 0.00, "total": 0.00}]}. Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly, do not leave it truncated.';
 
 async function processWithClaude(files: File[]): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;

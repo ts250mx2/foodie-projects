@@ -24,10 +24,9 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getFoodieProjectsConnection();
 
-        // Fetch project title and logo
-        // Changed NombreArchivoLogo to Logo64
-        const [rows] = await connection.query(
-            'SELECT Titulo, Logo64 FROM tblProyectos WHERE IdProyecto = ?',
+        // Fetch project title and colors
+        const [rows]: any = await connection.query(
+            'SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -35,13 +34,13 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Project not found' }, { status: 404 });
         }
 
-        // Return Logo64 directly (base64 string)
-        const logoData = rows[0].Logo64 || null;
-
         return NextResponse.json({
             success: true,
             titulo: rows[0].Titulo || null,
-            logo64: logoData
+            logo64: rows[0].Logo64 || null,
+            colorFondo1: rows[0].ColorFondo1 || '#FF6B35',
+            colorFondo2: rows[0].ColorFondo2 || '#F7931E',
+            colorLetra: rows[0].ColorLetra || '#FFFFFF'
         });
     } catch (error) {
         console.error('Error fetching project header:', error);

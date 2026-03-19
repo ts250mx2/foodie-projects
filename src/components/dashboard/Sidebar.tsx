@@ -119,7 +119,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             title: 'ocrProcessing',
             emoji: '🧠',
             items: [
-                { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', emoji: '📸' }
+                { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', emoji: '📸' },
+                { key: 'ocrDocuments', href: '/dashboard/ocr/documents', emoji: '📄' }
             ]
         }
     ];
