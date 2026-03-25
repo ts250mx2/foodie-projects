@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Branch {
@@ -100,6 +101,8 @@ export default function PurchasesCapturePage() {
     const [paymentChannelSearch, setPaymentChannelSearch] = useState('');
     const [showPaymentChannelDropdown, setShowPaymentChannelDropdown] = useState(false);
     const [selectedPaymentChannel, setSelectedPaymentChannel] = useState<PaymentChannel | null>(null);
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Purchase details modal state
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -552,11 +555,44 @@ export default function PurchasesCapturePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedDate || !project || !selectedBranch || !formData.providerId || !formData.invoiceNumber || !formData.paymentChannelId || !formData.total) return;
+        
+        // Comprehensive Validation
+        if (!selectedDate) {
+            alert(tCommon('errorNoDate'));
+            return;
+        }
+        if (!project || !selectedBranch) {
+            alert(tCommon('errorMissingContext'));
+            return;
+        }
+        if (!formData.providerId) {
+            alert(tModal('errorSelectProvider') || 'Debe seleccionar un proveedor de la lista');
+            return;
+        }
+        if (!formData.invoiceNumber) {
+            alert(tModal('errorMissingInvoice') || 'Número de factura requerido');
+            return;
+        }
+        if (!formData.paymentChannelId) {
+            alert(tModal('errorSelectPaymentChannel') || 'Debe seleccionar un canal de pago de la lista');
+            return;
+        }
+        if (!formData.total) {
+            alert(tModal('errorMissingTotal') || 'Ingrese el total de la compra');
+            return;
+        }
 
+        setIsSubmitting(true);
         try {
             const url = '/api/purchases/daily';
             const method = editingPurchase ? 'PUT' : 'POST';
+
+            const totalNum = parseFloat(formData.total.replace(/[^0-9.]/g, ''));
+            if (isNaN(totalNum)) {
+                alert(tModal('errorInvalidTotal') || 'Total no válido');
+                setIsSubmitting(false);
+                return;
+            }
 
             const body = editingPurchase ? {
                 projectId: project.idProyecto,
@@ -566,7 +602,7 @@ export default function PurchasesCapturePage() {
                 paymentChannelId: parseInt(formData.paymentChannelId),
                 reference: formData.reference,
                 payTo: formData.payTo,
-                total: parseFloat(formData.total.replace(/[^0-9.]/g, ''))
+                total: totalNum
             } : {
                 projectId: project.idProyecto,
                 branchId: parseInt(selectedBranch),
@@ -578,7 +614,7 @@ export default function PurchasesCapturePage() {
                 paymentChannelId: parseInt(formData.paymentChannelId),
                 reference: formData.reference,
                 payTo: formData.payTo,
-                total: parseFloat(formData.total.replace(/[^0-9.]/g, ''))
+                total: totalNum
             };
 
             const response = await fetch(url, {
@@ -586,6 +622,8 @@ export default function PurchasesCapturePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
+
+            const data = await response.json();
 
             if (response.ok) {
                 await fetchDailyPurchases(selectedDate);
@@ -604,9 +642,14 @@ export default function PurchasesCapturePage() {
                 setSelectedProvider(null);
                 setPaymentChannelSearch('');
                 setSelectedPaymentChannel(null);
+            } else {
+                alert(data.message || tCommon('errorSaving'));
             }
         } catch (error) {
             console.error('Error saving purchase:', error);
+            alert(tCommon('errorConnection'));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -785,17 +828,30 @@ export default function PurchasesCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
-                            <div>
-                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
-                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            Compra
+                                        </span>
+                                        <span className="bg-blue-400 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            {selectedDate.toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <h1 className="text-3xl font-black mb-0 leading-tight">
+                                        {tModal('title')}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
-                            >
-                                ✕
-                            </button>
+                            {/* Decorative spacer to match dashboard tabs height if needed, but here we just need spacing */}
+                            <div className="h-4"></div>
                         </div>
 
                         {/* Content */}
@@ -850,7 +906,7 @@ export default function PurchasesCapturePage() {
                                                         key={p.IdProveedor}
                                                         onClick={() => {
                                                             setSelectedProvider(p);
-                                                            setFormData({ ...formData, providerId: p.IdProveedor.toString() });
+                                                            setFormData(prev => ({ ...prev, providerId: p.IdProveedor.toString() }));
                                                             setProviderSearch(p.Proveedor);
                                                             setShowProviderDropdown(false);
                                                         }}
@@ -896,7 +952,7 @@ export default function PurchasesCapturePage() {
                                                         key={pc.IdCanalPago}
                                                         onClick={() => {
                                                             setSelectedPaymentChannel(pc);
-                                                            setFormData({ ...formData, paymentChannelId: pc.IdCanalPago.toString() });
+                                                            setFormData(prev => ({ ...prev, paymentChannelId: pc.IdCanalPago.toString() }));
                                                             setPaymentChannelSearch(pc.CanalPago);
                                                             setShowPaymentChannelDropdown(false);
                                                         }}
@@ -922,11 +978,11 @@ export default function PurchasesCapturePage() {
                                             }}
                                             onBlur={(e) => {
                                                 const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                                setFormData({ ...formData, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                                setFormData(prev => ({ ...prev, total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) }));
                                             }}
                                             onFocus={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                setFormData({ ...formData, total: val === '0.00' || val === '0' ? '' : val });
+                                                setFormData(prev => ({ ...prev, total: val === '0.00' || val === '0' ? '' : val }));
                                             }}
                                             required
                                             placeholder="0.00"
@@ -955,8 +1011,12 @@ export default function PurchasesCapturePage() {
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <button type="submit" className="flex-1 bg-blue-500 text-white p-2.5 rounded-lg hover:bg-blue-600 font-bold transition-all shadow-md active:scale-95">
-                                            💾 {tModal('save')}
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSubmitting}
+                                            className={`flex-1 ${isSubmitting ? 'bg-blue-300' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2.5 rounded-lg font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2`}
+                                        >
+                                            {isSubmitting ? <span className="animate-spin text-lg">⏳</span> : '💾'} {tModal('save')}
                                         </button>
                                         <button
                                             type="button"
@@ -974,18 +1034,16 @@ export default function PurchasesCapturePage() {
 
                             {/* Purchase Table */}
                             <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
-                                <div className="overflow-y-auto max-h-[400px]">
+                                <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-200">
                                     <table className="min-w-full divide-y divide-gray-100">
-                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
-                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
-                                            </tr>
-                                        </thead>
+                                        <ThemedGridHeader>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">ID</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">{tModal('provider')}</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">{tModal('invoiceNumber')}</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Canal</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">{tModal('total')}</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
+                                        </ThemedGridHeader>
                                         <tbody className="bg-white divide-y divide-gray-50">
                                             {dailyPurchases.length === 0 ? (
                                                 <tr>
@@ -1062,17 +1120,29 @@ export default function PurchasesCapturePage() {
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
                     <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-green-600 text-white">
-                            <div>
-                                <h2 className="text-xl font-black">{tDetails('title')}</h2>
-                                <p className="text-sm font-medium opacity-90">{selectedPurchaseForDetails.NumeroFactura} — {selectedPurchaseForDetails.Proveedor}</p>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            Productos
+                                        </span>
+                                        <span className="bg-green-400 text-green-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            {selectedPurchaseForDetails.NumeroFactura} — {selectedPurchaseForDetails.Proveedor}
+                                        </span>
+                                    </div>
+                                    <h1 className="text-3xl font-black mb-0 leading-tight">
+                                        {tDetails('title')}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => setIsDetailsModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsDetailsModalOpen(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold"
-                            >
-                                ✕
-                            </button>
+                            <div className="h-4"></div>
                         </div>
 
                         {/* Content */}
@@ -1184,17 +1254,16 @@ export default function PurchasesCapturePage() {
                             </form>
 
                             {/* Details Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                                <table className="min-w-full divide-y divide-gray-100">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cant.</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Producto</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Costo</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
-                                        </tr>
-                                    </thead>
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col flex-1 min-h-[300px]">
+                                <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-200">
+                                    <table className="min-w-full divide-y divide-gray-100">
+                                        <ThemedGridHeader>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Cant.</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Producto</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Costo</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Total</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
+                                        </ThemedGridHeader>
                                     <tbody className="bg-white divide-y divide-gray-50">
                                         {purchaseDetails.map((detail) => (
                                             <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
@@ -1253,7 +1322,7 @@ export default function PurchasesCapturePage() {
                                 </table>
                             </div>
                         </div>
-
+                        </div>
                         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
                             <button onClick={() => setIsDetailsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
                                 {tDetails('close')}
@@ -1267,9 +1336,29 @@ export default function PurchasesCapturePage() {
             {isProductModalOpen && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4 backdrop-blur-md">
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-800 text-white">
-                            <h2 className="text-xl font-black">✨ {tDetails('createProduct')}</h2>
-                            <button onClick={() => setIsProductModalOpen(false)} className="text-white hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0">
+                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            Producto
+                                        </span>
+                                        <span className="bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                                            NUEVO
+                                        </span>
+                                    </div>
+                                    <h1 className="text-2xl font-black mb-0 leading-tight">
+                                        {tDetails('createProduct')}
+                                    </h1>
+                                </div>
+                                <button
+                                    onClick={() => setIsProductModalOpen(false)}
+                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="h-4"></div>
                         </div>
                         <form onSubmit={handleCreateProduct} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">

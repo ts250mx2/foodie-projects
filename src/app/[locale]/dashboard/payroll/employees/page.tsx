@@ -477,13 +477,6 @@ export default function EmployeesPage() {
                                         ✏️
                                     </button>
                                     <button
-                                        onClick={() => openDocumentsModal(employee)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title="Documentos"
-                                    >
-                                        📄
-                                    </button>
-                                    <button
                                         onClick={() => openDeleteModal(employee)}
                                         className="text-xl hover:scale-110 transition-transform"
                                         title={t('deleteEmployee')}

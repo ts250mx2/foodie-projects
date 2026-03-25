@@ -32,7 +32,7 @@ export default function SalesChannelsCapturePage() {
     const [monthlyDailyTotals, setMonthlyDailyTotals] = useState<Record<number, number>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [activeTab, setActiveTab] = useState<'channels' | 'payments'>('channels');
+    const [activeTab, setActiveTab] = useState<'channels' | 'payments' | 'notes'>('channels');
 
     // Payments data
     const [terminals, setTerminals] = useState<any[]>([]);
@@ -47,6 +47,16 @@ export default function SalesChannelsCapturePage() {
     });
     const [dailyTotalSale, setDailyTotalSale] = useState<string>('');
     const [isSavingDailyTotal, setIsSavingDailyTotal] = useState(false);
+
+    // Notes state
+    const tNotes = useTranslations('NotesModal');
+    const [notes, setNotes] = useState<any[]>([]);
+    const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+    const [editingNote, setEditingNote] = useState<any>(null);
+    const [noteFormData, setNoteFormData] = useState({
+        note: '',
+        file: null as string | null
+    });
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -213,8 +223,10 @@ export default function SalesChannelsCapturePage() {
         await Promise.all([
             fetchDailySales(date),
             fetchPaymentDailySales(date),
-            fetchDailyTotalSale(date)
+            fetchDailyTotalSale(date),
+            fetchNotes(date)
         ]);
+        setActiveTab('channels');
         setIsModalOpen(true);
     };
 
@@ -307,6 +319,98 @@ export default function SalesChannelsCapturePage() {
             }
         } catch (error) {
             console.error('Error fetching payment daily sales:', error);
+        }
+    };
+
+    const fetchNotes = async (date: Date) => {
+        if (!project || !selectedBranch) return;
+        setIsLoadingNotes(true);
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                day: date.getDate().toString(),
+                month: date.getMonth().toString(),
+                year: date.getFullYear().toString()
+            });
+            const response = await fetch(`/api/notes?${params}`);
+            const data = await response.json();
+            if (data.success) {
+                setNotes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching notes:', error);
+        } finally {
+            setIsLoadingNotes(false);
+        }
+    };
+
+    const handleNoteSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedDate || !project || !selectedBranch) return;
+
+        try {
+            const url = '/api/notes';
+            const method = editingNote ? 'PUT' : 'POST';
+            const body: any = editingNote ? {
+                projectId: project.idProyecto,
+                noteId: editingNote.IdNota,
+                note: noteFormData.note,
+                ...(noteFormData.file !== editingNote.archivnota ? { file: noteFormData.file } : {})
+            } : {
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                day: selectedDate.getDate(),
+                month: selectedDate.getMonth(),
+                year: selectedDate.getFullYear(),
+                note: noteFormData.note,
+                file: noteFormData.file
+            };
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (response.ok) {
+                await fetchNotes(selectedDate);
+                setNoteFormData({ note: '', file: null });
+                setEditingNote(null);
+            }
+        } catch (error) {
+            console.error('Error saving note:', error);
+        }
+    };
+
+    const handleDeleteNote = async (noteId: number) => {
+        if (!window.confirm(tNotes('confirmDelete'))) return;
+        try {
+            const response = await fetch('/api/notes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    noteId,
+                    status: 2
+                })
+            });
+            if (response.ok && selectedDate) {
+                await fetchNotes(selectedDate);
+            }
+        } catch (error) {
+            console.error('Error deleting note:', error);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setNoteFormData(prev => ({ ...prev, file: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -772,7 +876,8 @@ export default function SalesChannelsCapturePage() {
                         <div className="flex gap-2 mt-0 overflow-x-auto relative px-6 bg-gray-50/50 border-b border-gray-100" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {[
                                 { id: 'channels', label: '📦 Canales de Venta' },
-                                { id: 'payments', label: '💳 Formas de Pago' }
+                                { id: 'payments', label: '💳 Formas de Pago' },
+                                { id: 'notes', label: `📝 ${tNotes('title')}` }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
@@ -792,195 +897,317 @@ export default function SalesChannelsCapturePage() {
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto flex flex-col gap-6">
-                            {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 items-end shadow-sm mx-6 mt-6">
-                                <div className="flex flex-col">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('shift')}</label>
-                                    <select
-                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                        value={formData.shiftId}
-                                        onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">{tModal('select')}</option>
-                                        {filteredShifts.map(s => <option key={s.IdTurno} value={s.IdTurno}>{s.Turno}</option>)}
-                                    </select>
-                                </div>
-
-                                {activeTab === 'channels' ? (
-                                    <div className="flex flex-col">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Canal</label>
-                                        <select
-                                            className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                            value={formData.channelId}
-                                            onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
-                                            required={activeTab === 'channels'}
-                                        >
-                                            <option value="">{tModal('select')}</option>
-                                            {channels.map(c => <option key={c.IdCanalVenta} value={c.IdCanalVenta}>{c.CanalVenta}</option>)}
-                                        </select>
-                                    </div>
-                                ) : (
-                                    <>
+                            {(activeTab === 'channels' || activeTab === 'payments') && (
+                                <>
+                                    {/* Form */}
+                                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 items-end shadow-sm mx-6 mt-6">
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Forma de Pago</label>
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('shift')}</label>
                                             <select
-                                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                                value={formData.terminalId}
-                                                onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
-                                                required={activeTab === 'payments'}
+                                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                value={formData.shiftId}
+                                                onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
+                                                required
                                             >
                                                 <option value="">{tModal('select')}</option>
-                                                {terminals.map(t => <option key={t.IdTerminal} value={t.IdTerminal}>{t.Terminal}</option>)}
+                                                {filteredShifts.map(s => <option key={s.IdTurno} value={s.IdTurno}>{s.Turno}</option>)}
                                             </select>
                                         </div>
-                                    </>
-                                )}
 
-                                <div className="flex flex-col">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('amount')}</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                        value={formData.amount}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setFormData({ ...formData, amount: val });
-                                        }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
-                                        }}
-                                        onFocus={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            setFormData({ ...formData, amount: val === '0.00' || val === '0' ? '' : val });
-                                        }}
-                                        required
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                <Button type="submit" className="w-full">
-                                    {tModal('add')}
-                                </Button>
-                            </form>
+                                        {activeTab === 'channels' ? (
+                                            <div className="flex flex-col md:col-span-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Canal</label>
+                                                <select
+                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                    value={formData.channelId}
+                                                    onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
+                                                    required={activeTab === 'channels'}
+                                                >
+                                                    <option value="">{tModal('select')}</option>
+                                                    {channels.map(c => <option key={c.IdCanalVenta} value={c.IdCanalVenta}>{c.CanalVenta}</option>)}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col md:col-span-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Forma de Pago</label>
+                                                <select
+                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                    value={formData.terminalId}
+                                                    onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
+                                                    required={activeTab === 'payments'}
+                                                >
+                                                    <option value="">{tModal('select')}</option>
+                                                    {terminals.map(t => <option key={t.IdTerminal} value={t.IdTerminal}>{t.Terminal}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
 
-                            {/* Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col mx-6 mb-6">
-                                <div className="overflow-y-auto max-h-[400px]">
-                                    {activeTab === 'channels' ? (
-                                        <table className="min-w-full divide-y divide-gray-100">
-                                            <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
-                                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
-                                                    <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                    <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
-                                                    <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-50">
-                                                {dailySales.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
-                                                    </tr>
-                                                ) : (
-                                                    dailySales.map((sale, idx) => {
-                                                        const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
-                                                        return (
-                                                            <tr key={idx} className="hover:bg-orange-50/30 transition-colors group">
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
-                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
-                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                                    <button
-                                                                        onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
-                                                                        className="text-gray-300 hover:text-red-600 transition-colors p-1"
-                                                                    >
-                                                                        🗑️
-                                                                    </button>
-                                                                </td>
+                                        <div className="flex flex-col">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('amount')}</label>
+                                            <input
+                                                type="text"
+                                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                value={formData.amount}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                    if ((val.match(/\./g) || []).length > 1) return;
+                                                    setFormData({ ...formData, amount: val });
+                                                }}
+                                                onBlur={(e) => {
+                                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                                    setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                                }}
+                                                onFocus={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                    setFormData({ ...formData, amount: val === '0.00' || val === '0' ? '' : val });
+                                                }}
+                                                required
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <Button type="submit" className="w-full">
+                                            {tModal('add')}
+                                        </Button>
+                                    </form>
+
+                                    {/* Table */}
+                                    <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col mx-6 mb-6">
+                                        <div className="overflow-y-auto max-h-[400px]">
+                                            {activeTab === 'channels' ? (
+                                                <table className="min-w-full divide-y divide-gray-100">
+                                                    <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                                                        <tr>
+                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
+                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
+                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
+                                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white divide-y divide-gray-50">
+                                                        {dailySales.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
                                                             </tr>
-                                                        );
-                                                    })
-                                                )}
-                                            </tbody>
-                                            <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
-                                                <tr className="divide-x divide-gray-100">
-                                                    <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
-                                                    <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
-                                                    </td>
-                                                    <td className="bg-gray-50/50"></td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    ) : (
-                                        <table className="min-w-full divide-y divide-gray-100">
-                                            <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
-                                                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Forma de Pago</th>
-                                                    <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                    <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
-                                                    <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-50">
-                                                {paymentDailySales.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
-                                                    </tr>
-                                                ) : (
-                                                    paymentDailySales.map((sale, idx) => {
-                                                        const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
-                                                        return (
-                                                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.Terminal}</td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
-                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
-                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
-                                                                </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                                    <button
-                                                                        onClick={() => handleDelete(sale.IdTurno, sale.IdTerminal)}
-                                                                        className="text-gray-300 hover:text-red-600 transition-colors p-1"
-                                                                    >
-                                                                        🗑️
-                                                                    </button>
-                                                                </td>
+                                                        ) : (
+                                                            dailySales.map((sale, idx) => {
+                                                                const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
+                                                                return (
+                                                                    <tr key={idx} className="hover:bg-orange-50/30 transition-colors group">
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
+                                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                                            <button
+                                                                                onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
+                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1"
+                                                                            >
+                                                                                🗑️
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </tbody>
+                                                    <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
+                                                        <tr className="divide-x divide-gray-100">
+                                                            <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
+                                                            <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
+                                                            </td>
+                                                            <td className="bg-gray-50/50"></td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            ) : (
+                                                <table className="min-w-full divide-y divide-gray-100">
+                                                    <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                                                        <tr>
+                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
+                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Forma de Pago</th>
+                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
+                                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white divide-y divide-gray-50">
+                                                        {paymentDailySales.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
                                                             </tr>
-                                                        );
-                                                    })
+                                                        ) : (
+                                                            paymentDailySales.map((sale, idx) => {
+                                                                const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
+                                                                return (
+                                                                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.Terminal}</td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
+                                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                                            <button
+                                                                                onClick={() => handleDelete(sale.IdTurno, sale.IdTerminal)}
+                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1"
+                                                                            >
+                                                                                🗑️
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </tbody>
+                                                    <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
+                                                        <tr className="divide-x divide-gray-100">
+                                                            <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
+                                                            <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
+                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
+                                                            </td>
+                                                            <td className="bg-gray-50/50"></td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {activeTab === 'notes' && (
+                                <div className="p-6 flex flex-col gap-6">
+                                    <form onSubmit={handleNoteSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+                                        <div className="flex flex-col">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tNotes('label')}</label>
+                                            <textarea
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all min-h-[100px]"
+                                                value={noteFormData.note}
+                                                onChange={(e) => setNoteFormData(prev => ({ ...prev, note: e.target.value }))}
+                                                placeholder={tNotes('placeholder')}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                                            <div className="flex flex-col flex-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{tNotes('file')}</label>
+                                                    {noteFormData.file && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setNoteFormData(prev => ({ ...prev, file: null }))}
+                                                            className="text-[10px] text-red-500 font-bold hover:underline"
+                                                        >
+                                                            {tCommon('cancel')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    onChange={handleFileChange}
+                                                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 w-full"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {editingNote && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingNote(null);
+                                                            setNoteFormData({ note: '', file: null });
+                                                        }}
+                                                        className="px-6 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600 hover:bg-gray-300 transition-all"
+                                                    >
+                                                        {tCommon('cancel')}
+                                                    </button>
                                                 )}
-                                            </tbody>
-                                            <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
-                                                <tr className="divide-x divide-gray-100">
-                                                    <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
-                                                    <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
-                                                    </td>
-                                                    <td className="bg-gray-50/50"></td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    )}
+                                                <button
+                                                    type="submit"
+                                                    className="px-6 py-2 rounded-lg text-sm font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-100 transition-all active:scale-95"
+                                                >
+                                                    {editingNote ? tCommon('save') : tNotes('save')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+
+                                    <div className="flex flex-col gap-4">
+                                        <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                                            📋 {tNotes('history')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {isLoadingNotes ? (
+                                                <div className="text-center py-8 text-gray-400 italic">{tCommon('loading')}</div>
+                                            ) : notes.length === 0 ? (
+                                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 italic">
+                                                    {tNotes('noNotes')}
+                                                </div>
+                                            ) : (
+                                                notes.map((note: any) => (
+                                                    <div key={note.IdNota} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-gray-400">{new Date(note.FechaAct).toLocaleString()}</span>
+                                                                <p className="text-sm text-gray-700 whitespace-pre-wrap mt-1">{note.Nota}</p>
+                                                            </div>
+                                                            <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingNote(note);
+                                                                        setNoteFormData({ note: note.Nota, file: note.archivnota });
+                                                                    }}
+                                                                    className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                                                                    title="Editar"
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteNote(note.IdNota);
+                                                                    }}
+                                                                    className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {note.archivnota && (
+                                                            <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
+                                                                <span className="text-[10px] font-bold text-blue-500 flex items-center gap-1">
+                                                                    📎 {tNotes('attachment')}
+                                                                </span>
+                                                                <a 
+                                                                    href={note.archivnota} 
+                                                                    download={`nota_${note.IdNota}`}
+                                                                    className="text-[10px] font-black text-white bg-blue-500 px-3 py-1 rounded-full hover:bg-blue-600 transition-colors"
+                                                                >
+                                                                    {tCommon('download')}
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Footer */}

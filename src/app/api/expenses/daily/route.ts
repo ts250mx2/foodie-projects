@@ -21,14 +21,15 @@ export async function GET(request: NextRequest) {
         const monthNum = parseInt(month) + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        // Get daily expenses with concept names and payment channel names
+        // Get daily expenses with concept names, payment channel names, and provider names
         const [rows] = await connection.query(
-            `SELECT g.*, c.ConceptoGasto, cp.CanalPago
+            `SELECT g.*, c.ConceptoGasto, cp.CanalPago, p.Proveedor
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto
              LEFT JOIN tblCanalesPago cp ON g.IdCanalPago = cp.IdCanalPago
+             LEFT JOIN tblProveedores p ON g.IdProveedor = p.IdProveedor
              WHERE g.Dia = ? AND g.Mes = ? AND g.Anio = ? AND g.IdSucursal = ?
-             ORDER BY c.ConceptoGasto`,
+             ORDER BY g.IdGasto DESC`,
             [day, monthNum, year, branchId]
         );
 
@@ -51,10 +52,13 @@ export async function POST(request: NextRequest) {
         const month = parseInt(formData.get('month') as string);
         const year = parseInt(formData.get('year') as string);
         const conceptId = parseInt(formData.get('conceptId') as string);
+        const providerId = formData.get('providerId') ? parseInt(formData.get('providerId') as string) : null;
         const amount = parseFloat(formData.get('amount') as string);
         const reference = formData.get('reference') as string || '';
+        const invoiceNumber = formData.get('invoiceNumber') as string || '';
         const paymentChannelId = formData.get('paymentChannelId') as string || null;
         const file = formData.get('file') as File | null;
+        const idGasto = formData.get('idGasto') ? parseInt(formData.get('idGasto') as string) : null;
 
         if (!projectId || !branchId || day === undefined || month === null || !year || !conceptId || amount === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -66,20 +70,29 @@ export async function POST(request: NextRequest) {
         let base64File = null;
         let fileName = null;
 
-        // Handle file upload if present
         if (file && file.size > 0) {
             const fileBuffer = Buffer.from(await file.arrayBuffer());
             base64File = fileBuffer.toString('base64');
             fileName = file.name;
         }
 
-        // Insert or update expense record - REPLACE instead of accumulate
-        const [result] = await connection.query(
-            `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, Gasto, Referencia, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())
-             ON DUPLICATE KEY UPDATE Gasto = ?, Referencia = ?, IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()`,
-            [day, monthNum, year, conceptId, branchId, amount, reference, paymentChannelId || null, base64File, fileName, amount, reference, paymentChannelId || null, base64File, fileName]
-        );
+        if (idGasto) {
+            // Update existing expense
+            await connection.query(
+                `UPDATE tblGastos 
+                 SET IdProveedor = ?, IdConceptoGasto = ?, Total = ?, NumeroFactura = ?, 
+                     IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento),  FechaAct = Now()
+                 WHERE IdGasto = ?`,
+                [providerId, conceptId, amount, invoiceNumber, paymentChannelId || null, base64File, idGasto]
+            );
+        } else {
+            // Insert new expense
+            await connection.query(
+                `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, IdProveedor, Total, NumeroFactura, IdCanalPago, ArchivoDocumento, FechaAct, Status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), 0)`,
+                [day, monthNum, year, conceptId, branchId, providerId, amount, invoiceNumber, paymentChannelId || null, base64File]
+            );
+        }
 
         return NextResponse.json({
             success: true,
@@ -98,28 +111,21 @@ export async function DELETE(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');
-        const branchIdStr = searchParams.get('branchId');
-        const day = searchParams.get('day');
-        const month = searchParams.get('month'); // 0-11
-        const year = searchParams.get('year');
-        const conceptIdStr = searchParams.get('conceptId');
+        const idGastoStr = searchParams.get('idGasto');
 
-        if (!projectIdStr || !branchIdStr || !day || month === null || !year || !conceptIdStr) {
+        if (!projectIdStr || !idGastoStr) {
             return NextResponse.json({ success: false, message: 'Missing required parameters' }, { status: 400 });
         }
 
         const projectId = parseInt(projectIdStr);
-        const branchId = parseInt(branchIdStr);
-        const monthNum = parseInt(month) + 1; // Convert to 1-12 for SQL
-        const conceptId = parseInt(conceptIdStr);
+        const idGasto = parseInt(idGastoStr);
         connection = await getProjectConnection(projectId);
 
-        // Delete expense record
-        await connection.query(
-            `DELETE FROM tblGastos 
-             WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
-            [day, monthNum, year, branchId, conceptId]
-        );
+        // Delete details first
+        await connection.query(`DELETE FROM tblDetalleGastos WHERE IdGasto = ?`, [idGasto]);
+
+        // Delete expense header
+        await connection.query(`DELETE FROM tblGastos WHERE IdGasto = ?`, [idGasto]);
 
         return NextResponse.json({ success: true, message: 'Expense deleted successfully' });
     } catch (error) {
@@ -135,36 +141,29 @@ export async function PUT(request: NextRequest) {
     try {
         const formData = await request.formData();
         const projectId = parseInt(formData.get('projectId') as string);
-        const branchId = parseInt(formData.get('branchId') as string);
-        const day = parseInt(formData.get('day') as string);
-        const month = parseInt(formData.get('month') as string);
-        const year = parseInt(formData.get('year') as string);
-        const conceptId = parseInt(formData.get('conceptId') as string);
+        const idGasto = parseInt(formData.get('idGasto') as string);
         const file = formData.get('file') as File | null;
 
-        if (!projectId || !branchId || day === undefined || month === null || !year || !conceptId || !file) {
+        if (!projectId || !idGasto || !file) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
-        const monthNum = month + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
         let base64File = null;
         let fileName = null;
 
-        // Handle file upload
         if (file && file.size > 0) {
             const fileBuffer = Buffer.from(await file.arrayBuffer());
             base64File = fileBuffer.toString('base64');
             fileName = file.name;
         }
 
-        // Update expense record with file path
         await connection.query(
             `UPDATE tblGastos 
              SET ArchivoDocumento = ?, NombreArchivo = ?, FechaAct = Now()
-             WHERE Dia = ? AND Mes = ? AND Anio = ? AND IdSucursal = ? AND IdConceptoGasto = ?`,
-            [base64File, fileName, day, monthNum, year, branchId, conceptId]
+             WHERE IdGasto = ?`,
+            [base64File, fileName, idGasto]
         );
 
         return NextResponse.json({
@@ -178,5 +177,6 @@ export async function PUT(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+
 
 

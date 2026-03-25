@@ -24,6 +24,20 @@ interface PaymentChannel {
     CanalPago: string;
 }
 
+interface Provider {
+    IdProveedor: number;
+    Proveedor: string;
+}
+
+interface ExpenseDetail {
+    IdDetalleGasto: number;
+    IdGasto: number;
+    Concepto: string;
+    Cantidad: number;
+    Costo: number;
+}
+
+
 export default function ExpensesCapturePage() {
     const t = useTranslations('ExpensesCapture');
     const tCommon = useTranslations('Common');
@@ -44,25 +58,44 @@ export default function ExpensesCapturePage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-    // Form state
     const [formData, setFormData] = useState({
+        idGasto: null as number | null,
         conceptId: '',
+        providerId: '',
         amount: '',
         reference: '',
+        invoiceNumber: '',
         paymentChannelId: ''
     });
     const [conceptSearch, setConceptSearch] = useState('');
     const [showConceptDropdown, setShowConceptDropdown] = useState(false);
     const [selectedConcept, setSelectedConcept] = useState<ExpenseConcept | null>(null);
+    
+    const [providers, setProviders] = useState<Provider[]>([]);
+    const [providerSearch, setProviderSearch] = useState('');
+    const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+
     const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>([]);
     const [paymentChannelSearch, setPaymentChannelSearch] = useState('');
     const [showPaymentChannelDropdown, setShowPaymentChannelDropdown] = useState(false);
     const [selectedPaymentChannel, setSelectedPaymentChannel] = useState<PaymentChannel | null>(null);
 
+    // Details Modal
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [activeExpense, setActiveExpense] = useState<any>(null);
+    const [expenseDetails, setExpenseDetails] = useState<ExpenseDetail[]>([]);
+    const [detailFormData, setDetailFormData] = useState({
+        concept: '',
+        quantity: '1',
+        cost: ''
+    });
+
     // File upload state (Grid)
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingExpenseKey, setUploadingExpenseKey] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -80,9 +113,11 @@ export default function ExpensesCapturePage() {
             fetchBranches();
             fetchExpenseConcepts();
             fetchPaymentChannels();
+            fetchProviders();
 
             // Load persisted filters - Standardized to dashboardSelectedBranch
             const savedBranch = localStorage.getItem('dashboardSelectedBranch');
+
             const savedMonth = localStorage.getItem('lastSelectedMonth');
             const savedYear = localStorage.getItem('lastSelectedYear');
 
@@ -163,7 +198,20 @@ export default function ExpensesCapturePage() {
         }
     };
 
+    const fetchProviders = async () => {
+        try {
+            const response = await fetch(`/api/suppliers?projectId=${project.idProyecto}`);
+            const data = await response.json();
+            if (data.success) {
+                setProviders(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching providers:', error);
+        }
+    };
+
     const fetchMonthlyExpenses = async () => {
+
         if (!project || !selectedBranch) return;
         try {
             const params = new URLSearchParams({
@@ -225,6 +273,19 @@ export default function ExpensesCapturePage() {
         }
     };
 
+    const fetchExpenseDetails = async (expenseId: number) => {
+        if (!project) return;
+        try {
+            const response = await fetch(`/api/expenses/details?projectId=${project.idProyecto}&expenseId=${expenseId}`);
+            const data = await response.json();
+            if (data.success) {
+                setExpenseDetails(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching expense details:', error);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDate || !project || !selectedBranch || !formData.conceptId) return;
@@ -236,9 +297,13 @@ export default function ExpensesCapturePage() {
             formDataToSend.append('day', selectedDate.getDate().toString());
             formDataToSend.append('month', selectedDate.getMonth().toString());
             formDataToSend.append('year', selectedDate.getFullYear().toString());
+            
+            if (formData.idGasto) formDataToSend.append('idGasto', formData.idGasto.toString());
             formDataToSend.append('conceptId', formData.conceptId);
+            formDataToSend.append('providerId', formData.providerId);
             formDataToSend.append('amount', formData.amount.replace(/[^0-9.]/g, ''));
             formDataToSend.append('reference', formData.reference);
+            formDataToSend.append('invoiceNumber', formData.invoiceNumber);
             formDataToSend.append('paymentChannelId', formData.paymentChannelId);
 
             const response = await fetch('/api/expenses/daily', {
@@ -249,9 +314,19 @@ export default function ExpensesCapturePage() {
             if (response.ok) {
                 fetchDailyExpenses(selectedDate);
                 fetchMonthlyExpenses();
-                setFormData({ conceptId: '', amount: '', reference: '', paymentChannelId: '' });
+                setFormData({ 
+                    idGasto: null, 
+                    conceptId: '', 
+                    providerId: '', 
+                    amount: '', 
+                    reference: '', 
+                    invoiceNumber: '', 
+                    paymentChannelId: '' 
+                });
                 setConceptSearch('');
                 setSelectedConcept(null);
+                setProviderSearch('');
+                setSelectedProvider(null);
                 setPaymentChannelSearch('');
                 setSelectedPaymentChannel(null);
             }
@@ -261,10 +336,10 @@ export default function ExpensesCapturePage() {
     };
 
     const handleDeleteExpense = async (expense: any) => {
-        if (!window.confirm('¿Está seguro de que desea eliminar este gasto?')) return;
+        if (!window.confirm(tCommon('confirmDelete'))) return;
 
         try {
-            const response = await fetch(`/api/expenses/daily?projectId=${project.idProyecto}&branchId=${selectedBranch}&day=${expense.Dia}&month=${expense.Mes - 1}&year=${expense.Anio}&conceptId=${expense.IdConceptoGasto}`, {
+            const response = await fetch(`/api/expenses/daily?projectId=${project.idProyecto}&idGasto=${expense.IdGasto}`, {
                 method: 'DELETE'
             });
 
@@ -276,6 +351,58 @@ export default function ExpensesCapturePage() {
             console.error('Error deleting expense:', error);
         }
     };
+
+    const handleOpenDetails = async (expense: any) => {
+        setActiveExpense(expense);
+        setExpenseDetails([]);
+        await fetchExpenseDetails(expense.IdGasto);
+        setIsDetailModalOpen(true);
+    };
+
+    const handleAddDetail = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeExpense || !detailFormData.concept) return;
+
+        try {
+            const response = await fetch('/api/expenses/details', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    expenseId: activeExpense.IdGasto,
+                    concept: detailFormData.concept,
+                    quantity: parseFloat(detailFormData.quantity),
+                    cost: parseFloat(detailFormData.cost.replace(/[^0-9.]/g, ''))
+                })
+            });
+
+            if (response.ok) {
+                fetchExpenseDetails(activeExpense.IdGasto);
+                if (selectedDate) fetchDailyExpenses(selectedDate);
+                setDetailFormData({ concept: '', quantity: '1', cost: '' });
+            }
+        } catch (error) {
+            console.error('Error adding detail:', error);
+        }
+    };
+
+    const handleDeleteDetail = async (detailId: number) => {
+        if (!window.confirm(tCommon('confirmDelete'))) return;
+
+        try {
+            const response = await fetch(`/api/expenses/details?projectId=${project.idProyecto}&detailId=${detailId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok && activeExpense) {
+                fetchExpenseDetails(activeExpense.IdGasto);
+                if (selectedDate) fetchDailyExpenses(selectedDate);
+            }
+        } catch (error) {
+            console.error('Error deleting detail:', error);
+        }
+    };
+
 
     // --- File Upload (Grid) ---
     const handleFileSelect = (expense: any) => {
@@ -477,7 +604,7 @@ export default function ExpensesCapturePage() {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Main Modal: Daily Expenses Header */}
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -495,15 +622,6 @@ export default function ExpensesCapturePage() {
                             </button>
                         </div>
 
-                        {/* Hidden File Input */}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
-                            onChange={handleFileChange}
-                        />
-
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
                             {/* Summary Cards */}
@@ -515,7 +633,7 @@ export default function ExpensesCapturePage() {
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🏷️ Conceptos Registrados</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🏷️ Gastos Registrados</label>
                                     <div className="text-xl font-black text-gray-800">
                                         {dailyExpenses.length}
                                     </div>
@@ -523,8 +641,61 @@ export default function ExpensesCapturePage() {
                             </div>
 
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm">
-                                <div className="flex flex-col relative">
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm">
+                                {/* Provider */}
+                                <div className="flex flex-col relative text-gray-800">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('provider')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={providerSearch}
+                                        onChange={(e) => {
+                                            setProviderSearch(e.target.value);
+                                            setShowProviderDropdown(true);
+                                            setFormData({ ...formData, providerId: '' });
+                                            setSelectedProvider(null);
+                                        }}
+                                        onFocus={() => setShowProviderDropdown(true)}
+                                        onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
+                                        placeholder="Buscar proveedor..."
+                                        required
+                                    />
+                                    {showProviderDropdown && (
+                                        <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                            {providers
+                                                .filter(p => !providerSearch || p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()))
+                                                .map(p => (
+                                                    <div
+                                                        key={p.IdProveedor}
+                                                        onClick={() => {
+                                                            setSelectedProvider(p);
+                                                            setFormData({ ...formData, providerId: p.IdProveedor.toString() });
+                                                            setProviderSearch(p.Proveedor);
+                                                            setShowProviderDropdown(false);
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
+                                                    >
+                                                        <div className="font-bold text-sm">{p.Proveedor}</div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Invoice / Factura */}
+                                <div className="flex flex-col text-gray-800">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('invoiceNumber')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={formData.invoiceNumber}
+                                        onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                                        placeholder="Opcional"
+                                    />
+                                </div>
+
+                                {/* Concept (Header level) */}
+                                <div className="flex flex-col relative text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('concept')}</label>
                                     <input
                                         type="text"
@@ -544,11 +715,7 @@ export default function ExpensesCapturePage() {
                                     {showConceptDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {expenseConcepts
-                                                .filter(c => {
-                                                    if (!conceptSearch) return true;
-                                                    if (selectedConcept && conceptSearch === selectedConcept.ConceptoGasto) return true;
-                                                    return c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase());
-                                                })
+                                                .filter(c => !conceptSearch || c.ConceptoGasto.toLowerCase().includes(conceptSearch.toLowerCase()))
                                                 .map(c => (
                                                     <div
                                                         key={c.IdConceptoGasto}
@@ -560,36 +727,19 @@ export default function ExpensesCapturePage() {
                                                             if (c.IdCanalPago && c.CanalPago) {
                                                                 setSelectedPaymentChannel({ IdCanalPago: c.IdCanalPago, CanalPago: c.CanalPago });
                                                                 setPaymentChannelSearch(c.CanalPago);
-                                                            } else {
-                                                                setSelectedPaymentChannel(null);
-                                                                setPaymentChannelSearch('');
                                                             }
                                                         }}
                                                         className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
                                                     >
-                                                        <div className="font-bold text-sm text-gray-800">{c.ConceptoGasto}</div>
+                                                        <div className="font-bold text-sm">{c.ConceptoGasto}</div>
                                                     </div>
                                                 ))}
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">
-                                        Referencia
-                                        {selectedConcept?.ReferenciaObligatoria === 1 && <span className="text-red-500 ml-1">*</span>}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
-                                        value={formData.reference}
-                                        onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                                        placeholder={selectedConcept?.ReferenciaObligatoria === 1 ? "Requerida" : "Opcional"}
-                                        required={selectedConcept?.ReferenciaObligatoria === 1}
-                                    />
-                                </div>
-
-                                <div className="flex flex-col relative">
+                                {/* Payment Channel */}
+                                <div className="flex flex-col relative text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">Canal de Pago</label>
                                     <input
                                         type="text"
@@ -599,7 +749,6 @@ export default function ExpensesCapturePage() {
                                             setPaymentChannelSearch(e.target.value);
                                             setShowPaymentChannelDropdown(true);
                                             setFormData({ ...formData, paymentChannelId: '' });
-                                            setSelectedPaymentChannel(null);
                                         }}
                                         onFocus={() => setShowPaymentChannelDropdown(true)}
                                         onBlur={() => setTimeout(() => setShowPaymentChannelDropdown(false), 200)}
@@ -608,11 +757,7 @@ export default function ExpensesCapturePage() {
                                     {showPaymentChannelDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {paymentChannels
-                                                .filter(p => {
-                                                    if (!paymentChannelSearch) return true;
-                                                    if (selectedPaymentChannel && paymentChannelSearch === selectedPaymentChannel.CanalPago) return true;
-                                                    return p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase());
-                                                })
+                                                .filter(p => !paymentChannelSearch || p.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()))
                                                 .map(p => (
                                                     <div
                                                         key={p.IdCanalPago}
@@ -624,14 +769,15 @@ export default function ExpensesCapturePage() {
                                                         }}
                                                         className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
                                                     >
-                                                        <div className="font-bold text-sm text-gray-800">{p.CanalPago}</div>
+                                                        <div className="font-bold text-sm">{p.CanalPago}</div>
                                                     </div>
                                                 ))}
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex flex-col">
+                                {/* Amount */}
+                                <div className="flex flex-col text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
                                     <input
                                         type="text"
@@ -646,17 +792,13 @@ export default function ExpensesCapturePage() {
                                             const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
                                             setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
                                         }}
-                                        onFocus={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            setFormData({ ...formData, amount: val === '0.00' || val === '0' ? '' : val });
-                                        }}
                                         required
                                         placeholder="0.00"
                                     />
                                 </div>
 
-                                <Button type="submit" className="lg:col-span-4">
-                                    {tModal('add')}
+                                <Button type="submit" className="md:h-[42px]">
+                                    {formData.idGasto ? tModal('editExpense') : tModal('addExpense')}
                                 </Button>
                             </form>
 
@@ -666,10 +808,10 @@ export default function ExpensesCapturePage() {
                                     <table className="min-w-full divide-y divide-gray-100">
                                         <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
                                             <tr>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
                                                 <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('concept')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Referencia</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
-                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
                                                 <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Archivo</th>
                                                 <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
                                             </tr>
@@ -682,47 +824,59 @@ export default function ExpensesCapturePage() {
                                             ) : (
                                                 dailyExpenses.map((exp, idx) => (
                                                     <tr key={idx} className="hover:bg-red-50/30 transition-colors group">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{exp.ConceptoGasto}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.Referencia || '-'}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.CanalPago || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-bold">{exp.Proveedor || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.NumeroFactura || exp.Referencia || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.ConceptoGasto}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 text-right font-black">
-                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Gasto))}
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Total || exp.Gasto))}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                                                             {exp.NombreArchivo ? (
                                                                 <div className="flex items-center justify-center gap-2">
-                                                                    <a
-                                                                        href={`/api/expenses/download?projectId=${project.idProyecto}&branchId=${selectedBranch}&day=${exp.Dia}&month=${exp.Mes - 1}&year=${exp.Anio}&conceptId=${exp.IdConceptoGasto}`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
+                                                                     <button
+                                                                        onClick={() => {
+                                                                            const byteCharacters = atob(exp.ArchivoDocumento);
+                                                                            const byteNumbers = new Array(byteCharacters.length);
+                                                                            for (let i = 0; i < byteCharacters.length; i++) {
+                                                                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                                                            }
+                                                                            const byteArray = new Uint8Array(byteNumbers);
+                                                                            const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+                                                                            const url = URL.createObjectURL(blob);
+                                                                            const a = document.createElement('a');
+                                                                            a.href = url;
+                                                                            a.download = exp.NombreArchivo;
+                                                                            a.click();
+                                                                        }}
                                                                         className="text-blue-600 hover:scale-110 transition-transform flex items-center gap-1"
-                                                                        title={exp.NombreArchivo}
                                                                     >
                                                                         📎
-                                                                    </a>
-                                                                    <button
-                                                                        onClick={() => handleFileSelect(exp)}
-                                                                        className="text-gray-400 hover:text-blue-600 transition-colors"
-                                                                        disabled={isUploading}
-                                                                        title="Cambiar Archivo"
-                                                                    >
-                                                                        🔄
                                                                     </button>
+                                                                    <button onClick={() => {
+                                                                        setUploadingExpenseKey(exp.IdGasto.toString());
+                                                                        fileInputRef.current?.click();
+                                                                    }} className="text-gray-400 hover:text-blue-600">🔄</button>
                                                                 </div>
                                                             ) : (
                                                                 <button
-                                                                    onClick={() => handleFileSelect(exp)}
+                                                                    onClick={() => {
+                                                                        setUploadingExpenseKey(exp.IdGasto.toString());
+                                                                        fileInputRef.current?.click();
+                                                                    }}
                                                                     className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto font-bold uppercase"
-                                                                    disabled={isUploading}
                                                                 >
                                                                     📤 Subir
                                                                 </button>
                                                             )}
-                                                            {isUploading && uploadingExpenseKey === `${exp.Dia}-${exp.Mes}-${exp.Anio}-${exp.IdConceptoGasto}` && (
-                                                                <span className="text-[10px] text-blue-500 animate-pulse block mt-1">Subiendo...</span>
-                                                            )}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => handleOpenDetails(exp)}
+                                                                className="text-blue-500 hover:scale-110 transition-transform"
+                                                                title="Ver Detalles"
+                                                            >
+                                                                🔍
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleDeleteExpense(exp)}
                                                                 className="text-gray-300 hover:text-red-500 transition-colors p-1"
@@ -749,6 +903,122 @@ export default function ExpensesCapturePage() {
                 </div>
             )}
 
+
+            {/* Secondary Modal: Expense Details */}
+            {isDetailModalOpen && activeExpense && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm shadow-2xl">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <div>
+                                <h3 className="text-xl font-black">📝 {useTranslations('ExpenseDetailsModal')('title')}</h3>
+                                <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
+                                    {activeExpense.Proveedor} • {activeExpense.NumeroFactura || activeExpense.Referencia}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsDetailModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                        </div>
+
+                        <div className="p-6 flex flex-col gap-6 overflow-y-auto">
+                            <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                <div className="md:col-span-2 flex flex-col text-gray-800">
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Concepto / Artículo</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm"
+                                        value={detailFormData.concept}
+                                        onChange={(e) => setDetailFormData({ ...detailFormData, concept: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex flex-col text-gray-800">
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Cantidad</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm"
+                                        value={detailFormData.quantity}
+                                        onChange={(e) => setDetailFormData({ ...detailFormData, quantity: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex flex-col text-gray-800">
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Costo Unitario</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm"
+                                        value={detailFormData.cost}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setDetailFormData({ ...detailFormData, cost: val });
+                                        }}
+                                        required
+                                    />
+                                </div>
+                                <Button type="submit" className="md:col-span-4">{useTranslations('ExpenseDetailsModal')('add')}</Button>
+                            </form>
+
+                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Concepto</th>
+                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Cant.</th>
+                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Costo</th>
+                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
+                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-50 text-gray-800 font-medium">
+                                        {expenseDetails.length === 0 ? (
+                                            <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400 italic">Sin detalles</td></tr>
+                                        ) : (
+                                            expenseDetails.map((detail, idx) => (
+                                                <tr key={idx}>
+                                                    <td className="px-6 py-4 text-sm">{detail.Concepto}</td>
+                                                    <td className="px-6 py-4 text-sm text-center">{detail.Cantidad}</td>
+                                                    <td className="px-6 py-4 text-sm text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Costo)}</td>
+                                                    <td className="px-6 py-4 text-sm text-right font-bold text-red-600">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Cantidad * detail.Costo)}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <button onClick={() => handleDeleteDetail(detail.IdDetalleGasto)} className="text-gray-300 hover:text-red-500 transition-colors">🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                            <div className="text-sm font-black text-gray-500 uppercase">Total: <span className="text-xl text-red-600 ml-2">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(expenseDetails.reduce((s, d) => s + (d.Cantidad * d.Costo), 0))}</span></div>
+                            <button onClick={() => setIsDetailModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all text-sm uppercase">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Hidden File Input */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={async (e) => {
+                    if (e.target.files && e.target.files[0] && uploadingExpenseKey) {
+                        const file = e.target.files[0];
+                        const formDataToSend = new FormData();
+                        formDataToSend.append('projectId', project.idProyecto.toString());
+                        formDataToSend.append('idGasto', uploadingExpenseKey);
+                        formDataToSend.append('file', file);
+                        const res = await fetch('/api/expenses/daily', { method: 'PUT', body: formDataToSend });
+                        if (res.ok && selectedDate) fetchDailyExpenses(selectedDate);
+                        setUploadingExpenseKey(null);
+                    }
+                }}
+            />
         </div>
     );
 }
+

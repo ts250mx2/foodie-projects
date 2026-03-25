@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
         // Get monthly expenses grouped by day and concept
         const [rows] = await connection.query(
-            `SELECT g.Dia as day, c.ConceptoGasto as conceptName, SUM(g.Gasto) as total
+            `SELECT g.Dia as day, c.ConceptoGasto as conceptName, SUM(g.Total) as total
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto
              WHERE g.Mes = ? AND g.Anio = ? AND g.IdSucursal = ?

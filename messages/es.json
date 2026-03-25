@@ -544,7 +544,20 @@
         "add": "Agregar Gasto",
         "total": "Total",
         "close": "Cerrar",
-        "scanReceipt": "Escanear Recibo"
+        "scanReceipt": "Escanear Recibo",
+        "provider": "Proveedor",
+        "invoiceNumber": "Número de Factura",
+        "addExpense": "Agregar Gasto",
+        "editExpense": "Editar Gasto"
+    },
+    "ExpenseDetailsModal": {
+        "title": "Detalles del Gasto",
+        "concept": "Concepto / Artículo",
+        "quantity": "Cantidad",
+        "cost": "Costo Unitario",
+        "add": "Agregar Artículo",
+        "confirmDelete": "¿Estás seguro de eliminar este artículo?",
+        "noDetails": "No hay detalles para este gasto."
     },
     "ReceiptCapture": {
         "title": "Capturar Recibo",
@@ -599,6 +612,7 @@
     "PurchasesCapture": {
         "title": "Captura de Compras",
         "selectBranch": "Seleccionar Sucursal",
+        "today": "HOY",
         "noBranches": "No hay sucursales",
         "month": "Mes",
         "year": "Año",
@@ -644,7 +658,12 @@
         "confirmDelete": "¿Está seguro de eliminar esta compra?",
         "date": "Fecha",
         "actions": "Acciones",
-        "noRecords": "No hay compras registradas"
+        "noRecords": "No hay compras registradas",
+        "errorSelectProvider": "Debe seleccionar un proveedor de la lista desplegable",
+        "errorMissingInvoice": "Número de factura requerido",
+        "errorSelectPaymentChannel": "Debe seleccionar un canal de pago de la lista desplegable",
+        "errorMissingTotal": "Ingrese el total de la compra",
+        "errorInvalidTotal": "Total no válido"
     },
     "WasteCapture": {
         "title": "Captura de Mermas",
@@ -815,7 +834,26 @@
         "close": "Cerrar",
         "total": "Total",
         "select": "Seleccionar...",
-        "add": "Agregar"
+        "add": "Agregar",
+        "tabs": {
+            "sales": "Ventas",
+            "notes": "Notas"
+        }
+    },
+    "NotesModal": {
+        "title": "Notas del Día",
+        "add": "Agregar Nota",
+        "edit": "Editar Nota",
+        "delete": "Eliminar Nota",
+        "placeholder": "Escribe una nota aquí...",
+        "attachFile": "Adjuntar Archivo",
+        "save": "Guardar Nota",
+        "noNotes": "No hay notas registradas para este día.",
+        "confirmDelete": "¿Estás seguro de eliminar esta nota?",
+        "file": "Archivo",
+        "history": "Historial de Notas",
+        "label": "Nota",
+        "attachment": "Archivo adjunto"
     },
     "SalesChannelsCapture": {
         "title": "Captura de Ventas",
@@ -1029,10 +1067,15 @@
         "cancel": "Cancelar",
         "successUpdate": "Actualizado exitosamente",
         "errorUpdate": "Error al actualizar",
+        "errorNoDate": "Debe seleccionar una fecha",
+        "errorMissingContext": "Error de contexto (Proyecto/Sucursal)",
+        "errorSaving": "Error al guardar los datos",
+        "errorConnection": "Error de conexión con el servidor",
         "confirmDelete": "¿Estás seguro de que deseas borrar este registro?",
         "branch": "Sucursal",
         "category": "Categoría",
-        "noChanges": "No hay cambios para guardar"
+        "noChanges": "No hay cambios para guardar",
+        "download": "Descargar"
     },
     "BranchMinMax": {
         "title": "Mínimos y Máximos",
