@@ -42,6 +42,7 @@ export default function ExpensesCapturePage() {
     const t = useTranslations('ExpensesCapture');
     const tCommon = useTranslations('Common');
     const tModal = useTranslations('ExpensesModal');
+    const tDetailsModal = useTranslations('ExpenseDetailsModal');
     const { colors } = useTheme();
 
     // Basic state
@@ -86,6 +87,7 @@ export default function ExpensesCapturePage() {
     const [activeExpense, setActiveExpense] = useState<any>(null);
     const [expenseDetails, setExpenseDetails] = useState<ExpenseDetail[]>([]);
     const [detailFormData, setDetailFormData] = useState({
+        id: null as number | null,
         concept: '',
         quantity: '1',
         cost: ''
@@ -355,6 +357,7 @@ export default function ExpensesCapturePage() {
     const handleOpenDetails = async (expense: any) => {
         setActiveExpense(expense);
         setExpenseDetails([]);
+        setDetailFormData({ id: null, concept: '', quantity: '1', cost: '' });
         await fetchExpenseDetails(expense.IdGasto);
         setIsDetailModalOpen(true);
     };
@@ -364,25 +367,34 @@ export default function ExpensesCapturePage() {
         if (!activeExpense || !detailFormData.concept) return;
 
         try {
+            const isEditing = detailFormData.id !== null;
+            const method = isEditing ? 'PUT' : 'POST';
+            
+            const payload = {
+                projectId: project.idProyecto,
+                expenseId: activeExpense.IdGasto,
+                concept: detailFormData.concept,
+                quantity: parseFloat(detailFormData.quantity),
+                cost: parseFloat(detailFormData.cost.replace(/[^0-9.]/g, ''))
+            };
+            
+            if (isEditing) {
+                Object.assign(payload, { detailId: detailFormData.id });
+            }
+
             const response = await fetch('/api/expenses/details', {
-                method: 'POST',
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectId: project.idProyecto,
-                    expenseId: activeExpense.IdGasto,
-                    concept: detailFormData.concept,
-                    quantity: parseFloat(detailFormData.quantity),
-                    cost: parseFloat(detailFormData.cost.replace(/[^0-9.]/g, ''))
-                })
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
                 fetchExpenseDetails(activeExpense.IdGasto);
                 if (selectedDate) fetchDailyExpenses(selectedDate);
-                setDetailFormData({ concept: '', quantity: '1', cost: '' });
+                setDetailFormData({ id: null, concept: '', quantity: '1', cost: '' });
             }
         } catch (error) {
-            console.error('Error adding detail:', error);
+            console.error('Error saving detail:', error);
         }
     };
 
@@ -657,8 +669,7 @@ export default function ExpensesCapturePage() {
                                         }}
                                         onFocus={() => setShowProviderDropdown(true)}
                                         onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
-                                        placeholder="Buscar proveedor..."
-                                        required
+                                        placeholder="Buscar proveedor... (Opcional)"
                                     />
                                     {showProviderDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
@@ -812,14 +823,14 @@ export default function ExpensesCapturePage() {
                                                 <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
                                                 <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('concept')}</th>
                                                 <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Archivo</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('file') || "Archivo"}</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tCommon('actions') || "Acciones"}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-50">
                                             {dailyExpenses.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">{tModal('noRecords') || "No se encontraron registros"}</td>
                                                 </tr>
                                             ) : (
                                                 dailyExpenses.map((exp, idx) => (
@@ -865,17 +876,38 @@ export default function ExpensesCapturePage() {
                                                                     }}
                                                                     className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto font-bold uppercase"
                                                                 >
-                                                                    📤 Subir
+                                                                    📤 {tModal('upload') || "Subir"}
                                                                 </button>
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-2">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    setFormData({
+                                                                        idGasto: exp.IdGasto,
+                                                                        conceptId: exp.IdConceptoGasto?.toString() || '',
+                                                                        providerId: exp.IdProveedor?.toString() || '',
+                                                                        amount: (exp.Total || exp.Gasto)?.toString() || '',
+                                                                        reference: exp.Referencia || '',
+                                                                        invoiceNumber: exp.NumeroFactura || '',
+                                                                        paymentChannelId: exp.IdCanalPago?.toString() || ''
+                                                                    });
+                                                                    setConceptSearch(exp.ConceptoGasto || '');
+                                                                    setProviderSearch(exp.Proveedor || '');
+                                                                    setPaymentChannelSearch(exp.CanalPago || '');
+                                                                }}
+                                                                className="text-gray-300 hover:text-blue-500 transition-colors p-1"
+                                                                title="Editar Gasto"
+                                                            >
+                                                                ✏️
+                                                            </button>
                                                             <button
                                                                 onClick={() => handleOpenDetails(exp)}
-                                                                className="text-blue-500 hover:scale-110 transition-transform"
-                                                                title="Ver Detalles"
+                                                                className="text-gray-300 hover:text-green-500 transition-colors p-1"
+                                                                title="Ver/Agregar Detalles"
                                                             >
-                                                                🔍
+                                                                📄
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDeleteExpense(exp)}
@@ -910,7 +942,7 @@ export default function ExpensesCapturePage() {
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
                             <div>
-                                <h3 className="text-xl font-black">📝 {useTranslations('ExpenseDetailsModal')('title')}</h3>
+                                <h3 className="text-xl font-black">📝 {tDetailsModal('title')}</h3>
                                 <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
                                     {activeExpense.Proveedor} • {activeExpense.NumeroFactura || activeExpense.Referencia}
                                 </p>
@@ -921,7 +953,7 @@ export default function ExpensesCapturePage() {
                         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
                             <form onSubmit={handleAddDetail} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                                 <div className="md:col-span-2 flex flex-col text-gray-800">
-                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Concepto / Artículo</label>
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">{tDetailsModal('concept')}</label>
                                     <input
                                         type="text"
                                         className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm"
@@ -931,7 +963,7 @@ export default function ExpensesCapturePage() {
                                     />
                                 </div>
                                 <div className="flex flex-col text-gray-800">
-                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Cantidad</label>
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">{tDetailsModal('quantity')}</label>
                                     <input
                                         type="number"
                                         step="any"
@@ -942,7 +974,7 @@ export default function ExpensesCapturePage() {
                                     />
                                 </div>
                                 <div className="flex flex-col text-gray-800">
-                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">Costo Unitario</label>
+                                    <label className="text-xs font-bold text-blue-900/60 uppercase mb-2">{tDetailsModal('cost')}</label>
                                     <input
                                         type="text"
                                         className="w-full p-2.5 bg-white border border-blue-200 rounded-lg text-sm"
@@ -955,23 +987,25 @@ export default function ExpensesCapturePage() {
                                         required
                                     />
                                 </div>
-                                <Button type="submit" className="md:col-span-4">{useTranslations('ExpenseDetailsModal')('add')}</Button>
+                                <Button type="submit" className="md:col-span-4">
+                                    {detailFormData.id ? tModal('editExpense') : tDetailsModal('add')}
+                                </Button>
                             </form>
 
                             <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                                 <table className="min-w-full divide-y divide-gray-100">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Concepto</th>
-                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Cant.</th>
-                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Costo</th>
-                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
-                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tDetailsModal('concept')}</th>
+                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tDetailsModal('quantity')}</th>
+                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tDetailsModal('cost')}</th>
+                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
+                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tCommon('actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-50 text-gray-800 font-medium">
                                         {expenseDetails.length === 0 ? (
-                                            <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400 italic">Sin detalles</td></tr>
+                                            <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400 italic">{tDetailsModal('noDetails')}</td></tr>
                                         ) : (
                                             expenseDetails.map((detail, idx) => (
                                                 <tr key={idx}>
@@ -981,8 +1015,29 @@ export default function ExpensesCapturePage() {
                                                     <td className="px-6 py-4 text-sm text-right font-bold text-red-600">
                                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Cantidad * detail.Costo)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <button onClick={() => handleDeleteDetail(detail.IdDetalleGasto)} className="text-gray-300 hover:text-red-500 transition-colors">🗑️</button>
+                                                    <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
+                                                        <button 
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                setDetailFormData({
+                                                                    id: detail.IdDetalleGasto,
+                                                                    concept: detail.Concepto,
+                                                                    quantity: detail.Cantidad.toString(),
+                                                                    cost: detail.Costo.toString()
+                                                                });
+                                                            }}
+                                                            className="text-gray-300 hover:text-blue-500 transition-colors p-1"
+                                                            title={tCommon('edit') || "Editar"}
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteDetail(detail.IdDetalleGasto)} 
+                                                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                                            title={tCommon('delete') || "Eliminar"}
+                                                        >
+                                                            🗑️
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))

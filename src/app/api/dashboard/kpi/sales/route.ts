@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
         // Expenses: tblGastos uses 1-12 for Mes index. Sum of 'Gasto' column.
         const [expenseRows] = (await connection.query(
-            `SELECT SUM(Gasto) as totalOperatingExpense 
+            `SELECT SUM(Total) as totalOperatingExpense 
              FROM tblGastos 
              WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
             [branchId, month + 1, year]
