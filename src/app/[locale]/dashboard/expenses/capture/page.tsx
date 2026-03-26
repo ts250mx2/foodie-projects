@@ -732,13 +732,9 @@ export default function ExpensesCapturePage() {
                                                         key={c.IdConceptoGasto}
                                                         onClick={() => {
                                                             setSelectedConcept(c);
-                                                            setFormData({ ...formData, conceptId: c.IdConceptoGasto.toString(), paymentChannelId: c.IdCanalPago?.toString() || '' });
+                                                            setFormData({ ...formData, conceptId: c.IdConceptoGasto.toString() });
                                                             setConceptSearch(c.ConceptoGasto);
                                                             setShowConceptDropdown(false);
-                                                            if (c.IdCanalPago && c.CanalPago) {
-                                                                setSelectedPaymentChannel({ IdCanalPago: c.IdCanalPago, CanalPago: c.CanalPago });
-                                                                setPaymentChannelSearch(c.CanalPago);
-                                                            }
                                                         }}
                                                         className="px-4 py-2 hover:bg-red-50 cursor-pointer border-b last:border-0 border-gray-50"
                                                     >
