@@ -91,7 +91,23 @@
         "subRecipes": "Sub-recipes",
         "menuSections": "Menu Sections",
         "massiveProductUpload": "Massive Product Upload",
-        "productionCapture": "Production Capture"
+        "productionCapture": "Production Capture",
+        "materialExplosion": "Material Explosion"
+    },
+    "MaterialExplosion": {
+        "title": "Material Explosion",
+        "subRecipes": "Sub-recipes",
+        "dishes": "Dishes",
+        "captureQuantity": "Capture Quantity",
+        "explode": "Explode Materials",
+        "results": "Exploded Materials",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "cost": "Cost",
+        "total": "Total",
+        "noSubRecipes": "No active sub-recipes found.",
+        "searchPlaceholder": "Search sub-recipe..."
     },
     "Terminals": {
         "title": "Payment Methods Management",

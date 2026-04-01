@@ -5301,3 +5301,137 @@ Body: {
   "unidadMedidaRecetario": "KILOS"
 }
 
+[2026-04-01T21:05:46.289Z] PUT /api/products/466
+Body: {
+  "projectId": 9,
+  "producto": "ADEREZO LIMON",
+  "codigo": "ADEREZO LIMON",
+  "idCategoria": 19,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 2,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": 1,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "Kilogramo (kg)",
+  "unidadMedidaRecetario": "Kilogramo (kg)"
+}
+
+[2026-04-01T21:22:31.784Z] PUT /api/products/436
+Body: {
+  "projectId": 9,
+  "producto": "AGUA ",
+  "codigo": "AGUA ",
+  "idCategoria": 12,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Litro (L)",
+  "unidadMedidaInventario": "Litro (L)",
+  "unidadMedidaRecetario": "Litro (L)"
+}
+
+[2026-04-01T21:25:42.413Z] PUT /api/products/436
+Body: {
+  "projectId": 9,
+  "producto": "AGUA ",
+  "codigo": "AGUA ",
+  "idCategoria": 12,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Litro (L)",
+  "unidadMedidaInventario": "Litro (L)",
+  "unidadMedidaRecetario": "Gramo (g)"
+}
+
+[2026-04-01T21:32:45.299Z] PUT /api/products/365
+Body: {
+  "projectId": 9,
+  "producto": "SALSA INGLESA",
+  "codigo": "INGLESA",
+  "idCategoria": 12,
+  "idPresentacion": null,
+  "precio": 132.24,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 970,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Botella",
+  "unidadMedidaInventario": "Botella",
+  "unidadMedidaRecetario": "Gramo (g)"
+}
+
+[2026-04-01T21:39:07.015Z] PUT /api/products/466
+Body: {
+  "projectId": 9,
+  "producto": "ADEREZO LIMON",
+  "codigo": "ADEREZO LIMON",
+  "idCategoria": 19,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "Kilogramo (kg)",
+  "unidadMedidaRecetario": "Kilogramo (kg)"
+}
+

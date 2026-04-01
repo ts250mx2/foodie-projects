@@ -94,6 +94,7 @@
         "menuSections": "Secciones Menu",
         "massiveProductUpload": "Carga Masiva Productos",
         "productionCapture": "Captura de Producción",
+        "materialExplosion": "Explosión de Materiales",
         "wasteCapture": "Captura de Mermas",
         "ocrProcessing": "Procesamiento OCR",
         "receiptCapture": "Captura de Recibos",
@@ -128,6 +129,21 @@
             "sat": "Sáb",
             "sun": "Dom"
         }
+    },
+    "MaterialExplosion": {
+        "title": "Explosión de Materiales",
+        "subRecipes": "Subrecetas",
+        "dishes": "Platillos",
+        "captureQuantity": "Capturar Cantidad",
+        "explode": "Explotar Materiales",
+        "results": "Materiales Explotados",
+        "product": "Producto",
+        "quantity": "Cantidad",
+        "unit": "Unidad",
+        "cost": "Costo",
+        "total": "Total",
+        "noSubRecipes": "No se encontraron subrecetas activas.",
+        "searchPlaceholder": "Buscar subreceta..."
     },
     "Terminals": {
         "title": "Administración de Formas de Pago",

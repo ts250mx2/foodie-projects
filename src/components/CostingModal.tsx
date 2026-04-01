@@ -21,12 +21,13 @@ interface KitItem {
     IdCategoriaRecetario?: number;
     CategoriaRecetario?: string;
     PresentacionInventario: string;
+    UnidadMedidaRecetario?: string;
     Total?: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
 }
 
-interface Product {
+export interface Product {
     IdProducto: number;
     Producto: string;
     Codigo: string;
@@ -114,23 +115,23 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         'oz': ['g'],
         't': ['kg'],
         'ar': ['kg', 'lb'],
-        'l': ['ml', 'fl-oz', 'taza'],
-        'ml': [],
-        'gal': ['l', 'ml', 'fl-oz', 'taza'],
-        'qt': ['pt', 'ml'],
-        'pt': ['ml'],
-        'fl-oz': ['ml'],
-        'taza': ['ml'],
+        'l': ['ml', 'fl-oz', 'taza', 'g'],
+        'ml': ['g'],
+        'gal': ['l', 'ml', 'fl-oz', 'taza', 'g'],
+        'qt': ['pt', 'ml', 'g'],
+        'pt': ['ml', 'g'],
+        'fl-oz': ['ml', 'g'],
+        'taza': ['ml', 'g'],
         'caja': ['pza', 'kg', 'g', 'l', 'ml', 'paquete', 'lb', 'oz'],
         'saco': ['kg', 'lb', 'g'],
         'docena': ['pza'],
         'paquete': ['pza'],
-        'bolsa': ['pza', 'kg', 'g', 'l', 'ml'],
-        'pza': [],
+        'bolsa': ['pza', 'kg', 'g', 'l', 'ml', 'oz', 'fl-oz'],
+        'pza': ['g', 'l', 'ml', 'oz', 'fl-oz'],
         'lata': ['pza', 'kg', 'g', 'l', 'ml'],
-        'botella': ['pza', 'l', 'ml'],
+        'botella': ['pza', 'l', 'ml', 'g', 'oz', 'fl-oz'],
         'frasco': ['pza', 'kg', 'g', 'l', 'ml'],
-        'garrafon': ['l', 'ml']
+        'garrafon': ['l', 'ml', 'g']
     };
 
     const [unMedidaCompra, setUnMedidaCompra] = useState<string>('');
@@ -384,7 +385,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     useEffect(() => {
         if (isInitialLoad.current) return;
-        if (unMedidaCompra) {
+        
+        // ONLY apply hierarchical syncing for Raw Materials (Type 0)
+        // For Dishes (1) and Sub-recipes (2), Inventory Unit is independent of Purchase Unit
+        if (productType === 0 && unMedidaCompra) {
             const baseCompra = getBaseUnit(unMedidaCompra);
             const isMeasurement = MEASUREMENT_UNITS.includes(baseCompra);
             const children = UNIT_HIERARCHY[baseCompra] || [];
@@ -398,10 +402,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             } else if (unMedidaInventario !== '' && !children.includes(getBaseUnit(unMedidaInventario)) && unMedidaInventario !== unMedidaCompra) {
                 // Keep existing unless invalid
             }
-        } else {
-            setUnMedidaInventario('');
+        } else if (productType !== 0 && !unMedidaInventario) {
+            // For other types, still default to purchase unit if inventory is empty
+            setUnMedidaInventario(unMedidaCompra);
         }
-    }, [unMedidaCompra]);
+    }, [unMedidaCompra, productType]);
 
     // Synchronize unMedidaInventario label with idPresentacionConversion (the actual selected inventory unit)
     useEffect(() => {
@@ -734,7 +739,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             Costo: selectedProduct.Costo || selectedProduct.Precio || 0,
             IdCategoriaRecetario: selectedProduct.IdCategoriaRecetario,
             CategoriaRecetario: selectedProduct.CategoriaRecetario || 'Sin Módulo de Recetario',
-            PresentacionInventario: selectedProduct.PresentacionConversion || selectedProduct.Presentacion || ''
+            PresentacionInventario: selectedProduct.PresentacionConversion || selectedProduct.Presentacion || '',
+            UnidadMedidaRecetario: selectedProduct.UnidadMedidaRecetario || selectedProduct.UnidadMedidaInventario || ''
         };
 
         setKitItems(prev => [...prev, finalItem]);
@@ -1837,8 +1843,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 </>
                             )}
 
-                            {/* Row 4: Datos de Presentación, Conversión, Pesos y Métricas (Raw Materials & Sub-recipes) */}
-                            {(productType === 0 || productType === 2) && (
+                            {/* Row 4: Datos de Presentación, Conversión, Pesos y Métricas (Raw Materials, Dishes & Sub-recipes) */}
+                            {(productType === 0 || productType === 1 || productType === 2) && (
                                 <div className="space-y-6">
                                     {/* Sub-row 3: Unidades de Medida y Contenido */}
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -1887,17 +1893,24 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 <select
                                                     value={unMedidaInventario}
                                                     onChange={(e) => setUnMedidaInventario(e.target.value)}
-                                                    disabled={!unMedidaCompra || (MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && !initialProduct?.IdProducto) || (!UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] && !unMedidaInventario)}
+                                                    disabled={productType === 0 && (!unMedidaCompra || (MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && !initialProduct?.IdProducto))}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                                 >
                                                     {(() => {
-                                                        const baseCompra = getBaseUnit(unMedidaCompra);
-                                                        const children = UNIT_HIERARCHY[baseCompra] || [];
                                                         const options = new Set<string>();
-
+                                                        
+                                                        if (productType === 1 || productType === 2) {
+                                                            // For Dishes and Sub-recipes, show the FULL catalog
+                                                            Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+                                                        } else {
+                                                            // For Raw Materials, show only children of Purchase Unit (Existing logic)
+                                                            const baseCompra = getBaseUnit(unMedidaCompra);
+                                                            const children = UNIT_HIERARCHY[baseCompra] || [];
+                                                            if (unMedidaCompra) options.add(unMedidaCompra);
+                                                            children.forEach(u => options.add(t(`units.${u}`)));
+                                                        }
+                                                        
                                                         if (unMedidaInventario) options.add(unMedidaInventario);
-                                                        if (unMedidaCompra) options.add(unMedidaCompra);
-                                                        children.forEach(u => options.add(t(`units.${u}`)));
 
                                                         return Array.from(options).sort().map(u => (
                                                             <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>
@@ -1922,17 +1935,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <option value="">Selec...</option>
                                                     {(() => {
                                                         const baseInv = getBaseUnit(unMedidaInventario);
-                                                        const isMeasurement = MEASUREMENT_UNITS.includes(baseInv);
+                                                        const children = UNIT_HIERARCHY[baseInv] || [];
                                                         const options = new Set<string>();
 
                                                         if (unMedidaRecetario) options.add(unMedidaRecetario);
                                                         options.add(""); // Selec...
+                                                        if (unMedidaInventario) options.add(unMedidaInventario);
+                                                        
+                                                        // Priority: Children of Inventory Unit in hierarchy
+                                                        children.forEach(u => options.add(t(`units.${u}`)));
 
-                                                        if (isMeasurement) {
-                                                            if (unMedidaInventario) options.add(unMedidaInventario);
-                                                            (UNIT_HIERARCHY[baseInv] || []).forEach(u => options.add(t(`units.${u}`)));
-                                                        } else {
-                                                            Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
+                                                        // If it's a dish/sub-recipe and no hierarchy exists, or we want more flexibility
+                                                        if ((productType === 1 || productType === 2) && children.length === 0) {
+                                                            // For items like "Pieza", we might still want to select others if needed
+                                                            // But following the "ligada" (linked) request, we mostly want the inventory unit or its children.
+                                                            // Let's allow all if the user explicitly wants to break hierarchy for dishes (unlike raw materials)
+                                                            // However, let's keep it clean first.
                                                         }
 
                                                         return Array.from(options).sort().map(u => (
@@ -2745,7 +2763,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                             <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Código</th>
                                                                             <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
                                                                             <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Cantidad</th>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Pres. Inv.</th>
+                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Pres. Receta</th>
                                                                             <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Costo</th>
                                                                             <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
                                                                             <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Acciones</th>
@@ -2771,7 +2789,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                                             className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-orange-500 focus:border-orange-500"
                                                                                         />
                                                                                     </td>
-                                                                                    <td className="px-4 py-2 text-sm text-gray-500">{item.PresentacionInventario || '-'}</td>
+                                                                                    <td className="px-4 py-2 text-sm text-gray-500 text-center font-bold">{item.UnidadMedidaRecetario || item.PresentacionInventario || '-'}</td>
                                                                                     <td className="px-4 py-2 text-right text-sm">
                                                                                         ${costoUnitario.toFixed(2)}
                                                                                     </td>

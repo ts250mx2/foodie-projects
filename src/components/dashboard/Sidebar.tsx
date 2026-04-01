@@ -112,7 +112,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             items: [
                 { key: 'subRecipes', href: '/dashboard/production/sub-recipes', emoji: '🥣' },
                 { key: 'dishes', href: '/dashboard/production/dishes', emoji: '🍽️' },
-                { key: 'productionCapture', href: '/dashboard/production/capture', emoji: '👨‍🍳' }
+                { key: 'productionCapture', href: '/dashboard/production/capture', emoji: '👨‍🍳' },
+                { key: 'materialExplosion', href: '/dashboard/production/material-explosion', emoji: '💥' }
             ]
         },
         {
