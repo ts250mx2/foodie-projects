@@ -94,6 +94,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        
+
         return NextResponse.json({
             success: true,
             message: 'Expense saved successfully'

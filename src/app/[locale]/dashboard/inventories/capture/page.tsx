@@ -64,7 +64,7 @@ export default function InventoryCapturePage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [inventoryEntries, setInventoryEntries] = useState<InventoryEntry[]>([]);
-    const [editedQuantities, setEditedQuantities] = useState<Record<number, number>>({});
+    const [editedQuantities, setEditedQuantities] = useState<Record<number, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
@@ -221,10 +221,10 @@ export default function InventoryCapturePage() {
                 setInventoryEntries(data.data);
 
                 // Initialize edited quantities with current values
-                const quantities: Record<number, number> = {};
+                const quantities: Record<number, string> = {};
                 const initialCollapsed: Record<string, boolean> = {};
                 data.data.forEach((entry: InventoryEntry) => {
-                    quantities[entry.IdProducto] = entry.Cantidad;
+                    quantities[entry.IdProducto] = entry.Cantidad === 0 ? '' : entry.Cantidad.toString();
                     const cat = entry.Categoria || 'Sin Categoría';
                     initialCollapsed[cat] = true;
                 });
@@ -237,10 +237,9 @@ export default function InventoryCapturePage() {
     };
 
     const handleQuantityChange = (productId: number, value: string) => {
-        const numValue = parseFloat(value) || 0;
         setEditedQuantities(prev => ({
             ...prev,
-            [productId]: numValue
+            [productId]: value
         }));
     };
 
@@ -250,8 +249,9 @@ export default function InventoryCapturePage() {
         setIsLoading(true);
         try {
             const updates = Object.entries(editedQuantities)
-                .map(([productId, quantity]) => {
+                .map(([productId, quantityStr]) => {
                     const id = parseInt(productId);
+                    const quantity = parseFloat(quantityStr) || 0;
                     const originalEntry = inventoryEntries.find(e => e.IdProducto === id);
                     const originalQuantity = originalEntry ? originalEntry.Cantidad : 0;
                     
@@ -350,7 +350,8 @@ export default function InventoryCapturePage() {
     // Calculate totals
     const calculateCategoryTotal = (entries: InventoryEntry[]) => {
         return entries.reduce((sum, entry) => {
-            const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+            const quantityStr = editedQuantities[entry.IdProducto];
+            const quantity = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
             return sum + (quantity * entry.Precio);
         }, 0);
     };
@@ -364,7 +365,8 @@ export default function InventoryCapturePage() {
 
         // Flatten data for export
         const exportData = filteredEntries.map(entry => {
-            const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+            const quantityStr = editedQuantities[entry.IdProducto];
+            const quantity = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
             return {
                 timestamp: entry.FechaInventario,
                 category: entry.Categoria || 'Sin Categoría',
@@ -427,7 +429,8 @@ export default function InventoryCapturePage() {
             htmlContext += `<div class="category-header">📁 ${categoria} - Subtotal: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}</div>`;
             htmlContext += '<table><thead><tr><th>Código</th><th>Producto</th><th>Presentación</th><th>Cantidad</th><th>Precio</th><th>Total</th></tr></thead><tbody>';
             entries.forEach(entry => {
-                const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+                const quantityStr = editedQuantities[entry.IdProducto];
+                const quantity = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
                 const total = quantity * entry.Precio;
                 htmlContext += `<tr>
                     <td>${entry.Codigo}</td>
@@ -723,7 +726,8 @@ export default function InventoryCapturePage() {
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {entries.map((entry) => {
-                                                        const quantity = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+                                                        const quantityStr = editedQuantities[entry.IdProducto];
+                                                        const quantity = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
                                                         const total = quantity * entry.Precio;
 
                                                         return (
@@ -747,8 +751,8 @@ export default function InventoryCapturePage() {
                                                                 <td className="px-4 py-2 text-center">
                                                                     <input
                                                                         type="number"
-                                                                        step="0.01"
-                                                                        value={quantity}
+                                                                        step="any"
+                                                                        value={editedQuantities[entry.IdProducto] ?? (entry.Cantidad === 0 ? '' : entry.Cantidad.toString())}
                                                                         onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
                                                                         className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                                                         disabled={isLoading}

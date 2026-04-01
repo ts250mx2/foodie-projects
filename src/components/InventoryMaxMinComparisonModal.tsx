@@ -34,7 +34,7 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     inventoryEntries: InventoryEntry[];
-    editedQuantities: Record<number, number>;
+    editedQuantities: Record<number, string>;
     branchId: string;
     projectId: number;
     dateLabel: string;
@@ -82,7 +82,8 @@ export default function InventoryMaxMinComparisonModal({
                 const combined: ComparisonEntry[] = inventoryEntries
                     .map(entry => {
                         const setting = settings[entry.IdProducto] || { Minimo: 0, Maximo: 0 };
-                        const currentQty = editedQuantities[entry.IdProducto] ?? entry.Cantidad;
+                        const quantityStr = editedQuantities[entry.IdProducto];
+                        const currentQty = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
                         
                         let estado: 'OK' | 'Overstock' | 'Shortage' = 'OK';
                         if (setting.Maximo > 0 && currentQty > setting.Maximo) {
