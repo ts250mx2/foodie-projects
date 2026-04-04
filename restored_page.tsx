@@ -46,7 +46,7 @@ export default function DashboardPage() {
     const [isLoadingKpi, setIsLoadingKpi] = useState<boolean>(true);
 
     // KPI Detail state
-    const [selectedKpi, setSelectedKpi] = useState<string | null>('sales');
+    const [selectedKpi, setSelectedKpi] = useState<string | null>(null);
     const [salesDetailData, setSalesDetailData] = useState<{
         channels: any[];
         shifts: any[];
@@ -70,11 +70,6 @@ export default function DashboardPage() {
         categories: any[];
         days: any[];
         totalPurchases: number;
-    } | null>(null);
-    const [wasteDetailData, setWasteDetailData] = useState<{
-        categories: any[];
-        days: any[];
-        totalWaste: number;
     } | null>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
     const [detailGrouping, setDetailGrouping] = useState<string>('channels');
@@ -125,16 +120,16 @@ export default function DashboardPage() {
 
     const getCategoryEmoji = (category: string) => {
         const cat = category.toLowerCase();
-        if (cat.includes('carne') || cat.includes('res') || cat.includes('cerdo') || cat.includes('pollo')) return '🥩';
-        if (cat.includes('verdura') || cat.includes('fruta') || cat.includes('vegetal')) return '🥦';
-        if (cat.includes('lacteo') || cat.includes('leche') || cat.includes('queso')) return '🥛';
-        if (cat.includes('abarrote')) return '🥫';
-        if (cat.includes('bebida') || cat.includes('refresco')) return '🥤';
-        if (cat.includes('desechable') || cat.includes('empaque')) return '🥡';
-        if (cat.includes('limpieza')) return '🧼';
-        if (cat.includes('marisco') || cat.includes('pescado')) return '🐟';
-        if (cat.includes('pan')) return '🍞';
-        return '📦';
+        if (cat.includes('carne') || cat.includes('res') || cat.includes('cerdo') || cat.includes('pollo')) return '­ƒÑ®';
+        if (cat.includes('verdura') || cat.includes('fruta') || cat.includes('vegetal')) return '­ƒÑª';
+        if (cat.includes('lacteo') || cat.includes('leche') || cat.includes('queso')) return '­ƒÑø';
+        if (cat.includes('abarrote')) return '­ƒÑ½';
+        if (cat.includes('bebida') || cat.includes('refresco')) return '­ƒÑñ';
+        if (cat.includes('desechable') || cat.includes('empaque')) return '­ƒÑí';
+        if (cat.includes('limpieza')) return '­ƒº╝';
+        if (cat.includes('marisco') || cat.includes('pescado')) return '­ƒÉƒ';
+        if (cat.includes('pan')) return '­ƒì×';
+        return '­ƒôª';
     };
 
     const fetchBranches = async () => {
@@ -286,26 +281,6 @@ export default function DashboardPage() {
         }
     };
 
-    const fetchWasteDetails = async () => {
-        if (!project?.idProyecto || !selectedBranch || selectedKpi !== 'waste') return;
-
-        setIsLoadingDetails(true);
-        try {
-            const response = await fetch(`/api/dashboard/waste-details?projectId=${project.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth}&year=${selectedYear}`);
-            const data = await response.json();
-            if (data.success) {
-                setWasteDetailData(data.data);
-                if (!['categories', 'days'].includes(detailGrouping)) {
-                    setDetailGrouping('categories');
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching waste details:', error);
-        } finally {
-            setIsLoadingDetails(false);
-        }
-    };
-
     useEffect(() => {
         if (selectedKpi === 'sales') {
             fetchSalesDetails();
@@ -315,8 +290,6 @@ export default function DashboardPage() {
             fetchExpenseDetails();
         } else if (selectedKpi === 'purchases') {
             fetchPurchaseDetails();
-        } else if ((selectedKpi as string) === 'waste') {
-            fetchWasteDetails();
         }
     }, [selectedKpi, selectedMonth, selectedYear, selectedBranch]);
 
@@ -384,9 +357,9 @@ export default function DashboardPage() {
                 {/* Sales KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'sales' ? null : 'sales')}
-                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'sales' ? 'bg-gradient-to-b from-emerald-50/80 to-white border-emerald-300 ring-4 ring-emerald-500/10 shadow-xl shadow-emerald-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`bg-white p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${selectedKpi === 'sales' ? 'ring-2 ring-emerald-500 border-emerald-500 shadow-md' : 'border-slate-100 shadow-sm hover:shadow-md'}`}
                 >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                         <svg className="w-20 h-20 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -397,7 +370,7 @@ export default function DashboardPage() {
                             {isLoadingKpi ? (
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSales)}
                                 </h2>
                             )}
@@ -421,15 +394,6 @@ export default function DashboardPage() {
                                         <span className="text-slate-400 px-2 py-0.5 bg-slate-50 rounded-sm">Sin presu.</span>
                                     )}
                                 </div>
-                                
-                                {salesObjective > 0 && (
-                                    <div className="flex justify-between items-center text-xs font-bold -mt-1">
-                                        <span className="text-slate-400 text-[10px]">Diferencia vs Meta</span>
-                                        <span className={`text-[10px] flex items-center gap-1 ${totalSales >= salesObjective ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                            {totalSales >= salesObjective ? '+' : ''}{(((totalSales / salesObjective) * 100) - 100).toFixed(1)}% {totalSales >= salesObjective ? '🚀' : '⚠️'}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -438,20 +402,20 @@ export default function DashboardPage() {
                 {/* Payroll KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'payroll' ? null : 'payroll')}
-                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'payroll' ? 'bg-gradient-to-b from-indigo-50/80 to-white border-indigo-300 ring-4 ring-indigo-500/10 shadow-xl shadow-indigo-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${selectedKpi === 'payroll' ? 'bg-indigo-50 border-indigo-200 shadow-md ring-2 ring-indigo-500 ring-opacity-20' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
                 >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                         <svg className="w-20 h-20 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </div>
                     <div className="flex flex-col h-full justify-between relative z-10">
                         <div>
-                            <span className={`text-[10px] font-black uppercase tracking-widest mb-1 block ${selectedKpi === 'payroll' ? 'text-indigo-500' : 'text-slate-400'}`}>Costo Nómina</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest mb-1 block ${selectedKpi === 'payroll' ? 'text-indigo-500' : 'text-slate-400'}`}>Costo N├│mina</span>
                             {isLoadingKpi ? (
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPayroll)}
                                 </h2>
                             )}
@@ -461,7 +425,7 @@ export default function DashboardPage() {
                         {!isLoadingKpi && (
                             <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
                                 <div className="flex justify-between items-center text-xs font-bold">
-                                    <span className="text-slate-500">% Costo Nómina</span>
+                                    <span className="text-slate-500">% Costo N├│mina</span>
                                     <span className={`px-2 py-0.5 rounded-sm ${totalSales > 0 ? (((totalPayroll / totalSales) * 100) <= payrollObjective || payrollObjective === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500') : 'bg-slate-50 text-slate-700'}`}>
                                         {totalSales > 0 ? `${((totalPayroll / totalSales) * 100).toFixed(2)}%` : '0.00%'}
                                     </span>
@@ -472,14 +436,6 @@ export default function DashboardPage() {
                                         {payrollObjective > 0 ? `${payrollObjective}%` : 'Sin presu.'}
                                     </span>
                                 </div>
-                                {payrollObjective > 0 && totalSales > 0 && (
-                                    <div className="flex justify-between items-center text-xs font-bold -mt-1">
-                                        <span className="text-slate-400 text-[10px]">Diferencia vs Meta</span>
-                                        <span className={`text-[10px] flex items-center gap-1 ${((totalPayroll / totalSales) * 100) <= payrollObjective ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                            {(((totalPayroll / totalSales) * 100) - payrollObjective) > 0 ? '+' : ''}{(((totalPayroll / totalSales) * 100) - payrollObjective).toFixed(2)}% {((totalPayroll / totalSales) * 100) <= payrollObjective ? '✅' : '⚠️'}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -488,9 +444,9 @@ export default function DashboardPage() {
                 {/* Operating Expense KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'expenses' ? null : 'expenses')}
-                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'expenses' ? 'bg-gradient-to-b from-rose-50/80 to-white border-rose-300 ring-4 ring-rose-500/10 shadow-xl shadow-rose-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${selectedKpi === 'expenses' ? 'bg-rose-50 border-rose-200 shadow-md ring-2 ring-rose-500 ring-opacity-20' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
                 >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                         <svg className="w-20 h-20 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
@@ -501,7 +457,7 @@ export default function DashboardPage() {
                             {isLoadingKpi ? (
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalOperatingExpense)}
                                 </h2>
                             )}
@@ -522,14 +478,6 @@ export default function DashboardPage() {
                                         {operatingExpenseObjective > 0 ? `${operatingExpenseObjective}%` : 'Sin presu.'}
                                     </span>
                                 </div>
-                                {operatingExpenseObjective > 0 && totalSales > 0 && (
-                                    <div className="flex justify-between items-center text-xs font-bold -mt-1">
-                                        <span className="text-slate-400 text-[10px]">Diferencia vs Meta</span>
-                                        <span className={`text-[10px] flex items-center gap-1 ${((totalOperatingExpense / totalSales) * 100) <= operatingExpenseObjective ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                            {(((totalOperatingExpense / totalSales) * 100) - operatingExpenseObjective) > 0 ? '+' : ''}{(((totalOperatingExpense / totalSales) * 100) - operatingExpenseObjective).toFixed(2)}% {((totalOperatingExpense / totalSales) * 100) <= operatingExpenseObjective ? '✅' : '⚠️'}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -538,9 +486,9 @@ export default function DashboardPage() {
                 {/* Raw Material KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'purchases' ? null : 'purchases')}
-                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'purchases' ? 'bg-gradient-to-b from-amber-50/80 to-white border-amber-300 ring-4 ring-amber-500/10 shadow-xl shadow-amber-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${selectedKpi === 'purchases' ? 'bg-amber-50 border-amber-200 shadow-md ring-2 ring-amber-500 ring-opacity-20' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
                 >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                         <svg className="w-20 h-20 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
@@ -551,7 +499,7 @@ export default function DashboardPage() {
                             {isLoadingKpi ? (
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalRawMaterial)}
                                 </h2>
                             )}
@@ -571,25 +519,14 @@ export default function DashboardPage() {
                                         {rawMaterialObjective > 0 ? `${rawMaterialObjective}%` : 'Sin presu.'}
                                     </span>
                                 </div>
-                                {rawMaterialObjective > 0 && totalSales > 0 && (
-                                    <div className="flex justify-between items-center text-xs font-bold -mt-1">
-                                        <span className="text-slate-400 text-[10px]">Diferencia vs Meta</span>
-                                        <span className={`text-[10px] flex items-center gap-1 ${((totalRawMaterial / totalSales) * 100) <= rawMaterialObjective ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                            {(((totalRawMaterial / totalSales) * 100) - rawMaterialObjective) > 0 ? '+' : ''}{(((totalRawMaterial / totalSales) * 100) - rawMaterialObjective).toFixed(2)}% {((totalRawMaterial / totalSales) * 100) <= rawMaterialObjective ? '✅' : '⚠️'}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Waste KPI Card */}
-                <div 
-                    onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
-                    className={`p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${(selectedKpi as string) === 'waste' ? 'bg-pink-50 border-pink-200 shadow-md ring-2 ring-pink-500 ring-opacity-20' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
-                >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group text-left">
+                    <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
                         <svg className="w-20 h-20 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -600,7 +537,7 @@ export default function DashboardPage() {
                             {isLoadingKpi ? (
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalWaste)}
                                 </h2>
                             )}
@@ -633,7 +570,7 @@ export default function DashboardPage() {
                         <div>
                             <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                                 <span className={`w-2 h-8 rounded-full ${selectedKpi === 'sales' ? 'bg-emerald-500' : selectedKpi === 'payroll' ? 'bg-indigo-500' : selectedKpi === 'expenses' ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
-                                {selectedKpi === 'sales' ? 'Análisis Detallado de Ventas' : selectedKpi === 'payroll' ? 'Análisis Detallado de Nómina' : selectedKpi === 'expenses' ? 'Análisis Detallado de Gastos' : 'Análisis Detallado de Compras'}
+                                {selectedKpi === 'sales' ? 'An├ílisis Detallado de Ventas' : selectedKpi === 'payroll' ? 'An├ílisis Detallado de N├│mina' : selectedKpi === 'expenses' ? 'An├ílisis Detallado de Gastos' : 'An├ílisis Detallado de Compras'}
                             </h3>
                             <p className="text-sm text-slate-500 mt-1">Desglose porcentual y comparativo por diversas dimensiones</p>
                         </div>
@@ -664,7 +601,7 @@ export default function DashboardPage() {
                                             onClick={() => setDetailGrouping('days')}
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'days' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
-                                            Día
+                                            D├¡a
                                         </button>
                                     </>
                                 ) : selectedKpi === 'payroll' ? (
@@ -685,7 +622,7 @@ export default function DashboardPage() {
                                             onClick={() => setDetailGrouping('days')}
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'days' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
-                                            Día
+                                            D├¡a
                                         </button>
                                     </>
                                 ) : selectedKpi === 'expenses' ? (
@@ -706,7 +643,7 @@ export default function DashboardPage() {
                                             onClick={() => setDetailGrouping('days')}
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'days' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
-                                            Día
+                                            D├¡a
                                         </button>
                                     </>
                                 ) : (
@@ -715,21 +652,13 @@ export default function DashboardPage() {
                                             onClick={() => setDetailGrouping('categories')}
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'categories' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
-                                            Categoría
+                                            Categor├¡a
                                         </button>
-                                        {selectedKpi === 'purchases' && (
-                                            <button
-                                                onClick={() => setDetailGrouping('providers')}
-                                                className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'providers' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                                            >
-                                                Proveedor
-                                            </button>
-                                        )}
                                         <button
                                             onClick={() => setDetailGrouping('days')}
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'days' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
-                                            Día
+                                            D├¡a
                                         </button>
                                     </>
                                 )}
@@ -761,13 +690,13 @@ export default function DashboardPage() {
                                 {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-slate-50 animate-pulse rounded-xl"></div>)}
                             </div>
                         </div>
-                    ) : (selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) ? (
+                    ) : (selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) ? (
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                             {/* Chart Area */}
                             <div className="lg:col-span-7 h-[400px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     {chartType === 'bar' ? (
-                                        <BarChart data={((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []} margin={{ top: 20, right: 30, left: 20, bottom: (((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).length > 6 ? 60 : 20 }}>
+                                        <BarChart data={((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) as any)[detailGrouping]} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                             <XAxis 
                                                 dataKey="name" 
@@ -775,13 +704,6 @@ export default function DashboardPage() {
                                                 tickLine={false} 
                                                 tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }}
                                                 dy={10}
-                                                angle={(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).length > 6 ? -45 : 0}
-                                                textAnchor={(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).length > 6 ? 'end' : 'middle'}
-                                                tickFormatter={(value) => {
-                                                    const array = (((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []);
-                                                    const item = array.find((x: any) => x.name === value);
-                                                    return item?.emoji ? `${item.emoji} ${value}` : value;
-                                                }}
                                             />
                                             <YAxis 
                                                 hide 
@@ -790,11 +712,11 @@ export default function DashboardPage() {
                                                 cursor={{ fill: '#f8fafc' }}
                                                 content={({ active, payload }) => {
                                                     const currentData = selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData;
-                                                    const total = selectedKpi === 'sales' ? salesDetailData?.totalSales : selectedKpi === 'payroll' ? payrollDetailData?.totalPayroll : selectedKpi === 'expenses' ? expenseDetailData?.totalExpenses : (selectedKpi as string) === 'waste' ? wasteDetailData?.totalWaste : purchaseDetailData?.totalPurchases;
+                                                    const total = selectedKpi === 'sales' ? salesDetailData?.totalSales : selectedKpi === 'payroll' ? payrollDetailData?.totalPayroll : selectedKpi === 'expenses' ? expenseDetailData?.totalExpenses : purchaseDetailData?.totalPurchases;
                                                     if (active && payload && payload.length && currentData && total) {
                                                         return (
-                                                            <div className="bg-white/90 backdrop-blur-md p-4 shadow-2xl border border-white/50 rounded-xl">
-                                                                <p className="text-xs font-black text-slate-400 uppercase mb-1">{payload[0].payload.emoji ? `${payload[0].payload.emoji} ` : ''}{payload[0].payload.name}</p>
+                                                            <div className="bg-white p-3 shadow-xl border border-slate-100 rounded-lg">
+                                                                <p className="text-xs font-black text-slate-400 uppercase mb-1">{payload[0].payload.name}</p>
                                                                 <p className="text-sm font-black text-slate-900">
                                                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payload[0].value as number)}
                                                                 </p>
@@ -807,8 +729,8 @@ export default function DashboardPage() {
                                                     return null;
                                                 }}
                                             />
-                                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
-                                                {(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).map((entry: any, index: number) => (
+                                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
+                                                {((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) as any)[detailGrouping].map((entry: any, index: number) => (
                                                     <Cell key={`cell-${index}`} fill={[
                                                         '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
                                                     ][index % 7]} />
@@ -818,7 +740,7 @@ export default function DashboardPage() {
                                     ) : (
                                         <PieChart>
                                             <Pie
-                                                data={((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []}
+                                                data={((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) as any)[detailGrouping]}
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={80}
@@ -827,7 +749,7 @@ export default function DashboardPage() {
                                                 dataKey="value"
                                                 stroke="none"
                                             >
-                                                {(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).map((entry: any, index: number) => (
+                                                {((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) as any)[detailGrouping].map((entry: any, index: number) => (
                                                     <Cell key={`cell-${index}`} fill={[
                                                         '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
                                                     ][index % 7]} />
@@ -837,8 +759,8 @@ export default function DashboardPage() {
                                                 content={({ active, payload }) => {
                                                     if (active && payload && payload.length) {
                                                         return (
-                                                            <div className="bg-white/90 backdrop-blur-md p-4 shadow-2xl border border-white/50 rounded-xl">
-                                                                <p className="text-xs font-black text-slate-400 uppercase mb-1">{payload[0].payload.emoji ? `${payload[0].payload.emoji} ` : ''}{payload[0].payload.name}</p>
+                                                            <div className="bg-white p-3 shadow-xl border border-slate-100 rounded-lg">
+                                                                <p className="text-xs font-black text-slate-400 uppercase mb-1">{payload[0].payload.name}</p>
                                                                 <p className="text-sm font-black text-slate-900">
                                                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payload[0].value as number)}
                                                                 </p>
@@ -856,26 +778,23 @@ export default function DashboardPage() {
 
                             {/* Detail Cards Area */}
                             <div className="lg:col-span-5 flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {[...((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []].sort((a, b) => b.value - a.value).map((item: any, index: number) => {
-                                    const origArr = (((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []);
-                                    const origIdx = origArr.findIndex((x: any) => x.name === item.name);
-                                    const activeColorIdx = origIdx >= 0 ? origIdx : index;
-                                    const total = selectedKpi === 'sales' ? salesDetailData?.totalSales : selectedKpi === 'payroll' ? payrollDetailData?.totalPayroll : selectedKpi === 'expenses' ? expenseDetailData?.totalExpenses : (selectedKpi as string) === 'waste' ? wasteDetailData?.totalWaste : purchaseDetailData?.totalPurchases;
+                                {[...((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : purchaseDetailData) as any)[detailGrouping]].sort((a, b) => b.value - a.value).map((item: any, index: number) => {
+                                    const total = selectedKpi === 'sales' ? salesDetailData?.totalSales : selectedKpi === 'payroll' ? payrollDetailData?.totalPayroll : selectedKpi === 'expenses' ? expenseDetailData?.totalExpenses : purchaseDetailData?.totalPurchases;
                                     return (
                                         <div 
                                             key={index} 
                                             className={`bg-white p-4 rounded-xl border border-slate-100 shadow-sm transition-all group flex justify-between items-center hover:shadow-md ${selectedKpi === 'sales' ? 'hover:border-emerald-200' : selectedKpi === 'payroll' ? 'hover:border-indigo-200' : selectedKpi === 'expenses' ? 'hover:border-rose-200' : 'hover:border-amber-200'}`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-md group-hover:scale-110 transition-transform duration-300 text-xl" style={{ backgroundColor: [
+                                                <div className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-white shadow-sm" style={{ backgroundColor: [
                                                     '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
-                                                ][activeColorIdx % 7] }}>
-                                                    {['purchases', 'waste'].includes(selectedKpi as string) && detailGrouping === 'categories' ? (item.emoji || getCategoryEmoji(String(item.name || ''))) : String(item.name || '').slice(0, 2).toUpperCase()}
+                                                ][index % 7] }}>
+                                                    {selectedKpi === 'purchases' && detailGrouping === 'categories' ? getCategoryEmoji(String(item.name || '')) : String(item.name || '').slice(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
                                                     <h4 className="text-sm font-black text-slate-800">{item.name}</h4>
                                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                        {item.count > 0 ? `${item.count} ${selectedKpi === 'sales' ? 'Transacciones' : 'Registros'}` : (selectedKpi === 'sales' ? 'Detalle de canal' : selectedKpi === 'payroll' ? 'Detalle de nómina' : selectedKpi === 'expenses' ? 'Detalle de gasto' : 'Detalle de compra')}
+                                                        {item.count > 0 ? `${item.count} ${selectedKpi === 'sales' ? 'Transacciones' : 'Registros'}` : (selectedKpi === 'sales' ? 'Detalle de canal' : selectedKpi === 'payroll' ? 'Detalle de n├│mina' : selectedKpi === 'expenses' ? 'Detalle de gasto' : 'Detalle de compra')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -895,11 +814,11 @@ export default function DashboardPage() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                             <svg className="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                            <p className="font-bold">No hay datos suficientes para mostrar el análisis</p>
+                            <p className="font-bold">No hay datos suficientes para mostrar el an├ílisis</p>
                         </div>
                     )}
                 </div>
             )}
         </div>
     );
-}
+}

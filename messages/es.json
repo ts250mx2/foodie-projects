@@ -105,6 +105,7 @@
         "branch": "Sucursal",
         "month": "Mes",
         "year": "Año",
+        "today": "HOY",
         "noBranches": "No hay sucursales",
         "months": {
             "0": "Enero",
@@ -508,7 +509,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "today": "HOY"
     },
     "PayrollModal": {
         "title": "Captura de Nómina",
@@ -547,7 +549,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "today": "HOY"
     },
     "ExpensesModal": {
         "title": "Captura de Gastos",
@@ -899,7 +902,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "today": "HOY"
     },
     "SalesTerminalsCapture": {
         "title": "Ventas por Forma de Pago",
@@ -929,7 +933,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "today": "HOY"
     },
     "SchedulesCapture": {
         "title": "Horarios",
@@ -972,7 +977,8 @@
         "viewAllEmployees": "Ver todos los empleados",
         "delete": "Borrar",
         "confirmDelete": "¿Estás seguro de que deseas eliminar este horario?",
-        "exportPdf": "Exportar PDF"
+        "exportPdf": "Exportar PDF",
+        "today": "HOY"
     },
     "SchedulesModal": {
         "title": "Captura de Horarios",
@@ -1020,7 +1026,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "today": "HOY"
     },
     "TipsCaptureModal": {
         "title": "Capturar Propinas",

@@ -480,7 +480,8 @@
             "fri": "Fri",
             "sat": "Sat",
             "sun": "Sun"
-        }
+        },
+        "today": "TODAY"
     },
     "PayrollModal": {
         "title": "Capture Payroll",
@@ -520,7 +521,8 @@
             "fri": "Fri",
             "sat": "Sat",
             "sun": "Sun"
-        }
+        },
+        "today": "TODAY"
     },
     "ExpensesModal": {
         "title": "Capture Expenses",
@@ -707,7 +709,8 @@
             "fri": "Fri",
             "sat": "Sat",
             "sun": "Sun"
-        }
+        },
+        "today": "TODAY"
     },
     "SalesTerminalsCapture": {
         "title": "Sales by Payment Method",
@@ -737,7 +740,8 @@
             "fri": "Fri",
             "sat": "Sat",
             "sun": "Sun"
-        }
+        },
+        "today": "TODAY"
     },
     "TipsCapture": {
         "title": "Tips Capture",
@@ -767,7 +771,8 @@
             "fri": "Fri",
             "sat": "Sat",
             "sun": "Sun"
-        }
+        },
+        "today": "TODAY"
     },
     "TipsCaptureModal": {
         "title": "Capture Tips",
@@ -864,7 +869,8 @@
         "viewAllEmployees": "View all employees",
         "delete": "Delete",
         "confirmDelete": "Are you sure you want to delete this schedule?",
-        "exportPdf": "Export PDF"
+        "exportPdf": "Export PDF",
+        "today": "TODAY"
     },
     "SchedulesModal": {
         "title": "Capture Schedules",
