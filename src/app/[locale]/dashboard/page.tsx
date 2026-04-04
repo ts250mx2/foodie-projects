@@ -79,6 +79,14 @@ export default function DashboardPage() {
     const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
     const [detailGrouping, setDetailGrouping] = useState<string>('channels');
     const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+    const [cardSearchQuery, setCardSearchQuery] = useState<string>('');
+    const [isDrilldownLoading, setIsDrilldownLoading] = useState<boolean>(false);
+    const [drilldownItem, setDrilldownItem] = useState<{name: string, kpi: string, grouping: string, emoji?: string, color: string, count?: number, value?: number} | null>(null);
+    const [drilldownData, setDrilldownData] = useState<any[]>([]);
+
+    useEffect(() => {
+        setCardSearchQuery('');
+    }, [selectedKpi, detailGrouping]);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -122,6 +130,27 @@ export default function DashboardPage() {
     useEffect(() => {
         localStorage.setItem('dashboardSelectedYear', selectedYear.toString());
     }, [selectedYear]);
+
+    const handleDrilldownClick = async (item: any, colorHex: string) => {
+        if (detailGrouping === 'days') return;
+        if (selectedKpi === 'sales' && String(item.name || '') === 'Efectivo') return;
+        
+        setDrilldownItem({ name: item.name, kpi: selectedKpi as string, grouping: detailGrouping, emoji: item.emoji || getCategoryEmoji(String(item.name || '')), color: colorHex, count: item.count, value: item.value });
+        setIsDrilldownLoading(true);
+        setDrilldownData([]);
+
+        try {
+            const response = await fetch(`/api/dashboard/drilldown?projectId=${project?.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth}&year=${selectedYear}&kpi=${selectedKpi}&grouping=${detailGrouping}&itemName=${encodeURIComponent(item.name)}`);
+            const data = await response.json();
+            if (data.success) {
+                setDrilldownData(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching drilldown:', error);
+        } finally {
+            setIsDrilldownLoading(false);
+        }
+    };
 
     const getCategoryEmoji = (category: string) => {
         const cat = category.toLowerCase();
@@ -855,16 +884,40 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Detail Cards Area */}
-                            <div className="lg:col-span-5 flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {[...((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []].sort((a, b) => b.value - a.value).map((item: any, index: number) => {
+                            <div className="lg:col-span-5 flex flex-col h-[400px]">
+                                <div className="relative mb-3 shrink-0 group">
+                                    <div className={`absolute inset-0 bg-gradient-to-r rounded-xl blur-lg opacity-0 transition-opacity duration-500 group-hover:opacity-20 ${selectedKpi === 'sales' ? 'from-emerald-400 to-emerald-200' : selectedKpi === 'payroll' ? 'from-indigo-400 to-indigo-200' : selectedKpi === 'expenses' ? 'from-rose-400 to-rose-200' : 'from-amber-400 to-amber-200'}`}></div>
+                                    <div className="relative">
+                                        <input 
+                                            type="text"
+                                            placeholder="Buscar detalle rápido..."
+                                            value={cardSearchQuery}
+                                            onChange={(e) => setCardSearchQuery(e.target.value)}
+                                            className={`w-full px-4 py-3 rounded-xl border bg-white/80 backdrop-blur-md shadow-sm transition-all focus:bg-white pl-11 text-sm font-black text-slate-800 placeholder-slate-400 outline-none ${selectedKpi === 'sales' ? 'border-emerald-100 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10' : selectedKpi === 'payroll' ? 'border-indigo-100 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10' : selectedKpi === 'expenses' ? 'border-rose-100 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10' : 'border-amber-100 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10'}`}
+                                        />
+                                        <svg className={`w-5 h-5 absolute left-4 top-3.5 transition-colors duration-300 ${cardSearchQuery ? (selectedKpi === 'sales' ? 'text-emerald-500' : selectedKpi === 'payroll' ? 'text-indigo-500' : selectedKpi === 'expenses' ? 'text-rose-500' : 'text-amber-500') : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        
+                                        {cardSearchQuery && (
+                                            <button 
+                                                onClick={() => setCardSearchQuery('')}
+                                                className="absolute right-3.5 top-3.5 p-0.5 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
+                                {[...((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []].filter((item: any) => !cardSearchQuery || String(item.name || '').toLowerCase().includes(cardSearchQuery.toLowerCase())).sort((a, b) => b.value - a.value).map((item: any, index: number) => {
                                     const origArr = (((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []);
                                     const origIdx = origArr.findIndex((x: any) => x.name === item.name);
                                     const activeColorIdx = origIdx >= 0 ? origIdx : index;
                                     const total = selectedKpi === 'sales' ? salesDetailData?.totalSales : selectedKpi === 'payroll' ? payrollDetailData?.totalPayroll : selectedKpi === 'expenses' ? expenseDetailData?.totalExpenses : (selectedKpi as string) === 'waste' ? wasteDetailData?.totalWaste : purchaseDetailData?.totalPurchases;
                                     return (
                                         <div 
-                                            key={index} 
-                                            className={`bg-white p-4 rounded-xl border border-slate-100 shadow-sm transition-all group flex justify-between items-center hover:shadow-md ${selectedKpi === 'sales' ? 'hover:border-emerald-200' : selectedKpi === 'payroll' ? 'hover:border-indigo-200' : selectedKpi === 'expenses' ? 'hover:border-rose-200' : 'hover:border-amber-200'}`}
+                                            key={index}
+                                            onClick={() => handleDrilldownClick(item, ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'][activeColorIdx % 7])}
+                                            className={`bg-white p-4 rounded-xl border border-slate-100 shadow-sm transition-all group flex justify-between items-center hover:shadow-md cursor-pointer ${selectedKpi === 'sales' ? 'hover:border-emerald-200' : selectedKpi === 'payroll' ? 'hover:border-indigo-200' : selectedKpi === 'expenses' ? 'hover:border-rose-200' : 'hover:border-amber-200'}`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-md group-hover:scale-110 transition-transform duration-300 text-xl" style={{ backgroundColor: [
@@ -890,6 +943,7 @@ export default function DashboardPage() {
                                         </div>
                                     );
                                 })}
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -898,6 +952,113 @@ export default function DashboardPage() {
                             <p className="font-bold">No hay datos suficientes para mostrar el análisis</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Drilldown Modal */}
+            {drilldownItem && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col h-[600px] max-h-[90vh]">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white shadow-lg text-2xl" style={{ backgroundColor: drilldownItem.color }}>
+                                    {drilldownItem.emoji || drilldownItem.name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                        {drilldownItem.name} 
+                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-slate-500 rounded-full ml-1 border border-slate-200 shadow-sm uppercase tracking-widest">
+                                            Desglose Diario
+                                        </span>
+                                    </h3>
+                                    <p className="text-xs text-slate-400 font-bold tracking-wider mt-1">
+                                        {drilldownItem.count && drilldownItem.count > 0 ? `${drilldownItem.count} ${drilldownItem.kpi === 'sales' ? 'Transacciones' : 'Registros'}` : 'Detalle'} 
+                                        <span className="ml-2 px-2 py-0.5 rounded-md bg-slate-200/50 text-slate-600 font-black">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(drilldownItem.value || 0)}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setDrilldownItem(null)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-all bg-white shadow-sm border border-slate-100">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50">
+                            {isDrilldownLoading ? (
+                                <div className="h-full w-full bg-slate-100/50 rounded-2xl animate-pulse"></div>
+                            ) : drilldownData.length > 0 ? (
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                                    <div className="lg:col-span-8 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm h-full max-h-[400px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={drilldownData} margin={{ top: 20, right: 30, left: 10, bottom: drilldownData.length > 15 ? 50 : 10 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                <XAxis 
+                                                    dataKey="name" 
+                                                    axisLine={false} 
+                                                    tickLine={false} 
+                                                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 700 }}
+                                                    dy={12}
+                                                    tickFormatter={(value) => `Día ${value}`}
+                                                    angle={drilldownData.length > 15 ? -45 : 0}
+                                                    textAnchor={drilldownData.length > 15 ? 'end' : 'middle'}
+                                                />
+                                                <YAxis hide />
+                                                <Tooltip 
+                                                    cursor={{ fill: '#f8fafc' }}
+                                                    content={({ active, payload }) => {
+                                                        if (active && payload && payload.length) {
+                                                            return (
+                                                                <div className="bg-white text-slate-800 text-xs font-bold px-4 py-3 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] border border-slate-200">
+                                                                    <p className="mb-1 text-slate-400">Día {payload[0].payload.name}</p>
+                                                                    <p className="text-xl text-slate-900 font-black">
+                                                                        {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payload[0].value as number)}
+                                                                    </p>
+                                                                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">
+                                                                        {payload[0].payload.count} operaciones
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    }}
+                                                />
+                                                <Bar 
+                                                    dataKey="value" 
+                                                    fill={drilldownItem.color} 
+                                                    radius={[6, 6, 0, 0]} 
+                                                    maxBarSize={45}
+                                                >
+                                                    {drilldownData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={drilldownItem.color} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="lg:col-span-4 flex flex-col gap-3 h-full max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {[...drilldownData].map((item, index) => (
+                                            <div key={index} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center hover:shadow-md transition-all group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-white shadow-sm text-xs group-hover:scale-110 transition-transform" style={{ backgroundColor: drilldownItem.color }}>
+                                                        {item.name}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-slate-800">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(item.value)}</h4>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                            {item.count} movs
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 font-bold bg-white rounded-2xl border border-dashed border-slate-200">
+                                    <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    No hay movimientos registrados para esta métrica.
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
