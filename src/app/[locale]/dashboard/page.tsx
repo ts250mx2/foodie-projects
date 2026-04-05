@@ -1265,12 +1265,28 @@ export default function DashboardPage() {
                                                         const iR = 0;
                                                         const oR = 120; // Reduced radius
                                                         const RADIAN = Math.PI / 180;
+                                                        const budgetAngle = 180.0 * (1 - (totalBudgetPercent / 100));
                                                         const ang = 180.0 * (1 - Math.min(100, Math.max(0, totalActualPercent)) / 100);
                                                         const sin = Math.sin(-RADIAN * ang);
                                                         const cos = Math.cos(-RADIAN * ang);
                                                         const length = (iR + 2 * oR) / 3;
+
+                                                        // Label positions
+                                                        const labelRadius = oR + 15;
+                                                        const getX = (a) => 100 + labelRadius * Math.cos(-RADIAN * a);
+                                                        const getY = (a) => 150 + labelRadius * Math.sin(-RADIAN * a);
+
                                                         return (
-                                                            <g transform={`translate(${110}, ${0})`}> {/* Adjusted centering for smaller modal */}
+                                                            <g transform={`translate(${110}, ${0})`}> 
+                                                                {/* 0% Label */}
+                                                                <text x={getX(180) - 5} y={getY(180)} textAnchor="end" fill="#94a3b8" fontSize="10" fontWeight="bold">0%</text>
+                                                                
+                                                                {/* Budget Label */}
+                                                                <text x={getX(budgetAngle)} y={getY(budgetAngle) - 5} textAnchor="middle" fill="#f43f5e" fontSize="11" fontWeight="black">META: {totalBudgetPercent.toFixed(0)}%</text>
+                                                                
+                                                                {/* 100% Label */}
+                                                                <text x={getX(0) + 5} y={getY(0)} textAnchor="start" fill="#94a3b8" fontSize="10" fontWeight="bold">100%</text>
+
                                                                 <circle cx={100} cy={150} r={5} fill="#ef4444" stroke="none" />
                                                                 <path 
                                                                     d={`M${100 - 2} 150 L${100 + 2} 150 L${100 + length * cos} ${150 + length * sin} Z`} 
