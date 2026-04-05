@@ -138,8 +138,8 @@ export default function BranchEmployeesModal({ isOpen, onClose, branchId, branch
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Employee Selector Section */}
                     <div>
-                        <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-6 rounded-xl border border-orange-200">
-                            <h3 className="text-sm font-bold text-orange-600 mb-4 uppercase">{t('addEmployee')}</h3>
+                        <div className="bg-gradient-to-br from-primary-50 to-pink-50 p-6 rounded-xl border border-primary-200">
+                            <h3 className="text-sm font-bold text-primary-600 mb-4 uppercase">{t('addEmployee')}</h3>
 
                             {/* Employee Search */}
                             <div className="relative">
@@ -155,7 +155,7 @@ export default function BranchEmployeesModal({ isOpen, onClose, branchId, branch
                                     }}
                                     onFocus={() => setShowEmployeeDropdown(true)}
                                     placeholder={t('searchEmployee')}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 />
                                 {showEmployeeDropdown && filteredEmployees.length > 0 && (
                                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
@@ -167,11 +167,11 @@ export default function BranchEmployeesModal({ isOpen, onClose, branchId, branch
                                                 <div
                                                     key={emp.IdEmpleado}
                                                     onClick={() => !isAssigned && handleEmployeeSelect(emp)}
-                                                    className={`px-3 py-2 ${isAssigned ? 'bg-gray-100 cursor-not-allowed opacity-50' : 'hover:bg-orange-50 cursor-pointer'}`}
+                                                    className={`px-3 py-2 ${isAssigned ? 'bg-gray-100 cursor-not-allowed opacity-50' : 'hover:bg-primary-50 cursor-pointer'}`}
                                                 >
                                                     <div className="font-medium">{emp.Empleado}</div>
                                                     <div className="text-xs text-gray-500">{emp.Puesto}</div>
-                                                    {isAssigned && <div className="text-xs text-orange-600">✓ Ya asignado</div>}
+                                                    {isAssigned && <div className="text-xs text-primary-600">✓ Ya asignado</div>}
                                                 </div>
                                             );
                                         })}

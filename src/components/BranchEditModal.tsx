@@ -248,7 +248,7 @@ export default function BranchEditModal({
                                         <select
                                             value={formData.managerId}
                                             onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
                                         >
                                             <option value="">-- Sin Gerente --</option>
                                             {employees.map(emp => (
@@ -266,7 +266,7 @@ export default function BranchEditModal({
                                     <textarea
                                         value={formData.address}
                                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                                         rows={3}
                                     />
                                 </div>

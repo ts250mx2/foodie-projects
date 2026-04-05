@@ -135,7 +135,7 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="px-6 py-4 bg-orange-600 text-white flex justify-between items-center shrink-0">
+                <div className="px-6 py-4 bg-primary-600 text-white flex justify-between items-center shrink-0">
                     <h2 className="text-xl font-bold">{t('title')}</h2>
                     <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors text-white">
                         ✕
@@ -148,7 +148,7 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
                         <input
                             type="text"
                             placeholder={t('searchPlaceholder')}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-sm"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -196,7 +196,7 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
                                 </tr>
                             ) : sortedSections.map((section) => (
                                 <tr key={section.IdSeccionMenu} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-l-4 border-l-transparent hover:border-l-orange-500">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-l-4 border-l-transparent hover:border-l-primary-500">
                                         {section.SeccionMenu}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
@@ -235,7 +235,7 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
                 {isAddEditModalOpen && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="bg-orange-500 px-6 py-4 text-white font-bold text-lg">
+                            <div className="bg-primary-500 px-6 py-4 text-white font-bold text-lg">
                                 {editingSection ? t('editSection') : t('addSection')}
                             </div>
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">

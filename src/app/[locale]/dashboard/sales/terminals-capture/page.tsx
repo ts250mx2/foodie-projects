@@ -337,7 +337,7 @@ export default function SalesTerminalsCapturePage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {branches.length === 0 && <option>{t('noBranches')}</option>}
                             {branches.map(branch => (
@@ -354,7 +354,7 @@ export default function SalesTerminalsCapturePage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{t(`months.${i}`)}</option>
@@ -368,7 +368,7 @@ export default function SalesTerminalsCapturePage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -417,18 +417,18 @@ export default function SalesTerminalsCapturePage() {
                                     aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-orange-400 shadow-orange-100'
+                                            ? 'bg-white border-2 border-primary-400 shadow-primary-100'
                                             : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
                                         }
                                     hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-orange-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-primary-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                            <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
                                                 {t('today') || 'HOY'}
                                             </span>
                                         )}
@@ -446,7 +446,7 @@ export default function SalesTerminalsCapturePage() {
                                     {/* Decorative background element for hover */}
                                     <div className={`
                                     absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-orange-600' : 'bg-blue-600'}
+                                    ${isToday ? 'bg-primary-600' : 'bg-blue-600'}
                                 `} />
                                 </div>
                             );
@@ -482,7 +482,7 @@ export default function SalesTerminalsCapturePage() {
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            className="bg-transparent text-xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-orange-200 rounded p-1"
+                                            className="bg-transparent text-xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-primary-200 rounded p-1"
                                             value={dailyTotalSale}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -502,7 +502,7 @@ export default function SalesTerminalsCapturePage() {
                                         <button
                                             onClick={handleSaveDailyTotal}
                                             disabled={isSavingDailyTotal}
-                                            className="bg-orange-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors"
+                                            className="bg-primary-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-primary-600 transition-colors"
                                         >
                                             {isSavingDailyTotal ? '...' : '💾'}
                                         </button>
@@ -510,7 +510,7 @@ export default function SalesTerminalsCapturePage() {
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🛒 Venta Capturada</label>
-                                    <div className="text-xl font-black text-orange-600">
+                                    <div className="text-xl font-black text-primary-600">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales)}
                                     </div>
                                 </div>
@@ -523,11 +523,11 @@ export default function SalesTerminalsCapturePage() {
                             </div>
 
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-orange-50 p-6 rounded-xl border border-orange-100 items-end shadow-sm">
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-primary-50 p-6 rounded-xl border border-primary-100 items-end shadow-sm">
                                 <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('shift')}</label>
+                                    <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('shift')}</label>
                                     <select
-                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         value={formData.shiftId}
                                         onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
                                         required
@@ -537,9 +537,9 @@ export default function SalesTerminalsCapturePage() {
                                     </select>
                                 </div>
                                 <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('terminal')}</label>
+                                    <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('terminal')}</label>
                                     <select
-                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         value={formData.terminalId}
                                         onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
                                         required
@@ -549,10 +549,10 @@ export default function SalesTerminalsCapturePage() {
                                     </select>
                                 </div>
                                 <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                        className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         value={formData.amount}
                                         onChange={(e) => {
                                             const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -571,7 +571,7 @@ export default function SalesTerminalsCapturePage() {
                                         placeholder="0.00"
                                     />
                                 </div>
-                                <button type="submit" className="bg-orange-500 text-white p-2.5 rounded-lg hover:bg-orange-600 font-bold transition-all shadow-md active:scale-95">
+                                <button type="submit" className="bg-primary-500 text-white p-2.5 rounded-lg hover:bg-primary-600 font-bold transition-all shadow-md active:scale-95">
                                     {tModal('add')}
                                 </button>
                             </form>
@@ -597,7 +597,7 @@ export default function SalesTerminalsCapturePage() {
                                             ) : (
                                                 dailySales.map((sale, idx) => {
                                                     return (
-                                                        <tr key={idx} className="hover:bg-orange-50/30 transition-colors group">
+                                                        <tr key={idx} className="hover:bg-primary-50/30 transition-colors group">
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.Terminal}</td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">

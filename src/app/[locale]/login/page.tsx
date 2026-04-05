@@ -66,11 +66,11 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo/Title */}
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
                         Foodie Guru
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">{t('loginTitle')}</p>
@@ -100,7 +100,7 @@ export default function LoginPage() {
                         />
 
                         <div className="flex justify-end">
-                            <Link href="/forgot-password" className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline">
+                            <Link href="/forgot-password" className="text-sm text-primary-500 hover:text-primary-600 font-medium hover:underline">
                                 {t('forgotPassword') || '¿Olvidaste tu contraseña?'}
                             </Link>
                         </div>
@@ -122,7 +122,7 @@ export default function LoginPage() {
                     <div className="mt-6 text-center">
                         <p className="text-gray-600 dark:text-gray-400">
                             {t('noAccount')}{' '}
-                            <Link href="/register" className="text-orange-500 hover:text-orange-600 font-medium transition-colors">
+                            <Link href="/register" className="text-primary-500 hover:text-primary-600 font-medium transition-colors">
                                 {t('registerLink')}
                             </Link>
                         </p>
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
                 {/* Back to Home */}
                 <div className="mt-6 text-center">
-                    <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 transition-colors">
+                    <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">
                         ← {t('backToHome')}
                     </Link>
                 </div>

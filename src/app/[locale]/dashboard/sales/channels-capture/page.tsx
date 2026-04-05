@@ -544,7 +544,7 @@ export default function SalesChannelsCapturePage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {branches.length === 0 && <option>{t('noBranches')}</option>}
                             {branches.map(branch => (
@@ -561,7 +561,7 @@ export default function SalesChannelsCapturePage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{t(`months.${i}`)}</option>
@@ -575,7 +575,7 @@ export default function SalesChannelsCapturePage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -624,18 +624,18 @@ export default function SalesChannelsCapturePage() {
                                     aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-orange-400 shadow-orange-100'
+                                            ? 'bg-white border-2 border-primary-400 shadow-primary-100'
                                             : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
                                         }
                                     hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-orange-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-primary-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                            <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
                                                 {t('today') || 'HOY'}
                                             </span>
                                         )}
@@ -713,7 +713,7 @@ export default function SalesChannelsCapturePage() {
                                     {/* Decorative background element for hover */}
                                     <div className={`
                                     absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-orange-600' : 'bg-blue-600'}
+                                    ${isToday ? 'bg-primary-600' : 'bg-blue-600'}
                                 `} />
                                 </div>
                             );
@@ -752,7 +752,7 @@ export default function SalesChannelsCapturePage() {
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
-                                            className="bg-transparent text-2xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-orange-200 rounded p-1"
+                                            className="bg-transparent text-2xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-primary-200 rounded p-1"
                                             value={dailyTotalSale}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -772,7 +772,7 @@ export default function SalesChannelsCapturePage() {
                                         <button
                                             onClick={handleSaveDailyTotal}
                                             disabled={isSavingDailyTotal}
-                                            className="bg-orange-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors shadow-sm active:scale-95"
+                                            className="bg-primary-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-primary-600 transition-colors shadow-sm active:scale-95"
                                         >
                                             {isSavingDailyTotal ? '...' : '💾'}
                                         </button>
@@ -904,7 +904,7 @@ export default function SalesChannelsCapturePage() {
                                         <div className="flex flex-col">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('shift')}</label>
                                             <select
-                                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                                 value={formData.shiftId}
                                                 onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
                                                 required
@@ -918,7 +918,7 @@ export default function SalesChannelsCapturePage() {
                                             <div className="flex flex-col md:col-span-2">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Canal</label>
                                                 <select
-                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                                     value={formData.channelId}
                                                     onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
                                                     required={activeTab === 'channels'}
@@ -931,7 +931,7 @@ export default function SalesChannelsCapturePage() {
                                             <div className="flex flex-col md:col-span-2">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Forma de Pago</label>
                                                 <select
-                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                                     value={formData.terminalId}
                                                     onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
                                                     required={activeTab === 'payments'}
@@ -946,7 +946,7 @@ export default function SalesChannelsCapturePage() {
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('amount')}</label>
                                             <input
                                                 type="text"
-                                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                                 value={formData.amount}
                                                 onChange={(e) => {
                                                     const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -993,7 +993,7 @@ export default function SalesChannelsCapturePage() {
                                                             dailySales.map((sale, idx) => {
                                                                 const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
                                                                 return (
-                                                                    <tr key={idx} className="hover:bg-orange-50/30 transition-colors group">
+                                                                    <tr key={idx} className="hover:bg-primary-50/30 transition-colors group">
                                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
                                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
                                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
@@ -1095,7 +1095,7 @@ export default function SalesChannelsCapturePage() {
                                         <div className="flex flex-col">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tNotes('label')}</label>
                                             <textarea
-                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all min-h-[100px]"
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all min-h-[100px]"
                                                 value={noteFormData.note}
                                                 onChange={(e) => setNoteFormData(prev => ({ ...prev, note: e.target.value }))}
                                                 placeholder={tNotes('placeholder')}
@@ -1119,7 +1119,7 @@ export default function SalesChannelsCapturePage() {
                                                 <input
                                                     type="file"
                                                     onChange={handleFileChange}
-                                                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 w-full"
+                                                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 w-full"
                                                 />
                                             </div>
                                             <div className="flex gap-2">
@@ -1137,7 +1137,7 @@ export default function SalesChannelsCapturePage() {
                                                 )}
                                                 <button
                                                     type="submit"
-                                                    className="px-6 py-2 rounded-lg text-sm font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-100 transition-all active:scale-95"
+                                                    className="px-6 py-2 rounded-lg text-sm font-bold bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-100 transition-all active:scale-95"
                                                 >
                                                     {editingNote ? tCommon('save') : tNotes('save')}
                                                 </button>

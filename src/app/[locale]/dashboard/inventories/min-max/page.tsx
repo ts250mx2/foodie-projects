@@ -218,7 +218,7 @@ export default function MinMaxPage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm font-bold bg-gray-50/50"
+                            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm font-bold bg-gray-50/50"
                         >
                             {branches.map(branch => (
                                 <option key={branch.IdSucursal} value={branch.IdSucursal}>
@@ -246,7 +246,7 @@ export default function MinMaxPage() {
                             placeholder={t('searchProduct')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                         />
                     </div>
                     <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -257,7 +257,7 @@ export default function MinMaxPage() {
                 <div className="flex-1 overflow-auto p-4 space-y-4">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
-                            <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
                             <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">{t('loading')}</p>
                         </div>
                     ) : Object.keys(groupedEntries).length === 0 ? (
@@ -316,7 +316,7 @@ export default function MinMaxPage() {
                                                                 step="0.01"
                                                                 value={editedValues[entry.IdProducto]?.max ?? 0}
                                                                 onChange={(e) => handleValueChange(entry.IdProducto, 'max', e.target.value)}
-                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none"
                                                             />
                                                         </td>
                                                         <td className="px-4 py-2">
@@ -325,7 +325,7 @@ export default function MinMaxPage() {
                                                                 step="0.01"
                                                                 value={editedValues[entry.IdProducto]?.min ?? 0}
                                                                 onChange={(e) => handleValueChange(entry.IdProducto, 'min', e.target.value)}
-                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none"
                                                             />
                                                         </td>
                                                     </tr>

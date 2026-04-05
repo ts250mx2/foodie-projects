@@ -63,11 +63,24 @@ export async function GET(request: NextRequest) {
             [branchId, monthNum, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
+        // 5. Group by Product
+        const [productRows] = (await connection.query(
+            `SELECT p.Producto as name, c.ImagenCategoria as emoji, c.Categoria as categoryName, SUM(d.Cantidad * d.Costo) as value, COUNT(DISTINCT co.IdCompra) as count
+             FROM tblCompras co
+             JOIN tblDetalleCompras d ON co.IdCompra = d.IdCompra
+             JOIN tblProductos p ON d.IdProducto = p.IdProducto
+             LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
+             WHERE co.IdSucursal = ? AND MONTH(co.FechaCompra) = ? AND YEAR(co.FechaCompra) = ? AND co.Status != 2
+             GROUP BY p.Producto, c.ImagenCategoria, c.Categoria`,
+            [branchId, monthNum, year]
+        )) as [RowDataPacket[], FieldPacket[]];
+
         return NextResponse.json({
             success: true,
             data: {
                 categories: categoryRows,
                 providers: providerRows,
+                products: productRows,
                 days: dayRows,
                 totalPurchases
             }

@@ -307,7 +307,7 @@ export default function ExpenseConceptsPage() {
                                     }}
                                     onFocus={() => setShowPaymentChannelDropdown(true)}
                                     placeholder="Buscar canal de pago (opcional)"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 />
                                 {showPaymentChannelDropdown && (
                                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
@@ -322,7 +322,7 @@ export default function ExpenseConceptsPage() {
                                                         setPaymentChannelSearch(c.CanalPago);
                                                         setShowPaymentChannelDropdown(false);
                                                     }}
-                                                    className="px-3 py-2 hover:bg-orange-50 cursor-pointer"
+                                                    className="px-3 py-2 hover:bg-primary-50 cursor-pointer"
                                                 >
                                                     <div className="font-medium text-sm">{c.CanalPago}</div>
                                                 </div>

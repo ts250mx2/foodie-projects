@@ -444,7 +444,7 @@ export default function MobileInstructionsPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Header */}
-            <header className="bg-orange-600 text-white p-4 sticky top-0 z-10 shadow-md flex items-center gap-4">
+            <header className="bg-primary-600 text-white p-4 sticky top-0 z-10 shadow-md flex items-center gap-4">
                 {productDetails?.ArchivoImagen ? (
                     <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/50 flex-shrink-0 bg-white shadow-sm flex items-center justify-center">
                         <img
@@ -475,14 +475,14 @@ export default function MobileInstructionsPage() {
                 {/* Global loading state overlay */}
                 {isUploading && (
                     <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
-                        <p className="font-bold text-orange-600 tracking-widest uppercase">Subiendo archivo...</p>
+                        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4" />
+                        <p className="font-bold text-primary-600 tracking-widest uppercase">Subiendo archivo...</p>
                     </div>
                 )}
 
                 {isLoading ? (
                     <div className="flex justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -543,7 +543,7 @@ export default function MobileInstructionsPage() {
                                             <div className="grid grid-cols-3 gap-2 mt-1">
                                                 <button
                                                     onClick={() => startRecording(instruction.numeroPaso)}
-                                                    className="w-full text-[9px] bg-white border border-blue-200 text-orange-600 px-1 py-1.5 rounded font-bold uppercase flex flex-col justify-center items-center gap-0.5 relative active:bg-orange-50"
+                                                    className="w-full text-[9px] bg-white border border-blue-200 text-primary-600 px-1 py-1.5 rounded font-bold uppercase flex flex-col justify-center items-center gap-0.5 relative active:bg-primary-50"
                                                 >
                                                     <span className="text-sm">🎥</span> Grabar
                                                 </button>
@@ -565,7 +565,7 @@ export default function MobileInstructionsPage() {
                                         <div className="w-full grid grid-cols-2 gap-2">
                                             <button
                                                 onClick={() => startRecording(instruction.numeroPaso)}
-                                                className="flex flex-col items-center justify-center p-3 rounded-lg bg-orange-50 border border-orange-100 text-orange-600 active:bg-orange-100 transition-colors"
+                                                className="flex flex-col items-center justify-center p-3 rounded-lg bg-primary-50 border border-primary-100 text-primary-600 active:bg-primary-100 transition-colors"
                                             >
                                                 <span className="text-xl mb-1">🎥</span>
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Grabar Video</span>
@@ -599,14 +599,14 @@ export default function MobileInstructionsPage() {
                     <textarea
                         value={newInstruction}
                         onChange={(e) => setNewInstruction(e.target.value)}
-                        className="flex-1 bg-gray-50 border border-gray-300 rounded-lg p-3 text-sm resize-none focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 h-12"
+                        className="flex-1 bg-gray-50 border border-gray-300 rounded-lg p-3 text-sm resize-none focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 h-12"
                         placeholder="Escribe un nuevo paso..."
                         rows={1}
                     />
                     <button
                         onClick={handleAddInstruction}
                         disabled={isSaving || !newInstruction.trim()}
-                        className="bg-orange-600 text-white rounded-lg px-6 font-bold shadow-sm active:transform active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center"
+                        className="bg-primary-600 text-white rounded-lg px-6 font-bold shadow-sm active:transform active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center"
                     >
                         {isSaving ? '...' : '✚'}
                     </button>

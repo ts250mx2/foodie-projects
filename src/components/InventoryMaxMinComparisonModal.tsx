@@ -195,7 +195,7 @@ export default function InventoryMaxMinComparisonModal({
                 <div className="flex-1 overflow-auto p-6">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
-                            <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
                             <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{tCommon('loading')}</p>
                         </div>
                     ) : comparisonData.length === 0 ? (
@@ -223,7 +223,7 @@ export default function InventoryMaxMinComparisonModal({
                                             </td>
                                             <td className="px-4 py-3 text-center font-bold text-gray-600">{item.Minimo}</td>
                                             <td className="px-4 py-3 text-center font-bold text-gray-600">{item.Maximo}</td>
-                                            <td className="px-4 py-3 text-center font-bold text-orange-600">{item.Cantidad}</td>
+                                            <td className="px-4 py-3 text-center font-bold text-primary-600">{item.Cantidad}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`
                                                     px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border

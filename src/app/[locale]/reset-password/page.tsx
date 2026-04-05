@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
             <div className="min-h-screen flex items-center justify-center p-4">
                 <div className="text-center">
                     <h1 className="text-xl text-red-500 mb-4">{locale === 'en' ? 'Invalid Link' : 'Enlace Inválido'}</h1>
-                    <Link href="/login" className="text-orange-500 hover:underline">
+                    <Link href="/login" className="text-primary-500 hover:underline">
                         {locale === 'en' ? 'Go to Login' : 'Ir a Iniciar Sesión'}
                     </Link>
                 </div>
@@ -75,10 +75,10 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
                         Foodie Guru
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">

@@ -28,7 +28,7 @@ export default function Button({
 
     const variantStyles = {
         primary: 'shadow-lg hover:shadow-xl transform hover:-translate-y-0.5',
-        secondary: 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5',
+        secondary: 'bg-secondary-800 hover:bg-secondary-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5',
         outline: 'border-2 hover:bg-opacity-10',
     };
 

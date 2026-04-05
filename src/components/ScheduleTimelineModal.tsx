@@ -238,7 +238,7 @@ export default function ScheduleTimelineModal({
                                 setSelectedBranchId(e.target.value);
                                 fetchEmployees(e.target.value);
                             }}
-                            className="p-2 border rounded-lg text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-orange-500"
+                            className="p-2 border rounded-lg text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-primary-500"
                         >
                             {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
                         </select>
@@ -246,7 +246,7 @@ export default function ScheduleTimelineModal({
                         <select
                             value={selectedEmployeeId}
                             onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                            className="p-2 border rounded-lg text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-orange-500 min-w-[200px]"
+                            className="p-2 border rounded-lg text-sm bg-white shadow-sm outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
                         >
                             <option value="">Seleccionar Empleado...</option>
                             {employees.map(e => (
@@ -271,8 +271,8 @@ export default function ScheduleTimelineModal({
                         <div className="flex border-b sticky top-0 bg-white z-20">
                             <div className="w-24 p-3 border-r bg-gray-50 text-xs font-bold text-gray-400 uppercase text-center">Hora</div>
                             {weekSchedule.map((day, i) => (
-                                <div key={day.date} className="flex-1 p-3 border-r last:border-r-0 text-center bg-orange-50/50">
-                                    <div className="text-xs font-bold text-orange-600 uppercase">{dayNames[i]}</div>
+                                <div key={day.date} className="flex-1 p-3 border-r last:border-r-0 text-center bg-primary-50/50">
+                                    <div className="text-xs font-bold text-primary-600 uppercase">{dayNames[i]}</div>
                                     <div className="text-[10px] text-gray-500">{new Date(day.date + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</div>
                                 </div>
                             ))}
@@ -301,8 +301,8 @@ export default function ScheduleTimelineModal({
                                                                 className={`
                                                                     flex-1 border-r last:border-r-0 cursor-pointer transition-all duration-75 group/slot relative
                                                                     ${day.slots[slotIdx]
-                                                                        ? 'bg-orange-500'
-                                                                        : 'hover:bg-orange-100/50'
+                                                                        ? 'bg-primary-500'
+                                                                        : 'hover:bg-primary-100/50'
                                                                     }
                                                                 `}
                                                             >

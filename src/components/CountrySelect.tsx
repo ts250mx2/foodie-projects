@@ -66,8 +66,8 @@ export default function CountrySelect({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full px-4 py-3 rounded-lg border-2 text-left flex items-center justify-between ${error
                     ? 'border-red-500 focus:border-red-600'
-                    : 'border-gray-300 hover:border-orange-500 dark:border-gray-600 dark:hover:border-orange-400'
-                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 outline-none focus:ring-2 focus:ring-orange-500/20`}
+                    : 'border-gray-300 hover:border-primary-500 dark:border-gray-600 dark:hover:border-primary-400'
+                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 outline-none focus:ring-2 focus:ring-primary-500/20`}
             >
                 <span className={!selectedCountry ? 'text-gray-400' : ''}>
                     {selectedCountry ? (
@@ -103,7 +103,7 @@ export default function CountrySelect({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Buscar país..."
-                            className="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 text-sm"
+                            className="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
                             autoFocus
                         />
                     </div>
@@ -124,7 +124,7 @@ export default function CountrySelect({
                                         setIsOpen(false);
                                         setSearch('');
                                     }}
-                                    className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors ${value === country.name ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium' : 'text-gray-700 dark:text-gray-200'
+                                    className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors ${value === country.name ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-700 dark:text-gray-200'
                                         }`}
                                 >
                                     <img
@@ -134,7 +134,7 @@ export default function CountrySelect({
                                     />
                                     <span className="truncate">{country.name}</span>
                                     {value === country.name && (
-                                        <svg className="w-4 h-4 ml-auto text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 ml-auto text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                         </svg>
                                     )}

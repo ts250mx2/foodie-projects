@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         const branchId = parseInt(branchIdStr);
         const year = parseInt(yearStr);
-        
+
         let month = parseInt(monthStr);
         let monthNum = month + 1; // 1-12 for SQL
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         } else if (kpi === 'purchases') {
             params = [branchId, monthNum, year, itemName];
             if (grouping === 'categories') {
-                query = `SELECT CAST(DAY(co.FechaCompra) AS CHAR) as name, SUM(d.Cantidad * d.Costo) as value, COUNT(DISTINCT co.IdCompra) as count
+                query = `SELECT DAY(co.FechaCompra) as name, SUM(d.Cantidad * d.Costo) as value, COUNT(DISTINCT co.IdCompra) as count
                          FROM tblCompras co
                          JOIN tblDetalleCompras d ON co.IdCompra = d.IdCompra
                          JOIN tblProductos p ON d.IdProducto = p.IdProducto
@@ -95,19 +95,32 @@ export async function GET(request: NextRequest) {
                          WHERE co.IdSucursal = ? AND MONTH(co.FechaCompra) = ? AND YEAR(co.FechaCompra) = ? AND co.Status != 2 AND c.Categoria = ?
                          GROUP BY DAY(co.FechaCompra) ORDER BY DAY(co.FechaCompra) ASC`;
             } else if (grouping === 'providers') {
-                query = `SELECT CAST(DAY(co.FechaCompra) AS CHAR) as name, SUM(co.Total) as value, COUNT(co.IdCompra) as count
+                query = `SELECT DAY(co.FechaCompra) as name, SUM(co.Total) as value, COUNT(co.IdCompra) as count
                          FROM tblCompras co JOIN tblProveedores p ON co.IdProveedor = p.IdProveedor
                          WHERE co.IdSucursal = ? AND MONTH(co.FechaCompra) = ? AND YEAR(co.FechaCompra) = ? AND co.Status != 2 AND p.Proveedor = ?
+                         GROUP BY DAY(co.FechaCompra) ORDER BY DAY(co.FechaCompra) ASC`;
+            } else if (grouping === 'products') {
+                query = `SELECT DAY(co.FechaCompra) as name, SUM(d.Cantidad * d.Costo) as value, COUNT(DISTINCT co.IdCompra) as count
+                         FROM tblCompras co
+                         JOIN tblDetalleCompras d ON co.IdCompra = d.IdCompra
+                         JOIN tblProductos p ON d.IdProducto = p.IdProducto
+                         WHERE co.IdSucursal = ? AND MONTH(co.FechaCompra) = ? AND YEAR(co.FechaCompra) = ? AND co.Status != 2 AND p.Producto = ?
                          GROUP BY DAY(co.FechaCompra) ORDER BY DAY(co.FechaCompra) ASC`;
             }
         } else if (kpi === 'waste') {
             params = [branchId, monthNum, year, itemName];
             if (grouping === 'categories') {
-                query = `SELECT CAST(m.Dia AS CHAR) as name, SUM(m.Cantidad * m.Precio) as value, COUNT(m.IdProducto) as count
+                query = `SELECT m.Dia as name, SUM(m.Cantidad * m.Precio) as value, COUNT(m.IdProducto) as count
                          FROM tblMermas m
                          JOIN tblProductos p ON m.IdProducto = p.IdProducto
                          LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
                          WHERE m.IdSucursal = ? AND m.Mes = ? AND m.Anio = ? AND c.Categoria = ?
+                         GROUP BY m.Dia ORDER BY m.Dia ASC`;
+            } else if (grouping === 'products') {
+                query = `SELECT m.Dia as name, SUM(m.Cantidad * m.Precio) as value, COUNT(*) as count
+                         FROM tblMermas m
+                         JOIN tblProductos p ON m.IdProducto = p.IdProducto
+                         WHERE m.IdSucursal = ? AND m.Mes = ? AND m.Anio = ? AND p.Producto = ?
                          GROUP BY m.Dia ORDER BY m.Dia ASC`;
             }
         }
@@ -117,7 +130,7 @@ export async function GET(request: NextRequest) {
         }
 
         const [rows] = (await connection.query(query, params)) as [RowDataPacket[], FieldPacket[]];
-        
+
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
         console.error('Error fetching drilldown details:', error);

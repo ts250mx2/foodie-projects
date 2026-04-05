@@ -371,7 +371,7 @@ export default function SalesCapturePage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {branches.length === 0 && <option>{t('noBranches')}</option>}
                             {branches.map(branch => (
@@ -387,7 +387,7 @@ export default function SalesCapturePage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{t(`months.${i}`)}</option>
@@ -400,7 +400,7 @@ export default function SalesCapturePage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -412,7 +412,7 @@ export default function SalesCapturePage() {
 
             {/* Calendar */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-orange-500 border-b border-orange-600">
+                <div className="grid grid-cols-7 bg-primary-500 border-b border-primary-600">
                     {weekDays.map(day => (
                         <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                             {t(`days.${day}`)}
@@ -434,13 +434,13 @@ export default function SalesCapturePage() {
                                 key={date.toISOString()}
                                 onClick={() => handleDayClick(date)}
                                 className={`
-                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-orange-50 cursor-pointer group min-h-[120px] flex flex-col
-                                    ${isToday ? 'bg-orange-50/30' : ''}
+                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-primary-50 cursor-pointer group min-h-[120px] flex flex-col
+                                    ${isToday ? 'bg-primary-50/30' : ''}
                                 `}
                             >
                                 <span className={`
                                     text-sm font-medium
-                                    ${isToday ? 'bg-orange-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
+                                    ${isToday ? 'bg-primary-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
                                 `}>
                                     {date.getDate()}
                                 </span>
@@ -623,9 +623,9 @@ export default function SalesCapturePage() {
 
                             {activeTab === 'notes' && (
                                 <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
-                                    <form onSubmit={handleNoteSubmit} className="flex flex-col gap-4 bg-orange-50/50 p-6 rounded-xl border border-orange-100 shadow-sm">
+                                    <form onSubmit={handleNoteSubmit} className="flex flex-col gap-4 bg-primary-50/50 p-6 rounded-xl border border-primary-100 shadow-sm">
                                         <div className="flex justify-between items-center mb-1">
-                                            <h3 className="text-sm font-black text-orange-900/60 uppercase tracking-widest flex items-center gap-2">
+                                            <h3 className="text-sm font-black text-primary-900/60 uppercase tracking-widest flex items-center gap-2">
                                                 {editingNote ? '📝 ' + tNotes('edit') : '✨ ' + tNotes('add')}
                                             </h3>
                                             {editingNote && (
@@ -635,7 +635,7 @@ export default function SalesCapturePage() {
                                                         setEditingNote(null);
                                                         setNoteFormData({ note: '', file: null });
                                                     }}
-                                                    className="text-xs font-bold text-orange-600 hover:underline"
+                                                    className="text-xs font-bold text-primary-600 hover:underline"
                                                 >
                                                     {tCommon('cancel')}
                                                 </button>
@@ -643,7 +643,7 @@ export default function SalesCapturePage() {
                                         </div>
                                         
                                         <textarea
-                                            className="w-full p-4 border border-orange-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white min-h-[120px] transition-all resize-none font-medium placeholder:text-gray-300"
+                                            className="w-full p-4 border border-primary-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white min-h-[120px] transition-all resize-none font-medium placeholder:text-gray-300"
                                             value={noteFormData.note}
                                             onChange={(e) => setNoteFormData({ ...noteFormData, note: e.target.value })}
                                             placeholder={tNotes('placeholder')}
@@ -652,7 +652,7 @@ export default function SalesCapturePage() {
 
                                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                                             <div className="flex items-center gap-3 w-full md:w-auto">
-                                                <label className="flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-lg text-xs font-bold text-orange-700 cursor-pointer hover:bg-orange-50 transition-all shadow-sm active:scale-95">
+                                                <label className="flex items-center gap-2 px-4 py-2 bg-white border border-primary-200 rounded-lg text-xs font-bold text-primary-700 cursor-pointer hover:bg-primary-50 transition-all shadow-sm active:scale-95">
                                                     📎 {tNotes('attachFile')}
                                                     <input type="file" className="hidden" onChange={handleFileChange} />
                                                 </label>
@@ -669,7 +669,7 @@ export default function SalesCapturePage() {
                                             </div>
                                             <button 
                                                 type="submit" 
-                                                className="w-full md:w-auto bg-orange-600 text-white px-8 py-2.5 rounded-lg hover:bg-orange-700 font-bold shadow-md transition-all active:scale-95"
+                                                className="w-full md:w-auto bg-primary-600 text-white px-8 py-2.5 rounded-lg hover:bg-primary-700 font-bold shadow-md transition-all active:scale-95"
                                             >
                                                 {editingNote ? tCommon('save') : tNotes('save')}
                                             </button>
@@ -684,7 +684,7 @@ export default function SalesCapturePage() {
                                             <div className="py-12 text-center text-gray-400 italic bg-gray-50 rounded-2xl border border-dashed border-gray-200">{tNotes('noNotes')}</div>
                                         ) : (
                                             notes.map((note) => (
-                                                <div key={note.IdNota} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all group border-l-4 border-l-orange-500">
+                                                <div key={note.IdNota} className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all group border-l-4 border-l-primary-500">
                                                     <div className="flex justify-between items-start gap-4">
                                                         <div className="flex-1">
                                                             <p className="text-sm text-gray-700 font-medium whitespace-pre-wrap leading-relaxed">{note.Nota}</p>

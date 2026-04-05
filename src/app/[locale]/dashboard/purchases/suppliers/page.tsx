@@ -322,7 +322,7 @@ export default function SuppliersPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600"
+                                    className="px-4 py-2 text-white bg-primary-500 rounded hover:bg-primary-600"
                                 >
                                     {t('save')}
                                 </button>

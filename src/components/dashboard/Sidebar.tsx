@@ -61,7 +61,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'branches', href: '/dashboard/settings/branches', emoji: '📍' },
                 { key: 'employees', href: '/dashboard/payroll/employees', emoji: '👥' },
                 { key: 'taxes', href: '/dashboard/config/taxes', emoji: '🧾' },
-                { key: 'tips', href: '/dashboard/settings/tips', emoji: '💰' }
+                { key: 'tips', href: '/dashboard/settings/tips', emoji: '💰' },
+                { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', emoji: '📈' }
             ]
         },
         {

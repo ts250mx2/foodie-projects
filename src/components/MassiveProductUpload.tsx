@@ -195,7 +195,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                 onDrop={onDrop}
                 className={`
                     border-2 border-dashed rounded-xl p-6 mb-8 flex flex-col items-center justify-center transition-all cursor-pointer
-                    ${isDragging ? 'border-orange-500 bg-orange-50' : 'border-gray-300 bg-white hover:border-gray-400'}
+                    ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 bg-white hover:border-gray-400'}
                 `}
             >
                 <input
@@ -222,8 +222,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                         <div className="flex flex-col gap-2">
                             <h2 className="font-semibold text-gray-800">Vista Previa de Datos ({uploadedData.length})</h2>
                             <div className="flex flex-wrap gap-2 text-[10px]">
-                                <span className="flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 italic">
-                                    <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                                <span className="flex items-center gap-1 text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 italic">
+                                    <span className="w-1.5 h-1.5 bg-primary-400 rounded-full"></span>
                                     Advertencia: Duplicado o Inexistente en el sistema
                                 </span>
                             </div>
@@ -257,7 +257,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                     const hasIssues = hasDuplicateCode || hasDuplicateName || hasInvalidCategory;
 
                                     return (
-                                        <tr key={idx} className={`hover:bg-gray-50 transition-colors ${hasIssues ? 'bg-orange-50/20' : ''}`}>
+                                        <tr key={idx} className={`hover:bg-gray-50 transition-colors ${hasIssues ? 'bg-primary-50/20' : ''}`}>
                                             {Object.keys(uploadedData[0]).map((key, vIdx) => {
                                                 const val = row[key];
                                                 const isCodeIssue = key === 'Codigo' && hasDuplicateCode;
@@ -272,11 +272,11 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                                 if (isCatIssue) title = "Esta categoría no existe en el sistema";
 
                                                 return (
-                                                    <td key={vIdx} className={`px-4 py-3 text-gray-700 ${isCritical ? 'text-orange-600 font-medium' : ''}`}>
+                                                    <td key={vIdx} className={`px-4 py-3 text-gray-700 ${isCritical ? 'text-primary-600 font-medium' : ''}`}>
                                                         <div className="flex items-center gap-2">
                                                             {val}
                                                             {isCritical && (
-                                                                <span title={title} className="cursor-help text-orange-500">
+                                                                <span title={title} className="cursor-help text-primary-500">
                                                                     ⚠️
                                                                 </span>
                                                             )}

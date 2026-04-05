@@ -374,7 +374,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                                             📝
                                                         </button>
                                                         <button
-                                                            className="p-1.5 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors"
+                                                            className="p-1.5 hover:bg-primary-50 text-primary-600 rounded-lg transition-colors"
                                                             title="Explosión"
                                                             onClick={() => alert('Para ver la explosión total, usa el botón abajo.')}
                                                         >
@@ -418,7 +418,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     <div className="flex gap-3 w-full md:w-auto">
                         <button
                             onClick={() => setIsExplosionOpen(true)}
-                            className="flex-1 md:flex-none px-6 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold transition-all shadow-md shadow-orange-200"
+                            className="flex-1 md:flex-none px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-bold transition-all shadow-md shadow-primary-200"
                         >
                             💥 Explosión Total
                         </button>

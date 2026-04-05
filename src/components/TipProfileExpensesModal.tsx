@@ -127,7 +127,7 @@ export default function TipProfileExpensesModal({ isOpen, onClose, profileId, pr
 
                 <div className="bg-white border rounded-lg overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-orange-500">
+                        <thead className="bg-primary-500">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                                     Concepto

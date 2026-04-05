@@ -21,8 +21,8 @@ export default function Input({
             <input
                 className={`w-full px-4 py-3 rounded-lg border-2 ${error
                     ? 'border-red-500 focus:border-red-600'
-                    : 'border-gray-300 focus:border-orange-500 dark:border-gray-600 dark:focus:border-orange-400'
-                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200 ${className}`}
+                    : 'border-gray-300 focus:border-primary-500 dark:border-gray-600 dark:focus:border-primary-400'
+                    } bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 ${className}`}
                 {...props}
             />
             {error && (

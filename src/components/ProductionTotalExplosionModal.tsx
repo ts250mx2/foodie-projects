@@ -134,7 +134,7 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
                                                         <span className="text-sm font-bold text-gray-700 uppercase tracking-wider">
                                                             {group.categoryName}
                                                         </span>
-                                                        <span className="text-sm font-bold text-orange-700">
+                                                        <span className="text-sm font-bold text-primary-700">
                                                             Subtotal: ${group.subtotal.toFixed(2)}
                                                         </span>
                                                     </div>

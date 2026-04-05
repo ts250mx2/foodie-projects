@@ -23,7 +23,7 @@ export default function LanguageSwitcher() {
                 defaultValue={locale}
                 onChange={onSelectChange}
                 disabled={isPending}
-                className="appearance-none bg-white/10 backdrop-blur-md border border-white/20 text-gray-800 dark:text-white px-4 py-2 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 hover:bg-white/20 transition-colors cursor-pointer"
+                className="appearance-none bg-white/10 backdrop-blur-md border border-white/20 text-gray-800 dark:text-white px-4 py-2 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 hover:bg-white/20 transition-colors cursor-pointer"
                 style={{
                     colorScheme: 'auto',
                     WebkitAppearance: 'none',

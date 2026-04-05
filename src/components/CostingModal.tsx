@@ -1482,7 +1482,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             type="button"
                                             onClick={handleFetchMarketPrices}
                                             disabled={isMarketPricesLoading}
-                                            className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                            className="text-[9px] bg-primary-100 text-primary-700 border border-primary-200 px-1.5 py-0.5 rounded hover:bg-primary-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
                                             title="Buscar Precios en Mercado"
                                         >
                                             {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
@@ -1491,7 +1491,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div className="w-full">
                                         <input
                                             type="text"
-                                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-orange-500 dark:border-gray-600 dark:focus:border-orange-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200"
+                                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-primary-500 dark:border-gray-600 dark:focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
                                             value={formData.codigo}
                                             onChange={(e) => setFormData({ ...formData, codigo: e.target.value.toUpperCase() })}
                                             required
@@ -1641,7 +1641,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                     type="text"
                                                                     value={newMenuSectionName}
                                                                     onChange={(e) => setNewMenuSectionName(e.target.value)}
-                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
+                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 outline-none h-full"
                                                                     placeholder="Nueva Sección..."
                                                                     autoFocus
                                                                     onKeyDown={(e) => {
@@ -1669,7 +1669,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 {menuSections.map(sec => (
                                                                     <option key={sec.IdSeccionMenu} value={sec.IdSeccionMenu}>{sec.SeccionMenu}</option>
                                                                 ))}
-                                                                <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
+                                                                <option value="NEW" className="font-bold text-primary-600">+ Agregar Nueva...</option>
                                                             </select>
                                                         )}
                                                     </div>
@@ -1724,7 +1724,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         type="text"
                                                                         value={newPresentationName}
                                                                         onChange={(e) => setNewPresentationName(e.target.value)}
-                                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 outline-none h-full"
+                                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 outline-none h-full"
                                                                         placeholder="Nueva Presentación..."
                                                                         autoFocus
                                                                         onKeyDown={(e) => {
@@ -1753,7 +1753,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                     {presentations.map(pres => (
                                                                         <option key={pres.IdPresentacion} value={pres.IdPresentacion}>{pres.Presentacion}</option>
                                                                     ))}
-                                                                    <option value="NEW" className="font-bold text-orange-600">+ Agregar Nueva...</option>
+                                                                    <option value="NEW" className="font-bold text-primary-600">+ Agregar Nueva...</option>
                                                                 </select>
                                                             )}
                                                         </div>
@@ -1776,7 +1776,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             type="button"
                                                             onClick={handleFetchMarketPrices}
                                                             disabled={isMarketPricesLoading}
-                                                            className="text-[9px] bg-orange-100 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded hover:bg-orange-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
+                                                            className="text-[9px] bg-primary-100 text-primary-700 border border-primary-200 px-1.5 py-0.5 rounded hover:bg-primary-200 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
                                                             title="Buscar Precios en Mercado"
                                                         >
                                                             {isMarketPricesLoading ? '⌛' : '🔍 PRECIOS'}
@@ -1975,7 +1975,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         <button
                                                             type="button"
                                                             onClick={() => setIsConverterOpen(true)}
-                                                            className="text-[9px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full hover:bg-orange-600 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1 border border-orange-400"
+                                                            className="text-[9px] bg-primary-500 text-white px-1.5 py-0.5 rounded-full hover:bg-primary-600 transition-all font-bold shadow-sm whitespace-nowrap flex items-center gap-1 border border-primary-400"
                                                             title="Conversiones de Unidades"
                                                         >
                                                             🛠️ CONV.
@@ -2073,12 +2073,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         </select>
                                                     </div>
 
-                                                    <div className="bg-orange-50 border border-orange-100 rounded p-2 text-center">
-                                                        <span className="block text-[10px] text-orange-600 font-bold uppercase mb-1">Resultado</span>
-                                                        <span className="text-xl font-black text-orange-700">
+                                                    <div className="bg-primary-50 border border-primary-100 rounded p-2 text-center">
+                                                        <span className="block text-[10px] text-primary-600 font-bold uppercase mb-1">Resultado</span>
+                                                        <span className="text-xl font-black text-primary-700">
                                                             {converterResult.toLocaleString('en-US', { maximumFractionDigits: 4 })}
                                                         </span>
-                                                        <span className="ml-1 text-[10px] text-orange-600 font-bold">{converterToUnit}</span>
+                                                        <span className="ml-1 text-[10px] text-primary-600 font-bold">{converterToUnit}</span>
                                                     </div>
 
                                                     <button
@@ -2087,7 +2087,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             setUnMedidaRecetario(converterToUnit);
                                                             setIsConverterOpen(false);
                                                         }}
-                                                        className="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 transition-colors shadow-sm"
+                                                        className="w-full bg-primary-600 text-white text-xs font-bold py-2 rounded hover:bg-primary-700 transition-colors shadow-sm"
                                                     >
                                                         ASIGNAR A CONTENIDO
                                                     </button>
@@ -2103,7 +2103,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                                        <label className="text-sm font-bold text-primary-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
                                                         <div
                                                             onClick={() => {
                                                                 const newVal = !hasYield;
@@ -2113,12 +2113,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                     setPesoFinal(1);
                                                                 }
                                                             }}
-                                                            className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                                            className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-primary-500' : 'bg-gray-300'}`}
                                                         >
                                                             <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
                                                         </div>
                                                     </div>
-                                                    <p className="text-[10px] text-orange-600 font-medium italic">
+                                                    <p className="text-[10px] text-primary-600 font-medium italic">
                                                         {hasYield
                                                             ? 'Permite calcular merma y precios procesados.'
                                                             : 'Pesos en 1.'}
@@ -2230,13 +2230,13 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <>
                                         <div
                                             onClick={() => document.getElementById('photo-upload')?.click()}
-                                            className="w-80 h-80 border-4 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all overflow-hidden relative group"
+                                            className="w-80 h-80 border-4 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all overflow-hidden relative group"
                                         >
                                             {photoPreview ? (
                                                 <>
                                                     <img src={photoPreview} alt="Preview" className="w-full h-full object-fill" />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                        <span className="text-white font-bold bg-orange-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
+                                                        <span className="text-white font-bold bg-primary-600 px-4 py-2 rounded-lg">Cambiar Imagen</span>
                                                     </div>
                                                 </>
                                             ) : (
@@ -2359,7 +2359,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsConverterOpen(true)}
-                                                    className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded hover:bg-orange-700 transition-colors font-bold shadow-sm"
+                                                    className="text-[10px] bg-primary-600 text-white px-2 py-0.5 rounded hover:bg-primary-700 transition-colors font-bold shadow-sm"
                                                 >
                                                     🛠️ CONVERSIONES
                                                 </button>
@@ -2426,12 +2426,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             </select>
                                                         </div>
 
-                                                        <div className="bg-orange-50 border border-orange-100 rounded p-2 text-center">
-                                                            <span className="block text-[10px] text-orange-600 font-bold uppercase mb-1">Resultado</span>
-                                                            <span className="text-xl font-black text-orange-700">
+                                                        <div className="bg-primary-50 border border-primary-100 rounded p-2 text-center">
+                                                            <span className="block text-[10px] text-primary-600 font-bold uppercase mb-1">Resultado</span>
+                                                            <span className="text-xl font-black text-primary-700">
                                                                 {converterResult.toLocaleString('en-US', { maximumFractionDigits: 4 })}
                                                             </span>
-                                                            <span className="ml-1 text-[10px] text-orange-600 font-bold">{converterToUnit}</span>
+                                                            <span className="ml-1 text-[10px] text-primary-600 font-bold">{converterToUnit}</span>
                                                         </div>
 
                                                         <button
@@ -2439,7 +2439,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 setSimpleConversion(parseFloat(converterResult.toFixed(4)));
                                                                 setIsConverterOpen(false);
                                                             }}
-                                                            className="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded hover:bg-orange-700 transition-colors shadow-sm"
+                                                            className="w-full bg-primary-600 text-white text-xs font-bold py-2 rounded hover:bg-primary-700 transition-colors shadow-sm"
                                                         >
                                                             ASIGNAR A CONTENIDO
                                                         </button>
@@ -2468,7 +2468,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <label className="text-sm font-bold text-orange-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
+                                                    <label className="text-sm font-bold text-primary-700 uppercase tracking-wider">¿Tiene Rendimiento?</label>
                                                     <div
                                                         onClick={() => {
                                                             const newVal = !hasYield;
@@ -2478,7 +2478,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 setPesoFinal(1);
                                                             }
                                                         }}
-                                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${hasYield ? 'bg-primary-500' : 'bg-gray-300'}`}
                                                     >
                                                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${hasYield ? 'translate-x-6' : 'translate-x-0'}`} />
                                                     </div>
@@ -2555,7 +2555,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-tight">
                                                             Precio Procesado ({unMedidaRecetario})
                                                         </label>
-                                                        <span className="text-lg font-bold text-orange-600">
+                                                        <span className="text-lg font-bold text-primary-600">
                                                             {(() => {
                                                                 const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
                                                                 const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
@@ -2600,7 +2600,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             step="0.01"
                                                             value={pesoFinal}
                                                             onChange={(e) => setPesoFinal(parseFloat(e.target.value) || 0)}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary-500"
                                                         />
                                                     </div>
                                                     <div className="flex flex-col">
@@ -2608,7 +2608,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         <select
                                                             value={unMedidaInventario}
                                                             onChange={(e) => setUnMedidaInventario(e.target.value)}
-                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary-500"
                                                         >
                                                             {(() => {
                                                                 const baseCompra = getBaseUnit(unMedidaCompra);
@@ -2690,7 +2690,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                             setFormData({ ...formData, precio: val });
                                                                         }
                                                                     }}
-                                                                    className="w-32 px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                                                                    className="w-32 px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary-500"
                                                                 />
                                                             </div>
                                                         </div>
@@ -2751,7 +2751,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                                                         return (
                                                             <div key={category} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-                                                                <div className="bg-gray-50 px-4 py-2 font-bold flex justify-between items-center border-b border-gray-200 text-orange-800">
+                                                                <div className="bg-gray-50 px-4 py-2 font-bold flex justify-between items-center border-b border-gray-200 text-primary-800">
                                                                     <span>{category}</span>
                                                                     <span>
                                                                         Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(categorySubtotal)}
@@ -2786,7 +2786,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                                             step="0.01"
                                                                                             value={cantidad}
                                                                                             onChange={(e) => handleQuantityChange(item.IdProductoHijo, parseFloat(e.target.value) || 0)}
-                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-orange-500 focus:border-orange-500"
+                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500"
                                                                                         />
                                                                                     </td>
                                                                                     <td className="px-4 py-2 text-sm text-gray-500 text-center font-bold">{item.UnidadMedidaRecetario || item.PresentacionInventario || '-'}</td>
@@ -2977,8 +2977,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 {/* AI Yield Suggestion Modal */}
                 {isAiYieldModalOpen && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-orange-100">
-                            <div className="bg-gradient-to-r from-orange-500 to-yellow-600 p-6 text-center relative">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border border-primary-100">
+                            <div className="bg-gradient-to-r from-primary-500 to-yellow-600 p-6 text-center relative">
                                 <button className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer transition-colors" onClick={() => setIsAiYieldModalOpen(false)}>✕</button>
                                 <div className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">Rendimientos Sugeridos por IA</div>
                                 <h3 className="text-white text-3xl font-black mb-1">Selecciona un proceso</h3>
@@ -2994,15 +2994,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             setPesoFinal(parseFloat(newPesoFinal.toFixed(3)));
                                             setIsAiYieldModalOpen(false);
                                         }}
-                                        className="group p-4 bg-orange-50 border border-orange-100 rounded-xl hover:bg-orange-100 hover:border-orange-300 transition-all cursor-pointer flex justify-between items-center"
+                                        className="group p-4 bg-primary-50 border border-primary-100 rounded-xl hover:bg-primary-100 hover:border-primary-300 transition-all cursor-pointer flex justify-between items-center"
                                     >
                                         <div className="flex-1">
-                                            <div className="text-orange-900 font-bold text-lg mb-0.5">{suggestion.process}</div>
-                                            <div className="text-xs text-orange-700/80 leading-snug">{suggestion.explanation}</div>
+                                            <div className="text-primary-900 font-bold text-lg mb-0.5">{suggestion.process}</div>
+                                            <div className="text-xs text-primary-700/80 leading-snug">{suggestion.explanation}</div>
                                         </div>
                                         <div className="ml-4 text-right">
-                                            <div className="text-2xl font-black text-orange-600 group-hover:scale-110 transition-transform">{suggestion.yield}%</div>
-                                            <div className="text-[10px] font-bold text-orange-400 uppercase tracking-tighter">Yield Sugerido</div>
+                                            <div className="text-2xl font-black text-primary-600 group-hover:scale-110 transition-transform">{suggestion.yield}%</div>
+                                            <div className="text-[10px] font-bold text-primary-400 uppercase tracking-tighter">Yield Sugerido</div>
                                         </div>
                                     </div>
                                 ))}
@@ -3023,12 +3023,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 {/* Market Prices Modal */}
                 {isMarketPricesModalOpen && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-orange-100">
-                            <div className="bg-gradient-to-r from-orange-600 to-orange-700 p-6 text-center relative border-b border-orange-500">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-primary-100">
+                            <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-6 text-center relative border-b border-primary-500">
                                 <button className="absolute top-4 right-4 text-white/50 hover:text-white cursor-pointer transition-colors" onClick={() => setIsMarketPricesModalOpen(false)}>✕</button>
                                 <div className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">Precios en el Mercado</div>
                                 <h3 className="text-white text-3xl font-black mb-1">{formData.producto}</h3>
-                                <div className="text-orange-100 text-sm font-medium">Resultados de búsqueda en tiempo real</div>
+                                <div className="text-primary-100 text-sm font-medium">Resultados de búsqueda en tiempo real</div>
                             </div>
 
                             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4 bg-gray-50/50">
@@ -3039,18 +3039,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             href={result.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-orange-500 hover:shadow-lg transition-all relative overflow-hidden group"
+                                            className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-lg transition-all relative overflow-hidden group"
                                         >
                                             {/* Highlighted Price Tag */}
                                             {result.price && (
-                                                <div className="absolute top-0 right-0 bg-orange-600 text-white px-4 py-2 rounded-bl-2xl shadow-md font-black text-xl animate-in fade-in slide-in-from-top-4 duration-500">
+                                                <div className="absolute top-0 right-0 bg-primary-600 text-white px-4 py-2 rounded-bl-2xl shadow-md font-black text-xl animate-in fade-in slide-in-from-top-4 duration-500">
                                                     {result.price}
                                                     {result.unit && <span className="text-[10px] opacity-80 block text-right font-bold uppercase -mt-1">{result.unit}</span>}
                                                 </div>
                                             )}
 
                                             <div className={`pr-24`}>
-                                                <div className="text-orange-950 font-bold text-lg mb-1 line-clamp-1 group-hover:text-orange-600 transition-colors">{result.title}</div>
+                                                <div className="text-primary-950 font-bold text-lg mb-1 line-clamp-1 group-hover:text-primary-600 transition-colors">{result.title}</div>
                                                 <div className="text-[10px] text-gray-400 font-bold mb-2 flex items-center gap-1 uppercase tracking-widest">
                                                     🏢 {result.source}
                                                 </div>
@@ -3071,7 +3071,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                             <div className="p-4 bg-white border-t border-gray-100 flex justify-center">
                                 <button
                                     onClick={() => setIsMarketPricesModalOpen(false)}
-                                    className="bg-orange-600 text-white font-bold py-3 px-10 rounded-xl hover:bg-orange-700 transition-all shadow-md active:scale-95 text-sm uppercase tracking-widest"
+                                    className="bg-primary-600 text-white font-bold py-3 px-10 rounded-xl hover:bg-primary-700 transition-all shadow-md active:scale-95 text-sm uppercase tracking-widest"
                                 >
                                     Cerrar Búsqueda
                                 </button>

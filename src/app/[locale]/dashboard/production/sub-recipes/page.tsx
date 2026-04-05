@@ -252,7 +252,7 @@ export default function SubRecipesPage() {
                                         {subRecipe.ImagenCategoria && <span>{subRecipe.ImagenCategoria}</span>}
                                         {subRecipe.Categoria || '-'}
                                         {subRecipe.IdModuloRecetario && subRecipe.IdModuloRecetario > 0 ? (
-                                            <sup className="text-orange-600 font-bold ml-0.5">
+                                            <sup className="text-primary-600 font-bold ml-0.5">
                                                 {subRecipe.IdModuloRecetario}
                                             </sup>
                                         ) : null}

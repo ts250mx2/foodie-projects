@@ -75,11 +75,11 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 py-12">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 py-12">
             <div className="w-full max-w-2xl">
                 {/* Logo/Title */}
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
                         Foodie Guru
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">{t('registerTitle')}</p>
@@ -118,7 +118,7 @@ export default function RegisterPage() {
                                     <select
                                         value={formData.idioma}
                                         onChange={(e) => setFormData({ ...formData, idioma: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-orange-500 dark:border-gray-600 dark:focus:border-orange-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all duration-200"
+                                        className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-primary-500 dark:border-gray-600 dark:focus:border-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
                                         required
                                     >
                                         <option value="">Selecciona/Idioma</option>
@@ -205,7 +205,7 @@ export default function RegisterPage() {
 
                         <p className="text-center text-sm text-gray-600 dark:text-gray-400">
                             Al registrarte, aceptas nuestro{' '}
-                            <Link href="/privacy-policy" className="text-orange-500 hover:text-orange-600 font-medium transition-colors">
+                            <Link href="/privacy-policy" className="text-primary-500 hover:text-primary-600 font-medium transition-colors">
                                 Aviso de Privacidad
                             </Link>
                         </p>
@@ -214,7 +214,7 @@ export default function RegisterPage() {
                     <div className="mt-6 text-center">
                         <p className="text-gray-600 dark:text-gray-400">
                             {t('hasAccount')}{' '}
-                            <Link href="/login" className="text-orange-500 hover:text-orange-600 font-medium transition-colors">
+                            <Link href="/login" className="text-primary-500 hover:text-primary-600 font-medium transition-colors">
                                 {t('loginLink')}
                             </Link>
                         </p>
@@ -223,7 +223,7 @@ export default function RegisterPage() {
 
                 {/* Back to Home */}
                 <div className="mt-6 text-center">
-                    <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 transition-colors">
+                    <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">
                         ← Volver al inicio
                     </Link>
                 </div>

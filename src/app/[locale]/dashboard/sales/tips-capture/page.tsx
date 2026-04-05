@@ -164,7 +164,7 @@ export default function TipsCapturePage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {branches.length === 0 && <option>{t('noBranches')}</option>}
                             {branches.map(branch => (
@@ -181,7 +181,7 @@ export default function TipsCapturePage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{t(`months.${i}`)}</option>
@@ -195,7 +195,7 @@ export default function TipsCapturePage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -244,18 +244,18 @@ export default function TipsCapturePage() {
                                     aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-orange-400 shadow-orange-100'
+                                            ? 'bg-white border-2 border-primary-400 shadow-primary-100'
                                             : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
                                         }
                                     hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-orange-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-primary-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                            <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
                                                 {t('today') || 'HOY'}
                                             </span>
                                         )}
@@ -273,7 +273,7 @@ export default function TipsCapturePage() {
                                     {/* Decorative background element for hover */}
                                     <div className={`
                                     absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-orange-600' : 'bg-blue-600'}
+                                    ${isToday ? 'bg-primary-600' : 'bg-blue-600'}
                                 `} />
                                 </div>
                             );

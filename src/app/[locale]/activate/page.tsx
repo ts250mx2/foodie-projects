@@ -21,7 +21,7 @@ export default async function ActivatePage({ searchParams, params }: ActivatePag
                 <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg text-center">
                     <h1 className="text-2xl font-bold text-red-500 mb-4">{t('invalidTokenTitle')}</h1>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">{t('invalidTokenDesc')}</p>
-                    <Link href="/" className="text-orange-500 hover:text-orange-600 font-medium">{t('backToHome')}</Link>
+                    <Link href="/" className="text-primary-500 hover:text-primary-600 font-medium">{t('backToHome')}</Link>
                 </div>
             </div>
         );
@@ -73,7 +73,7 @@ export default async function ActivatePage({ searchParams, params }: ActivatePag
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="max-w-xl w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-8">
                     <h1 className={`text-3xl font-bold mb-2 ${success ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
@@ -111,7 +111,7 @@ export default async function ActivatePage({ searchParams, params }: ActivatePag
                         <div className="text-center pt-4">
                             <Link
                                 href="/login"
-                                className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                                className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-gradient-to-r from-primary-500 to-pink-500 hover:from-primary-600 hover:to-pink-600 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                             >
                                 {t('goToLogin')}
                             </Link>
@@ -121,7 +121,7 @@ export default async function ActivatePage({ searchParams, params }: ActivatePag
 
                 {!success && (
                     <div className="text-center mt-6">
-                        <Link href="/register" className="text-orange-500 hover:text-orange-600 font-medium hover:underline">
+                        <Link href="/register" className="text-primary-500 hover:text-primary-600 font-medium hover:underline">
                             {t('tryRegisterAgain')}
                         </Link>
                     </div>

@@ -181,7 +181,7 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
             <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden ${isTabMode ? "py-2" : ""}`}>
                 {/* Add Form */}
                 <div className="md:col-span-1 border-r pr-6 border-gray-100">
-                    <h3 className="text-sm font-bold text-orange-600 mb-4 uppercase">Nuevo Documento</h3>
+                    <h3 className="text-sm font-bold text-primary-600 mb-4 uppercase">Nuevo Documento</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Input
                             label="Nombre del Documento"
@@ -195,7 +195,7 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
                             <textarea
                                 value={formData.comments}
                                 onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 rows={3}
                                 placeholder="Comentarios adicionales..."
                             />

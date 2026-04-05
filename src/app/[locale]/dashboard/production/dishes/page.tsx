@@ -150,7 +150,7 @@ export default function DishesPage() {
                 <div className="flex gap-2">
                     <Button
                         onClick={() => setIsMenuSectionsModalOpen(true)}
-                        className="bg-orange-100 !text-orange-700 hover:bg-orange-200 border border-orange-200"
+                        className="bg-primary-100 !text-primary-700 hover:bg-primary-200 border border-primary-200"
                     >
                         Secciones de Menú
                     </Button>
@@ -303,7 +303,7 @@ export default function DishesPage() {
                                                 {dish.ImagenCategoria && <span>{dish.ImagenCategoria}</span>}
                                                 {dish.Producto}
                                                 {dish.IdModuloRecetario && dish.IdModuloRecetario > 0 ? (
-                                                    <sup className="text-orange-600 font-bold ml-0.5">
+                                                    <sup className="text-primary-600 font-bold ml-0.5">
                                                         {dish.IdModuloRecetario}
                                                     </sup>
                                                 ) : null}

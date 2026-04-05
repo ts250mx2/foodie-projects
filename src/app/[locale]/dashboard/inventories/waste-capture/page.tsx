@@ -327,12 +327,12 @@ export default function WasteCapturePage() {
                                 onClick={() => handleDayClick(date)}
                                 className={`
                                     relative border-b border-r border-gray-200 p-2 transition-all hover:bg-gray-50 cursor-pointer group min-h-[100px] flex flex-col
-                                    ${isToday ? 'bg-orange-50/20' : ''}
+                                    ${isToday ? 'bg-primary-50/20' : ''}
                                 `}
                             >
                                 <span className={`
                                     text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full
-                                    ${isToday ? 'bg-orange-500 text-white' : 'text-gray-700'}
+                                    ${isToday ? 'bg-primary-500 text-white' : 'text-gray-700'}
                                 `}>
                                     {date.getDate()}
                                 </span>

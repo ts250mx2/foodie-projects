@@ -248,7 +248,7 @@ export default function BulkScheduleModal({
                     <div className="flex-1">
                         <h2 className="text-xl font-bold text-gray-800">
                             {t('title')} - {selectedDate.toLocaleDateString()}
-                            <div className="text-xs font-normal text-orange-600 mt-2 line-clamp-2 bg-orange-50 p-2 rounded-md border border-orange-100">
+                            <div className="text-xs font-normal text-primary-600 mt-2 line-clamp-2 bg-primary-50 p-2 rounded-md border border-primary-100">
                                 {selectedNames}
                             </div>
                         </h2>
@@ -257,7 +257,7 @@ export default function BulkScheduleModal({
                                 type="button"
                                 onClick={handleImportPreviousDay}
                                 disabled={loading}
-                                className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-bold hover:bg-orange-700 transition-all shadow-sm hover:shadow active:scale-95"
+                                className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-bold hover:bg-primary-700 transition-all shadow-sm hover:shadow active:scale-95"
                             >
                                 <span>📥</span>
                                 {t('importPrevious')}
@@ -270,14 +270,14 @@ export default function BulkScheduleModal({
                 <form onSubmit={handleSave} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Work Hours */}
-                        <div className="space-y-4 p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-                            <h3 className="text-xs font-bold text-orange-700 uppercase tracking-wider">Labores</h3>
+                        <div className="space-y-4 p-4 bg-primary-50/50 rounded-xl border border-primary-100">
+                            <h3 className="text-xs font-bold text-primary-700 uppercase tracking-wider">Labores</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs text-gray-500 mb-1 block">{t('startTime')}</label>
                                     <input
                                         type="time"
-                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.startTime}
                                         onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                                         required
@@ -287,7 +287,7 @@ export default function BulkScheduleModal({
                                     <label className="text-xs text-gray-500 mb-1 block">{t('endTime')}</label>
                                     <input
                                         type="time"
-                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.endTime}
                                         onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                                         required
@@ -304,7 +304,7 @@ export default function BulkScheduleModal({
                                     <label className="text-xs text-gray-500 mb-1 block">{t('breakStart')}</label>
                                     <input
                                         type="time"
-                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.breakStart}
                                         onChange={(e) => setFormData({ ...formData, breakStart: e.target.value })}
                                     />
@@ -313,7 +313,7 @@ export default function BulkScheduleModal({
                                     <label className="text-xs text-gray-500 mb-1 block">{t('breakEnd')}</label>
                                     <input
                                         type="time"
-                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.breakEnd}
                                         onChange={(e) => setFormData({ ...formData, breakEnd: e.target.value })}
                                     />

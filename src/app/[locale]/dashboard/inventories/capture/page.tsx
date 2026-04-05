@@ -652,7 +652,7 @@ export default function InventoryCapturePage() {
                                     placeholder="Buscar producto..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 />
                             </div>
                             <div className="flex gap-2 justify-end">
@@ -754,7 +754,7 @@ export default function InventoryCapturePage() {
                                                                         step="any"
                                                                         value={editedQuantities[entry.IdProducto] ?? (entry.Cantidad === 0 ? '' : entry.Cantidad.toString())}
                                                                         onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
-                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                                                         disabled={isLoading}
                                                                     />
                                                                 </td>
@@ -765,7 +765,7 @@ export default function InventoryCapturePage() {
                                                                 <td className="px-4 py-2 text-center">
                                                                     <button
                                                                         onClick={() => handleEditProduct(entry.IdProducto)}
-                                                                        className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors"
+                                                                        className="text-primary-600 hover:text-primary-800 p-1 rounded hover:bg-primary-50 transition-colors"
                                                                         title="Editar Producto"
                                                                     >
                                                                         ✏️

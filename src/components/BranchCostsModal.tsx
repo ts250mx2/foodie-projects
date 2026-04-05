@@ -141,7 +141,7 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden">
                 {/* Form Section */}
                 <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-orange-600">Capturar Objetivo/Costo</h3>
+                    <h3 className="font-semibold mb-4 text-primary-600">Capturar Objetivo/Costo</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -149,7 +149,7 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                                 <select
                                     value={formData.month}
                                     onChange={(e) => setFormData({ ...formData, month: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     required
                                 >
                                     {months.map((m, i) => (
@@ -162,7 +162,7 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                                 <select
                                     value={formData.year}
                                     onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     required
                                 >
                                     {years.map(y => (

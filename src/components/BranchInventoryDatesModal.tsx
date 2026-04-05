@@ -119,7 +119,7 @@ export default function BranchInventoryDatesModal({ isOpen, onClose, branchId, b
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-hidden">
                 {/* Form Section */}
                 <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-orange-600">Capturar Fecha</h3>
+                    <h3 className="font-semibold mb-4 text-primary-600">Capturar Fecha</h3>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Input
                             label="Fecha Inventario"

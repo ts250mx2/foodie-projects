@@ -570,7 +570,7 @@ export default function EmployeesPage() {
                                                         <select
                                                             value={formData.positionId}
                                                             onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
                                                         >
                                                             <option value="">{t('selectPosition')}</option>
                                                             {positions.map(pos => {
@@ -588,9 +588,9 @@ export default function EmployeesPage() {
                                                             })}
                                                         </select>
                                                         <div className="mt-1 flex gap-3 text-[10px] text-gray-500 font-medium">
-                                                            <span><span className="text-orange-500">1</span> Cocina</span>
-                                                            <span><span className="text-orange-500">2</span> Servicio</span>
-                                                            <span><span className="text-orange-500">3</span> Administración</span>
+                                                            <span><span className="text-primary-500">1</span> Cocina</span>
+                                                            <span><span className="text-primary-500">2</span> Servicio</span>
+                                                            <span><span className="text-primary-500">3</span> Administración</span>
                                                         </div>
                                                     </div>
                                                     <div>
@@ -600,7 +600,7 @@ export default function EmployeesPage() {
                                                         <select
                                                             value={formData.branchId}
                                                             onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-sm"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
                                                         >
                                                             <option value="">{t('selectBranch')}</option>
                                                             {branches.map(branch => (
@@ -683,7 +683,7 @@ export default function EmployeesPage() {
                                             <textarea
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                                                 rows={3}
                                             />
                                         </div>
@@ -706,7 +706,7 @@ export default function EmployeesPage() {
                                                             type="text"
                                                             value={formData.username}
                                                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                                                             placeholder="usuario"
                                                         />
                                                         <div className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-500 text-xs font-medium min-w-[120px] flex items-center justify-center">
@@ -724,7 +724,7 @@ export default function EmployeesPage() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
-                                                            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-orange-500' : 'bg-gray-200'}`}
+                                                            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-primary-500' : 'bg-gray-200'}`}
                                                         >
                                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isAdmin ? 'translate-x-7' : 'translate-x-1'}`} />
                                                         </button>

@@ -236,7 +236,7 @@ export default function TipsProfilesPage() {
                                 <button
                                     type="button"
                                     onClick={() => setEsActivo(esActivo === 1 ? 0 : 1)}
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${esActivo === 1 ? 'bg-orange-600' : 'bg-gray-200'
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${esActivo === 1 ? 'bg-primary-600' : 'bg-gray-200'
                                         }`}
                                 >
                                     <span

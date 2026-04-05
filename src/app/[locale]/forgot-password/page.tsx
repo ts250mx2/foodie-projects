@@ -45,10 +45,10 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent mb-2">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
                         Foodie Guru
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400">
@@ -82,7 +82,7 @@ export default function ForgotPasswordPage() {
                     </form>
 
                     <div className="mt-6 text-center">
-                        <Link href="/login" className="text-gray-600 dark:text-gray-400 hover:text-orange-500 transition-colors">
+                        <Link href="/login" className="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">
                             ← {locale === 'en' ? 'Back to Login' : 'Volver a Iniciar Sesión'}
                         </Link>
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -68,11 +68,14 @@ export default function DashboardPage() {
     } | null>(null);
     const [purchaseDetailData, setPurchaseDetailData] = useState<{
         categories: any[];
+        providers: any[];
+        products: any[];
         days: any[];
         totalPurchases: number;
     } | null>(null);
     const [wasteDetailData, setWasteDetailData] = useState<{
         categories: any[];
+        products: any[];
         days: any[];
         totalWaste: number;
     } | null>(null);
@@ -81,8 +84,32 @@ export default function DashboardPage() {
     const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
     const [cardSearchQuery, setCardSearchQuery] = useState<string>('');
     const [isDrilldownLoading, setIsDrilldownLoading] = useState<boolean>(false);
-    const [drilldownItem, setDrilldownItem] = useState<{name: string, kpi: string, grouping: string, emoji?: string, color: string, count?: number, value?: number} | null>(null);
+    const [drilldownItem, setDrilldownItem] = useState<{name: string, kpi: string, grouping: string, emoji?: string, color: string, count?: number, value?: number, categoryName?: string} | null>(null);
     const [drilldownData, setDrilldownData] = useState<any[]>([]);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isModalMaximized, setIsModalMaximized] = useState(false);
+    const [isTotalCostModalOpen, setIsTotalCostModalOpen] = useState(false);
+    const dashboardRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            dashboardRef.current?.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
 
     useEffect(() => {
         setCardSearchQuery('');
@@ -135,7 +162,20 @@ export default function DashboardPage() {
         if (detailGrouping === 'days') return;
         if (selectedKpi === 'sales' && String(item.name || '') === 'Efectivo') return;
         
-        setDrilldownItem({ name: item.name, kpi: selectedKpi as string, grouping: detailGrouping, emoji: item.emoji || getCategoryEmoji(String(item.name || '')), color: colorHex, count: item.count, value: item.value });
+        const calculatedEmoji = ['purchases', 'waste'].includes(selectedKpi as string) && ['categories', 'products'].includes(detailGrouping) 
+            ? (item.emoji || getCategoryEmoji(String(item.categoryName || item.name || ''))) 
+            : String(item.name || '').slice(0, 2).toUpperCase();
+
+        setDrilldownItem({ 
+            name: item.name, 
+            kpi: selectedKpi as string, 
+            grouping: detailGrouping, 
+            emoji: calculatedEmoji, 
+            color: colorHex, 
+            count: item.count, 
+            value: item.value,
+            categoryName: item.categoryName
+        });
         setIsDrilldownLoading(true);
         setDrilldownData([]);
 
@@ -207,7 +247,6 @@ export default function DashboardPage() {
                 setTotalRawMaterial(data.data.totalRawMaterial);
                 setRawMaterialObjective(data.data.rawMaterialObjective);
                 setTotalWaste(data.data.totalWaste || 0);
-
             } else {
                 setTotalSales(0);
                 setSalesObjective(0);
@@ -304,7 +343,7 @@ export default function DashboardPage() {
             const data = await response.json();
             if (data.success) {
                 setPurchaseDetailData(data.data);
-                if (!['categories', 'days'].includes(detailGrouping)) {
+                if (!['categories', 'providers', 'products', 'days'].includes(detailGrouping)) {
                     setDetailGrouping('categories');
                 }
             }
@@ -324,7 +363,7 @@ export default function DashboardPage() {
             const data = await response.json();
             if (data.success) {
                 setWasteDetailData(data.data);
-                if (!['categories', 'days'].includes(detailGrouping)) {
+                if (!['categories', 'products', 'days'].includes(detailGrouping)) {
                     setDetailGrouping('categories');
                 }
             }
@@ -354,11 +393,35 @@ export default function DashboardPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project, selectedBranch, selectedMonth, selectedYear]);
 
+    // Combined Analysis State
+    const totalActualValue = totalPayroll + totalOperatingExpense + totalRawMaterial;
+    const actualPayrollPercent = totalSales > 0 ? (totalPayroll / totalSales) * 100 : 0;
+    const actualExpensePercent = totalSales > 0 ? (totalOperatingExpense / totalSales) * 100 : 0;
+    const actualRawMaterialPercent = totalSales > 0 ? (totalRawMaterial / totalSales) * 100 : 0;
+    const totalActualPercent = actualPayrollPercent + actualExpensePercent + actualRawMaterialPercent;
+    const totalBudgetPercent = payrollObjective + operatingExpenseObjective + rawMaterialObjective;
+    const diffPercent = totalActualPercent - totalBudgetPercent;
+    const utilityPercent = 100 - totalActualPercent;
+
+    // KPI Section
     return (
-        <div className="flex flex-col gap-6 p-6 min-h-screen">
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-gray-100">
+        <div ref={dashboardRef} className={`flex flex-col gap-6 p-6 min-h-screen ${isFullscreen ? 'bg-slate-50 overflow-y-auto' : ''}`}>
+            <div className={`sticky z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-gray-100 ${isFullscreen ? 'top-0' : 'top-16'}`}>
                 <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold text-gray-800 mb-1">{t('title')}</h1>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-2xl font-bold text-gray-800">{t('title')} - {tPurchases(`months.${selectedMonth}`)} {selectedYear}</h1>
+                        <button 
+                            onClick={toggleFullscreen}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-all shadow-sm bg-white"
+                            title={isFullscreen ? "Restaurar" : "Maximizar Dashboard"}
+                        >
+                            {isFullscreen ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                            ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                            )}
+                        </button>
+                    </div>
                     <p className="text-sm text-gray-500">{t('features.managementDesc')}</p>
                 </div>
 
@@ -369,7 +432,7 @@ export default function DashboardPage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm bg-white"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
                         >
                             {branches.length === 0 && <option value="">{tPurchases('noBranches')}</option>}
                             {branches.map(branch => (
@@ -385,7 +448,7 @@ export default function DashboardPage() {
                         <select
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm bg-white"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
                         >
                             {Array.from({ length: 12 }, (_, i) => (
                                 <option key={i} value={i}>{tPurchases(`months.${i}`)}</option>
@@ -398,7 +461,7 @@ export default function DashboardPage() {
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm bg-white"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
                         >
                             {years.map(year => (
                                 <option key={year} value={year}>{year}</option>
@@ -409,7 +472,7 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-2">
                 {/* Sales KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'sales' ? null : 'sales')}
@@ -613,56 +676,74 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Waste KPI Card */}
-                <div 
-                    onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
-                    className={`p-4 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer ${(selectedKpi as string) === 'waste' ? 'bg-pink-50 border-pink-200 shadow-md ring-2 ring-pink-500 ring-opacity-20' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
-                >
-                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                        <svg className="w-20 h-20 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Mermas</span>
-                            {isLoadingKpi ? (
-                                <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
-                            ) : (
-                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalWaste)}
-                                </h2>
-                            )}
+                {/* Group: Indicador Global & Mermas (Half-Height Stack) */}
+                <div className="flex flex-col gap-3 h-full">
+                    {/* Total Cost vs Budget Card - COMPACT */}
+                    <div 
+                        onClick={() => setIsTotalCostModalOpen(true)}
+                        className={`flex-1 p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:shadow-md bg-gradient-to-b from-indigo-50/50 to-white border-indigo-100 shadow-sm`}
+                    >
+                        <div className="absolute -right-4 -top-4 p-2 opacity-[0.05] group-hover:opacity-10 group-hover:rotate-12 transition-all">
+                            <svg className="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
                         </div>
-
-                        {!isLoadingKpi && (
-                            <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
-                                <div className="flex justify-between items-center text-xs font-bold">
-                                    <span className="text-slate-500">% Mermas</span>
-                                    <span className={`px-2 py-0.5 rounded-sm ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
-                                        {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(2)}%` : '0.00%'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs font-bold">
-                                    <span className="text-slate-500">Sobre Ventas</span>
-                                    <span className="text-slate-400 italic text-right text-[10px]">
-                                        {totalSales > 0 ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSales) : 'Sin ventas'}
-                                    </span>
+                        <div className="flex flex-col h-full justify-between relative z-10">
+                            <div>
+                                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block">Indicador Global</span>
+                                <h2 className="text-sm font-black leading-tight text-slate-800 uppercase tracking-tighter">
+                                    Costo vs Meta
+                                </h2>
+                            </div>
+                            <div className="flex items-end justify-between gap-1">
+                                <h3 className="text-xl font-black text-indigo-600">{totalActualPercent.toFixed(1)}%</h3>
+                                <div className="flex-1 max-w-[60px] h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+                                    <div 
+                                        className={`h-full rounded-full ${totalActualPercent <= (totalBudgetPercent || 100) ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                        style={{ width: `${Math.min(100, (totalActualPercent / (totalBudgetPercent || 100)) * 100)}%` }}
+                                    ></div>
                                 </div>
                             </div>
-                        )}
+                        </div>
+                    </div>
+
+                    {/* Waste KPI Card - COMPACT */}
+                    <div 
+                        onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
+                        className={`flex-1 p-3 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer hover:shadow-md ${(selectedKpi as string) === 'waste' ? 'bg-pink-50 border-pink-200' : 'bg-white border-slate-100 shadow-sm'}`}
+                    >
+                        <div className="absolute -right-4 -top-4 p-2 opacity-[0.05] group-hover:opacity-10 group-hover:rotate-12 transition-all">
+                            <svg className="w-12 h-12 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        <div className="flex flex-col h-full justify-between relative z-10">
+                            <div>
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Mermas</span>
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Pérdida Actual</h2>
+                            </div>
+                            <div className="flex items-end justify-between">
+                                <h3 className="text-xl font-black text-slate-800">
+                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumSignificantDigits: 3 }).format(totalWaste)}
+                                </h3>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
+                                    {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
-            {/* Detail Section (Generic for Sales, Payroll, Expenses or Purchases) */}
-            {(selectedKpi === 'sales' || selectedKpi === 'payroll' || selectedKpi === 'expenses' || selectedKpi === 'purchases') && (
+            {/* Detail Section (Generic for Sales, Payroll, Expenses, Purchases or Waste) */}
+            {(selectedKpi === 'sales' || selectedKpi === 'payroll' || selectedKpi === 'expenses' || selectedKpi === 'purchases' || (selectedKpi as string) === 'waste') && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                         <div>
                             <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                <span className={`w-2 h-8 rounded-full ${selectedKpi === 'sales' ? 'bg-emerald-500' : selectedKpi === 'payroll' ? 'bg-indigo-500' : selectedKpi === 'expenses' ? 'bg-rose-500' : 'bg-amber-500'}`}></span>
-                                {selectedKpi === 'sales' ? 'Análisis Detallado de Ventas' : selectedKpi === 'payroll' ? 'Análisis Detallado de Nómina' : selectedKpi === 'expenses' ? 'Análisis Detallado de Gastos' : 'Análisis Detallado de Compras'}
+                                <span className={`w-2 h-8 rounded-full ${selectedKpi === 'sales' ? 'bg-emerald-500' : selectedKpi === 'payroll' ? 'bg-indigo-500' : selectedKpi === 'expenses' ? 'bg-rose-500' : selectedKpi === 'purchases' ? 'bg-amber-500' : 'bg-pink-500'}`}></span>
+                                {selectedKpi === 'sales' ? 'Análisis Detallado de Ventas' : selectedKpi === 'payroll' ? 'Análisis Detallado de Nómina' : selectedKpi === 'expenses' ? 'Análisis Detallado de Gastos' : selectedKpi === 'purchases' ? 'Análisis Detallado de Compras' : 'Análisis Detallado de Mermas'}
                             </h3>
                             <p className="text-sm text-slate-500 mt-1">Desglose porcentual y comparativo por diversas dimensiones</p>
                         </div>
@@ -745,6 +826,12 @@ export default function DashboardPage() {
                                             className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'categories' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
                                             Categoría
+                                        </button>
+                                        <button
+                                            onClick={() => setDetailGrouping('products')}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-black transition-all ${detailGrouping === 'products' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            Productos
                                         </button>
                                         {selectedKpi === 'purchases' && (
                                             <button
@@ -836,7 +923,16 @@ export default function DashboardPage() {
                                                     return null;
                                                 }}
                                             />
-                                            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
+                                            <Bar 
+                                                dataKey="value" 
+                                                radius={[6, 6, 0, 0]} 
+                                                barSize={48}
+                                                cursor="pointer"
+                                                onClick={(data, index) => {
+                                                    const item = data.payload || data;
+                                                    handleDrilldownClick(item, ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'][index % 7]);
+                                                }}
+                                            >
                                                 {(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).map((entry: any, index: number) => (
                                                     <Cell key={`cell-${index}`} fill={[
                                                         '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
@@ -855,6 +951,11 @@ export default function DashboardPage() {
                                                 paddingAngle={5}
                                                 dataKey="value"
                                                 stroke="none"
+                                                cursor="pointer"
+                                                onClick={(data, index) => {
+                                                    const item = data.payload || data;
+                                                    handleDrilldownClick(item, ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'][index % 7]);
+                                                }}
                                             >
                                                 {(((selectedKpi === 'sales' ? salesDetailData : selectedKpi === 'payroll' ? payrollDetailData : selectedKpi === 'expenses' ? expenseDetailData : (selectedKpi as string) === 'waste' ? wasteDetailData : purchaseDetailData) as any)?.[detailGrouping] || []).map((entry: any, index: number) => (
                                                     <Cell key={`cell-${index}`} fill={[
@@ -923,12 +1024,19 @@ export default function DashboardPage() {
                                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-md group-hover:scale-110 transition-transform duration-300 text-xl" style={{ backgroundColor: [
                                                     '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
                                                 ][activeColorIdx % 7] }}>
-                                                    {['purchases', 'waste'].includes(selectedKpi as string) && detailGrouping === 'categories' ? (item.emoji || getCategoryEmoji(String(item.name || ''))) : String(item.name || '').slice(0, 2).toUpperCase()}
+                                                    {['purchases', 'waste'].includes(selectedKpi as string) && ['categories', 'products'].includes(detailGrouping) ? (item.emoji || getCategoryEmoji(String(item.categoryName || item.name || ''))) : String(item.name || '').slice(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-black text-slate-800">{item.name}</h4>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                        {item.count > 0 ? `${item.count} ${selectedKpi === 'sales' ? 'Transacciones' : 'Registros'}` : (selectedKpi === 'sales' ? 'Detalle de canal' : selectedKpi === 'payroll' ? 'Detalle de nómina' : selectedKpi === 'expenses' ? 'Detalle de gasto' : 'Detalle de compra')}
+                                                    <h4 className="text-sm font-black text-slate-800">
+                                                        {item.name}
+                                                        {['purchases', 'waste'].includes(selectedKpi as string) && detailGrouping === 'products' && item.categoryName && (
+                                                            <span className="font-normal text-slate-500 text-xs ml-2 border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded-md">
+                                                                {item.categoryName}
+                                                            </span>
+                                                        )}
+                                                    </h4>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                                        {item.count > 0 ? `${item.count} ${selectedKpi === 'sales' ? 'Transacciones' : 'Registros'}` : (selectedKpi === 'sales' ? 'Detalle de canal' : selectedKpi === 'payroll' ? 'Detalle de nómina' : selectedKpi === 'expenses' ? 'Detalle de gasto' : 'Detalle')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -958,17 +1066,22 @@ export default function DashboardPage() {
             {/* Drilldown Modal */}
             {drilldownItem && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-300">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col h-[600px] max-h-[90vh]">
+                    <div className={`bg-white shadow-2xl transition-all duration-300 flex flex-col overflow-hidden ${isModalMaximized ? 'w-full h-full rounded-2xl' : 'w-full max-w-5xl h-[600px] max-h-[90vh] rounded-3xl'}`}>
                         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white shadow-lg text-2xl" style={{ backgroundColor: drilldownItem.color }}>
-                                    {drilldownItem.emoji || drilldownItem.name.slice(0, 2).toUpperCase()}
+                                    {drilldownItem.emoji}
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2 flex-wrap">
                                         {drilldownItem.name} 
+                                        {['purchases', 'waste'].includes(drilldownItem.kpi) && drilldownItem.grouping === 'products' && drilldownItem.categoryName && (
+                                            <span className="font-normal text-slate-600 text-sm border border-slate-200 bg-white px-2 py-0.5 rounded-lg ml-1">
+                                                {drilldownItem.categoryName}
+                                            </span>
+                                        )}
                                         <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-slate-500 rounded-full ml-1 border border-slate-200 shadow-sm uppercase tracking-widest">
-                                            Desglose Diario
+                                            Desglose Diario &bull; {tPurchases(`months.${selectedMonth}`)} {selectedYear}
                                         </span>
                                     </h3>
                                     <p className="text-xs text-slate-400 font-bold tracking-wider mt-1">
@@ -977,9 +1090,18 @@ export default function DashboardPage() {
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={() => setDrilldownItem(null)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-all bg-white shadow-sm border border-slate-100">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setIsModalMaximized(!isModalMaximized)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-all bg-white shadow-sm border border-slate-100" title={isModalMaximized ? "Restaurar" : "Maximizar"}>
+                                    {isModalMaximized ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                                    )}
+                                </button>
+                                <button onClick={() => { setDrilldownItem(null); setIsModalMaximized(false); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 rounded-full transition-all bg-white shadow-sm border border-slate-100" title="Cerrar">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
                         </div>
                         <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50">
                             {isDrilldownLoading ? (
@@ -1057,6 +1179,129 @@ export default function DashboardPage() {
                                     No hay movimientos registrados para esta métrica.
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Total Cost vs Budget Modal */}
+            {isTotalCostModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden border border-white/20 relative animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Análisis Costo Total vs Presupuesto</h3>
+                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Sucursal: {branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || 'Global'}</p>
+                            </div>
+                            <button onClick={() => setIsTotalCostModalOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all">✕</button>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="text-center mb-6">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Costo Real Acumulado</span>
+                                <h1 className="text-4xl font-black text-slate-800 tracking-tighter">
+                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalActualValue)}
+                                </h1>
+                                <p className="text-slate-400 text-xs font-bold mt-2 italic">Nómina + Gastos Op. + Materia Prima</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 bg-slate-50 rounded-[20px] border border-slate-100 text-center">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Suma % Real</span>
+                                    <h4 className="text-2xl font-black text-slate-800">{totalActualPercent.toFixed(2)}%</h4>
+                                </div>
+                                <div className="p-4 bg-indigo-50/50 rounded-[20px] border border-indigo-100 text-center">
+                                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Suma % Presupuesto</span>
+                                    <h4 className="text-2xl font-black text-indigo-700">{totalBudgetPercent.toFixed(2)}%</h4>
+                                </div>
+                            </div>
+
+                            <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 border ${diffPercent > 0 ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+                                <span className="text-xl">{diffPercent > 0 ? '⚠️' : '✅'}</span>
+                                <div className="flex-1">
+                                    <p className="text-sm font-black uppercase tracking-tight">
+                                        {diffPercent > 0 ? `Advertencia: Exceso de presupuesto del ${diffPercent.toFixed(2)}%` : `Éxito: Ahorro de presupuesto del ${Math.abs(diffPercent).toFixed(2)}%`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* GAUGE CHART */}
+                            <div className="flex justify-center mb-6">
+                                <div className="w-full max-w-[320px] h-[180px] relative">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                dataKey="value"
+                                                startAngle={180}
+                                                endAngle={0}
+                                                data={[
+                                                    { name: 'A', value: totalBudgetPercent, fill: '#10b981' },
+                                                    { name: 'B', value: Math.max(0, 100 - totalBudgetPercent), fill: '#ef4444' }
+                                                ]}
+                                                cx="50%"
+                                                cy="85%"
+                                                innerRadius={80}
+                                                outerRadius={120}
+                                                stroke="none"
+                                            >
+                                                {/* Gauge segments can be more complex but this highlights the budget limit */}
+                                            </Pie>
+                                            {/* Custom Needle as an extra element */}
+                                            <Pie
+                                                dataKey="value"
+                                                startAngle={180}
+                                                endAngle={0}
+                                                data={[{ value: 100 }]}
+                                                cx="50%"
+                                                cy="85%"
+                                                innerRadius={0}
+                                                outerRadius={0}
+                                                stroke="none"
+                                                isAnimationActive={false}
+                                            >
+                                                {/* Needle positioning logic */}
+                                                <g>
+                                                    {(() => {
+                                                        const iR = 0;
+                                                        const oR = 120; // Reduced radius
+                                                        const RADIAN = Math.PI / 180;
+                                                        const ang = 180.0 * (1 - Math.min(100, Math.max(0, totalActualPercent)) / 100);
+                                                        const sin = Math.sin(-RADIAN * ang);
+                                                        const cos = Math.cos(-RADIAN * ang);
+                                                        const length = (iR + 2 * oR) / 3;
+                                                        return (
+                                                            <g transform={`translate(${110}, ${0})`}> {/* Adjusted centering for smaller modal */}
+                                                                <circle cx={100} cy={150} r={5} fill="#ef4444" stroke="none" />
+                                                                <path 
+                                                                    d={`M${100 - 2} 150 L${100 + 2} 150 L${100 + length * cos} ${150 + length * sin} Z`} 
+                                                                    fill="#ef4444" 
+                                                                    stroke="none" 
+                                                                />
+                                                            </g>
+                                                        );
+                                                    })()}
+                                                </g>
+                                            </Pie>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center">
+                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block">Costo Total</span>
+                                        <h3 className="text-xl font-black text-slate-800">{totalActualPercent.toFixed(1)}%</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Utility Section */}
+                            <div className={`rounded-[24px] p-6 text-center border-2 border-dashed ${utilityPercent < 0 ? 'bg-rose-50 border-rose-100' : utilityPercent < 10 ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                                <span className={`text-[9px] font-black uppercase tracking-[0.3em] block mb-2 ${utilityPercent < 0 ? 'text-rose-400' : utilityPercent < 10 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                    {utilityPercent < 0 ? '⚠️ Alerta crítica de utilidad' : utilityPercent < 10 ? '⚡ Advertencia de margen bajo' : '✅ Utilidad Teórica Saludable'}
+                                </span>
+                                <div className={`inline-flex items-center justify-center text-white px-6 py-2.5 rounded-2xl shadow-lg ${utilityPercent < 0 ? 'bg-rose-500 shadow-rose-500/20' : utilityPercent < 10 ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}>
+                                    <h2 className="text-3xl font-black">
+                                        {utilityPercent.toFixed(2)}%
+                                    </h2>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

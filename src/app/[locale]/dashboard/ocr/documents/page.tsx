@@ -697,7 +697,7 @@ function OCRDocumentsContent() {
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-orange-500 outline-none"
+                                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 outline-none"
                             />
                         </div>
                         <div className="flex flex-col">
@@ -706,7 +706,7 @@ function OCRDocumentsContent() {
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-orange-500 outline-none"
+                                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 outline-none"
                             />
                         </div>
                     </div>
@@ -827,18 +827,18 @@ function OCRDocumentsContent() {
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Ej: Facturas Proveedor X - Marzo 2024"
-                                    className="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 transition-all font-bold"
+                                    className="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-primary-500 transition-all font-bold"
                                 />
                             </div>
                             <div className="flex gap-4 border-b border-gray-100 text-sm font-bold">
-                                <button onClick={() => setActiveTab('upload')} className={`pb-3 px-4 transition-all border-b-2 ${activeTab === 'upload' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400'}`}>📥 Subir Archivos</button>
-                                <button onClick={() => setActiveTab('qr')} className={`pb-3 px-4 transition-all border-b-2 ${activeTab === 'qr' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-400'}`}>📱 Código QR</button>
+                                <button onClick={() => setActiveTab('upload')} className={`pb-3 px-4 transition-all border-b-2 ${activeTab === 'upload' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'}`}>📥 Subir Archivos</button>
+                                <button onClick={() => setActiveTab('qr')} className={`pb-3 px-4 transition-all border-b-2 ${activeTab === 'qr' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400'}`}>📱 Código QR</button>
                             </div>
                             {activeTab === 'upload' ? (
                                 <div className="space-y-6">
                                     <div 
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-all"
+                                        className="border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-all"
                                     >
                                         <span className="text-5xl">📄</span>
                                         <p className="font-bold text-gray-500 text-center">{t('dropFiles')}</p>
@@ -899,7 +899,7 @@ function OCRDocumentsContent() {
                                             {processingDoc.details.map((detail: any, idx: number) => (
                                                 <div 
                                                     key={idx} 
-                                                    className="aspect-square rounded-lg overflow-hidden border border-gray-100 cursor-zoom-in hover:border-orange-400 transition-colors"
+                                                    className="aspect-square rounded-lg overflow-hidden border border-gray-100 cursor-zoom-in hover:border-primary-400 transition-colors"
                                                     onClick={() => setSelectedImage(`data:image/jpeg;base64,${detail.DocumentoOCR}`)}
                                                 >
                                                     <img src={`data:image/jpeg;base64,${detail.DocumentoOCR}`} alt="Doc" className="w-full h-full object-cover" />
@@ -918,7 +918,7 @@ function OCRDocumentsContent() {
                                                         onClick={() => setOcrModel(m as any)}
                                                         className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${
                                                             ocrModel === m 
-                                                            ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm' 
+                                                            ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm' 
                                                             : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300'
                                                         }`}
                                                     >
@@ -987,7 +987,7 @@ function OCRDocumentsContent() {
                                     {isProcessing && (
                                         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
                                             <div className="relative">
-                                                <div className="w-32 h-32 border-8 border-orange-500/20 rounded-full animate-ping"></div>
+                                                <div className="w-32 h-32 border-8 border-primary-500/20 rounded-full animate-ping"></div>
                                                 <div className="absolute inset-0 flex items-center justify-center text-6xl animate-bounce">🌩️</div>
                                             </div>
                                             <div className="text-center">
@@ -995,7 +995,7 @@ function OCRDocumentsContent() {
                                                 <p className="text-sm font-bold text-gray-400 mt-2 leading-relaxed">Identificando proveedor, analizando conceptos<br/>y validando importes totales...</p>
                                                 <div className="flex justify-center gap-2 mt-6">
                                                     {[0, 1, 2].map(i => (
-                                                        <div key={i} className="w-3 h-3 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }}></div>
+                                                        <div key={i} className="w-3 h-3 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }}></div>
                                                     ))}
                                                 </div>
                                             </div>
@@ -1007,10 +1007,10 @@ function OCRDocumentsContent() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                                 <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
                                                     <div>
-                                                        <label className="text-[10px] font-black tracking-widest text-orange-600 uppercase">Proveedor Identificado por AI</label>
+                                                        <label className="text-[10px] font-black tracking-widest text-primary-600 uppercase">Proveedor Identificado por AI</label>
                                                         <div className="text-2xl font-black text-gray-900 mt-1 truncate group flex items-center gap-2">
                                                             <span>{ocrResult.provider || 'No detectado'}</span>
-                                                            {!selectedProviderId && <span className="text-xs text-orange-400 animate-pulse">⚠️ No vinculado</span>}
+                                                            {!selectedProviderId && <span className="text-xs text-primary-400 animate-pulse">⚠️ No vinculado</span>}
                                                         </div>
                                                     </div>
                                                     
@@ -1019,18 +1019,18 @@ function OCRDocumentsContent() {
                                                             <label className="text-[10px] font-black tracking-widest text-gray-400 uppercase">Vinculado a</label>
                                                             <button 
                                                                 onClick={() => setIsLinkProviderModalOpen(true)}
-                                                                className="text-[10px] font-black text-orange-600 hover:text-orange-700 underline uppercase tracking-widest"
+                                                                className="text-[10px] font-black text-primary-600 hover:text-primary-700 underline uppercase tracking-widest"
                                                             >
                                                                 {selectedProviderId ? 'Cambiar Vínculo' : 'Relacionar ahora'}
                                                             </button>
                                                         </div>
 
                                                         {selectedProviderId ? (
-                                                            <div className="bg-orange-100/50 p-3 rounded-xl border border-orange-200 animate-in fade-in zoom-in-95 duration-200">
+                                                            <div className="bg-primary-100/50 p-3 rounded-xl border border-primary-200 animate-in fade-in zoom-in-95 duration-200">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-xl">✅</span>
                                                                     <div>
-                                                                        <p className="text-[10px] font-black text-orange-800 uppercase leading-none">Relacionado a:</p>
+                                                                        <p className="text-[10px] font-black text-primary-800 uppercase leading-none">Relacionado a:</p>
                                                                         <p className="text-sm font-black text-gray-900 mt-1">
                                                                             {providers.find(p => p.IdProveedor.toString() === selectedProviderId)?.Proveedor || 'Proveedor seleccionado'}
                                                                         </p>
@@ -1053,7 +1053,7 @@ function OCRDocumentsContent() {
                                                                     type="text"
                                                                     value={ocrResult.ticketNumber || ''}
                                                                     onChange={(e) => setOcrResult({ ...ocrResult, ticketNumber: e.target.value })}
-                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-orange-500 outline-none"
+                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-primary-500 outline-none"
                                                                     placeholder="Ej: 123456"
                                                                 />
                                                             </div>
@@ -1063,7 +1063,7 @@ function OCRDocumentsContent() {
                                                                     type="date"
                                                                     value={ocrResult.date || ''}
                                                                     onChange={(e) => setOcrResult({ ...ocrResult, date: e.target.value })}
-                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-orange-500 outline-none"
+                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-primary-500 outline-none"
                                                                 />
                                                             </div>
                                                         </div>
@@ -1074,7 +1074,7 @@ function OCRDocumentsContent() {
                                                                 <select 
                                                                     value={selectedPaymentChannelId}
                                                                     onChange={(e) => setSelectedPaymentChannelId(e.target.value)}
-                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-orange-500 outline-none"
+                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-primary-500 outline-none"
                                                                 >
                                                                     <option value="">Seleccionar...</option>
                                                                     {paymentChannels.map(cp => (
@@ -1087,7 +1087,7 @@ function OCRDocumentsContent() {
                                                                 <select 
                                                                     value={selectedBranchId}
                                                                     onChange={(e) => setSelectedBranchId(e.target.value)}
-                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-orange-500 outline-none"
+                                                                    className="w-full mt-1 p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-primary-500 outline-none"
                                                                 >
                                                                     <option value="">Seleccionar...</option>
                                                                     {branches.map(s => (
@@ -1111,7 +1111,7 @@ function OCRDocumentsContent() {
                                                                 <select 
                                                                     value={selectedExpenseConceptId}
                                                                     onChange={(e) => setSelectedExpenseConceptId(e.target.value)}
-                                                                    className="w-full p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-orange-500 outline-none"
+                                                                    className="w-full p-2 bg-white border border-gray-200 rounded-md text-sm font-bold text-gray-800 focus:ring-1 focus:ring-primary-500 outline-none"
                                                                 >
                                                                     <option value="">Seleccionar...</option>
                                                                     {expenseConcepts.map(c => (
@@ -1123,13 +1123,13 @@ function OCRDocumentsContent() {
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex flex-col justify-center">
+                                                <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 flex flex-col justify-center">
                                                     <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-xs font-black text-orange-800 uppercase tracking-widest">Total Extraído</span>
-                                                        <div className="bg-orange-200 text-orange-800 px-2 py-0.5 rounded text-[10px] font-black uppercase">OCR Verificado</div>
+                                                        <span className="text-xs font-black text-primary-800 uppercase tracking-widest">Total Extraído</span>
+                                                        <div className="bg-primary-200 text-primary-800 px-2 py-0.5 rounded text-[10px] font-black uppercase">OCR Verificado</div>
                                                     </div>
                                                     <div className="relative group">
-                                                        <div className="text-5xl font-black text-orange-600 tracking-tighter">
+                                                        <div className="text-5xl font-black text-primary-600 tracking-tighter">
                                                             {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(ocrResult.total)}
                                                         </div>
                                                         <input 
@@ -1140,7 +1140,7 @@ function OCRDocumentsContent() {
                                                             className="absolute inset-0 opacity-0 cursor-pointer"
                                                             title="Editar Total"
                                                         />
-                                                        <div className="absolute right-0 top-0 text-[10px] font-bold text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity">Click para editar total</div>
+                                                        <div className="absolute right-0 top-0 text-[10px] font-bold text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">Click para editar total</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1166,7 +1166,7 @@ function OCRDocumentsContent() {
                                                                         <div className="flex flex-col">
                                                                             <span>{c.description}</span>
                                                                             {ocrType === 'compra' && !c.productId && (
-                                                                                <span className="text-[10px] text-orange-400 font-black uppercase mt-1">⚠️ Sin vincular</span>
+                                                                                <span className="text-[10px] text-primary-400 font-black uppercase mt-1">⚠️ Sin vincular</span>
                                                                             )}
                                                                         </div>
                                                                     </td>
@@ -1193,8 +1193,8 @@ function OCRDocumentsContent() {
                                                                                 onChange={(e) => handleUpdateConcept(i, 'quantity', parseFloat(e.target.value) || 0)}
                                                                                 className={`w-16 p-1 text-center bg-white border rounded-md text-sm font-black transition-all outline-none ${
                                                                                     isQuantityChanged 
-                                                                                    ? 'border-orange-500 text-orange-600 ring-1 ring-orange-500/20' 
-                                                                                    : 'border-gray-200 text-gray-800 focus:border-orange-500'
+                                                                                    ? 'border-primary-500 text-primary-600 ring-1 ring-primary-500/20' 
+                                                                                    : 'border-gray-200 text-gray-800 focus:border-primary-500'
                                                                                 }`}
                                                                             />
                                                                             {isQuantityChanged && (
@@ -1212,8 +1212,8 @@ function OCRDocumentsContent() {
                                                                                 onChange={(e) => handleUpdateConcept(i, 'price', parseFloat(e.target.value) || 0)}
                                                                                 className={`w-20 pl-4 pr-1 py-1 text-right bg-white border rounded-md text-sm font-black transition-all outline-none ${
                                                                                     isPriceChanged 
-                                                                                    ? 'border-orange-500 text-orange-600 ring-1 ring-orange-500/20' 
-                                                                                    : 'border-gray-200 text-gray-800 focus:border-orange-500'
+                                                                                    ? 'border-primary-500 text-primary-600 ring-1 ring-primary-500/20' 
+                                                                                    : 'border-gray-200 text-gray-800 focus:border-primary-500'
                                                                                 }`}
                                                                             />
                                                                             {isPriceChanged && (
@@ -1321,7 +1321,7 @@ function OCRDocumentsContent() {
                                     placeholder="Buscar por RFC, Proveedor, Teléfono o Correo..."
                                     value={providerSearchTerm}
                                     onChange={(e) => setProviderSearchTerm(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:ring-2 focus:ring-orange-500 transition-all outline-none"
+                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:bg-white focus:ring-2 focus:ring-primary-500 transition-all outline-none"
                                 />
                             </div>
                             <Button onClick={openNewProviderModal} className="bg-gray-900 hover:bg-black font-black flex items-center gap-2">
@@ -1346,7 +1346,7 @@ function OCRDocumentsContent() {
                                         (p.RFC || '').toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
                                         (p.CorreoElectronico || '').toLowerCase().includes(providerSearchTerm.toLowerCase())
                                     ).map(p => (
-                                        <tr key={p.IdProveedor} className="group hover:bg-orange-50 transition-colors">
+                                        <tr key={p.IdProveedor} className="group hover:bg-primary-50 transition-colors">
                                             <td className="px-4 py-4 text-xs font-black text-gray-400">{p.RFC || '-'}</td>
                                             <td className="px-4 py-4 font-black text-gray-900">{p.Proveedor}</td>
                                             <td className="px-4 py-4 text-xs font-bold text-gray-500">{p.Telefonos || '-'}</td>
@@ -1355,14 +1355,14 @@ function OCRDocumentsContent() {
                                                 <div className="flex justify-end items-center gap-2">
                                                     <button 
                                                         onClick={() => handleEditProvider(p)}
-                                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-400 hover:text-orange-500 transition-all font-bold"
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-400 hover:text-primary-500 transition-all font-bold"
                                                         title="Editar Proveedor"
                                                     >
                                                         ✏️
                                                     </button>
                                                     <button 
                                                         onClick={() => handleRelateProvider(p)}
-                                                        className="px-3 py-1.5 bg-white border-2 border-orange-500 text-orange-600 rounded-lg text-xs font-black uppercase hover:bg-orange-500 hover:text-white transition-all transform group-hover:scale-105"
+                                                        className="px-3 py-1.5 bg-white border-2 border-primary-500 text-primary-600 rounded-lg text-xs font-black uppercase hover:bg-primary-500 hover:text-white transition-all transform group-hover:scale-105"
                                                     >
                                                         Relacionar
                                                     </button>
@@ -1511,7 +1511,7 @@ function OCRDocumentsContent() {
                                     type="text"
                                     value={newProviderForm.proveedor}
                                     onChange={(e) => setNewProviderForm({...newProviderForm, proveedor: e.target.value})}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-gray-800 focus:ring-2 focus:ring-primary-500 outline-none"
                                 />
                             </div>
                             
@@ -1522,7 +1522,7 @@ function OCRDocumentsContent() {
                                         type="text"
                                         value={newProviderForm.rfc}
                                         onChange={(e) => setNewProviderForm({...newProviderForm, rfc: e.target.value})}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -1531,7 +1531,7 @@ function OCRDocumentsContent() {
                                         type="text"
                                         value={newProviderForm.telefonos}
                                         onChange={(e) => setNewProviderForm({...newProviderForm, telefonos: e.target.value})}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                             </div>
@@ -1542,7 +1542,7 @@ function OCRDocumentsContent() {
                                     type="email"
                                     value={newProviderForm.correoElectronico}
                                     onChange={(e) => setNewProviderForm({...newProviderForm, correoElectronico: e.target.value})}
-                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none"
+                                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-primary-500 outline-none"
                                 />
                             </div>
 
@@ -1556,7 +1556,7 @@ function OCRDocumentsContent() {
                                 <button 
                                     onClick={handleCreateProvider}
                                     disabled={isSaving}
-                                    className="flex-[2] py-4 bg-orange-500 text-white rounded-xl font-black shadow-lg shadow-orange-500/30 hover:bg-orange-600 transition-all uppercase tracking-widest text-xs disabled:opacity-50"
+                                    className="flex-[2] py-4 bg-primary-500 text-white rounded-xl font-black shadow-lg shadow-primary-500/30 hover:bg-primary-600 transition-all uppercase tracking-widest text-xs disabled:opacity-50"
                                 >
                                     {isSaving ? 'Guardando...' : (editingProviderId ? 'Actualizar' : 'Guardar Proveedor')}
                                 </button>

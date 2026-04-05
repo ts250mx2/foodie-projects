@@ -527,7 +527,7 @@ export default function SchedulesPage() {
                         <button
                             onClick={handleImportPreviousWeek}
                             disabled={loading || selectedBranch === ''}
-                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700 transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                         >
                             {loading ? (
                                 <span className="animate-spin text-lg">⏳</span>
@@ -552,11 +552,11 @@ export default function SchedulesPage() {
                         <button
                             onClick={() => setViewAllEmployees(!viewAllEmployees)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all shadow-sm font-bold select-none ${viewAllEmployees
-                                ? 'bg-orange-600 border-orange-700 text-white shadow-orange-200'
+                                ? 'bg-primary-600 border-primary-700 text-white shadow-primary-200'
                                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                                 }`}
                         >
-                            <span className={`w-5 h-5 flex items-center justify-center rounded border ${viewAllEmployees ? 'bg-white text-orange-600 border-white' : 'bg-gray-100 border-gray-300'}`}>
+                            <span className={`w-5 h-5 flex items-center justify-center rounded border ${viewAllEmployees ? 'bg-white text-primary-600 border-white' : 'bg-gray-100 border-gray-300'}`}>
                                 {viewAllEmployees && (
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[4px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -572,7 +572,7 @@ export default function SchedulesPage() {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium shadow-sm"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white font-medium shadow-sm"
                         >
                             {branches.map(branch => (
                                 <option key={branch.IdSucursal} value={branch.IdSucursal}>
@@ -599,7 +599,7 @@ export default function SchedulesPage() {
                                     <div
                                         onClick={() => handleSelectAll(selectedEmployeeIds.length !== employees.length || employees.length === 0)}
                                         className={`w-7 h-7 mx-auto rounded-md border-2 flex items-center justify-center cursor-pointer transition-all shadow-md ${selectedEmployeeIds.length === employees.length && employees.length > 0
-                                            ? 'bg-white border-white text-orange-600'
+                                            ? 'bg-white border-white text-primary-600'
                                             : 'bg-black/20 border-white/30'
                                             }`}
                                     >
@@ -644,16 +644,16 @@ export default function SchedulesPage() {
                             {filteredEmployees.map((employee) => {
                                 const isSelected = selectedEmployeeIds.includes(employee.IdEmpleado);
                                 return (
-                                    <tr key={employee.IdEmpleado} className={`${isSelected ? 'bg-orange-50' : 'hover:bg-gray-50/50'} transition-colors group`}>
-                                        <td className={`sticky left-0 z-10 ${isSelected ? 'bg-orange-50' : 'bg-white'} group-hover:bg-gray-50 p-4 text-center border-r border-gray-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)] w-16`}>
+                                    <tr key={employee.IdEmpleado} className={`${isSelected ? 'bg-primary-50' : 'hover:bg-gray-50/50'} transition-colors group`}>
+                                        <td className={`sticky left-0 z-10 ${isSelected ? 'bg-primary-50' : 'bg-white'} group-hover:bg-gray-50 p-4 text-center border-r border-gray-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)] w-16`}>
                                             <div
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleEmployeeSelect(employee.IdEmpleado);
                                                 }}
                                                 className={`w-7 h-7 mx-auto rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${isSelected
-                                                    ? 'bg-orange-600 border-orange-600 text-white shadow-sm'
-                                                    : 'bg-white border-gray-300 hover:border-orange-400'
+                                                    ? 'bg-primary-600 border-primary-600 text-white shadow-sm'
+                                                    : 'bg-white border-gray-300 hover:border-primary-400'
                                                     }`}
                                             >
                                                 {isSelected && (
@@ -663,7 +663,7 @@ export default function SchedulesPage() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className={`sticky left-16 z-10 ${isSelected ? 'bg-orange-50' : 'bg-white'} group-hover:bg-gray-50 p-4 border-r border-gray-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)]`}>
+                                        <td className={`sticky left-16 z-10 ${isSelected ? 'bg-primary-50' : 'bg-white'} group-hover:bg-gray-50 p-4 border-r border-gray-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)]`}>
                                             <div className="flex items-center gap-3">
                                                 {employee.ArchivoFoto ? (
                                                     <img src={employee.ArchivoFoto} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md" />
@@ -685,7 +685,7 @@ export default function SchedulesPage() {
                                             return (
                                                 <td
                                                     key={i}
-                                                    className="p-2 border-r border-gray-100 text-center relative hover:bg-orange-50 cursor-pointer group/cell transition-all min-h-[80px]"
+                                                    className="p-2 border-r border-gray-100 text-center relative hover:bg-primary-50 cursor-pointer group/cell transition-all min-h-[80px]"
                                                     onClick={() => handleCellClick(employee.IdEmpleado, date)}
                                                     onDragOver={handleDragOver}
                                                     onDrop={(e) => handleDrop(e, employee.IdEmpleado, date)}
@@ -694,7 +694,7 @@ export default function SchedulesPage() {
                                                         <div
                                                             draggable
                                                             onDragStart={(e) => handleDragStart(e, schedule)}
-                                                            className={`relative p-2 rounded-lg border shadow-sm animate-in fade-in slide-in-from-top-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-all h-full flex flex-col justify-center ${isAttendanceMode ? 'bg-blue-100 border-blue-200 text-blue-800 hover:border-blue-400' : 'bg-orange-100 border-orange-200 text-orange-800 hover:border-orange-400'}`}
+                                                            className={`relative p-2 rounded-lg border shadow-sm animate-in fade-in slide-in-from-top-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-all h-full flex flex-col justify-center ${isAttendanceMode ? 'bg-blue-100 border-blue-200 text-blue-800 hover:border-blue-400' : 'bg-primary-100 border-primary-200 text-primary-800 hover:border-primary-400'}`}
                                                         >
                                                             {isAttendanceMode ? (
                                                                 <div className="flex flex-col items-center justify-center py-1">
@@ -716,7 +716,7 @@ export default function SchedulesPage() {
                                                                 <>
                                                                     <div className="font-bold text-xs">{schedule.HoraInicio.substring(0, 5)} - {schedule.HoraFin.substring(0, 5)}</div>
                                                                     {schedule.HoraInicioDescanso && schedule.HoraFinDescanso && (
-                                                                        <div className="mt-1 bg-white/50 rounded flex items-center justify-center gap-1 text-[9px] font-bold border border-orange-200/50 uppercase tracking-tighter pointer-events-none">
+                                                                        <div className="mt-1 bg-white/50 rounded flex items-center justify-center gap-1 text-[9px] font-bold border border-primary-200/50 uppercase tracking-tighter pointer-events-none">
                                                                             <span className="opacity-60">☕</span>
                                                                             <span>{schedule.HoraInicioDescanso.substring(0, 5)} - {schedule.HoraFinDescanso.substring(0, 5)}</span>
                                                                         </div>

@@ -284,7 +284,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Propina Capturada</label>
-                            <div className="text-xl font-black text-orange-600">
+                            <div className="text-xl font-black text-primary-600">
                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalTips)}
                             </div>
                         </div>
@@ -297,11 +297,11 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                     </div>
 
                     {/* Form Section */}
-                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-orange-50 p-6 rounded-xl border border-orange-100 items-end shadow-sm">
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-primary-50 p-6 rounded-xl border border-primary-100 items-end shadow-sm">
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('shift')}</label>
+                            <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{t('shift')}</label>
                             <select
-                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                 value={formData.shiftId}
                                 onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
                                 required
@@ -316,10 +316,10 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                         </div>
 
                         <div className="flex flex-col relative">
-                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('employee')}</label>
+                            <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{t('employee')}</label>
                             <input
                                 type="text"
-                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                 value={formData.employeeSearch}
                                 onChange={(e) => {
                                     setFormData({ ...formData, employeeSearch: e.target.value });
@@ -336,7 +336,7 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                         <div
                                             key={emp.IdEmpleado}
                                             onClick={() => handleEmployeeSelect(emp)}
-                                            className="px-4 py-2 hover:bg-orange-50 cursor-pointer border-b last:border-0 border-gray-50"
+                                            className="px-4 py-2 hover:bg-primary-50 cursor-pointer border-b last:border-0 border-gray-50"
                                         >
                                             <div className="font-bold text-sm text-gray-800">{emp.Empleado}</div>
                                             <div className="text-[10px] uppercase font-bold text-gray-400">{emp.Puesto}</div>
@@ -347,9 +347,9 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                         </div>
 
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('tipProfile')}</label>
+                            <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{t('tipProfile')}</label>
                             <select
-                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                 value={formData.profileId}
                                 onChange={(e) => setFormData({ ...formData, profileId: e.target.value })}
                                 required
@@ -364,10 +364,10 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                         </div>
 
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-orange-900/60 uppercase tracking-wider mb-2 ml-1">{t('sales')}</label>
+                            <label className="text-xs font-bold text-primary-900/60 uppercase tracking-wider mb-2 ml-1">{t('sales')}</label>
                             <input
                                 type="text"
-                                className="w-full p-2.5 bg-white border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                 value={formData.sales}
                                 onChange={(e) => {
                                     const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -388,23 +388,23 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                         </div>
 
                         <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-4 items-end">
-                            <div className="bg-white/50 p-2 rounded-lg border border-orange-100">
-                                <span className="text-[10px] font-bold text-orange-900/40 uppercase block mb-1">Porcentaje</span>
+                            <div className="bg-white/50 p-2 rounded-lg border border-primary-100">
+                                <span className="text-[10px] font-bold text-primary-900/40 uppercase block mb-1">Porcentaje</span>
                                 <span className="text-sm font-bold text-gray-700">{formData.percentage}%</span>
                             </div>
-                            <div className="bg-white/50 p-2 rounded-lg border border-orange-100">
-                                <span className="text-[10px] font-bold text-orange-900/40 uppercase block mb-1">Fijo</span>
+                            <div className="bg-white/50 p-2 rounded-lg border border-primary-100">
+                                <span className="text-[10px] font-bold text-primary-900/40 uppercase block mb-1">Fijo</span>
                                 <span className="text-sm font-bold text-gray-700">{formData.amount}</span>
                             </div>
-                            <div className="bg-white p-2 rounded-lg border-2 border-orange-300 col-span-2 md:col-span-1">
-                                <span className="text-[10px] font-bold text-orange-600 uppercase block mb-1">Cálculo Estimado</span>
-                                <span className="text-lg font-black text-orange-600 block leading-none">
+                            <div className="bg-white p-2 rounded-lg border-2 border-primary-300 col-span-2 md:col-span-1">
+                                <span className="text-[10px] font-bold text-primary-600 uppercase block mb-1">Cálculo Estimado</span>
+                                <span className="text-lg font-black text-primary-600 block leading-none">
                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateTip())}
                                 </span>
                             </div>
                         </div>
 
-                        <button type="submit" className="bg-orange-500 text-white p-2.5 rounded-lg hover:bg-orange-600 font-bold transition-all shadow-md active:scale-95">
+                        <button type="submit" className="bg-primary-500 text-white p-2.5 rounded-lg hover:bg-primary-600 font-bold transition-all shadow-md active:scale-95">
                             {t('add') || 'Agregar'}
                         </button>
                     </form>
@@ -430,14 +430,14 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
                                         </tr>
                                     ) : (
                                         dailyTips.map((tip) => (
-                                            <tr key={tip.IdPropinaEmpleado} className="hover:bg-orange-50/30 transition-colors group">
+                                            <tr key={tip.IdPropinaEmpleado} className="hover:bg-primary-50/30 transition-colors group">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{tip.Empleado}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tip.Turno}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tip.PerfilPropina}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.Venta)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 text-right font-black">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-primary-600 text-right font-black">
                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tip.MontoPropina)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">

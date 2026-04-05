@@ -80,7 +80,7 @@ export default function PhoneInput({
 
             <div className={`flex w-full rounded-lg border-2 bg-white dark:bg-gray-800 transition-all duration-200 ${error
                     ? 'border-red-500 focus-within:border-red-600'
-                    : 'border-gray-300 hover:border-orange-500 dark:border-gray-600 dark:hover:border-orange-400 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20'
+                    : 'border-gray-300 hover:border-primary-500 dark:border-gray-600 dark:hover:border-primary-400 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20'
                 }`}>
                 {/* Country Code Trigger */}
                 <button
@@ -122,7 +122,7 @@ export default function PhoneInput({
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search country or code..."
-                                className="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 text-sm"
+                                className="w-full px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-primary-500 text-sm"
                                 autoFocus
                             />
                         </div>
@@ -143,8 +143,8 @@ export default function PhoneInput({
                                             setIsOpen(false);
                                             setSearch('');
                                         }}
-                                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors ${String(country.phone) === String(countryCode)
-                                                ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-medium'
+                                        className={`w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors ${String(country.phone) === String(countryCode)
+                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium'
                                                 : 'text-gray-700 dark:text-gray-200'
                                             }`}
                                     >

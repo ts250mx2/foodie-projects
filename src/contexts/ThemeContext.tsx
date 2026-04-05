@@ -14,8 +14,8 @@ interface ThemeContextType {
 }
 
 const defaultColors: ThemeColors = {
-    colorFondo1: '#FF6B35', // Orange
-    colorFondo2: '#F7931E', // Pink/Orange
+    colorFondo1: '#7033ff', // Primary
+    colorFondo2: '#0a0a0a', // Secondary
     colorLetra: '#FFFFFF'   // White
 };
 

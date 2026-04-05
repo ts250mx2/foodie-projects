@@ -353,7 +353,7 @@ export default function ProductsPage() {
                     <Button
                         onClick={() => setIsMassiveModalOpen(true)}
                         variant="primary"
-                        className="bg-orange-600 hover:bg-orange-700"
+                        className="bg-primary-600 hover:bg-primary-700"
                     >
                         {t('massiveProductUpload')}
                     </Button>
@@ -530,7 +530,7 @@ export default function ProductsPage() {
                                         {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
                                         {product.Categoria}
                                         {product.IdModuloRecetario && product.IdModuloRecetario > 0 ? (
-                                            <sup className="text-orange-600 font-bold ml-0.5">
+                                            <sup className="text-primary-600 font-bold ml-0.5">
                                                 {product.IdModuloRecetario}
                                             </sup>
                                         ) : null}

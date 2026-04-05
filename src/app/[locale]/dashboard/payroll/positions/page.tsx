@@ -240,7 +240,7 @@ export default function PositionsPage() {
                                 </label>
                                 <div
                                     onClick={() => setFormData({ ...formData, hasTips: !formData.hasTips })}
-                                    className={`w-12 h-6 flex-shrink-0 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${formData.hasTips ? 'bg-orange-500' : 'bg-gray-300'}`}
+                                    className={`w-12 h-6 flex-shrink-0 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${formData.hasTips ? 'bg-primary-500' : 'bg-gray-300'}`}
                                 >
                                     <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${formData.hasTips ? 'translate-x-6' : 'translate-x-0'}`} />
                                 </div>

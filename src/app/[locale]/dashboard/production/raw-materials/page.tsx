@@ -378,7 +378,7 @@ export default function RawMaterialsPage() {
                     placeholder="🔍 Buscar en esta categoría..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
             </div>
 
@@ -390,8 +390,8 @@ export default function RawMaterialsPage() {
                             key={category.IdCategoriaRecetario}
                             onClick={() => setActiveTab(category.IdCategoriaRecetario)}
                             className={`px-4 py-2 rounded-t-lg text-sm transition-colors whitespace-nowrap ${activeTab === category.IdCategoriaRecetario
-                                ? 'bg-white text-orange-600 font-bold'
-                                : 'bg-orange-600/50 text-white hover:bg-orange-600/70 font-medium'
+                                ? 'bg-white text-primary-600 font-bold'
+                                : 'bg-primary-600/50 text-white hover:bg-primary-600/70 font-medium'
                                 }`}
                         >
                             {category.CategoriaRecetario}
@@ -490,7 +490,7 @@ export default function RawMaterialsPage() {
                                                     }}
                                                     onBlur={(e) => handleBlur(material.IdProducto, 'Precio', e.target.value)}
                                                     onFocus={handleFocus}
-                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-orange-500"
+                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-primary-500"
                                                 />
                                             </td>
                                             <td className="px-3 py-2 text-center">
@@ -499,14 +499,14 @@ export default function RawMaterialsPage() {
                                                     step="0.01"
                                                     value={getValue(material, 'ConversionSimple') as number || 0}
                                                     onChange={(e) => handleFieldChange(material.IdProducto, 'ConversionSimple', parseFloat(e.target.value) || 0)}
-                                                    className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-orange-500"
+                                                    className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-primary-500"
                                                 />
                                             </td>
                                             <td className="px-3 py-2">
                                                 <select
                                                     value={getValue(material, 'IdPresentacionConversion') as number || ''}
                                                     onChange={(e) => handleFieldChange(material.IdProducto, 'IdPresentacionConversion', parseInt(e.target.value) || null)}
-                                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-orange-500"
+                                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500"
                                                 >
                                                     <option value="">Seleccionar...</option>
                                                     {presentations.map(p => (
@@ -522,7 +522,7 @@ export default function RawMaterialsPage() {
                                                     step="0.01"
                                                     value={pesoInicial || 0}
                                                     onChange={(e) => handleFieldChange(material.IdProducto, 'PesoInicial', parseFloat(e.target.value) || 0)}
-                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-orange-500"
+                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-primary-500"
                                                 />
                                             </td>
                                             <td className="px-3 py-2 text-right">
@@ -531,7 +531,7 @@ export default function RawMaterialsPage() {
                                                     step="0.01"
                                                     value={pesoFinal || 0}
                                                     onChange={(e) => handleFieldChange(material.IdProducto, 'PesoFinal', parseFloat(e.target.value) || 0)}
-                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-orange-500"
+                                                    className="w-24 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-2 focus:ring-primary-500"
                                                 />
                                             </td>
                                             <td className="px-3 py-2 text-right text-sm font-medium text-green-600">
@@ -543,7 +543,7 @@ export default function RawMaterialsPage() {
                                             <td className="px-3 py-2 text-right text-sm font-medium text-blue-600">
                                                 {formatCurrency(precioNeto)}
                                             </td>
-                                            <td className="px-3 py-2 text-right text-sm font-medium text-orange-600">
+                                            <td className="px-3 py-2 text-right text-sm font-medium text-primary-600">
                                                 {formatCurrency(precioProcesado)}
                                             </td>
                                             <td className="px-3 py-2 text-center">

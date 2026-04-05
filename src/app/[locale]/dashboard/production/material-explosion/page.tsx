@@ -174,7 +174,7 @@ export default function MaterialExplosionPage() {
                             placeholder={t('searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 transition-all outline-none text-sm w-full md:w-64"
+                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 transition-all outline-none text-sm w-full md:w-64"
                         />
                     </div>
                     <Button 
@@ -189,7 +189,7 @@ export default function MaterialExplosionPage() {
 
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{tCommon('loading')}</p>
                 </div>
             ) : filteredSubRecipes.length === 0 ? (
@@ -232,7 +232,7 @@ export default function MaterialExplosionPage() {
                                             // Cast to Product (SubRecipe matches most fields)
                                             setEditingProduct(recipe as any);
                                         }}
-                                        className="text-gray-400 hover:text-orange-500 transition-colors p-1"
+                                        className="text-gray-400 hover:text-primary-500 transition-colors p-1"
                                         title="Editar Costeo"
                                     >
                                         ✏️
@@ -310,7 +310,7 @@ export default function MaterialExplosionPage() {
                                                     <div className="font-bold text-gray-800">{item.product}</div>
                                                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{item.code}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-center font-black text-orange-600">{item.quantity.toFixed(3)}</td>
+                                                <td className="px-6 py-4 text-center font-black text-primary-600">{item.quantity.toFixed(3)}</td>
                                                 <td className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest italic">{item.unit}</td>
                                                 <td className="px-6 py-4 text-right text-sm text-gray-500">
                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price)}
@@ -321,7 +321,7 @@ export default function MaterialExplosionPage() {
                                                 <td className="px-6 py-4 text-center">
                                                     <button
                                                         onClick={() => setEditingProduct(item.productData)}
-                                                        className="text-gray-400 hover:text-orange-500 transition-colors p-1"
+                                                        className="text-gray-400 hover:text-primary-500 transition-colors p-1"
                                                         title="Editar Insumo"
                                                     >
                                                         ✏️
@@ -339,7 +339,7 @@ export default function MaterialExplosionPage() {
                             <div className="flex items-center gap-4">
                                 <div className="text-right">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Estimado</p>
-                                    <p className="text-3xl font-black text-orange-600">
+                                    <p className="text-3xl font-black text-primary-600">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}
                                     </p>
                                 </div>
@@ -348,7 +348,7 @@ export default function MaterialExplosionPage() {
                                 <Button onClick={() => window.print()} variant="secondary" className="px-8">
                                     🖨️ PDF
                                 </Button>
-                                <Button onClick={() => setExplosionResults(null)} className="px-12 shadow-lg shadow-orange-200">
+                                <Button onClick={() => setExplosionResults(null)} className="px-12 shadow-lg shadow-primary-200">
                                     {tCommon('close')}
                                 </Button>
                             </div>

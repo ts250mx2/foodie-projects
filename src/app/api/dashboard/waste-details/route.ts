@@ -52,10 +52,22 @@ export async function GET(request: NextRequest) {
             [branchId, monthNum, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
+        // 4. Group by Product
+        const [productRows] = (await connection.query(
+            `SELECT p.Producto as name, c.ImagenCategoria as emoji, c.Categoria as categoryName, SUM(m.Cantidad * m.Precio) as value, COUNT(*) as count
+             FROM tblMermas m
+             JOIN tblProductos p ON m.IdProducto = p.IdProducto
+             LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
+             WHERE m.IdSucursal = ? AND m.Mes = ? AND m.Anio = ?
+             GROUP BY p.Producto, c.ImagenCategoria, c.Categoria`,
+            [branchId, monthNum, year]
+        )) as [RowDataPacket[], FieldPacket[]];
+
         return NextResponse.json({
             success: true,
             data: {
                 categories: categoryRows,
+                products: productRows,
                 days: dayRows,
                 totalWaste
             }

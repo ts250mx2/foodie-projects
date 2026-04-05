@@ -149,7 +149,7 @@ export default function TipProfileEarningsModal({
                         <select
                             value={selectedPuestoId}
                             onChange={(e) => setSelectedPuestoId(parseInt(e.target.value))}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 text-sm"
                         >
                             <option value={0}>Default</option>
                             {positions.map((pos) => (

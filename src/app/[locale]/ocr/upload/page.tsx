@@ -297,7 +297,7 @@ function OCRSimpleUploadContent() {
 
 export default function OCRSimpleUploadPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black animate-pulse text-orange-500">CARGANDO...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black animate-pulse text-primary-500">CARGANDO...</div>}>
             <OCRSimpleUploadContent />
         </Suspense>
     );

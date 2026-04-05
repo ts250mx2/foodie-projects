@@ -166,7 +166,7 @@ export default function AddMaterialModal({
                                     // Calculation removed as cell is removed
 
                                     return (
-                                        <tr key={p.IdProducto} className="hover:bg-orange-50 transition-colors border-b">
+                                        <tr key={p.IdProducto} className="hover:bg-primary-50 transition-colors border-b">
                                             <td className="px-4 py-3">
                                                 {p.ArchivoImagen ? (
                                                     <img 

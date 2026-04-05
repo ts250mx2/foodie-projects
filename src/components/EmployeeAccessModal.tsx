@@ -135,7 +135,7 @@ export default function EmployeeAccessModal({
                                     type="text"
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     placeholder="usuario"
                                     required
                                 />
@@ -166,7 +166,7 @@ export default function EmployeeAccessModal({
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-orange-500' : 'bg-gray-200'
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-primary-500' : 'bg-gray-200'
                                     }`}
                             >
                                 <span

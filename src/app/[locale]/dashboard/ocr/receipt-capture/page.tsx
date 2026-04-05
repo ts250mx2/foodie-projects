@@ -241,7 +241,7 @@ function ReceiptCaptureContent() {
                             onClick={() => setSelectedModel('claude-opus-4-6')}
                             className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all border-2 ${
                                 selectedModel === 'claude-opus-4-6'
-                                    ? 'bg-orange-50 border-orange-400 text-orange-700'
+                                    ? 'bg-primary-50 border-primary-400 text-primary-700'
                                     : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
                             }`}
                         >

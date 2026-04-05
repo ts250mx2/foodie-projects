@@ -112,8 +112,8 @@ export default function BranchSalesChannelsModal({ branchId, projectId, isTabMod
 
     return (
         <div className="space-y-6">
-            <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100">
-                <h3 className="text-sm font-bold text-orange-800 uppercase mb-4">
+            <div className="bg-primary-50/50 p-6 rounded-xl border border-primary-100">
+                <h3 className="text-sm font-bold text-primary-800 uppercase mb-4">
                     {editingId ? t('editChannel') : t('addChannel')}
                 </h3>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
