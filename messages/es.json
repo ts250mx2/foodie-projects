@@ -104,8 +104,9 @@
     "BreakEven": {
         "title": "Análisis de Punto de Equilibrio",
         "salesBlockTitle": "VENTAS PROMEDIO POR MES",
+        "monthlySales": "Ventas Mensual",
         "avgTicketPrice": "Precio Promedio Ticket Venta Mensual",
-        "ticketVolume": "Volumen Total Tickets del Mes",
+        "ticketVolume": "Clientes Atendidos al Mes",
         "avgSalesAmount": "Monto Promedio Venta del Mes",
         "variableCostBlockTitle": "COSTO VARIABLE POR UNIDAD DE PRODUCTO #1 VENTA",
         "rawMaterialCost": "Costo Materia Prima",
@@ -122,6 +123,8 @@
         "deleteExpense": "Borrar",
         "totalFixedExpenses": "Sumatoria Gastos Fijos",
         "totalCostsPerPeriod": "Costos Totales Por Periodo",
+        "dailyBreakEvenUnits": "PUNTO EQUILIBRIO POR DIA (UNIDADES)",
+        "dailyBreakEvenDollars": "PUNTO DE EQUILIBRIO POR DIA ($)",
         "save": "Guardar Configuración",
         "successSave": "Configuración guardada correctamente",
         "errorSave": "Error al guardar la configuración"

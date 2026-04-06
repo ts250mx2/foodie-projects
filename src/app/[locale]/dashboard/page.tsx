@@ -1243,63 +1243,61 @@ export default function DashboardPage() {
                                                 innerRadius={80}
                                                 outerRadius={120}
                                                 stroke="none"
-                                            >
-                                                {/* Gauge segments can be more complex but this highlights the budget limit */}
-                                            </Pie>
-                                            {/* Custom Needle as an extra element */}
-                                            <Pie
-                                                dataKey="value"
-                                                startAngle={180}
-                                                endAngle={0}
-                                                data={[{ value: 100 }]}
-                                                cx="50%"
-                                                cy="85%"
-                                                innerRadius={0}
-                                                outerRadius={0}
-                                                stroke="none"
-                                                isAnimationActive={false}
-                                            >
-                                                {/* Needle positioning logic */}
-                                                <g>
-                                                    {(() => {
-                                                        const iR = 0;
-                                                        const oR = 120; // Reduced radius
-                                                        const RADIAN = Math.PI / 180;
-                                                        const budgetAngle = 180.0 * (1 - (totalBudgetPercent / 100));
-                                                        const ang = 180.0 * (1 - Math.min(100, Math.max(0, totalActualPercent)) / 100);
-                                                        const sin = Math.sin(-RADIAN * ang);
-                                                        const cos = Math.cos(-RADIAN * ang);
-                                                        const length = (iR + 2 * oR) / 3;
+                                            />
+                                            
+                                            {/* Needle Layer */}
+                                            {(() => {
+                                                const iR = 0;
+                                                const oR = 120;
+                                                const RADIAN = Math.PI / 180;
+                                                const ang = 180.0 * (1 - Math.min(100, Math.max(0, totalActualPercent)) / 100);
+                                                const sin = Math.sin(-RADIAN * ang);
+                                                const cos = Math.cos(-RADIAN * ang);
+                                                const length = (iR + 2 * oR) / 3;
 
-                                                        // Label positions
-                                                        const labelRadius = oR + 15;
-                                                        const getX = (a) => 100 + labelRadius * Math.cos(-RADIAN * a);
-                                                        const getY = (a) => 150 + labelRadius * Math.sin(-RADIAN * a);
+                                                const cx = 160; 
+                                                const cy = 153; 
 
-                                                        return (
-                                                            <g transform={`translate(${110}, ${0})`}> 
-                                                                {/* 0% Label */}
-                                                                <text x={getX(180) - 5} y={getY(180)} textAnchor="end" fill="#94a3b8" fontSize="10" fontWeight="bold">0%</text>
-                                                                
-                                                                {/* Budget Label */}
-                                                                <text x={getX(budgetAngle)} y={getY(budgetAngle) - 5} textAnchor="middle" fill="#f43f5e" fontSize="11" fontWeight="black">META: {totalBudgetPercent.toFixed(0)}%</text>
-                                                                
-                                                                {/* 100% Label */}
-                                                                <text x={getX(0) + 5} y={getY(0)} textAnchor="start" fill="#94a3b8" fontSize="10" fontWeight="bold">100%</text>
-
-                                                                <circle cx={100} cy={150} r={5} fill="#ef4444" stroke="none" />
-                                                                <path 
-                                                                    d={`M${100 - 2} 150 L${100 + 2} 150 L${100 + length * cos} ${150 + length * sin} Z`} 
-                                                                    fill="#ef4444" 
-                                                                    stroke="none" 
-                                                                />
-                                                            </g>
-                                                        );
-                                                    })()}
-                                                </g>
-                                            </Pie>
+                                                return (
+                                                    <g>
+                                                        <circle cx={cx} cy={cy} r={5} fill="#ef4444" stroke="none" />
+                                                        <path 
+                                                            d={`M${cx - 2} ${cy} L${cx + 2} ${cy} L${cx + length * cos} ${cy + length * sin} Z`} 
+                                                            fill="#ef4444" 
+                                                            stroke="none" 
+                                                        />
+                                                    </g>
+                                                );
+                                            })()}
                                         </PieChart>
                                     </ResponsiveContainer>
+
+                                    {/* HTML/CSS Label Overlays (Reliable Rendering) */}
+                                    <div className="absolute bottom-[10%] left-0 text-[10px] font-black text-slate-400">0%</div>
+                                    <div className="absolute bottom-[10%] right-0 text-[10px] font-black text-slate-400">100%</div>
+                                    
+                                    {/* Budget Marker Label */}
+                                    {(() => {
+                                        const budgetAngle = (totalBudgetPercent / 100) * 180; // 0 to 180
+                                        const radius = 135; // px
+                                        const radian = (Math.PI / 180) * (180 - budgetAngle);
+                                        const x = 160 + radius * Math.cos(radian);
+                                        const y = 153 - radius * Math.sin(radian);
+                                        
+                                        return (
+                                            <div 
+                                                className="absolute text-[9px] font-black text-rose-500 whitespace-nowrap pointer-events-none select-none"
+                                                style={{ 
+                                                    left: `${x}px`, 
+                                                    top: `${y}px`,
+                                                    transform: 'translate(-50%, -100%)'
+                                                }}
+                                            >
+                                                SUMA % PRESUPUESTO: {totalBudgetPercent.toFixed(1)}%
+                                            </div>
+                                        );
+                                    })()}
+
                                     <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center">
                                         <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block">Costo Total</span>
                                         <h3 className="text-xl font-black text-slate-800">{totalActualPercent.toFixed(1)}%</h3>

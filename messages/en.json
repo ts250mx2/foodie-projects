@@ -98,8 +98,9 @@
     "BreakEven": {
         "title": "Break-even Analysis",
         "salesBlockTitle": "AVERAGE MONTHLY SALES",
+        "monthlySales": "Monthly Sales",
         "avgTicketPrice": "Average Monthly Sales Ticket Price",
-        "ticketVolume": "Total Monthly Ticket Volume",
+        "ticketVolume": "Customers Served Monthly",
         "avgSalesAmount": "Average Monthly Sales Amount",
         "variableCostBlockTitle": "VARIABLE COST PER UNIT OF PRODUCT #1 SALES",
         "rawMaterialCost": "Raw Material Cost",
@@ -116,6 +117,8 @@
         "deleteExpense": "Delete",
         "totalFixedExpenses": "Total Fixed Expenses",
         "totalCostsPerPeriod": "Total Costs Per Period",
+        "dailyBreakEvenUnits": "DAILY BREAK-EVEN (UNITS)",
+        "dailyBreakEvenDollars": "DAILY BREAK-EVEN ($)",
         "save": "Save Configuration",
         "successSave": "Configuration saved successfully",
         "errorSave": "Error saving configuration"
