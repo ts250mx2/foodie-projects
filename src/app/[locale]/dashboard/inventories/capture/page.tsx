@@ -242,6 +242,19 @@ export default function InventoryCapturePage() {
             [productId]: value
         }));
     };
+    
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const inputs = Array.from(document.querySelectorAll('input[data-inventory-input="true"]')) as HTMLInputElement[];
+            const currentIndex = inputs.indexOf(e.currentTarget);
+            if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+                inputs[currentIndex + 1].focus();
+                inputs[currentIndex + 1].select();
+            }
+        }
+    };
+
 
     const handleSaveAll = async () => {
         if (!selectedDate || !project || !selectedBranch) return;
@@ -752,11 +765,14 @@ export default function InventoryCapturePage() {
                                                                     <input
                                                                         type="number"
                                                                         step="any"
+                                                                        data-inventory-input="true"
                                                                         value={editedQuantities[entry.IdProducto] ?? (entry.Cantidad === 0 ? '' : entry.Cantidad.toString())}
                                                                         onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
+                                                                        onKeyDown={handleKeyDown}
                                                                         className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                                                         disabled={isLoading}
                                                                     />
+
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
                                                                 <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">

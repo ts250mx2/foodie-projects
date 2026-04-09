@@ -21,15 +21,16 @@ export async function GET(request: NextRequest) {
         const monthNum = parseInt(month) + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        // Get daily payroll with employee names and IdNomina
+        // Get daily payroll with employee names and TipoPago
         const [rows] = await connection.query(
-            `SELECT n.Dia, n.Mes, n.Anio, n.IdUsuario, n.Pago, e.Empleado
+            `SELECT n.Dia, n.Mes, n.Anio, n.IdUsuario, n.Pago, n.TipoPago, e.Empleado
              FROM tblNomina n
              INNER JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
              WHERE n.IdSucursal = ? AND n.Dia = ? AND n.Mes = ? AND n.Anio = ?
              ORDER BY n.FechaAct`,
             [branchId, day, monthNum, year]
         );
+
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
@@ -44,22 +45,36 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, branchId, day, month, year, employeeId, amount } = body;
+        const { projectId, branchId, day, month, year, employeeId, amount, paymentType } = body;
+        const type = paymentType || 'PAGO NOMINA';
 
         if (!projectId || !branchId || !day || month === null || !year || !employeeId || amount === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
+
         const monthNum = month + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
-        // Incremental: Add to existing amount if already exists for this employee/day/branch
+        // Ensure TipoPago column exists
+        try {
+            await connection.query(`ALTER TABLE tblNomina ADD COLUMN TipoPago VARCHAR(50) DEFAULT 'PAGO NOMINA' AFTER Pago`);
+        } catch (e: any) {
+            // Ignore if column already exists (Error 1060)
+            if (e.errno !== 1060 && e.code !== 'ER_DUP_FIELDNAME') {
+                console.error('Error adding TipoPago column:', e);
+            }
+        }
+
+        // Incremental: Add to existing amount if already exists for this employee/day/branch/type
+        // We add TipoPago to the unique constraint check (implied by ON DUPLICATE KEY UPDATE)
         const [result] = await connection.query(
-            `INSERT INTO tblNomina (Dia, Mes, Anio, IdUsuario, Pago, IdSucursal, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE Pago = Pago + VALUES(Pago), FechaAct = NOW()`,
-            [day, monthNum, year, employeeId, amount, branchId]
+            `INSERT INTO tblNomina (Dia, Mes, Anio, IdUsuario, Pago, IdSucursal, TipoPago, FechaAct)
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE Pago = Pago + VALUES(Pago), TipoPago = VALUES(TipoPago), FechaAct = NOW()`,
+            [day, monthNum, year, employeeId, amount, branchId, type]
         );
+
 
         return NextResponse.json({
             success: true,

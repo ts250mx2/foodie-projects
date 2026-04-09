@@ -25,7 +25,9 @@ interface PayrollEntry {
     IdUsuario: number;
     Pago: number;
     Empleado: string;
+    TipoPago?: string;
 }
+
 
 export default function PayrollCapturePage() {
     const t = useTranslations('PayrollCapture');
@@ -49,8 +51,10 @@ export default function PayrollCapturePage() {
     // Form state
     const [formData, setFormData] = useState({
         employeeId: '',
-        amount: ''
+        amount: '',
+        paymentType: 'PAGO NOMINA'
     });
+
 
     const [employeeSearch, setEmployeeSearch] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -218,16 +222,21 @@ export default function PayrollCapturePage() {
                     month: selectedDate.getMonth(),
                     year: selectedDate.getFullYear(),
                     employeeId: formData.employeeId,
-                    amount: parseFloat(formData.amount.replace(/[^0-9.-]+/g, ''))
+                    amount: formData.paymentType === 'PENALIZACION' 
+                        ? -Math.abs(parseFloat(formData.amount.replace(/[^0-9.-]+/g, ''))) 
+                        : Math.abs(parseFloat(formData.amount.replace(/[^0-9.-]+/g, ''))),
+                    paymentType: formData.paymentType
                 })
             });
+
 
             if (response.ok) {
                 fetchDailyPayroll(selectedDate);
                 fetchMonthlyPayroll();
-                setFormData({ ...formData, amount: '', employeeId: '' });
+                setFormData({ ...formData, amount: '', employeeId: '', paymentType: 'PAGO NOMINA' });
                 setEmployeeSearch('');
             }
+
         } catch (error) {
             console.error('Error saving payroll:', error);
         }
@@ -522,10 +531,23 @@ export default function PayrollCapturePage() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col">
+                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">Tipo de Pago</label>
+                                    <select
+                                        className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                        value={formData.paymentType}
+                                        onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
+                                    >
+                                        <option value="PAGO NOMINA">PAGO NOMINA</option>
+                                        <option value="BONO">BONO</option>
+                                        <option value="PRESTAMO">PRESTAMO</option>
+                                        <option value="PENALIZACION">PENALIZACION</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col">
                                     <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
                                     <input
                                         type="text"
-                                        className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-black text-indigo-600"
+                                        className={`w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-black ${formData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-indigo-600'}`}
                                         value={formData.amount}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -539,6 +561,7 @@ export default function PayrollCapturePage() {
                                         placeholder="0.00"
                                     />
                                 </div>
+
                                 <button type="submit" className="bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 font-bold transition-all shadow-md active:scale-95">
                                     💾 {tModal('save')}
                                 </button>
@@ -551,22 +574,27 @@ export default function PayrollCapturePage() {
                                         <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
+                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo</th>
                                                 <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
                                                 <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
                                             </tr>
+
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-50">
                                             {dailyPayroll.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={3} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros para este día</td>
+                                                    <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros para este día</td>
                                                 </tr>
+
                                             ) : (
                                                 dailyPayroll.map((pay, idx) => (
                                                     <tr key={idx} className="hover:bg-indigo-50/30 transition-colors group">
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{pay.Empleado}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 text-right font-black">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-[10px] font-black text-slate-400 uppercase tracking-widest">{pay.TipoPago || 'PAGO NOMINA'}</td>
+                                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-black ${pay.Pago < 0 ? 'text-rose-600' : 'text-indigo-600'}`}>
                                                             {formatCurrency(pay.Pago)}
                                                         </td>
+
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                                             <button
                                                                 type="button"

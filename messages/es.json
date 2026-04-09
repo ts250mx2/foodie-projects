@@ -108,7 +108,7 @@
         "avgTicketPrice": "Precio Promedio Ticket Venta Mensual",
         "ticketVolume": "Clientes Atendidos al Mes",
         "avgSalesAmount": "Monto Promedio Venta del Mes",
-        "variableCostBlockTitle": "COSTO VARIABLE POR UNIDAD DE PRODUCTO #1 VENTA",
+        "variableCostBlockTitle": "COSTO VARIABLE POR UNIDADES MAS REPRESENTATIVAS",
         "rawMaterialCost": "Costo Materia Prima",
         "packagingCost": "Empaque",
         "othersCost": "Otros",
@@ -127,7 +127,10 @@
         "dailyBreakEvenDollars": "PUNTO DE EQUILIBRIO POR DIA ($)",
         "save": "Guardar Configuración",
         "successSave": "Configuración guardada correctamente",
-        "errorSave": "Error al guardar la configuración"
+        "errorSave": "Error al guardar la configuración",
+        "addProduct": "Agregar producto",
+        "productName": "Nombre producto",
+        "saveProduct": "Guardar producto"
     },
     "Production": {
         "title": "Captura de Producción",

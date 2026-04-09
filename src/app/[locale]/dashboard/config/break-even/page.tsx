@@ -33,7 +33,60 @@ interface Scenario {
     VolumenTickets: number;
 }
 
+// Local Price Input Component for consistent currency formatting
+const PriceInput = ({ value, onChange, className, color = 'indigo', disabled = false }: any) => {
+    const [isFocused, setIsFocused] = useState(false);
+    const [displayValue, setDisplayValue] = useState('');
+
+    useEffect(() => {
+        if (!isFocused) {
+            setDisplayValue(new Intl.NumberFormat('es-MX', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(value || 0));
+        }
+    }, [value, isFocused]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (disabled) return;
+        let raw = e.target.value.replace(/[^0-9.]/g, '');
+        // Handle multiple decimals
+        const parts = raw.split('.');
+        if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+        
+        setDisplayValue(e.target.value);
+        const num = parseFloat(raw) || 0;
+        onChange(num);
+    };
+
+    const colorClasses: Record<string, string> = {
+        indigo: 'focus-within:border-indigo-500 focus-within:ring-indigo-500/10 text-indigo-900',
+        orange: 'focus-within:border-orange-500 focus-within:ring-orange-500/10 text-orange-900',
+        slate: 'focus-within:border-slate-500 focus-within:ring-slate-500/10 text-slate-900'
+    };
+
+    const currentClasses = colorClasses[color] || colorClasses.indigo;
+
+    return (
+        <div className={`flex items-center bg-white border-2 border-slate-200 rounded-xl overflow-hidden transition-all shadow-sm ${currentClasses.split(' ').slice(0, 2).join(' ')} ${className} ${disabled ? 'bg-slate-50 opacity-75' : ''}`}>
+            <div className="pl-2.5 pr-1 py-1.5 flex items-center pointer-events-none bg-slate-50 border-r border-slate-100">
+                <span className={`text-[10px] font-black italic ${currentClasses.split(' ').pop()}`}>$</span>
+            </div>
+            <input
+                type="text"
+                value={isFocused ? displayValue.replace(/,/g, '') : displayValue}
+                onChange={handleChange}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                disabled={disabled}
+                className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-900 text-right bg-transparent disabled:cursor-not-allowed"
+            />
+        </div>
+    );
+};
+
 export default function BreakEvenPage() {
+
     const t = useTranslations('BreakEven');
     const tCommon = useTranslations('Common');
     const tProd = useTranslations('Production');
@@ -43,47 +96,7 @@ export default function BreakEvenPage() {
     const expenseInputsRef = useRef<(HTMLInputElement | null)[]>([]);
     const chartRef = useRef<HTMLDivElement>(null);
 
-    // Local Price Input Component for consistent currency formatting
-    const PriceInput = ({ value, onChange, className, color = 'indigo' }: any) => {
-        const [isFocused, setIsFocused] = useState(false);
-        const [displayValue, setDisplayValue] = useState('');
 
-        useEffect(() => {
-            if (!isFocused) {
-                setDisplayValue(new Intl.NumberFormat('es-MX', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                }).format(value || 0));
-            }
-        }, [value, isFocused]);
-
-        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            let raw = e.target.value.replace(/[^0-9.]/g, '');
-            // Handle multiple decimals
-            const parts = raw.split('.');
-            if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
-            
-            setDisplayValue(e.target.value);
-            const num = parseFloat(raw) || 0;
-            onChange(num);
-        };
-
-        return (
-            <div className={`flex items-center bg-white border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-${color}-500 focus-within:ring-4 focus-within:ring-${color}-500/10 transition-all shadow-sm ${className}`}>
-                <div className="pl-2.5 pr-1 py-1.5 flex items-center pointer-events-none bg-slate-50 border-r border-slate-100">
-                    <span className={`text-${color}-900 text-[10px] font-black italic`}>$</span>
-                </div>
-                <input
-                    type="text"
-                    value={isFocused ? displayValue.replace(/,/g, '') : displayValue}
-                    onChange={handleChange}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-900 text-right bg-transparent"
-                />
-            </div>
-        );
-    };
 
     // Basic state
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -101,18 +114,35 @@ export default function BreakEvenPage() {
     const [others, setOthers] = useState<number>(0);
     const [shipping, setShipping] = useState<number>(0);
     const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
-    const [scenarios, setScenarios] = useState<Scenario[]>(
-        Array.from({ length: 5 }, (_, i) => ({ IdEscenario: i + 1, PrecioTicket: 0, VolumenTickets: 0 }))
-    );
-    
+    const [representativeProducts, setRepresentativeProducts] = useState<any[]>([]);
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [newProduct, setNewProduct] = useState({ name: '', rawMaterial: 0, packaging: 0 });
+    const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [showRightBlocks, setShowRightBlocks] = useState(true);
+
+
 
     // Calculated values (Main Analysis)
     const avgSalesAmount = monthlySales;
-    const sumVariableCosts = rawMaterial + packaging + others + shipping;
+
+    // Derived representative costs (Average of products or fallback to manual)
+    const avgRawMaterial = useMemo(() => {
+        if (representativeProducts.length === 0) return rawMaterial;
+        const sum = representativeProducts.reduce((s, p) => s + (p.CostoMateriaPrima || 0), 0);
+        return sum / representativeProducts.length;
+    }, [representativeProducts, rawMaterial]);
+
+    const avgPackaging = useMemo(() => {
+        if (representativeProducts.length === 0) return packaging;
+        const sum = representativeProducts.reduce((s, p) => s + (p.Empaque || 0), 0);
+        return sum / representativeProducts.length;
+    }, [representativeProducts, packaging]);
+
+    const sumVariableCosts = avgRawMaterial + avgPackaging + others + shipping;
     const variableCostsTotal = sumVariableCosts * volume;
+
     const unitContributionMargin = avgTicket - sumVariableCosts;
     const totalFixedExpenses = fixedExpenses.reduce((sum, exp) => sum + (exp.Monto || 0), 0);
     const totalCostsPerPeriod = totalFixedExpenses + variableCostsTotal;
@@ -140,59 +170,59 @@ export default function BreakEvenPage() {
         setAvgTicket(calculatedAvg);
     }, [monthlySales, volume]);
 
-    // Sync Scenario 1 with Main Analysis if Scenario 1 is empty or upon first load
-    useEffect(() => {
-        if (scenarios[0].PrecioTicket === 0 && scenarios[0].VolumenTickets === 0 && (avgTicket > 0 || volume > 0)) {
-            const newScenarios = [...scenarios];
-            newScenarios[0] = { ...newScenarios[0], PrecioTicket: avgTicket, VolumenTickets: volume };
-            setScenarios(newScenarios);
-        }
-    }, [avgTicket, volume]);
 
-    // Derived values for the Analysis Table
-    const scenarioData = useMemo(() => {
-        return scenarios.map(s => {
-            const ventasTotales = s.PrecioTicket * s.VolumenTickets;
-            const costosVariables = sumVariableCosts * s.VolumenTickets;
-            const costosTotales = totalFixedExpenses + costosVariables;
-            const margenBruto = costosTotales - ventasTotales; // As requested: Costs - Sales
-            const margenVsCostosFijos = margenBruto - totalFixedExpenses;
-
-            return {
-                ...s,
-                costosFijos: totalFixedExpenses,
-                costosVariables,
-                costosTotales,
-                ventasTotales,
-                margenBruto,
-                margenVsCostosFijos
-            };
-        });
-    }, [scenarios, sumVariableCosts, totalFixedExpenses]);
-
-    // Chart Data
+    // Chart Data Generation (Dynamic Points: 0, Break-Even, Current, and Projection)
     const chartData = useMemo(() => {
-        const base = scenarioData.map(d => ({
-            name: `Esc. ${d.IdEscenario}`,
-            ventas: d.ventasTotales,
-            costos: d.costosTotales,
-            fijos: d.costosFijos,
-            variables: d.costosVariables,
-            volumen: d.VolumenTickets
-        }));
+        const points = [];
 
-        // Add zero point for break-even visualization
-        const zeroPoint = {
-            name: 'Punto 0',
+        // 1. Point 0
+        points.push({
+            name: 'Inicio',
             ventas: 0,
-            costos: 0,
-            fijos: 0,
-            variables: 0,
-            volumen: 0
-        };
+            costos: totalFixedExpenses,
+            fijos: totalFixedExpenses,
+            variables: 0
+        });
 
-        return [zeroPoint, ...base].sort((a, b) => a.ventas - b.ventas);
-    }, [scenarioData, totalFixedExpenses]);
+        // 2. Break-Even Point
+        if (breakEvenDollars > 0) {
+            points.push({
+                name: 'Pto. Equilibrio',
+                ventas: breakEvenDollars,
+                costos: breakEvenDollars, // At break-even, costs = sales
+                fijos: totalFixedExpenses,
+                variables: breakEvenDollars - totalFixedExpenses
+            });
+        }
+
+        // 3. Current Point
+        if (monthlySales > 0) {
+            points.push({
+                name: 'Actual',
+                ventas: monthlySales,
+                costos: totalCostsPerPeriod,
+                fijos: totalFixedExpenses,
+                variables: variableCostsTotal
+            });
+        }
+
+        // 4. Projection Point (150% of current or 150% of break-even)
+        const targetVentas = Math.max(monthlySales, breakEvenDollars) * 1.5;
+        if (targetVentas > 0) {
+            const targetVolumen = avgTicket > 0 ? targetVentas / avgTicket : 0;
+            const targetVariables = sumVariableCosts * targetVolumen;
+            points.push({
+                name: 'Proyección',
+                ventas: targetVentas,
+                costos: totalFixedExpenses + targetVariables,
+                fijos: totalFixedExpenses,
+                variables: targetVariables
+            });
+        }
+
+        return points.sort((a, b) => a.ventas - b.ventas);
+    }, [monthlySales, totalCostsPerPeriod, totalFixedExpenses, breakEvenDollars, variableCostsTotal, avgTicket, sumVariableCosts]);
+
 
     const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i);
 
@@ -229,11 +259,14 @@ export default function BreakEvenPage() {
     };
 
     const fetchData = async () => {
+        if (!project || !selectedBranch) return;
         setIsLoading(true);
         try {
             const params = new URLSearchParams({
-                projectId: project.idProyecto, branchId: selectedBranch,
-                month: (selectedMonth + 1).toString(), year: selectedYear.toString()
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                month: (selectedMonth + 1).toString(),
+                year: selectedYear.toString()
             });
             const response = await fetch(`/api/config/break-even?${params}`);
             const data = await response.json();
@@ -247,24 +280,20 @@ export default function BreakEvenPage() {
                 setOthers(data.data.Otros || 0);
                 setShipping(data.data.Envio || 0);
                 setFixedExpenses(data.data.fixedExpenses || []);
-                
-                if (data.data.scenarios && data.data.scenarios.length === 5) {
-                    setScenarios(data.data.scenarios);
-                } else {
-                    setScenarios(Array.from({ length: 5 }, (_, i) => ({ 
-                        IdEscenario: i + 1, 
-                        PrecioTicket: i === 0 ? (data.data.PrecioTicket || 0) : 0, 
-                        VolumenTickets: i === 0 ? (data.data.VolumenTickets || 0) : 0 
-                    })));
-                }
+                setRepresentativeProducts(data.data.representativeProducts || []);
             } else {
                 setMonthlySales(0); setVolume(0); setRawMaterial(0); setPackaging(0); setOthers(0); setShipping(0); setFixedExpenses([]);
-                setScenarios(Array.from({ length: 5 }, (_, i) => ({ IdEscenario: i + 1, PrecioTicket: 0, VolumenTickets: 0 })));
+                setRepresentativeProducts([]);
             }
-        } catch (error) { console.error('Error fetching break-even data:', error); } finally { setIsLoading(false); }
+        } catch (error) {
+            console.error('Error fetching break-even data:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleSave = async () => {
+        if (!project || !selectedBranch) return;
         setIsSaving(true);
         try {
             const response = await fetch('/api/config/break-even', {
@@ -272,19 +301,22 @@ export default function BreakEvenPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId: project.idProyecto, branchId: selectedBranch, month: selectedMonth + 1, year: selectedYear,
-                    price: avgTicket, volume: volume, rawMaterial, packaging, others, shipping, fixedExpenses, scenarios
+                    price: avgTicket, volume: volume, 
+                    rawMaterial: representativeProducts.length > 0 ? avgRawMaterial : rawMaterial, 
+                    packaging: representativeProducts.length > 0 ? avgPackaging : packaging, 
+                    others, shipping,
+                    fixedExpenses, representativeProducts
                 })
             });
             const data = await response.json();
             if (data.success) alert(t('successSave'));
             else alert(t('errorSave'));
-        } catch (error) { console.error('Error saving break-even data:', error); alert(t('errorSave')); } finally { setIsSaving(false); }
-    };
-
-    const handleUpdateScenario = (index: number, field: keyof Scenario, value: number) => {
-        const newScenarios = [...scenarios];
-        newScenarios[index] = { ...newScenarios[index], [field]: value };
-        setScenarios(newScenarios);
+        } catch (error) { 
+            console.error('Error saving break-even data:', error); 
+            alert(t('errorSave')); 
+        } finally { 
+            setIsSaving(false); 
+        }
     };
 
     const handleAddExpense = () => setFixedExpenses([...fixedExpenses, { ConceptoGasto: '', Monto: 0 }]);
@@ -295,7 +327,23 @@ export default function BreakEvenPage() {
         setFixedExpenses(newExpenses);
     };
 
+    const handleAddProduct = () => {
+        if (!newProduct.name) return;
+        setRepresentativeProducts([...representativeProducts, { 
+            NombreProducto: newProduct.name, 
+            CostoMateriaPrima: newProduct.rawMaterial, 
+            Empaque: newProduct.packaging 
+        }]);
+        setNewProduct({ name: '', rawMaterial: 0, packaging: 0 });
+        setIsProductModalOpen(false);
+    };
+
+    const handleDeleteProduct = (index: number) => {
+        setRepresentativeProducts(representativeProducts.filter((_, i) => i !== index));
+    };
+
     const formatCurrency = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+
 
     const handleExportExcel = async () => {
         if (!chartRef.current) return;
@@ -393,41 +441,6 @@ export default function BreakEvenPage() {
             drawRow(beRow + 1, 'Tickets Necesarios (Unidades)', Math.ceil(breakEvenUnits), false);
             drawRow(beRow + 2, 'Venta Necesaria ($)', breakEvenDollars);
 
-            // --- RIGHT COLUMN (TABLE & CHART) ---
-            // Header for Scenarios table
-            const tableRow = 5;
-            const scenarioHeaderCells = ['D', 'E', 'F', 'G', 'H', 'I'];
-            const scenarioLabels = ['Concepto', 'Esc. 1', 'Esc. 2', 'Esc. 3', 'Esc. 4', 'Esc. 5'];
-            scenarioHeaderCells.forEach((col, i) => {
-                const cell = worksheet.getCell(`${col}${tableRow}`);
-                cell.value = scenarioLabels[i];
-                cell.fill = headerFill;
-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-                cell.alignment = { horizontal: 'center' };
-            });
-
-            const drawScenarioRow = (rowOffset: number, label: string, dataKey: string, isCurr = true) => {
-                const r = tableRow + rowOffset;
-                worksheet.getCell(`D${r}`).value = label;
-                worksheet.getCell(`D${r}`).font = { size: 8, bold: true };
-                scenarioData.forEach((d, i) => {
-                    const cell = worksheet.getCell(`${scenarioHeaderCells[i+1]}${r}`);
-                    cell.value = (d as any)[dataKey];
-                    if(isCurr) cell.numFmt = '"$"#,##0.00';
-                    cell.font = { size: 8 };
-                    cell.alignment = { horizontal: 'right' };
-                });
-            };
-
-            drawScenarioRow(1, 'Precio Promedio', 'PrecioTicket');
-            drawScenarioRow(2, 'Volumen Tickets', 'VolumenTickets', false);
-            drawScenarioRow(3, 'Ventas Totales', 'ventasTotales');
-            drawScenarioRow(4, 'Costos Fijos', 'costosFijos');
-            drawScenarioRow(5, 'Costos Variables', 'costosVariables');
-            drawScenarioRow(6, 'Costos Totales', 'costosTotales');
-            drawScenarioRow(7, 'Margen Bruto', 'margenBruto');
-            drawScenarioRow(8, 'Margen vs Fijos', 'margenVsCostosFijos');
-
             // --- INSERT CHART ---
             const imageId = workbook.addImage({
                 base64: chartDataUrl.split(',')[1],
@@ -435,9 +448,10 @@ export default function BreakEvenPage() {
             });
 
             worksheet.addImage(imageId, {
-                tl: { col: 3, row: 14 }, // Starts at column D, row 15 (0-indexed)
+                tl: { col: 3, row: 4 }, // Starts at column D, row 5
                 ext: { width: 800, height: 400 }
             });
+
 
             // Final Download
             const buffer = await workbook.xlsx.writeBuffer();
@@ -478,12 +492,13 @@ export default function BreakEvenPage() {
                     </select>
                     <div className="flex items-center gap-2">
                         <Button 
-                            onClick={() => setShowRightBlocks(!showRightBlocks)} 
-                            className={`h-9 px-3 rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 ${showRightBlocks ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+                            onClick={() => setIsChartModalOpen(true)} 
+                            className="h-9 px-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 border border-indigo-200"
                         >
-                            {showRightBlocks ? '👁️ Ver Menos' : '📊 Ver Detalles'}
+                            📊 Ver Gráfica
                         </Button>
                         <Button onClick={handleExportExcel} className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2">
+
                             <span>📗</span> Exportar
                         </Button>
                         <Button onClick={handleSave} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
@@ -493,10 +508,11 @@ export default function BreakEvenPage() {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 transition-all duration-500">
+            <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 pb-20">
                 
-                {/* COLUMN LEFT - BASIC BLOCKS */}
-                <div className={`${showRightBlocks ? 'lg:col-span-4' : 'lg:col-span-6'} flex flex-col gap-6 transition-all duration-500`}>
+                {/* CONFIG BLOCKS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
                     {/* BLOCK 1: VENTAS PROMEDIO */}
                     <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
                         <div className="px-5 py-3.5 bg-slate-50 border-b border-indigo-100 flex items-center gap-3">
@@ -531,24 +547,51 @@ export default function BreakEvenPage() {
 
                     {/* BLOCK 2: COSTO VARIABLE */}
                     <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
-                        <div className="px-5 py-3.5 bg-orange-50/50 border-b border-orange-100 flex items-center gap-3">
-                            <span className="text-xl filter drop-shadow-sm">📦</span>
-                            <h2 className="text-[13px] font-black text-orange-900 uppercase tracking-widest">{t('variableCostBlockTitle')}</h2>
+                        <div className="px-5 py-3.5 bg-orange-50/50 border-b border-orange-100 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <span className="text-xl filter drop-shadow-sm">📦</span>
+                                <h2 className="text-[13px] font-black text-orange-900 uppercase tracking-widest">{t('variableCostBlockTitle')}</h2>
+                            </div>
+                            <button 
+                                onClick={() => setIsProductModalOpen(true)}
+                                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2"
+                            >
+                                <span className="text-sm">+</span> {t('addProduct')}
+                            </button>
                         </div>
                         <div className="p-5 space-y-2">
+                            {/* Representative Products List */}
+                            {representativeProducts.length > 0 && (
+                                <div className="mb-4 space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                    {representativeProducts.map((p, idx) => (
+                                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-orange-50/30 rounded-xl border border-orange-100/50 shadow-sm">
+                                            <div className="flex flex-col flex-1 truncate">
+                                                <span className="text-[10px] font-black text-slate-800 truncate">{p.NombreProducto}</span>
+                                                <div className="flex gap-2">
+                                                    <span className="text-[8px] font-bold text-slate-400">MP: {formatCurrency(p.CostoMateriaPrima)}</span>
+                                                    <span className="text-[8px] font-bold text-slate-400">E: {formatCurrency(p.Empaque)}</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleDeleteProduct(idx)} className="p-1.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-lg transition-all">🗑️</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {[
-                                { k: 'rawMaterialCost', v: rawMaterial, s: setRawMaterial },
-                                { k: 'packagingCost', v: packaging, s: setPackaging },
+                                { k: 'rawMaterialCost', v: avgRawMaterial, s: setRawMaterial, disabled: representativeProducts.length > 0 },
+                                { k: 'packagingCost', v: avgPackaging, s: setPackaging, disabled: representativeProducts.length > 0 },
                                 { k: 'othersCost', v: others, s: setOthers },
                                 { k: 'shippingCost', v: shipping, s: setShipping }
                             ].map(item => (
-                                <div key={item.k} className="flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                <div key={item.k} className={`flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-slate-50 transition-colors ${item.disabled ? 'opacity-80' : ''}`}>
                                     <span className="text-[11px] font-black text-slate-500 uppercase flex-1">{t(item.k)}</span>
                                     <div className="w-32 flex-shrink-0">
-                                        <PriceInput value={item.v} onChange={item.s} color="orange" />
+                                        <PriceInput value={item.v} onChange={item.s} color="orange" disabled={item.disabled} />
                                     </div>
                                 </div>
                             ))}
+
                             <div className="flex flex-col gap-2 mt-4">
                                 <div className="flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 shadow-sm">
                                     <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider">{t('sumVariableCosts')}</span>
@@ -569,282 +612,81 @@ export default function BreakEvenPage() {
                         </div>
                     </div>
 
-                    {showRightBlocks && (
-                        <>
-                            {/* BLOCK 3: GASTOS FIJOS */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col group hover:shadow-lg transition-all">
-                                <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl filter drop-shadow-sm">🏢</span>
-                                        <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-widest">{t('fixedExpensesBlockTitle')}</h2>
+                    {/* BLOCK 3: GASTOS FIJOS */}
+                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col group hover:shadow-lg transition-all">
+                        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-xl filter drop-shadow-sm">🏢</span>
+                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-widest">{t('fixedExpensesBlockTitle')}</h2>
+                            </div>
+                            <button onClick={handleAddExpense} className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2 border border-slate-700">
+                                <span className="text-sm">+</span> {t('addExpense')}
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-5">
+                            <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                {fixedExpenses.map((exp, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 group shadow-sm transition-all hover:bg-white hover:border-slate-200">
+                                        <input
+                                            ref={el => { expenseInputsRef.current[idx] = el }}
+                                            type="text"
+                                            value={exp.ConceptoGasto}
+                                            onChange={e => handleUpdateExpense(idx, 'ConceptoGasto', e.target.value)}
+                                            placeholder="Concepto..."
+                                            className="flex-1 px-3 py-2 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/5 transition-all shadow-sm"
+                                        />
+                                        <div className="w-32 flex-shrink-0">
+                                            <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} color="indigo" />
+                                        </div>
+                                        <button onClick={() => handleDeleteExpense(idx)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm">🗑️</button>
                                     </div>
-                                    <button onClick={handleAddExpense} className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2 border border-slate-700">
-                                        <span className="text-sm">+</span> {t('addExpense')}
-                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
+                                <div className="flex justify-between items-center px-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('totalFixedExpenses')}</span>
+                                    <span className="text-base font-black text-slate-700">{formatCurrency(totalFixedExpenses)}</span>
                                 </div>
-                                <div className="p-5 space-y-5">
-                                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                                        {fixedExpenses.map((exp, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 group shadow-sm transition-all hover:bg-white hover:border-slate-200">
-                                                <input
-                                                    ref={el => { expenseInputsRef.current[idx] = el }}
-                                                    type="text"
-                                                    value={exp.ConceptoGasto}
-                                                    onChange={e => handleUpdateExpense(idx, 'ConceptoGasto', e.target.value)}
-                                                    placeholder="Concepto..."
-                                                    className="flex-1 px-3 py-2 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/5 transition-all shadow-sm"
-                                                />
-                                                <div className="w-32 flex-shrink-0">
-                                                    <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} color="indigo" />
-                                                </div>
-                                                <button onClick={() => handleDeleteExpense(idx)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm">🗑️</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('totalFixedExpenses')}</span>
-                                            <span className="text-base font-black text-slate-700">{formatCurrency(totalFixedExpenses)}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative">
-                                            <span className="text-[9px] font-black text-indigo-200 uppercase z-10 tracking-widest">{t('totalCostsPerPeriod')}</span>
-                                            <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(totalCostsPerPeriod)}</span>
-                                            <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                                        </div>
-                                    </div>
+                                <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative">
+                                    <span className="text-[9px] font-black text-indigo-200 uppercase z-10 tracking-widest">{t('totalCostsPerPeriod')}</span>
+                                    <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(totalCostsPerPeriod)}</span>
+                                    <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            {/* BLOCK 4: RESULTADO PUNTO DE EQUILIBRIO */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all animate-in fade-in slide-in-from-bottom-4">
-                                <div className="px-5 py-3.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3">
-                                    <span className="text-xl filter drop-shadow-sm">🎯</span>
-                                    <h2 className="text-[13px] font-black text-emerald-900 uppercase tracking-widest">Resultado Punto de Equilibrio</h2>
+                    {/* BLOCK 4: RESULTADO PUNTO DE EQUILIBRIO */}
+                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all animate-in fade-in slide-in-from-bottom-4">
+                        <div className="px-5 py-3.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3">
+                            <span className="text-xl filter drop-shadow-sm">🎯</span>
+                            <h2 className="text-[13px] font-black text-emerald-900 uppercase tracking-widest">Resultado Punto de Equilibrio</h2>
+                        </div>
+                        <div className="p-5 space-y-3">
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenUnits')}</span>
+                                    <span className="text-sm font-black text-slate-700">{Math.ceil(dailyBreakEvenUnits).toLocaleString()} <small className="text-[8px] text-slate-400 font-bold">Und</small></span>
                                 </div>
-                                <div className="p-5 space-y-3">
-                                <div className="grid grid-cols-2 gap-3 mb-3">
-                                    <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenUnits')}</span>
-                                        <span className="text-sm font-black text-slate-700">{Math.ceil(dailyBreakEvenUnits).toLocaleString()} <small className="text-[8px] text-slate-400 font-bold">Und</small></span>
-                                    </div>
-                                    <div className="flex flex-col p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                                        <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenDollars')}</span>
-                                        <span className="text-sm font-black text-emerald-600">{formatCurrency(dailyBreakEvenDollars)}</span>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-all">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Punto Equilibrio (Unidades)</span>
-                                        <span className="text-[8px] font-bold text-slate-400 italic">C. Fijos / Margen Cont. Unit.</span>
-                                    </div>
-                                    <span className="text-base font-black text-slate-800">{Math.ceil(breakEvenUnits).toLocaleString()} <small className="text-[10px] text-slate-400 font-bold uppercase">Und</small></span>
-                                </div>
-                                    <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-emerald-600 to-emerald-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative group-hover:scale-[1.02] transition-transform">
-                                        <span className="text-[9px] font-black text-emerald-100 uppercase z-10 tracking-widest">Punto de Equilibrio ($)</span>
-                                        <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(breakEvenDollars)}</span>
-                                        <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                                    </div>
+                                <div className="flex flex-col p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                                    <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenDollars')}</span>
+                                    <span className="text-sm font-black text-emerald-600">{formatCurrency(dailyBreakEvenDollars)}</span>
                                 </div>
                             </div>
-                        </>
-                    )}
-                </div>
-
-                {/* COLUMN RIGHT - ANALYSIS & CHART OR MOVED BLOCKS */}
-                <div className={`${showRightBlocks ? 'lg:col-span-8' : 'lg:col-span-6'} flex flex-col gap-6 transition-all duration-500`}>
-                    {showRightBlocks ? (
-                        <>
-                            {/* ANALYSIS BLOCK */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
-                                <div className="px-5 py-3.5 bg-slate-50 border-b border-indigo-100 flex items-center gap-3">
-                                    <span className="text-xl filter drop-shadow-sm">📈</span>
-                                    <h2 className="text-[13px] font-black text-indigo-950 uppercase tracking-widest">ANÁLISIS DEL VOLUMEN DE VENTA</h2>
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-all">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Punto Equilibrio (Unidades)</span>
+                                    <span className="text-[8px] font-bold text-slate-400 italic">C. Fijos / Margen Cont. Unit.</span>
                                 </div>
-                                <div className="p-5 overflow-x-auto">
-                                    <table className="w-full text-left border-separate border-spacing-0">
-                                        <thead>
-                                            <tr>
-                                                <th className="p-2.5 text-[10px] uppercase font-black text-slate-400">Concepto</th>
-                                                {Array.from({ length: 5 }, (_, i) => (
-                                                    <th key={i} className="p-2.5 text-[10px] uppercase font-black text-indigo-700 text-center bg-indigo-50/50 border-x border-white rounded-t-xl">Captura {i + 1}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="text-[11px] font-bold text-slate-600">
-                                            <tr className="border-t border-slate-50">
-                                                <td className="p-3 bg-slate-50/30 rounded-l-xl">Precio Promedio Ticket</td>
-                                                {scenarios.map((s, i) => (
-                                                    <td key={i} className="p-1 border-x border-slate-50">
-                                                        <div className="min-w-[110px]">
-                                                            <PriceInput value={s.PrecioTicket} onChange={(v: any) => handleUpdateScenario(i, 'PrecioTicket', v)} />
-                                                        </div>
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                            <tr className="border-t border-slate-50">
-                                                <td className="p-3 bg-slate-50/30 rounded-l-xl">Volumen Total Tickets</td>
-                                                {scenarios.map((s, i) => (
-                                                    <td key={i} className="p-1 border-x border-slate-50">
-                                                        <div className="min-w-[110px] flex items-center bg-white border-2 border-slate-100 rounded-lg overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all shadow-sm">
-                                                            <div className="pl-2 pr-1 py-1.5 flex items-center bg-slate-50 border-r border-slate-100">
-                                                                <span className="text-slate-400 text-[10px] font-bold">#</span>
-                                                            </div>
-                                                            <input type="number" value={s.VolumenTickets || ''} onChange={e => handleUpdateScenario(i, 'VolumenTickets', parseFloat(e.target.value) || 0)} className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-900 text-right bg-transparent" />
-                                                        </div>
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                            <tr className="border-t border-slate-50 bg-slate-50/10">
-                                                <td className="p-3">Costos Fijos Por Mes</td>
-                                                {scenarioData.map((d, i) => <td key={i} className="p-3 text-right border-x border-slate-50 text-slate-400">{formatCurrency(d.costosFijos)}</td>)}
-                                            </tr>
-                                            <tr className="border-t border-slate-50">
-                                                <td className="p-3">Costos Variables</td>
-                                                {scenarioData.map((d, i) => <td key={i} className="p-3 text-right border-x border-slate-50 text-orange-600 font-semibold">{formatCurrency(d.costosVariables)}</td>)}
-                                            </tr>
-                                            <tr className="border-t border-slate-100 bg-slate-100/10">
-                                                <td className="p-3 font-black text-slate-800">Costos Totales</td>
-                                                {scenarioData.map((d, i) => <td key={i} className="p-3 text-right border-x border-slate-100 font-black text-slate-900 bg-slate-50/30">{formatCurrency(d.costosTotales)}</td>)}
-                                            </tr>
-                                            <tr className="border-t border-slate-50">
-                                                <td className="p-3 font-black text-emerald-800">Ventas Totales</td>
-                                                {scenarioData.map((d, i) => <td key={i} className="p-3 text-right border-x border-slate-50 font-black text-emerald-600 bg-emerald-50/40">{formatCurrency(d.ventasTotales)}</td>)}
-                                            </tr>
-                                            <tr className="border-t border-slate-100 bg-slate-900/5">
-                                                <td className="p-3 font-black italic text-slate-700">Margen Bruto (Costos - Ventas)</td>
-                                                {scenarioData.map((d, i) => (
-                                                    <td key={i} className={`p-3 text-right border-x border-slate-100 font-black ${d.margenBruto < 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                                                        {formatCurrency(d.margenBruto)}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                            <tr className="border-t border-slate-100">
-                                                <td className="p-3 font-black text-slate-800 bg-slate-50/20 rounded-bl-xl">Margen Vs Costos Fijos</td>
-                                                {scenarioData.map((d, i) => (
-                                                    <td key={i} className={`p-3 text-right border-x border-slate-100 font-black ${d.margenVsCostosFijos < 0 ? 'text-blue-700' : 'text-rose-700'}`}>
-                                                        {formatCurrency(d.margenVsCostosFijos)}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <span className="text-base font-black text-slate-800">{Math.ceil(breakEvenUnits).toLocaleString()} <small className="text-[10px] text-slate-400 font-bold uppercase">Und</small></span>
                             </div>
-
-                            {/* CHART BLOCK */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex-1 min-h-[420px] group hover:shadow-lg transition-all">
-                                <div className="px-5 py-3.5 bg-indigo-50/50 border-b border-indigo-100 flex items-center gap-3">
-                                    <span className="text-xl filter drop-shadow-sm">📉</span>
-                                    <h2 className="text-[13px] font-black text-indigo-900 uppercase tracking-widest">Gráfica de Punto de Equilibrio</h2>
-                                </div>
-                                <div ref={chartRef} className="p-6 h-full flex items-center justify-center bg-white">
-                                    <ResponsiveContainer width="100%" height={360}>
-                                        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                                            <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
-                                            <XAxis 
-                                                dataKey="ventas" 
-                                                type="number"
-                                                domain={[0, 'auto']}
-                                                tickFormatter={(val) => `$${(val / 1000).toFixed(1)}k`}
-                                                label={{ value: 'Ventas Totales ($)', position: 'insideBottom', offset: -10, fontSize: 11, fontWeight: 800, fill: '#64748b' }} 
-                                                fontSize={10} 
-                                                tick={{ fill: '#64748b', fontWeight: 600 }} 
-                                            />
-                                            <YAxis fontSize={10} tick={{ fill: '#64748b', fontWeight: 600 }} tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} />
-                                            <Tooltip 
-                                                formatter={(value: number) => formatCurrency(value)}
-                                                contentStyle={{ fontSize: '11px', borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                                itemStyle={{ fontWeight: 800, padding: '2px 0' }}
-                                            />
-                                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: '900', paddingTop: '20px', color: '#1e293b' }} iconType="circle" />
-                                            <Line type="monotone" dataKey="ventas" name="Ventas Totales" stroke="#10b981" strokeWidth={4} dot={{ r: 6, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                                            <Line type="monotone" dataKey="costos" name="Costos Totales" stroke="#6366f1" strokeWidth={4} dot={{ r: 6, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                                            <Line type="monotone" dataKey="variables" name="Costos Variables" stroke="#f97316" strokeWidth={2} strokeDasharray="6 6" dot={false} opacity={0.7} />
-                                            <Line type="monotone" dataKey="fijos" name="Costos Fijos" stroke="#94a3b8" strokeWidth={2} strokeDasharray="4 4" dot={false} opacity={0.7} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
+                            <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-emerald-600 to-emerald-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative group-hover:scale-[1.02] transition-transform">
+                                <span className="text-[9px] font-black text-emerald-100 uppercase z-10 tracking-widest">Punto de Equilibrio ($)</span>
+                                <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(breakEvenDollars)}</span>
+                                <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
                             </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* MOVED BLOCK 3: GASTOS FIJOS */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col group hover:shadow-lg transition-all animate-in zoom-in-95 duration-500">
-                                <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl filter drop-shadow-sm">🏢</span>
-                                        <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-widest">{t('fixedExpensesBlockTitle')}</h2>
-                                    </div>
-                                    <button onClick={handleAddExpense} className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2 border border-slate-700">
-                                        <span className="text-sm">+</span> {t('addExpense')}
-                                    </button>
-                                </div>
-                                <div className="p-5 space-y-5">
-                                    <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                                        {fixedExpenses.map((exp, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 group shadow-sm transition-all hover:bg-white hover:border-slate-200">
-                                                <input
-                                                    ref={el => { expenseInputsRef.current[idx] = el }}
-                                                    type="text"
-                                                    value={exp.ConceptoGasto}
-                                                    onChange={e => handleUpdateExpense(idx, 'ConceptoGasto', e.target.value)}
-                                                    placeholder="Concepto..."
-                                                    className="flex-1 px-3 py-2 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/5 transition-all shadow-sm"
-                                                />
-                                                <div className="w-32 flex-shrink-0">
-                                                    <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} color="indigo" />
-                                                </div>
-                                                <button onClick={() => handleDeleteExpense(idx)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm">🗑️</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-                                        <div className="flex justify-between items-center px-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('totalFixedExpenses')}</span>
-                                            <span className="text-base font-black text-slate-700">{formatCurrency(totalFixedExpenses)}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative">
-                                            <span className="text-[9px] font-black text-indigo-200 uppercase z-10 tracking-widest">{t('totalCostsPerPeriod')}</span>
-                                            <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(totalCostsPerPeriod)}</span>
-                                            <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* MOVED BLOCK 4: RESULTADO PUNTO DE EQUILIBRIO */}
-                            <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all animate-in slide-in-from-right-10 duration-500">
-                                <div className="px-5 py-3.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3">
-                                    <span className="text-xl filter drop-shadow-sm">🎯</span>
-                                    <h2 className="text-[13px] font-black text-emerald-900 uppercase tracking-widest">Resultado Punto de Equilibrio</h2>
-                                </div>
-                                <div className="p-5 space-y-3">
-                                    <div className="grid grid-cols-2 gap-3 mb-3">
-                                        <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenUnits')}</span>
-                                            <span className="text-sm font-black text-slate-700">{Math.ceil(dailyBreakEvenUnits).toLocaleString()} <small className="text-[8px] text-slate-400 font-bold">Und</small></span>
-                                        </div>
-                                        <div className="flex flex-col p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                                            <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenDollars')}</span>
-                                            <span className="text-sm font-black text-emerald-600">{formatCurrency(dailyBreakEvenDollars)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-all">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Punto Equilibrio (Unidades)</span>
-                                            <span className="text-[8px] font-bold text-slate-400 italic">C. Fijos / Margen Cont. Unit.</span>
-                                        </div>
-                                        <span className="text-base font-black text-slate-800">{Math.ceil(breakEvenUnits).toLocaleString()} <small className="text-[10px] text-slate-400 font-bold uppercase">Und</small></span>
-                                    </div>
-                                    <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-emerald-600 to-emerald-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative group-hover:scale-[1.02] transition-transform">
-                                        <span className="text-[9px] font-black text-emerald-100 uppercase z-10 tracking-widest">Punto de Equilibrio ($)</span>
-                                        <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(breakEvenDollars)}</span>
-                                        <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -856,6 +698,110 @@ export default function BreakEvenPage() {
                     </div>
                 </div>
             )}
+
+            {/* Product Modal */}
+            {isProductModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300">
+                        <div className="px-6 py-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
+                            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest">{t('addProduct')}</h3>
+                            <button onClick={() => setIsProductModalOpen(false)} className="text-orange-400 hover:text-orange-600 transition-colors font-black">✕</button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('productName')}</label>
+                                <input 
+                                    type="text" 
+                                    value={newProduct.name} 
+                                    onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                                    placeholder="Nombre del producto..."
+                                    className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-400/5 transition-all shadow-sm"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('rawMaterialCost')}</label>
+                                <PriceInput value={newProduct.rawMaterial} onChange={(v: any) => setNewProduct({...newProduct, rawMaterial: v})} color="orange" />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('packagingCost')}</label>
+                                <PriceInput value={newProduct.packaging} onChange={(v: any) => setNewProduct({...newProduct, packaging: v})} color="orange" />
+                            </div>
+                            <Button 
+                                onClick={handleAddProduct}
+                                className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 active:scale-95 transition-all mt-2"
+                            >
+                                {t('saveProduct')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Chart Modal */}
+            {isChartModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-5xl rounded-[32px] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                        <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                            <div className="flex flex-col">
+                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">📉 Gráfica de Punto de Equilibrio</h3>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>
+                            </div>
+                            <button onClick={() => setIsChartModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-400 hover:text-slate-600 hover:shadow-md transition-all font-black text-xl">✕</button>
+                        </div>
+                        <div className="p-8 overflow-y-auto flex-1 bg-white">
+                            <div ref={chartRef} className="w-full h-[500px] flex items-center justify-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ top: 20, right: 40, left: 20, bottom: 40 }}>
+                                        <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                                        <XAxis 
+                                            dataKey="ventas" 
+                                            type="number"
+                                            domain={[0, 'auto']}
+                                            tickFormatter={(val) => `$${(val / 1000).toFixed(1)}k`}
+                                            label={{ value: 'Ventas Totales ($)', position: 'insideBottom', offset: -20, fontSize: 11, fontStyle: 'italic', fontWeight: 800, fill: '#64748b' }} 
+                                            fontSize={10} 
+                                            tick={{ fill: '#64748b', fontWeight: 600 }} 
+                                        />
+                                        <YAxis 
+                                            fontSize={10} 
+                                            tick={{ fill: '#64748b', fontWeight: 600 }} 
+                                            tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} 
+                                            label={{ value: 'Costos ($)', angle: -90, position: 'insideLeft', fontSize: 11, fontStyle: 'italic', fontWeight: 800, fill: '#64748b' }}
+                                        />
+                                        <Tooltip 
+                                            formatter={(value: number) => formatCurrency(value)}
+                                            labelFormatter={(label) => `Ventas: ${formatCurrency(label)}`}
+                                            contentStyle={{ fontSize: '12px', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
+                                            itemStyle={{ fontWeight: 900, padding: '4px 0' }}
+                                        />
+                                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '900', paddingBottom: '20px' }} />
+                                        
+                                        {/* Sales Line */}
+                                        <Line type="monotone" dataKey="ventas" name="Línea de Ventas" stroke="#10b981" strokeWidth={4} dot={{ r: 6, fill: '#10b981', strokeWidth: 4, stroke: '#fff' }} activeDot={{ r: 10, strokeWidth: 0 }} />
+                                        
+                                        {/* Total Costs Line */}
+                                        <Line type="monotone" dataKey="costos" name="Costos Totales" stroke="#6366f1" strokeWidth={4} dot={{ r: 6, fill: '#6366f1', strokeWidth: 4, stroke: '#fff' }} activeDot={{ r: 10, strokeWidth: 0 }} />
+                                        
+                                        {/* Fixed Costs Line (Horizontal) */}
+                                        <Line type="monotone" dataKey="fijos" name="Costos Fijos" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 6" dot={false} activeDot={false} />
+                                        
+                                        {/* Variable Costs Line (Slope) */}
+                                        <Line type="monotone" dataKey="variables" name="Costos Variables" stroke="#f97316" strokeWidth={2} strokeDasharray="4 4" dot={false} opacity={0.5} activeDot={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
+                             <Button onClick={() => setIsChartModalOpen(false)} className="px-6 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-xs hover:bg-slate-100 transition-all">Cerrar</Button>
+                             <Button onClick={handleExportExcel} className="px-6 h-10 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
+                                <span>📗</span> Exportar Reporte
+                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+

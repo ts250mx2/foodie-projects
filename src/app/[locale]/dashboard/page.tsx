@@ -402,6 +402,8 @@ export default function DashboardPage() {
     const totalBudgetPercent = payrollObjective + operatingExpenseObjective + rawMaterialObjective;
     const diffPercent = totalActualPercent - totalBudgetPercent;
     const utilityPercent = 100 - totalActualPercent;
+    const utilityAmount = totalSales - totalActualValue;
+
 
     // KPI Section
     return (
@@ -1310,10 +1312,13 @@ export default function DashboardPage() {
                                 <span className={`text-[9px] font-black uppercase tracking-[0.3em] block mb-2 ${utilityPercent < 0 ? 'text-rose-400' : utilityPercent < 10 ? 'text-amber-500' : 'text-emerald-500'}`}>
                                     {utilityPercent < 0 ? '⚠️ Alerta crítica de utilidad' : utilityPercent < 10 ? '⚡ Advertencia de margen bajo' : '✅ Utilidad Teórica Saludable'}
                                 </span>
-                                <div className={`inline-flex items-center justify-center text-white px-6 py-2.5 rounded-2xl shadow-lg ${utilityPercent < 0 ? 'bg-rose-500 shadow-rose-500/20' : utilityPercent < 10 ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}>
-                                    <h2 className="text-3xl font-black">
+                                <div className={`inline-flex flex-col items-center justify-center text-white px-6 py-3 rounded-2xl shadow-lg ${utilityPercent < 0 ? 'bg-rose-500 shadow-rose-500/20' : utilityPercent < 10 ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}>
+                                    <h2 className="text-3xl font-black leading-tight">
                                         {utilityPercent.toFixed(2)}%
                                     </h2>
+                                    <p className="text-sm font-bold opacity-90 mt-0.5">
+                                        {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(utilityAmount)}
+                                    </p>
                                 </div>
                             </div>
                         </div>

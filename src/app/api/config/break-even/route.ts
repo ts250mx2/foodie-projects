@@ -61,6 +61,20 @@ export async function GET(request: NextRequest) {
             ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
         `);
 
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblPuntoEquilibrioProductos\` (
+                \`IdProducto\` int NOT NULL AUTO_INCREMENT,
+                \`IdSucursal\` int NOT NULL,
+                \`Mes\` int NOT NULL,
+                \`Anio\` int NOT NULL,
+                \`NombreProducto\` varchar(255) DEFAULT NULL,
+                \`CostoMateriaPrima\` double DEFAULT 0,
+                \`Empaque\` double DEFAULT 0,
+                \`FechaAct\` datetime DEFAULT NULL,
+                PRIMARY KEY (\`IdProducto\`)
+            ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+        `);
+
         // Fetch main parameters
         const [rows] = await connection.query(
             `SELECT * FROM tblPuntoEquilibrio 
@@ -82,6 +96,13 @@ export async function GET(request: NextRequest) {
             [branchIdStr, monthStr, yearStr]
         );
 
+        // Fetch representative products
+        const [productRows] = await connection.query(
+            `SELECT IdProducto, NombreProducto, CostoMateriaPrima, Empaque FROM tblPuntoEquilibrioProductos 
+             WHERE IdSucursal = ? AND Mes = ? AND Anio = ? ORDER BY IdProducto`,
+            [branchIdStr, monthStr, yearStr]
+        );
+
         const mainData = (rows as RowDataPacket[])[0] || null;
 
         return NextResponse.json({ 
@@ -89,7 +110,8 @@ export async function GET(request: NextRequest) {
             data: {
                 ...(mainData || {}),
                 fixedExpenses: expenseRows,
-                scenarios: scenarioRows
+                scenarios: scenarioRows,
+                representativeProducts: productRows
             }
         });
     } catch (error) {
@@ -107,7 +129,7 @@ export async function POST(request: NextRequest) {
         const { 
             projectId, branchId, month, year, 
             price, volume, rawMaterial, packaging, others, shipping,
-            fixedExpenses, scenarios
+            fixedExpenses, scenarios, representativeProducts
         } = body;
 
         if (!projectId || !branchId || !month || !year) {
@@ -143,6 +165,20 @@ export async function POST(request: NextRequest) {
                 \`VolumenTickets\` double DEFAULT 0,
                 \`FechaAct\` datetime DEFAULT NULL,
                 PRIMARY KEY (\`IdSucursal\`,\`Mes\`,\`Anio\`,\`IdEscenario\`)
+            ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+        `);
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblPuntoEquilibrioProductos\` (
+                \`IdProducto\` int NOT NULL AUTO_INCREMENT,
+                \`IdSucursal\` int NOT NULL,
+                \`Mes\` int NOT NULL,
+                \`Anio\` int NOT NULL,
+                \`NombreProducto\` varchar(255) DEFAULT NULL,
+                \`CostoMateriaPrima\` double DEFAULT 0,
+                \`Empaque\` double DEFAULT 0,
+                \`FechaAct\` datetime DEFAULT NULL,
+                PRIMARY KEY (\`IdProducto\`)
             ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
         `);
 
@@ -184,6 +220,23 @@ export async function POST(request: NextRequest) {
                 [scenarioValues]
             );
         }
+
+        // Manage representative products
+        await connection.query(
+            `DELETE FROM tblPuntoEquilibrioProductos WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
+            [branchId, month, year]
+        );
+
+        if (representativeProducts && Array.isArray(representativeProducts) && representativeProducts.length > 0) {
+            const productValues = representativeProducts.map((p: any) => [
+                branchId, month, year, p.NombreProducto, p.CostoMateriaPrima || 0, p.Empaque || 0, new Date()
+            ]);
+            await connection.query(
+                `INSERT INTO tblPuntoEquilibrioProductos (IdSucursal, Mes, Anio, NombreProducto, CostoMateriaPrima, Empaque, FechaAct) VALUES ?`,
+                [productValues]
+            );
+        }
+
 
         return NextResponse.json({ success: true, message: 'Break-even data saved successfully' });
     } catch (error) {
