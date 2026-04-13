@@ -5435,3 +5435,109 @@ Body: {
   "unidadMedidaRecetario": "Kilogramo (kg)"
 }
 
+[2026-04-13T20:54:55.666Z] PUT /api/products/447
+Body: {
+  "projectId": 8,
+  "producto": "NOPALES SR",
+  "codigo": "NOPALES SR",
+  "idCategoria": 19,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-13T20:55:22.929Z] PUT /api/products/447
+Body: {
+  "projectId": 8,
+  "producto": "NOPALES SR",
+  "codigo": "NOPALES SR",
+  "idCategoria": 19,
+  "idPresentacion": null,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-13T20:55:39.648Z] PUT /api/products/458
+Body: {
+  "projectId": 8,
+  "producto": "FIDEO SECO",
+  "codigo": "FIDEO SECO",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 105,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 3,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-13T20:56:03.081Z] PUT /api/products/458
+Body: {
+  "projectId": 8,
+  "producto": "FIDEO SECO",
+  "codigo": "FIDEO SECO",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 105,
+  "iva": 16,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idSeccionMenu": 3,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+

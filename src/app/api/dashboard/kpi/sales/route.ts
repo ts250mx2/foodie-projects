@@ -73,6 +73,20 @@ export async function GET(request: NextRequest) {
             [branchId, month + 1, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
+        // Latest Inventory: Get the most recent inventory cost and date (only if > 0)
+        const [inventoryRows] = (await connection.query(
+            `SELECT SUM(Precio * Cantidad) as lastInventoryCost, 
+                    MAX(DATE(CONCAT(Anio, '-', Mes, '-', Dia))) as lastInventoryDate,
+                    Anio, Mes, Dia
+             FROM tblInventarios 
+             WHERE IdSucursal = ?
+             GROUP BY Anio, Mes, Dia 
+             HAVING lastInventoryCost > 0
+             ORDER BY Anio DESC, Mes DESC, Dia DESC 
+             LIMIT 1`,
+            [branchId]
+        )) as [RowDataPacket[], FieldPacket[]];
+
         const totalSales = salesRows[0]?.totalSales || 0;
         const salesObjective = targetRows[0]?.salesObjective || 0;
 
@@ -98,7 +112,12 @@ export async function GET(request: NextRequest) {
                 operatingExpenseObjective,
                 totalRawMaterial,
                 rawMaterialObjective,
-                totalWaste
+                totalWaste,
+                lastInventoryCost: inventoryRows[0]?.lastInventoryCost || 0,
+                lastInventoryDate: inventoryRows[0]?.lastInventoryDate || null,
+                lastInventoryDay: inventoryRows[0]?.Dia || null,
+                lastInventoryMonth: inventoryRows[0]?.Mes ? inventoryRows[0].Mes - 1 : null, // Convert to 0-11 for consistency
+                lastInventoryYear: inventoryRows[0]?.Anio || null
             }
         });
     } catch (error) {

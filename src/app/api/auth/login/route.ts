@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         const validatedData = loginSchema.parse(body);
         const { identifier, password } = validatedData;
 
+        console.log("Valida 1");
         // Query user by email OR phone
         // Query user and project details by email OR phone
         const [rows] = await pool.query(
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
             WHERE u.CorreoElectronico = ?`,
             [identifier]
         ) as any[];
+
+        console.log("Valida 2");
 
         console.log((rows as any).length);
         if ((rows as any).length === 0) {
