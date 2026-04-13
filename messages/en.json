@@ -103,6 +103,7 @@
         "ticketVolume": "Customers Served Monthly",
         "avgSalesAmount": "Average Monthly Sales Amount",
         "variableCostBlockTitle": "VARIABLE COST PER UNIT OF PRODUCT #1 SALES",
+        "variableCostSuggestion": "suggestion, capture between 3 and 5 products",
         "rawMaterialCost": "Raw Material Cost",
         "packagingCost": "Packaging",
         "othersCost": "Others",

@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/crypto-js": "^4.2.2",
     "bcryptjs": "^3.0.3",
     "countries-list": "^3.2.2",
@@ -24,8 +26,10 @@
     "openai": "^6.18.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "react-markdown": "^10.1.0",
     "react-qr-code": "^2.0.18",
     "recharts": "^3.8.1",
+    "remark-gfm": "^4.0.1",
     "xlsx": "^0.18.5",
     "zod": "^4.1.13"
   },

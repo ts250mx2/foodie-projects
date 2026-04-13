@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { 
             projectId, branchId, month, year, 
-            price, volume, rawMaterial, packaging, others, shipping,
+            price, volume, rawMaterial, packaging,
             fixedExpenses, scenarios, representativeProducts
         } = body;
 
@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
         // Save main parameters
         await connection.query(
             `REPLACE INTO tblPuntoEquilibrio (IdSucursal, Mes, Anio, PrecioTicket, VolumenTickets, CostoMateriaPrima, Empaque, Otros, Envio, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
-            [branchId, month, year, price || 0, volume || 0, rawMaterial || 0, packaging || 0, others || 0, shipping || 0]
+             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, Now())`,
+            [branchId, month, year, price || 0, volume || 0, rawMaterial || 0, packaging || 0]
         );
 
         // Manage fixed expenses

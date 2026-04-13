@@ -111,8 +111,6 @@ export default function BreakEvenPage() {
     const [volume, setVolume] = useState<number>(0);
     const [rawMaterial, setRawMaterial] = useState<number>(0);
     const [packaging, setPackaging] = useState<number>(0);
-    const [others, setOthers] = useState<number>(0);
-    const [shipping, setShipping] = useState<number>(0);
     const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
     const [representativeProducts, setRepresentativeProducts] = useState<any[]>([]);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -140,7 +138,7 @@ export default function BreakEvenPage() {
         return sum / representativeProducts.length;
     }, [representativeProducts, packaging]);
 
-    const sumVariableCosts = avgRawMaterial + avgPackaging + others + shipping;
+    const sumVariableCosts = avgRawMaterial + avgPackaging;
     const variableCostsTotal = sumVariableCosts * volume;
 
     const unitContributionMargin = avgTicket - sumVariableCosts;
@@ -277,12 +275,10 @@ export default function BreakEvenPage() {
                 setMonthlySales(price * vol);
                 setRawMaterial(data.data.CostoMateriaPrima || 0);
                 setPackaging(data.data.Empaque || 0);
-                setOthers(data.data.Otros || 0);
-                setShipping(data.data.Envio || 0);
                 setFixedExpenses(data.data.fixedExpenses || []);
                 setRepresentativeProducts(data.data.representativeProducts || []);
             } else {
-                setMonthlySales(0); setVolume(0); setRawMaterial(0); setPackaging(0); setOthers(0); setShipping(0); setFixedExpenses([]);
+                setMonthlySales(0); setVolume(0); setRawMaterial(0); setPackaging(0); setFixedExpenses([]);
                 setRepresentativeProducts([]);
             }
         } catch (error) {
@@ -304,7 +300,6 @@ export default function BreakEvenPage() {
                     price: avgTicket, volume: volume, 
                     rawMaterial: representativeProducts.length > 0 ? avgRawMaterial : rawMaterial, 
                     packaging: representativeProducts.length > 0 ? avgPackaging : packaging, 
-                    others, shipping,
                     fixedExpenses, representativeProducts
                 })
             });
@@ -418,10 +413,8 @@ export default function BreakEvenPage() {
             drawBlockHeader(10, 'COSTO VARIABLE UNITARIO', orangeFill);
             drawRow(11, 'Materia Prima', rawMaterial);
             drawRow(12, 'Empaque', packaging);
-            drawRow(13, 'Otros', others);
-            drawRow(14, 'Envío', shipping);
-            drawRow(15, 'SUMA COSTOS VARIABLES', sumVariableCosts);
-            drawRow(16, 'MARGEN DE CONTRIBUCIÓN', unitContributionMargin);
+            drawRow(13, 'SUMA COSTOS VARIABLES', sumVariableCosts);
+            drawRow(14, 'MARGEN DE CONTRIBUCIÓN', unitContributionMargin);
 
             // Block: Gastos Fijos
             drawBlockHeader(18, 'GASTOS FIJOS POR MES', subHeaderFill);
@@ -548,9 +541,12 @@ export default function BreakEvenPage() {
                     {/* BLOCK 2: COSTO VARIABLE */}
                     <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
                         <div className="px-5 py-3.5 bg-orange-50/50 border-b border-orange-100 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xl filter drop-shadow-sm">📦</span>
-                                <h2 className="text-[13px] font-black text-orange-900 uppercase tracking-widest">{t('variableCostBlockTitle')}</h2>
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl filter drop-shadow-sm">📦</span>
+                                    <h2 className="text-[13px] font-black text-orange-900 uppercase tracking-widest">{t('variableCostBlockTitle')}</h2>
+                                </div>
+                                <p className="text-[10px] text-orange-600/70 font-bold ml-9 italic leading-none">{t('variableCostSuggestion')}</p>
                             </div>
                             <button 
                                 onClick={() => setIsProductModalOpen(true)}
@@ -578,11 +574,9 @@ export default function BreakEvenPage() {
                                 </div>
                             )}
 
-                            {[
+                             {[
                                 { k: 'rawMaterialCost', v: avgRawMaterial, s: setRawMaterial, disabled: representativeProducts.length > 0 },
-                                { k: 'packagingCost', v: avgPackaging, s: setPackaging, disabled: representativeProducts.length > 0 },
-                                { k: 'othersCost', v: others, s: setOthers },
-                                { k: 'shippingCost', v: shipping, s: setShipping }
+                                { k: 'packagingCost', v: avgPackaging, s: setPackaging, disabled: representativeProducts.length > 0 }
                             ].map(item => (
                                 <div key={item.k} className={`flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-slate-50 transition-colors ${item.disabled ? 'opacity-80' : ''}`}>
                                     <span className="text-[11px] font-black text-slate-500 uppercase flex-1">{t(item.k)}</span>

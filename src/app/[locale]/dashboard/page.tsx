@@ -6,6 +6,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     Cell, PieChart, Pie, Legend
 } from 'recharts';
+import AiAgent from '@/components/dashboard/AiAgent';
 
 interface Branch {
     IdSucursal: number;
@@ -404,10 +405,36 @@ export default function DashboardPage() {
     const utilityPercent = 100 - totalActualPercent;
     const utilityAmount = totalSales - totalActualValue;
 
+    const dashboardDataContext = {
+        project,
+        period: { month: selectedMonth, year: selectedYear },
+        kpis: {
+            sales: { actual: totalSales, target: salesObjective },
+            payroll: { actual: totalPayroll, target: payrollObjective },
+            operatingExpense: { actual: totalOperatingExpense, target: operatingExpenseObjective },
+            rawMaterial: { actual: totalRawMaterial, target: rawMaterialObjective },
+            waste: { actual: totalWaste }
+        },
+        branch: branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || selectedBranch,
+        branchId: selectedBranch
+    };
+
+    // Helper function for compact currency formatting
+    const formatCurrency = (value: number, compact = false) => {
+        return new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            notation: compact ? 'compact' : 'standard',
+            compactDisplay: 'short',
+            maximumFractionDigits: compact ? 1 : 2
+        }).format(value);
+    };
+
 
     // KPI Section
     return (
         <div ref={dashboardRef} className={`flex flex-col gap-6 p-6 min-h-screen ${isFullscreen ? 'bg-slate-50 overflow-y-auto' : ''}`}>
+            <AiAgent dashboardData={dashboardDataContext} />
             <div className={`sticky z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-gray-100 ${isFullscreen ? 'top-0' : 'top-16'}`}>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-3 mb-1">
@@ -474,7 +501,7 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mt-2">
                 {/* Sales KPI Card */}
                 <div 
                     onClick={() => setSelectedKpi(selectedKpi === 'sales' ? null : 'sales')}
@@ -492,7 +519,7 @@ export default function DashboardPage() {
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
                                 <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalSales)}
+                                    {formatCurrency(totalSales, true)}
                                 </h2>
                             )}
                         </div>
@@ -501,7 +528,7 @@ export default function DashboardPage() {
                             <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
                                 <div className="flex justify-between items-center text-xs font-bold">
                                     <span className="text-slate-500">Venta Presupuesto</span>
-                                    <span className="text-slate-700">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(salesObjective)}</span>
+                                    <span className="text-slate-700">{formatCurrency(salesObjective, true)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs font-bold">
                                     <span className="text-slate-500">% Alcance</span>
@@ -546,7 +573,7 @@ export default function DashboardPage() {
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
                                 <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPayroll)}
+                                    {formatCurrency(totalPayroll, true)}
                                 </h2>
                             )}
                         </div>
@@ -596,7 +623,7 @@ export default function DashboardPage() {
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
                                 <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalOperatingExpense)}
+                                    {formatCurrency(totalOperatingExpense, true)}
                                 </h2>
                             )}
                         </div>
@@ -646,7 +673,7 @@ export default function DashboardPage() {
                                 <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
                             ) : (
                                 <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalRawMaterial)}
+                                    {formatCurrency(totalRawMaterial, true)}
                                 </h2>
                             )}
                         </div>
@@ -678,59 +705,73 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Group: Indicador Global & Mermas (Half-Height Stack) */}
-                <div className="flex flex-col gap-3 h-full">
-                    {/* Total Cost vs Budget Card - COMPACT */}
-                    <div 
-                        onClick={() => setIsTotalCostModalOpen(true)}
-                        className={`flex-1 p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:shadow-md bg-gradient-to-b from-indigo-50/50 to-white border-indigo-100 shadow-sm`}
-                    >
-                        <div className="absolute -right-4 -top-4 p-2 opacity-[0.05] group-hover:opacity-10 group-hover:rotate-12 transition-all">
-                            <svg className="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                        </div>
-                        <div className="flex flex-col h-full justify-between relative z-10">
-                            <div>
-                                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block">Indicador Global</span>
-                                <h2 className="text-sm font-black leading-tight text-slate-800 uppercase tracking-tighter">
-                                    Costo vs Meta
+                {/* Waste KPI Card */}
+                <div 
+                    onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
+                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${(selectedKpi as string) === 'waste' ? 'bg-gradient-to-b from-pink-50/80 to-white border-pink-300 ring-4 ring-pink-500/10 shadow-xl shadow-pink-500/10 z-10' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
+                >
+                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                        <svg className="w-20 h-20 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div className="flex flex-col h-full justify-between relative z-10">
+                        <div>
+                            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1 block">Mermas</span>
+                            {isLoadingKpi ? (
+                                <div className="h-8 w-32 bg-slate-200 animate-pulse rounded mt-2 mb-2"></div>
+                            ) : (
+                                <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                    {formatCurrency(totalWaste, true)}
                                 </h2>
-                            </div>
-                            <div className="flex items-end justify-between gap-1">
-                                <h3 className="text-xl font-black text-indigo-600">{totalActualPercent.toFixed(1)}%</h3>
-                                <div className="flex-1 max-w-[60px] h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                                    <div 
-                                        className={`h-full rounded-full ${totalActualPercent <= (totalBudgetPercent || 100) ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                        style={{ width: `${Math.min(100, (totalActualPercent / (totalBudgetPercent || 100)) * 100)}%` }}
-                                    ></div>
+                            )}
+                        </div>
+                        {!isLoadingKpi && (
+                            <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
+                                <div className="flex justify-between items-center text-xs font-bold">
+                                    <span className="text-slate-500">% Incidencia</span>
+                                    <span className={`px-2 py-0.5 rounded-sm ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
+                                        {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(2)}%` : '0.00%'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs font-bold">
+                                    <span className="text-slate-500">Monto Real</span>
+                                    <span className="text-slate-700">{formatCurrency(totalWaste)}</span>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
+                </div>
 
-                    {/* Waste KPI Card - COMPACT */}
-                    <div 
-                        onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
-                        className={`flex-1 p-3 rounded-xl border transition-all relative overflow-hidden group text-left cursor-pointer hover:shadow-md ${(selectedKpi as string) === 'waste' ? 'bg-pink-50 border-pink-200' : 'bg-white border-slate-100 shadow-sm'}`}
-                    >
-                        <div className="absolute -right-4 -top-4 p-2 opacity-[0.05] group-hover:opacity-10 group-hover:rotate-12 transition-all">
-                            <svg className="w-12 h-12 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                {/* Total Cost vs Budget Card */}
+                <div 
+                    onClick={() => setIsTotalCostModalOpen(true)}
+                    className={`p-5 rounded-2xl border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 bg-gradient-to-b from-indigo-50/80 to-white border-indigo-100 shadow-sm hover:shadow-md`}
+                >
+                    <div className="absolute -right-6 -top-6 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
+                        <svg className="w-20 h-20 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div className="flex flex-col h-full justify-between relative z-10">
+                        <div>
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Indicador Global</span>
+                            <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-2">
+                                {totalActualPercent.toFixed(1)}%
+                            </h2>
                         </div>
-                        <div className="flex flex-col h-full justify-between relative z-10">
-                            <div>
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Mermas</span>
-                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-tighter">Pérdida Actual</h2>
+                        <div className="flex flex-col gap-2 border-t border-slate-50 pt-4 mt-2">
+                            <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-slate-500">Meta Presupuesto</span>
+                                <span className="text-slate-700">{totalBudgetPercent.toFixed(1)}%</span>
                             </div>
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-xl font-black text-slate-800">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumSignificantDigits: 3 }).format(totalWaste)}
-                                </h3>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
-                                    {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
-                                </span>
+                            <div className="flex justify-between items-center text-xs font-bold">
+                                <span className="text-slate-500">Estado</span>
+                                <div className={`flex items-center gap-1 font-bold ${totalActualPercent <= totalBudgetPercent ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                    <span className={`px-2 py-0.5 rounded-sm ${totalActualPercent <= totalBudgetPercent ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                                        {totalActualPercent <= totalBudgetPercent ? 'Bajo Meta' : 'Excedido'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

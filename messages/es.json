@@ -109,6 +109,7 @@
         "ticketVolume": "Clientes Atendidos al Mes",
         "avgSalesAmount": "Monto Promedio Venta del Mes",
         "variableCostBlockTitle": "COSTO VARIABLE POR UNIDADES MAS REPRESENTATIVAS",
+        "variableCostSuggestion": "sugerencia, capturar entre 3 y 5 productos",
         "rawMaterialCost": "Costo Materia Prima",
         "packagingCost": "Empaque",
         "othersCost": "Otros",

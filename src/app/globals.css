@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #ffffff;
@@ -173,4 +174,32 @@ select option {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes multi-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 0 0 40px rgba(16, 185, 129, 0.4); }
+  33% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 40px rgba(245, 158, 11, 0.4); }
+  66% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6), 0 0 40px rgba(99, 102, 241, 0.4); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-multi-glow {
+  animation: multi-glow 4s linear infinite;
 }
