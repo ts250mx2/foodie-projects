@@ -88,7 +88,10 @@ ${JSON.stringify(context, null, 2)}
 Instrucciones:
 1. Si necesitas datos específicos que no están en el resumen, usa la herramienta 'query_database'.
 2. Usa SIEMPRE la vista 'vlProductos' para consultas de productos, NUNCA 'tblProductos'.
-3. La base de datos es MySQL. Usa SIEMPRE 'LIMIT' al final de la consulta para limitar resultados. 'TOP' NO es válido en MySQL.
+3. La base de datos es MySQL. Usa SIEMPRE 'LIMIT' al final de la consulta para limitar resultados. 
+   - CORRECTO: SELECT * FROM tabla LIMIT 10
+   - INCORRECTO: SELECT TOP 10 * FROM tabla
+   'TOP' NO existe en MySQL y causará un error crítico.
 4. Sé conciso y directo.
 4. Responde siempre en español.
 5. Usa tablas de Markdown para presentar listas de datos, resultados de consultas o comparativas siempre que sea posible.
@@ -114,6 +117,9 @@ Instrucciones:
                 const toolMessages = [...messages, responseMessage];
                 
                 for (const toolCall of responseMessage.tool_calls) {
+                    // Type narrowing for toolCall
+                    if (toolCall.type !== 'function') continue;
+                    
                     const functionArgs = JSON.parse(toolCall.function.arguments);
                     if (functionArgs.sql) executedSql.push(functionArgs.sql);
 
@@ -172,19 +178,19 @@ Instrucciones:
                 system: systemPrompt,
                 tools: claudeTools,
                 messages: messages.map((m: any) => ({
-                    role: m.role === 'assistant' ? 'assistant' : 'user',
+                    role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
                     content: m.content
                 })),
             });
 
             if (response.stop_reason === 'tool_use') {
                 const toolUse: any = response.content.find(c => c.type === 'tool_use');
-                const toolResultMessages = messages.map((m: any) => ({
-                    role: m.role === 'assistant' ? 'assistant' : 'user',
+                const toolResultMessages: { role: 'user' | 'assistant', content: any }[] = messages.map((m: any) => ({
+                    role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
                     content: m.content
                 }));
                 
-                toolResultMessages.push({ role: 'assistant', content: response.content });
+                toolResultMessages.push({ role: 'assistant' as const, content: response.content });
 
                 if (toolUse) {
                     if (toolUse.input.sql) executedSql.push(toolUse.input.sql);
