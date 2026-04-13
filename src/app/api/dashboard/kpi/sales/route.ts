@@ -74,15 +74,17 @@ export async function GET(request: NextRequest) {
         )) as [RowDataPacket[], FieldPacket[]];
 
         // Latest Inventory: Get the most recent inventory cost and date (only if > 0)
+        // Use the same logic as drill-down for consistency: COALESCE(v.CostoInventario, I.Precio)
         const [inventoryRows] = (await connection.query(
-            `SELECT SUM(Precio * Cantidad) as lastInventoryCost, 
-                    MAX(DATE(CONCAT(Anio, '-', Mes, '-', Dia))) as lastInventoryDate,
-                    Anio, Mes, Dia
-             FROM tblInventarios 
-             WHERE IdSucursal = ?
-             GROUP BY Anio, Mes, Dia 
+            `SELECT SUM(I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) as lastInventoryCost, 
+                    MAX(DATE(CONCAT(I.Anio, '-', I.Mes, '-', I.Dia))) as lastInventoryDate,
+                    I.Anio, I.Mes, I.Dia
+             FROM tblInventarios I
+             LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
+             WHERE I.IdSucursal = ?
+             GROUP BY I.Anio, I.Mes, I.Dia 
              HAVING lastInventoryCost > 0
-             ORDER BY Anio DESC, Mes DESC, Dia DESC 
+             ORDER BY I.Anio DESC, I.Mes DESC, I.Dia DESC 
              LIMIT 1`,
             [branchId]
         )) as [RowDataPacket[], FieldPacket[]];
