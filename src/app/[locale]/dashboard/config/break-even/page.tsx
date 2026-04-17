@@ -417,7 +417,7 @@ export default function BreakEvenPage() {
             currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 60;
 
             // Table 2: Fixed Expenses
-            const fixedExpensesBody = fixedExpenses.map(exp => [exp.ConceptoGasto || '-', formatCurrency(exp.Monto || 0)]);
+            const fixedExpensesBody: any[][] = fixedExpenses.map(exp => [exp.ConceptoGasto || '-', formatCurrency(exp.Monto || 0)]);
             fixedExpensesBody.push([{ content: 'TOTAL GASTOS FIJOS', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalFixedExpenses || 0), styles: { fontStyle: 'bold' } }]);
 
             autoTable(doc, {
