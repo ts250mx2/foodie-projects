@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
-import ExcelJS from 'exceljs';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toPng } from 'html-to-image';
 import {
     LineChart,
@@ -340,125 +341,120 @@ export default function BreakEvenPage() {
     const formatCurrency = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
 
 
-    const handleExportExcel = async () => {
-        if (!chartRef.current) return;
+    const handleExportPdf = async () => {
         setIsSaving(true);
-
+        console.log('Starting PDF Export...');
         try {
-            // 1. Capture Chart Image
-            const chartDataUrl = await toPng(chartRef.current, { backgroundColor: '#ffffff', quality: 1 });
+            let chartDataUrl = '';
+            // 1. Capture Chart Image if available
+            if (chartRef.current) {
+                console.log('Capturing chart...');
+                try {
+                    // Give a small delay to ensure rendering
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    chartDataUrl = await toPng(chartRef.current, { backgroundColor: '#ffffff', quality: 1 });
+                } catch (e) {
+                    console.error('Error capturing chart:', e);
+                }
+            }
             
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Punto de Equilibrio');
-
-            const branchName = branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || selectedBranch;
+            console.log('Generating PDF structure...');
+            const doc = new jsPDF();
+            const branchName = branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || selectedBranch || 'Sucursal';
             const period = `${tProd(`months.${selectedMonth}`)} ${selectedYear}`;
 
-            // --- STYLING HELPERS ---
-            const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
-            const subHeaderFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-            const emeraldFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
-            const indigoFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
-            const orangeFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF7ED' } };
+            // --- HEADER ---
+            doc.setFillColor(31, 41, 55); 
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('REPORTE DE PUNTO DE EQUILIBRIO', 105, 18, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${branchName.toString().toUpperCase()} - ${period}`, 105, 28, { align: 'center' });
 
-            // --- PAGE TITLE ---
-            worksheet.mergeCells('A1:L2');
-            const mainTitle = worksheet.getCell('A1');
-            mainTitle.value = `REPORTE DE PUNTO DE EQUILIBRIO - ${branchName.toString().toUpperCase()}`;
-            mainTitle.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
-            mainTitle.alignment = { vertical: 'middle', horizontal: 'center' };
-            mainTitle.fill = headerFill;
+            doc.setTextColor(100, 116, 139);
+            doc.setFontSize(8);
+            doc.text(`Generado el: ${new Date().toLocaleString()}`, 10, 45);
 
-            worksheet.mergeCells('A3:L3');
-            const subTitle = worksheet.getCell('A3');
-            subTitle.value = `Periodo: ${period} | Generado el: ${new Date().toLocaleDateString()}`;
-            subTitle.font = { italic: true, color: { argb: 'FF64748B' } };
-            subTitle.alignment = { horizontal: 'center' };
-
-            // --- COLUMN WIDTHS ---
-            worksheet.getColumn(1).width = 30; // Labels
-            worksheet.getColumn(2).width = 15; // Values
-            worksheet.getColumn(3).width = 5;  // Spacer
-            worksheet.getColumn(4).width = 15; // Scenarios Table Start
-            for(let i=5; i<=12; i++) worksheet.getColumn(i).width = 15;
-
-            // --- LEFT COLUMN (BLOCKS) ---
-            const drawBlockHeader = (row: number, title: string, fill: ExcelJS.Fill) => {
-                worksheet.mergeCells(`A${row}:B${row}`);
-                const cell = worksheet.getCell(`A${row}`);
-                cell.value = title;
-                cell.font = { bold: true, size: 10, color: { argb: fill === headerFill ? 'FFFFFFFF' : 'FF334155' } };
-                cell.fill = fill;
-                cell.alignment = { horizontal: 'center' };
-            };
-
-            const drawRow = (row: number, label: string, value: any, isCurrency = true) => {
-                const cLabel = worksheet.getCell(`A${row}`);
-                const cValue = worksheet.getCell(`B${row}`);
-                cLabel.value = label;
-                cValue.value = value;
-                if(isCurrency) cValue.numFmt = '"$"#,##0.00';
-                cLabel.font = { size: 9 };
-                cValue.font = { size: 9, bold: true };
-                cLabel.border = { bottom: { style: 'thin', color: { argb: 'FFF1F5F9' } } };
-            };
-
-            // Block: Ventas
-            drawBlockHeader(5, 'VENTAS PROMEDIO', indigoFill);
-            drawRow(6, 'Precio Ticket Promedio', avgTicket);
-            drawRow(7, 'Volumen Mensual Tickets', volume, false);
-            drawRow(8, 'Ventas Totales Proyectadas', avgSalesAmount);
-
-            // Block: Costos Variables
-            drawBlockHeader(10, 'COSTO VARIABLE UNITARIO', orangeFill);
-            drawRow(11, 'Materia Prima', rawMaterial);
-            drawRow(12, 'Empaque', packaging);
-            drawRow(13, 'SUMA COSTOS VARIABLES', sumVariableCosts);
-            drawRow(14, 'MARGEN DE CONTRIBUCIÓN', unitContributionMargin);
-
-            // Block: Gastos Fijos
-            drawBlockHeader(18, 'GASTOS FIJOS POR MES', subHeaderFill);
-            let currentRow = 19;
-            fixedExpenses.forEach(exp => {
-                drawRow(currentRow, exp.ConceptoGasto, exp.Monto);
-                currentRow++;
-            });
-            drawBlockHeader(currentRow, 'TOTAL GASTOS FIJOS', subHeaderFill);
-            worksheet.getCell(`B${currentRow}`).value = totalFixedExpenses;
-            worksheet.getCell(`B${currentRow}`).numFmt = '"$"#,##0.00';
-            worksheet.getCell(`B${currentRow}`).font = { bold: true };
-
-            // Block: Resultados BE
-            const beRow = currentRow + 2;
-            drawBlockHeader(beRow, 'RESULTADO PUNTO EQUILIBRIO', emeraldFill);
-            drawRow(beRow + 1, 'Tickets Necesarios (Unidades)', Math.ceil(breakEvenUnits), false);
-            drawRow(beRow + 2, 'Venta Necesaria ($)', breakEvenDollars);
+            let currentY = 50;
 
             // --- INSERT CHART ---
-            const imageId = workbook.addImage({
-                base64: chartDataUrl.split(',')[1],
-                extension: 'png',
+            if (chartDataUrl) {
+                console.log('Adding chart to PDF...');
+                doc.addImage(chartDataUrl, 'PNG', 10, 50, 190, 80);
+                currentY = 140;
+            } else {
+                doc.setTextColor(150, 150, 150);
+                doc.setFontSize(10);
+                doc.text('(Gráfica no disponible)', 105, 70, { align: 'center' });
+                currentY = 85;
+            }
+
+            console.log('Adding tables...');
+            // Table 1: Sales and Variable Costs
+            autoTable(doc, {
+                startY: currentY,
+                head: [['RESUMEN DE VENTAS Y COSTOS VARIABLES', 'VALOR']],
+                body: [
+                    ['Ventas Totales Proyectadas', formatCurrency(avgSalesAmount || 0)],
+                    ['Precio Ticket Promedio', formatCurrency(avgTicket || 0)],
+                    ['Volumen Mensual Tickets', (volume || 0).toString()],
+                    ['Materia Prima (Unitario)', formatCurrency(avgRawMaterial || 0)],
+                    ['Empaque (Unitario)', formatCurrency(avgPackaging || 0)],
+                    ['Suma Costos Variables', formatCurrency(sumVariableCosts || 0)],
+                    ['Margen de Contribución Unitario', formatCurrency(unitContributionMargin || 0)],
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [79, 70, 229] },
+                styles: { fontSize: 9 },
+                columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
             });
 
-            worksheet.addImage(imageId, {
-                tl: { col: 3, row: 4 }, // Starts at column D, row 5
-                ext: { width: 800, height: 400 }
+            currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 60;
+
+            // Table 2: Fixed Expenses
+            const fixedExpensesBody = fixedExpenses.map(exp => [exp.ConceptoGasto || '-', formatCurrency(exp.Monto || 0)]);
+            fixedExpensesBody.push([{ content: 'TOTAL GASTOS FIJOS', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalFixedExpenses || 0), styles: { fontStyle: 'bold' } }]);
+
+            autoTable(doc, {
+                startY: currentY,
+                head: [['GASTOS FIJOS MENSUALES', 'MONTO']],
+                body: fixedExpensesBody,
+                theme: 'striped',
+                headStyles: { fillColor: [51, 65, 85] },
+                styles: { fontSize: 9 },
+                columnStyles: { 1: { halign: 'right' } }
             });
 
+            currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 40;
 
-            // Final Download
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Punto_Equilibrio_Pro_${branchName.toString().replace(/\s+/g, '_')}_${selectedMonth + 1}_${selectedYear}.xlsx`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+            // Table 3: Break-Even Results
+            autoTable(doc, {
+                startY: currentY,
+                head: [['RESULTADO: PUNTO DE EQUILIBRIO', 'OBJETIVO']],
+                body: [
+                    ['Tickets Necesarios (Mensual)', Math.ceil(breakEvenUnits || 0).toLocaleString() + ' Unidades'],
+                    ['Venta Mensual Necesaria', formatCurrency(breakEvenDollars || 0)],
+                    ['Tickets Necesarios (Diario)', Math.ceil(dailyBreakEvenUnits || 0).toLocaleString() + ' Unidades'],
+                    ['Venta Diaria Necesaria', formatCurrency(dailyBreakEvenDollars || 0)],
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [16, 185, 129] },
+                styles: { fontSize: 10 },
+                columnStyles: { 1: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] } }
+            });
+
+            console.log('Saving PDF...');
+            doc.save(`Punto_Equilibrio_${branchName.toString().replace(/\s+/g, '_')}_${selectedMonth + 1}_${selectedYear}.pdf`);
+            console.log('PDF Export complete!');
 
         } catch (error) {
-            console.error('Error exporting excel:', error);
-            alert('Error al generar el Excel con la gráfica.');
+            console.error('Detailed Error exporting PDF:', error);
+            alert('Error al generar el PDF: ' + (error instanceof Error ? error.message : 'Error desconocido'));
         } finally {
             setIsSaving(false);
         }
@@ -490,9 +486,9 @@ export default function BreakEvenPage() {
                         >
                             📊 Ver Gráfica
                         </Button>
-                        <Button onClick={handleExportExcel} className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2">
+                        <Button onClick={handleExportPdf} className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2">
 
-                            <span>📗</span> Exportar
+                            <span>📄</span> Exportar
                         </Button>
                         <Button onClick={handleSave} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
                             {isSaving ? '⏳' : '💾'} {t('save')}
@@ -743,7 +739,7 @@ export default function BreakEvenPage() {
                             <button onClick={() => setIsChartModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-400 hover:text-slate-600 hover:shadow-md transition-all font-black text-xl">✕</button>
                         </div>
                         <div className="p-8 overflow-y-auto flex-1 bg-white">
-                            <div ref={chartRef} className="w-full h-[500px] flex items-center justify-center">
+                            <div className="w-full h-[500px] flex items-center justify-center">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={chartData} margin={{ top: 20, right: 40, left: 20, bottom: 40 }}>
                                         <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
@@ -787,13 +783,26 @@ export default function BreakEvenPage() {
                         </div>
                         <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
                              <Button onClick={() => setIsChartModalOpen(false)} className="px-6 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-xs hover:bg-slate-100 transition-all">Cerrar</Button>
-                             <Button onClick={handleExportExcel} className="px-6 h-10 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
-                                <span>📗</span> Exportar Reporte
+                             <Button onClick={handleExportPdf} className="px-6 h-10 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
+                                <span>📄</span> Exportar Reporte
                              </Button>
                         </div>
                     </div>
                 </div>
             )}
+            <div aria-hidden="true" style={{ position: 'absolute', top: '-10000px', left: '-10000px', width: '800px', height: '400px', overflow: 'hidden' }}>
+                <div ref={chartRef} style={{ width: '800px', height: '400px', backgroundColor: 'white' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="ventas" hide />
+                            <YAxis hide />
+                            <Line type="monotone" dataKey="ventas" name="Ventas" stroke="#10b981" strokeWidth={3} dot={false} />
+                            <Line type="monotone" dataKey="costos" name="Costos" stroke="#6366f1" strokeWidth={3} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
         </div>
     );
 }

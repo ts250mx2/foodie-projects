@@ -7,6 +7,7 @@ import Input from '@/components/Input';
 import EmployeeDocumentsModal from '@/components/EmployeeDocumentsModal';
 import EmployeeAccessModal from '@/components/EmployeeAccessModal';
 import DocumentTypesModal from '@/components/DocumentTypesModal';
+import MassiveEmployeeUpload from '@/components/MassiveEmployeeUpload';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 
 import { useTheme } from '@/contexts/ThemeContext';
@@ -79,6 +80,7 @@ export default function EmployeesPage() {
     const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
     const [selectedEmployeeForAccess, setSelectedEmployeeForAccess] = useState<Employee | null>(null);
     const [isDocumentTypesModalOpen, setIsDocumentTypesModalOpen] = useState(false);
+    const [isMassiveUploadOpen, setIsMassiveUploadOpen] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -351,6 +353,13 @@ export default function EmployeesPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsMassiveUploadOpen(true)}
+                        className="flex items-center gap-2"
+                    >
+                        🚀 Carga Masiva
+                    </Button>
                     <Button
                         variant="secondary"
                         onClick={() => setIsDocumentTypesModalOpen(true)}
@@ -840,6 +849,31 @@ export default function EmployeesPage() {
                     onClose={() => setIsDocumentTypesModalOpen(false)}
                     projectId={project?.idProyecto || 0}
                 />
+            )}
+            {/* Massive Upload Modal */}
+            {isMassiveUploadOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h2 className="text-xl font-bold text-gray-800">Carga Masiva de Empleados</h2>
+                            <button
+                                onClick={() => setIsMassiveUploadOpen(false)}
+                                className="text-gray-500 hover:text-gray-700 p-2"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <MassiveEmployeeUpload 
+                                onSuccess={() => {
+                                    setIsMassiveUploadOpen(false);
+                                    fetchEmployees();
+                                }} 
+                                hideHeader={true}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

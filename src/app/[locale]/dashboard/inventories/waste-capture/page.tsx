@@ -431,20 +431,20 @@ export default function WasteCapturePage() {
                                     </div>
                                 </div>
                                 
-                                <div className="w-full md:w-32 space-y-2">
+                                <div className="w-full md:w-auto space-y-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('quantity')}</label>
-                                    <div className="relative">
+                                    <div className="flex items-center gap-2">
                                         <input
                                             type="number"
                                             step="0.01"
-                                            className="w-full p-3 border rounded-xl text-sm font-black focus:ring-2 outline-none transition-all"
+                                            className="w-32 p-3 border rounded-xl text-sm font-black focus:ring-2 outline-none transition-all"
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
                                             required
                                             style={{ '--tw-ring-color': colors.colorFondo1 } as any}
                                         />
                                         {selectedProduct && (
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase">
+                                            <span className="text-[10px] font-black text-gray-500 uppercase bg-primary-100/50 px-2 py-1 rounded-lg border border-primary-200 min-w-[40px] text-center">
                                                 {selectedProduct.UnidadMedidaInventario}
                                             </span>
                                         )}
