@@ -8,6 +8,7 @@ import { useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import QRCode from 'react-qr-code';
 import { v4 as uuidv4 } from 'uuid';
+import { useParams } from 'next/navigation';
 
 interface MassiveProductUploadProps {
     onSuccess?: () => void;
@@ -16,6 +17,8 @@ interface MassiveProductUploadProps {
 
 export default function MassiveProductUpload({ onSuccess, hideHeader = false }: MassiveProductUploadProps) {
     const t = useTranslations('Navigation');
+    const params = useParams();
+    const locale = params.locale as string;
     const [project, setProject] = useState<any>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const [uploadedData, setUploadedData] = useState<any[]>([]);
@@ -612,7 +615,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 
                                 <div className="bg-white p-4 rounded-2xl border-4 border-gray-50 shadow-inner mb-8">
                                     <QRCode 
-                                        value={`${window.location.origin}/ocr/qr-capture?id=${qrSessionId}`}
+                                        value={`${window.location.origin}/${locale}/ocr/qr-capture?id=${qrSessionId}`}
                                         size={200}
                                         style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                         viewBox={`0 0 256 256`}
