@@ -43,20 +43,21 @@ export async function POST(request: NextRequest) {
             const iva = parseFloat(product.Impuesto) || 0;
             const categoriaName = (product.Categoria || '').toLowerCase().trim();
 
-            const idCategoria = categoryMap.get(categoriaName) || 0;
+            const idCategoria = product.IdCategoria || categoryMap.get(categoriaName) || 0;
 
-            // New fields
-            const unidadMedidaCompra = product['Unidad Medida Compra'] || null;
-            const cantidadCompra = parseFloat(product.Cantidad) || 1;
-            const unidadMedidaInventario = product['Unidad Medida Inventario'] || null;
-            const unidadMedidaRecetario = product['Unidad Medida Receta'] || null;
+            // Mapping units with priority for camelCase used in OCR/UI
+            const unidadMedidaCompra = product.UnidadMedidaCompra || product['Unidad Medida Compra'] || null;
+            const cantidadCompra = parseFloat(product.CantidadCompra || product.Cantidad) || 1;
+            const unidadMedidaInventario = product.UnidadMedidaInventario || product['Unidad Medida Inventario'] || null;
+            const unidadMedidaRecetario = product.UnidadMedidaRecetario || product['Unidad Medida Receta'] || null;
             const conversionSimple = parseFloat(product.Contenido) || 1;
+            const idTipoProducto = product.IdTipoProducto !== undefined ? product.IdTipoProducto : 0;
 
             await connection.query(
                 `INSERT INTO tblProductos 
                  (Codigo, Producto, Precio, IVA, IdCategoria, IdCategoriaRecetario, Status, FechaAct, IdTipoProducto, PesoInicial, PesoFinal, ConversionSimple, CantidadCompra, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario) 
-                 VALUES (?, ?, ?, ?, ?, 0, 0, ?, 0, 1, 1, ?, ?, ?, ?, ?)`,
-                [codigo, nombre, precio, iva, idCategoria, now, conversionSimple, cantidadCompra, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario]
+                 VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, 1, 1, ?, ?, ?, ?, ?)`,
+                [codigo, nombre, precio, iva, idCategoria, now, idTipoProducto, conversionSimple, cantidadCompra, unidadMedidaCompra, unidadMedidaInventario, unidadMedidaRecetario]
             );
             insertedCount++;
         }
