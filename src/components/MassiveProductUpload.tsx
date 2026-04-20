@@ -31,6 +31,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const [ocrPreviews, setOcrPreviews] = useState<string[]>([]);
     const [ocrFiles, setOcrFiles] = useState<File[]>([]);
     const [allCategories, setAllCategories] = useState<{ IdCategoria: number, Categoria: string }[]>([]);
+    const [uploadResults, setUploadResults] = useState<any[] | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const ocrFileInputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +80,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(worksheet);
 
-            // Map keys to expected format if needed, or just set it
             setUploadedData(json);
         };
         reader.readAsArrayBuffer(file);
@@ -128,7 +128,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
         setShowQrModal(true);
         setIsPolling(true);
 
-        // Register session in backend
         try {
             await fetch('/api/ocr/qr-sync', {
                 method: 'POST',
@@ -136,14 +135,12 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                 body: JSON.stringify({ sessionId, action: 'register' })
             });
 
-            // Start polling
             const pollInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/api/ocr/qr-sync?sessionId=${sessionId}`);
                     const data = await response.json();
 
                     if (data.success && data.image) {
-                        // Received image
                         const dataUrl = data.image;
                         const res = await fetch(dataUrl);
                         const blob = await res.blob();
@@ -152,7 +149,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                         setOcrFiles(prev => [...prev, file]);
                         setOcrPreviews(prev => [...prev, dataUrl]);
 
-                        // Cleanup
                         clearInterval(pollInterval);
                         setIsPolling(false);
                         setShowQrModal(false);
@@ -162,7 +158,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                 }
             }, 2000);
 
-            // Cleanup on modal close or unmount
             return () => {
                 clearInterval(pollInterval);
                 setIsPolling(false);
@@ -226,8 +221,9 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
 
     const processOcr = async () => {
         if (ocrFiles.length === 0 || !project?.idProyecto) return;
-
+ 
         setIsProcessing(true);
+        await fetchExistingProducts();
         try {
             const formData = new FormData();
             ocrFiles.forEach(file => formData.append('image', file));
@@ -242,17 +238,14 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             const data = await response.json();
             if (data.success) {
                 const formattedData = data.data.products.map((p: any) => ({
-                    Producto: p.description,
-                    CodigoBarras: p.CodigoBarras || '',
-                    Precio: p.price,
-                    CantidadCompra: p.cantidadCompra || 1,
-                    Categoria: p.category,
-                    IdCategoria: p.IdCategoria,
-                    UnidadMedidaCompra: p.purchaseUnit || '',
-                    // OCR Metadata
+                    Codigo: p.CodigoBarras || '',
+                    Descripción: p.description,
+                    'CANTIDAD COMPRA': p.cantidadCompra || 1,
                     _isOcr: true,
                     _isLinked: p.isLinked,
-                    _systemId: p.systemId
+                    _systemId: p.systemId,
+                    _systemName: p.systemName,
+                    _systemCodigo: p.systemCodigo
                 }));
                 setUploadedData(formattedData);
                 await fetchExistingProducts();
@@ -311,23 +304,21 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const handleProcessUpload = async () => {
         if (!project?.idProyecto || uploadedData.length === 0) return;
 
-        // If it's OCR mode, we might need to save relationships first or during the process
         const isOcrBatch = uploadedData.some(row => row._isOcr);
 
         if (isOcrBatch) {
             setIsProcessing(true);
             try {
-                // Confirm price updates and mappings
                 const mappingsToSave = uploadedData
                     .filter(row => row._isOcr && row._systemId)
                     .map(row => ({
-                        ocrDescription: row.Producto,
+                        ocrDescription: row.Descripción || row.Producto,
                         systemId: row._systemId,
-                        price: row.Precio
+                        price: 0
                     }));
 
                 if (mappingsToSave.length > 0) {
-                    if (confirm(`Se actualizarán ${mappingsToSave.length} precios de productos existentes. ¿Desea continuar?`)) {
+                    if (confirm(`Se vincularán ${mappingsToSave.length} productos existentes. ¿Desea continuar?`)) {
                         await fetch('/api/ocr/relationships/save', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -339,18 +330,14 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                     }
                 }
 
-                // For new products, we use the standard process (excluding already linked ones)
                 const newProducts = uploadedData
                     .filter(row => !row._systemId)
                     .map(row => ({
-                        Producto: row.Producto,
-                        Codigo: row.CodigoBarras || '', // Map to system Codigo
-                        Precio: row.Precio,
-                        Categoria: row.Categoria,
-                        IdCategoria: row.IdCategoria,
-                        UnidadMedidaCompra: row.UnidadMedidaCompra,
-                        IdTipoProducto: 0, // Force Materia Prima
-                        CantidadCompra: row.CantidadCompra || 1
+                        Producto: row.Descripción || row.Producto,
+                        Codigo: row.Codigo || row.CodigoBarras || '', 
+                        Precio: 0,
+                        IdTipoProducto: 0, 
+                        CantidadCompra: row['CANTIDAD COMPRA'] || row.Cantidad || row.CantidadCompra || 1
                     }));
 
                 if (newProducts.length > 0) {
@@ -364,16 +351,14 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                     });
                     const data = await response.json();
                     if (data.success) {
-                        alert('Carga masiva completada');
+                        setUploadResults(uploadedData);
                         setUploadedData([]);
-                        if (onSuccess) onSuccess();
                     } else {
                         alert('Error: ' + data.message);
                     }
                 } else if (mappingsToSave.length > 0) {
-                    alert('Precios actualizados exitosamente');
+                    setUploadResults(uploadedData);
                     setUploadedData([]);
-                    if (onSuccess) onSuccess();
                 }
             } catch (error: any) {
                 console.error('Error processing OCR upload:', error);
@@ -384,7 +369,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             return;
         }
 
-        // Filter valid products: no duplicates in Code or Name
         const validProducts = uploadedData.filter(row =>
             !isDuplicateCode(row.Codigo) && !isDuplicateName(row.Producto)
         );
@@ -411,11 +395,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
 
             const data = await response.json();
             if (data.success) {
-                alert(data.message);
+                setUploadResults(validProducts);
                 setUploadedData([]);
-                setExistingProducts([]);
-                setExistingCategories([]);
-                if (onSuccess) onSuccess();
             } else {
                 throw new Error(data.message);
             }
@@ -427,304 +408,264 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
         }
     };
 
+    const [activeTab, setActiveTab] = useState<'excel' | 'ocr'>('ocr');
+
     return (
-        <div className={hideHeader ? "" : "p-6"}>
+        <div className="flex flex-col gap-3 min-h-screen bg-[#fcfdfe] p-2 md:p-4 font-sans text-slate-900">
             {!hideHeader && (
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-2">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            📦 {t('massiveProductUpload')}
+                        <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-800 flex items-center gap-2">
+                            <span className="bg-indigo-600 text-white p-1.5 rounded-lg shadow-indigo-100 shadow-lg">📦</span>
+                            Carga Masiva de Productos
                         </h1>
-                        <p className="text-gray-600 mt-2">
-                            Utiliza esta herramienta para cargar múltiples productos de forma rápida.
-                        </p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5 pl-1.5">Gestiona tu inventario con OCR inteligente y carga de archivos</p>
                     </div>
                 </div>
             )}
 
-            <div className="flex justify-between items-center mb-4 gap-2">
-                <div className="flex gap-2">
-                    <Button
-                        onClick={() => {
-                            setIsOcrMode(true);
-                            setUploadedData([]);
-                        }}
-                        variant={isOcrMode ? "primary" : "secondary"}
-                        className="text-xs"
+            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col relative">
+                {/* TABS (ESTILO CARPETA) */}
+                <div className="flex bg-slate-50 p-1.5 gap-1.5 border-b border-slate-100">
+                    <button
+                        onClick={() => setActiveTab('ocr')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
+                            activeTab === 'ocr' 
+                            ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' 
+                            : 'text-slate-400 hover:bg-slate-100/50'
+                        }`}
                     >
-                        📄 Carga por OCR
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setIsOcrMode(false);
-                            setUploadedData([]);
-                        }}
-                        variant={!isOcrMode ? "primary" : "secondary"}
-                        className="text-xs"
+                        {activeTab === 'ocr' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600"></span>}
+                        <span className="text-lg">🔍</span>
+                        CARGA POR OCR
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('excel')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
+                            activeTab === 'excel' 
+                            ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-slate-100' 
+                            : 'text-slate-400 hover:bg-slate-100/50'
+                        }`}
                     >
-                        📊 Carga por Excel
-                    </Button>
+                        {activeTab === 'excel' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></span>}
+                        <span className="text-lg">📊</span>
+                        CARGA POR EXCEL
+                    </button>
                 </div>
-                {!isOcrMode && (
-                    <Button
-                        onClick={handleDownloadTemplate}
-                        isLoading={isDownloading}
-                        variant="secondary"
-                        className="text-xs"
-                    >
-                        📥 Descargar Plantilla
-                    </Button>
-                )}
+
+                <div className="p-6 relative min-h-[300px] flex flex-col">
+                    {/* LOADING OVERLAY PARA OCR */}
+                    {isProcessing && activeTab === 'ocr' && (
+                        <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                            <div className="w-16 h-16 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                            <p className="text-sm font-black text-slate-700 tracking-widest uppercase animate-pulse">Digitalizando Documento...</p>
+                            <p className="text-[10px] text-slate-400 mt-2 font-medium">Esto puede tardar unos segundos dependiendo del motor IA</p>
+                        </div>
+                    )}
+
+                    {/* CONTENIDO OCR */}
+                    {activeTab === 'ocr' && (
+                        <div className="animate-in slide-in-from-right-4 duration-500 flex flex-col flex-1">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Procesamiento Inteligente</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Digitaliza facturas físicas o capturas de pantalla usando IA de última generación.</p>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end">
+                                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
+                                    <div className="flex items-center gap-2 bg-slate-50 rounded-xl p-1 border border-slate-100 shadow-inner">
+                                        <button
+                                            onClick={() => setSelectedModel('claude-sonnet-4-6')}
+                                            className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
+                                                selectedModel === 'claude-sonnet-4-6' 
+                                                ? 'bg-white text-indigo-600 shadow-sm' 
+                                                : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                        >
+                                            CLAUDE 3.5
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedModel('gpt-4o')}
+                                            className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
+                                                selectedModel === 'gpt-4o' 
+                                                ? 'bg-white text-indigo-600 shadow-sm' 
+                                                : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                        >
+                                            GPT-4o
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <button
+                                    onClick={() => setIsCameraOpen(true)}
+                                    className="flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group relative overflow-hidden"
+                                >
+                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform duration-500">📸</div>
+                                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Cámara Directa</span>
+                                    <span className="text-[10px] text-slate-400 mt-1 font-medium">Usa la webcam de tu PC</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowQrModal(true)}
+                                    className="flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group"
+                                >
+                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform duration-500">📱</div>
+                                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Desde Celular</span>
+                                    <span className="text-[10px] text-slate-400 mt-1 font-medium">Escanea un código QR</span>
+                                </button>
+                                <div className="relative group">
+                                    <input type="file" ref={ocrFileInputRef} onChange={handleOcrFileChange} multiple accept="image/*" className="hidden" />
+                                    <button
+                                        onClick={() => ocrFileInputRef.current?.click()}
+                                        className="w-full h-full border-2 border-dashed border-indigo-100 bg-indigo-50/10 rounded-3xl flex flex-col items-center justify-center p-8 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group"
+                                    >
+                                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-sm group-hover:scale-110 transition-transform duration-500">🖼️</div>
+                                        <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Subir Imágenes</span>
+                                        <span className="text-[10px] text-slate-400 mt-1 font-medium">JPG, PNG o PDF</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {ocrFiles.length > 0 && (
+                                <div className="mt-auto border-t border-slate-50 pt-6 animate-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Documentos Listos ({ocrFiles.length})</span>
+                                        </div>
+                                        <button onClick={() => {setOcrFiles([]); setOcrPreviews([]);}} className="text-[10px] font-black text-red-500 hover:bg-red-50 px-3 py-1 rounded-full transition-colors uppercase tracking-widest">Descartar Todo</button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-4 items-center">
+                                        <div className="flex -space-x-4 overflow-hidden py-2">
+                                            {ocrPreviews.map((preview, index) => (
+                                                <div key={index} className="relative group shrink-0 hover:z-10 transition-all duration-300 transform hover:-translate-y-1">
+                                                    <div className="w-16 h-16 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-slate-100">
+                                                        <img src={preview} alt="preview" className="w-full h-full object-cover" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            onClick={processOcr}
+                                            disabled={isProcessing}
+                                            className="ml-auto px-10 h-14 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
+                                        >
+                                            🚀 COMENZAR DIGITALIZACIÓN
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* CONTENIDO EXCEL */}
+                    {activeTab === 'excel' && (
+                        <div className="animate-in slide-in-from-left-4 duration-500 flex flex-col flex-1">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Importación Masiva Tradicional</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Sube archivos estructurados en Excel o CSV para cargas de alto volumen.</p>
+                                </div>
+                                <Button
+                                    onClick={handleDownloadTemplate}
+                                    variant="secondary"
+                                    className="text-[10px] h-10 px-6 font-black uppercase tracking-widest bg-white border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 transition-all shadow-sm rounded-xl"
+                                    isLoading={isDownloading}
+                                >
+                                    📥 Descargar Plantilla Oficial
+                                </Button>
+                            </div>
+
+                            <div
+                                onDrop={onDrop}
+                                onDragOver={onDragOver}
+                                onDragLeave={onDragLeave}
+                                className={`flex-1 group relative border-4 border-dashed rounded-[40px] flex flex-col items-center justify-center p-12 transition-all duration-500 min-h-[300px] ${
+                                    isDragging ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-50 bg-slate-50/30 hover:border-emerald-100 hover:bg-white'
+                                }`}
+                            >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx,.xls,.csv" className="hidden" />
+                                <div className="w-24 h-24 bg-emerald-100/50 text-emerald-600 rounded-[30px] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-sm border-4 border-white">
+                                    <span className="text-4xl text-emerald-500">📊</span>
+                                </div>
+                                <h4 className="text-xl font-black text-slate-800 mb-2">Suelta tu archivo Excel aquí</h4>
+                                <p className="text-xs text-slate-400 text-center mb-10 max-w-[300px] font-medium leading-relaxed">
+                                    Asegúrate de que las columnas coincidan con nuestro formato para una importación perfecta.
+                                </p>
+                                <Button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    variant="secondary"
+                                    className="text-xs py-4 px-10 h-auto font-black uppercase tracking-[0.2em] ring-1 ring-slate-200 bg-white text-slate-600 shadow-lg hover:shadow-emerald-100/50 hover:ring-emerald-200 transition-all rounded-2xl"
+                                >
+                                    O BUSCAR EN TU DISPOSITIVO
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {isOcrMode ? (
-                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="flex flex-col md:flex-row justify-between gap-6">
-                        <div className="flex-1 space-y-4">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                🤖 Configuración OCR
-                            </h3>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Modelo IA</label>
-                                <div className="flex gap-4">
-                                    <button
-                                        onClick={() => setSelectedModel('claude-sonnet-4-6')}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'claude-sonnet-4-6'
-                                            ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm'
-                                            : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
-                                            }`}
-                                    >
-                                        🤖 Claude 4.6 Sonnet
-                                    </button>
-                                    <button
-                                        onClick={() => setSelectedModel('gpt-4o')}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'gpt-4o'
-                                            ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-sm'
-                                            : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
-                                            }`}
-                                    >
-                                        🌿 GPT-4o
-                                    </button>
-                                </div>
-                            </div>
+            {uploadedData.length > 0 && (
+                <div className="bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden flex flex-col flex-1 max-h-[70vh] animate-in slide-in-from-bottom-5 duration-500">
+                    <div className="bg-white px-4 py-3 border-b border-slate-100 flex justify-between items-center sticky top-0 z-20 backdrop-blur-md bg-white/90">
+                        <div className="flex items-center gap-3">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <h2 className="text-xs font-black text-slate-700 uppercase tracking-widest">Vista Previa de Carga</h2>
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                                {uploadedData.length} registros
+                            </span>
                         </div>
-
-                        <div className="flex-[2] space-y-4">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                📤 Archivos y Fotos
-                            </h3>
-                            <div className="flex gap-4 overflow-x-auto pb-4 min-h-[120px] snap-x">
-                                <div
-                                    onClick={startCamera}
-                                    className="min-w-[120px] h-[120px] border-2 border-dashed border-primary-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-primary-50/30 cursor-pointer hover:bg-primary-50 hover:border-primary-400 transition-all font-bold text-primary-600 text-[10px] text-center p-2 snap-start group"
-                                >
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">📸</span>
-                                    Cámara Directa
-                                </div>
-                                <div
-                                    onClick={startQrSession}
-                                    className="min-w-[120px] h-[120px] border-2 border-dashed border-indigo-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-indigo-50/30 cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-all font-bold text-indigo-600 text-[10px] text-center p-2 snap-start group"
-                                >
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">📱</span>
-                                    Tomar con QR
-                                </div>
-                                {ocrPreviews.map((src, idx) => (
-                                    <div key={idx} className="relative min-w-[120px] h-[120px] rounded-xl overflow-hidden shadow-md border-2 border-white bg-gray-50 flex items-center justify-center text-[10px] text-gray-500 font-bold p-2 text-center snap-start">
-                                        {src.startsWith('blob:') || src.startsWith('data:') ? (
-                                            <img src={src} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-1">
-                                                <span className="text-2xl">📄</span>
-                                                {src}
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={() => removeOcrFile(idx)}
-                                            className="absolute top-1 right-1 bg-black/50 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] backdrop-blur-sm"
-                                        >✕</button>
-                                    </div>
-                                ))}
-                                <div
-                                    onClick={() => ocrFileInputRef.current?.click()}
-                                    className="min-w-[120px] h-[120px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-white cursor-pointer hover:bg-gray-50 hover:border-primary-400 transition-all font-bold text-gray-400 text-[10px] text-center p-2 snap-start group"
-                                >
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">➕</span>
-                                    Subir Archivo
-                                    <input
-                                        type="file"
-                                        ref={ocrFileInputRef}
-                                        accept="image/*, application/pdf, .xlsx, .xls"
-                                        multiple
-                                        onChange={handleOcrFileChange}
-                                        className="hidden"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Camera Modal */}
-                    {isCameraOpen && (
-                        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
-                            <button
-                                onClick={stopCamera}
-                                className="absolute top-6 right-6 text-white text-2xl z-[110] bg-white/10 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md"
-                            >✕</button>
-
-                            <div className="relative w-full max-w-lg aspect-[3/4] overflow-hidden rounded-2xl shadow-2xl border-2 border-white/20">
-                                <video
-                                    ref={videoRef}
-                                    autoPlay
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 border-2 border-white/20 pointer-events-none">
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-white/40 rounded-3xl opacity-50"></div>
-                                </div>
-                            </div>
-
-                            <canvas ref={canvasRef} className="hidden" />
-
-                            <div className="mt-12 flex items-center gap-12">
-                                <button
-                                    onClick={capturePhoto}
-                                    className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white/30 hover:scale-110 active:scale-95 transition-all"
-                                >
-                                    <div className="w-16 h-16 rounded-full border-2 border-gray-100"></div>
-                                </button>
-                            </div>
-
-                            <p className="mt-6 text-white/60 text-sm font-medium tracking-wide">Captura tu documento con buena luz</p>
-                        </div>
-                    )}
-
-                    {/* QR Modal */}
-                    {showQrModal && (
-                        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-                            <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center relative">
-                                <button
-                                    onClick={() => { setShowQrModal(false); setIsPolling(false); }}
-                                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-                                >✕</button>
-
-                                <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 text-3xl mb-4">📱</div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Escanea para capturar</h3>
-                                <p className="text-sm text-gray-500 mb-8">Escanea este código con tu celular para tomar la foto del documento.</p>
-
-                                <div className="bg-white p-4 rounded-2xl border-4 border-gray-50 shadow-inner mb-8">
-                                    <QRCode
-                                        value={`${window.location.origin}/${locale}/ocr/qr-capture?id=${qrSessionId}`}
-                                        size={200}
-                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                        viewBox={`0 0 256 256`}
-                                    />
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium animate-pulse">
-                                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                                    Esperando captura...
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {ocrFiles.length > 0 && !isProcessing && (
-                        <div className="mt-8 flex justify-center border-t border-gray-100 pt-6">
-                            <Button
-                                onClick={processOcr}
-                                variant="primary"
-                                className="w-full max-w-md py-4 text-lg font-black shadow-xl"
+                        <div className="flex gap-2">
+                            <Button 
+                                onClick={() => {
+                                    setUploadedData([]);
+                                    setExistingProducts([]);
+                                    setExistingCategories([]);
+                                }} 
+                                variant="secondary" 
+                                className="text-[9px] h-7 px-3 font-black uppercase tracking-widest border-slate-200"
                             >
-                                🔍 Procesar {ocrFiles.length} documento{ocrFiles.length > 1 ? 's' : ''} con {selectedModel === 'gpt-4o' ? '🌿 GPT-4o' : '🤖 Claude'}
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={handleProcessUpload} 
+                                isLoading={isProcessing} 
+                                className="text-[9px] h-7 px-4 font-black uppercase tracking-widest shadow-indigo-100 shadow-md"
+                            >
+                                Confirmar y Subir
                             </Button>
                         </div>
-                    )}
-                    {isProcessing && (
-                        <div className="mt-8 flex flex-col items-center justify-center gap-3 border-t border-gray-100 pt-6 animate-pulse">
-                            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-sm font-black text-primary-600 uppercase tracking-widest">Analizando documentos con IA...</p>
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div
-                    onDragOver={onDragOver}
-                    onDragLeave={onDragLeave}
-                    onDrop={onDrop}
-                    className={`
-                        border-2 border-dashed rounded-xl p-10 mb-8 flex flex-col items-center justify-center transition-all cursor-pointer
-                        ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 bg-white hover:border-primary-400'}
-                    `}
-                >
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        id="file-upload"
-                        className="hidden"
-                        accept=".xlsx, .xls, .csv"
-                        onChange={handleFileChange}
-                    />
-                    <label htmlFor="file-upload" className="flex flex-col items-center cursor-pointer w-full h-full">
-                        <span className="text-6xl mb-4 text-center">📄</span>
-                        <p className="text-xl font-bold text-gray-700 text-center">
-                            Arrastra tu archivo Excel aquí
-                        </p>
-                        <p className="text-gray-500 mt-2 text-sm">
-                            O haz clic para navegar entre tus archivos (.xlsx, .xls, .csv)
-                        </p>
-                    </label>
-                </div>
-            )}
-
-            {uploadedData.length > 0 && (
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <div className="flex flex-col gap-2">
-                            <h2 className="font-semibold text-gray-800">Vista Previa de Datos ({uploadedData.length})</h2>
-                            <div className="flex flex-wrap gap-2 text-[10px]">
-                                <span className="flex items-center gap-1 text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100 italic">
-                                    <span className="w-1.5 h-1.5 bg-primary-400 rounded-full"></span>
-                                    Advertencia: Duplicado o Inexistente en el sistema
-                                </span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setUploadedData([]);
-                                setExistingProducts([]);
-                                setExistingCategories([]);
-                            }}
-                            className="text-red-500 hover:text-red-600 text-sm font-medium"
-                        >
-                            Limpiar
-                        </button>
                     </div>
-                    <div className="overflow-x-auto max-h-[400px]">
-                        <table className="w-full text-left text-sm">
-                            <thead className="sticky top-0 bg-gray-100 text-gray-600 uppercase text-xs font-semibold z-10">
+
+                    <div className="overflow-auto flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-slate-50 text-slate-400 uppercase text-[9px] font-black z-10 border-b border-slate-100">
                                 <tr>
-                                    {Object.keys(uploadedData[0]).map((key) => (
-                                        <th key={key} className="px-4 py-3 border-b whitespace-nowrap">{key}</th>
+                                    {Object.keys(uploadedData[0]).filter(k => !k.startsWith('_')).map((key) => (
+                                        <th key={key} className="px-3 py-2.5 whitespace-nowrap tracking-[0.1em]">{key}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-slate-50">
                                 {uploadedData.map((row, idx) => {
                                     const isOcr = row._isOcr;
                                     const isLinked = row._isLinked;
-                                    const systemId = row._systemId;
+                                    const systemName = row._systemName;
 
-                                    const hasDuplicateCode = !isOcr && isDuplicateCode(row.Codigo || row.CodigoBarras);
-                                    const hasDuplicateName = !isOcr && isDuplicateName(row.Producto);
+                                    const hasDuplicateCode = isDuplicateCode(row.Codigo || row.CodigoBarras);
+                                    const hasDuplicateName = isDuplicateName(row.Descripción || row.Producto);
                                     const hasInvalidCategory = isInvalidCategory(row.Categoria);
 
                                     const hasIssues = hasDuplicateCode || hasDuplicateName || hasInvalidCategory;
 
                                     return (
-                                        <tr key={idx} className={`hover:bg-gray-50 transition-colors ${hasIssues ? 'bg-primary-50/20' : ''}`}>
+                                        <tr key={idx} className={`group transition-colors ${hasIssues ? 'bg-amber-50/20' : 'hover:bg-slate-50/50'}`}>
                                             {Object.keys(uploadedData[0]).filter(k => !k.startsWith('_')).map((key, vIdx) => {
                                                 const val = row[key];
                                                 const isCodeIssue = (key === 'Codigo' || key === 'CodigoBarras') && hasDuplicateCode;
-                                                const isNameIssue = key === 'Producto' && hasDuplicateName;
+                                                const isNameIssue = (key === 'Producto' || key === 'Descripción') && hasDuplicateName;
                                                 const isCatIssue = key === 'Categoria' && hasInvalidCategory;
 
                                                 const isCritical = isCodeIssue || isNameIssue || isCatIssue;
@@ -734,20 +675,37 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                                 if (isNameIssue) title = "Este nombre de producto ya existe";
                                                 if (isCatIssue) title = "Esta categoría no existe en el sistema";
 
-                                                if (isOcr && key === 'Producto') {
+                                                if (isOcr && (key === 'Producto' || key === 'Descripción')) {
                                                     return (
-                                                        <td key={vIdx} className="px-4 py-3">
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-gray-700 font-bold">{val}</span>
-                                                                <div className="flex flex-wrap gap-1">
+                                                        <td key={vIdx} className="px-3 py-1.5 align-top">
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-slate-800 font-bold text-[11px] leading-tight group-hover:text-indigo-700 transition-colors">{val}</span>
+                                                                    {isCritical && (
+                                                                        <span title={title} className="text-amber-500 text-[10px] cursor-help">
+                                                                            ⚠️
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="mt-0.5">
                                                                     {isLinked ? (
-                                                                        <span className="text-[10px] text-green-700 font-black bg-green-100 border border-green-200 px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                                                                            ✔ Vinculado (ID: {systemId})
-                                                                        </span>
+                                                                        <div className="flex flex-col">
+                                                                            <div className="flex items-center gap-1">
+                                                                                <span className="text-[8px] font-black text-indigo-500 bg-indigo-50/50 px-1 rounded uppercase tracking-tighter">
+                                                                                    LINKED
+                                                                                </span>
+                                                                                <span className="text-[9px] font-medium text-slate-400 italic">
+                                                                                    {systemName || "..."}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : hasIssues ? (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-[8px] text-amber-600 font-black bg-amber-50 px-1 rounded uppercase tracking-tighter">EXISTENTE</span>
+                                                                            <p className="text-[8px] text-amber-500 font-medium">Duplicado</p>
+                                                                        </div>
                                                                     ) : (
-                                                                        <span className="text-[10px] text-blue-700 font-black bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                                                                            ✨ Nuevo Producto
-                                                                        </span>
+                                                                        <span className="text-[8px] text-emerald-500 font-black bg-emerald-50 px-1 rounded uppercase tracking-tighter">NEW</span>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -755,27 +713,18 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                                     );
                                                 }
 
-                                                if (isOcr && key === 'Precio' && isLinked) {
-                                                    return (
-                                                        <td key={vIdx} className="px-4 py-3">
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-gray-700 font-bold">${val}</span>
-                                                                <span className="text-[9px] text-orange-600 font-black bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded uppercase">
-                                                                    Precio se actualizará
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                }
-
                                                 return (
-                                                    <td key={vIdx} className={`px-4 py-3 text-gray-700 ${isCritical ? 'text-primary-600 font-medium' : ''}`}>
-                                                        <div className="flex items-center gap-2">
-                                                            {val}
+                                                    <td key={vIdx} className="px-3 py-1.5 align-top">
+                                                        <div className="relative group/cell">
+                                                            <span className={`text-[11px] block truncate max-w-[200px] ${
+                                                                isCritical ? 'text-amber-600 font-black' : 'text-slate-500 font-medium'
+                                                            }`}>
+                                                                {val || '---'}
+                                                            </span>
                                                             {isCritical && (
-                                                                <span title={title} className="cursor-help text-primary-500">
-                                                                    ⚠️
-                                                                </span>
+                                                                <div className="absolute left-0 -bottom-4 bg-slate-800 text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover/cell:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">
+                                                                    {title}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </td>
@@ -787,24 +736,143 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                             </tbody>
                         </table>
                     </div>
-                    <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                </div>
+            )}
+
+            {uploadResults && (
+                <div className="bg-white rounded-xl shadow-md p-8 border border-emerald-100/50 animate-in zoom-in-95 duration-300">
+                    <div className="flex flex-col items-center text-center mb-8">
+                        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-4xl mb-4 shadow-inner">
+                            ✅
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-800 tracking-tight">¡Carga Completada con Éxito!</h2>
+                        <p className="text-gray-500 mt-2">Se han procesado {uploadResults.length} productos correctamente.</p>
+                    </div>
+
+                    <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm mb-8 bg-white/50 backdrop-blur-sm">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-[#f8fafc] text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-5">Código</th>
+                                    <th className="px-6 py-5">Descripción</th>
+                                    <th className="px-6 py-5">Cant. Compra</th>
+                                    <th className="px-6 py-5 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {uploadResults.map((p, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50/80 transition-colors border-l-4 border-l-transparent hover:border-l-indigo-400">
+                                        <td className="px-6 py-4 font-mono text-xs text-gray-400 bg-gray-50/30 font-bold">{p.Codigo || p.CodigoBarras || '---'}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-800 text-sm">{p.Producto || p.Descripción || p.description}</span>
+                                                {p._systemName && (
+                                                    <span className="text-[10px] text-gray-400 font-medium italic">Sist: {p._systemName}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-gray-700 font-black text-xs min-w-[32px] inline-block text-center border border-gray-200">
+                                                {p['CANTIDAD COMPRA'] || p.Cantidad || p.CantidadCompra || 0}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center">
+                                                {p._isLinked ? (
+                                                    <span className="text-[9px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-black border border-indigo-200 uppercase tracking-tight shadow-sm flex items-center gap-1">
+                                                        <span className="w-1 h-1 bg-indigo-500 rounded-full"></span>
+                                                        Actualizado
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md font-black border border-emerald-200 uppercase tracking-tight shadow-sm flex items-center gap-1">
+                                                        <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
+                                                        Nuevo
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="flex justify-center">
                         <Button
-                            onClick={handleProcessUpload}
-                            isLoading={isProcessing}
-                            variant="primary"
+                            onClick={() => {
+                                setUploadResults(null);
+                                setOcrFiles([]);
+                                setOcrPreviews([]);
+                            }}
+                            variant="secondary"
+                            className="px-12 py-3 font-black uppercase tracking-widest text-xs"
                         >
-                            🚀 Procesar Carga Masiva
+                            Finalizar y Volver
                         </Button>
                     </div>
                 </div>
             )}
 
-            {!uploadedData.length && (
-                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col items-center justify-center min-h-[200px]">
-                    <div className="text-5xl mb-3 opacity-20">📊</div>
-                    <p className="text-gray-500 text-center text-sm max-w-xs">
-                        Sube un archivo para ver la vista previa de los productos antes de realizar la carga masiva al sistema.
-                    </p>
+            {isCameraOpen && (
+                <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
+                    <button
+                        onClick={stopCamera}
+                        className="absolute top-6 right-6 text-white text-2xl z-[110] bg-white/10 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md"
+                    >✕</button>
+
+                    <div className="relative w-full max-w-lg aspect-[3/4] overflow-hidden rounded-2xl shadow-2xl border-2 border-white/20">
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 border-2 border-white/20 pointer-events-none">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-white/40 rounded-3xl opacity-50"></div>
+                        </div>
+                    </div>
+
+                    <canvas ref={canvasRef} className="hidden" />
+
+                    <div className="mt-12 flex items-center gap-12">
+                        <button
+                            onClick={capturePhoto}
+                            className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white/30 hover:scale-110 active:scale-95 transition-all"
+                        >
+                            <div className="w-16 h-16 rounded-full border-2 border-gray-100"></div>
+                        </button>
+                    </div>
+
+                    <p className="mt-6 text-white/60 text-sm font-medium tracking-wide">Captura tu documento con buena luz</p>
+                </div>
+            )}
+
+            {showQrModal && (
+                <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center relative">
+                        <button
+                            onClick={() => { setShowQrModal(false); setIsPolling(false); }}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >✕</button>
+
+                        <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 text-3xl mb-4">📱</div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Escanea para capturar</h3>
+                        <p className="text-sm text-gray-500 mb-8">Escanea este código con tu celular para tomar la foto del documento.</p>
+
+                        <div className="bg-white p-4 rounded-2xl border-4 border-gray-50 shadow-inner mb-8">
+                            <QRCode
+                                value={`${window.location.origin}/${locale}/ocr/qr-capture?id=${qrSessionId}`}
+                                size={200}
+                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                viewBox={`0 0 256 256`}
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium animate-pulse">
+                            <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
+                            Esperando captura...
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

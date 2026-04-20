@@ -192,7 +192,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             }
 
             setPesoInicial((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoInicial || 1));
-            setPesoFinal((productType === 0 || productType === 2) ? 1 : (initialProduct.PesoFinal || 1));
+            setPesoFinal(productType === 2 ? (initialProduct.PesoFinal || 1) : ((productType === 0) ? 1 : (initialProduct.PesoFinal || 1)));
             setUnMedidaCompra(ensureLabel(initialProduct.UnidadMedidaCompra || ''));
 
             // Set initial load flag to true to prevent sync hooks from overwriting

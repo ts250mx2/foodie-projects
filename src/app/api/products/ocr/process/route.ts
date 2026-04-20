@@ -2,17 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { Connection, RowDataPacket } from 'mysql2/promise';
 
-const PRODUCT_OCR_PROMPT = (categories: string[]) => `
+const PRODUCT_OCR_PROMPT = () => `
 Analyze these document images (they could be invoices, product lists, receipts, etc.). 
-Extract a detailed list of products with the following fields:
-- description (The full name of the product as it appears in the document)
-- CodigoBarras (The barcode or SKU if available, otherwise null)
-- price (The unit price or cost)
-- purchaseUnit (The unit of measure of the document row, e.g., 'CAJA', 'DOCENA', 'PZA'. MUST be one of these: KG, G, LB, OZ, T, AR, L, ML, GAL, QT, PT, FL-OZ, TAZA, CAJA, SACO, DOCENA, PAQUETE, BOLSA, PZA, LATA, BOTELLA, FRASCO, GARRAFON).
-- cantidadCompra (EXTRACT the purchase quantity/weight/content ONLY from the text in the description, e.g., 'Jamón 5 KG' -> 5, 'Box 24 units' -> 24. If no quantity is mentioned in the description, default to 1).
-- category (Choose the most appropriate category from the following list: [${categories.join(', ')}]. If none match accurately, pick the closest logical one).
-
-IMPORTANT: Ignore any 'quantity' field from the document's line items. Only use the description to find the purchase quantity.
+Extract a list of products with exactly these fields:
+- description: The full name of the product as it appears in the document.
+- CodigoBarras: The barcode, SKU, or product code if available, otherwise null.
+- cantidadCompra: Extract the purchase quantity/weight/content ONLY from the text in the description, e.g., 'Jamón 5 KG' -> 5, 'Box 24 units' -> 24. If no quantity is mentioned in the description, default to 1.
 
 Return ONLY a JSON object with this structure: 
 {
@@ -20,14 +15,11 @@ Return ONLY a JSON object with this structure:
     {
       "description": "HARINA DE TRIGO 5 KG", 
       "CodigoBarras": "SKU123", 
-      "price": 25.00, 
-      "purchaseUnit": "SACO",
-      "cantidadCompra": 5.0,
-      "category": "🍎 Frutas"
+      "cantidadCompra": 5.0
     }
   ]
 }
-Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly.
+Ensure numeric values are numbers, not strings.
 `;
 
 async function processWithClaude(files: File[], prompt: string, modelName: string): Promise<string> {
@@ -145,14 +137,8 @@ export async function POST(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
-        // 1. Fetch categories for the prompt
-        const [categoryRows] = await connection.query<RowDataPacket[]>(
-            'SELECT IdCategoria, Categoria, ImagenCategoria FROM BDFoodieProjects.tblCategorias WHERE Status = 0'
-        );
-        const categories = categoryRows.map(c => `${c.ImagenCategoria || ''} ${c.Categoria}`.trim());
-
-        // 2. Process with AI
-        const prompt = PRODUCT_OCR_PROMPT(categories);
+        // 1. Process with AI
+        const prompt = PRODUCT_OCR_PROMPT();
         let content: string;
         if (model === 'gpt-4o') {
             content = await processWithGPT4o(files, prompt);
@@ -160,7 +146,7 @@ export async function POST(request: NextRequest) {
             content = await processWithClaude(files, prompt, model);
         }
 
-        // 3. Parse JSON result
+        // 2. Parse JSON result
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         let ocrResult = null;
         if (jsonMatch) {
@@ -176,39 +162,77 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Could not parse OCR result' }, { status: 500 });
         }
 
-        // 4. Cross-reference with tblRelacionProductosOCR and Map Categories
+        // 3. Cross-reference with tblRelacionProductosOCR and fetch system info
         const processedProducts = [];
         for (const product of ocrResult.products) {
+            // Priority 1: Check Relationship table
             const [relRows] = await connection.query<RowDataPacket[]>(
-                'SELECT IdProducto FROM tblRelacionProductosOCR WHERE ProductoOCR = ? AND Status = 0',
+                `SELECT r.IdProducto, p.Producto as systemName, p.Codigo as systemCodigo 
+                 FROM tblRelacionProductosOCR r
+                 JOIN tblProductos p ON r.IdProducto = p.IdProducto
+                 WHERE r.ProductoOCR = ? AND r.Status = 0`,
                 [product.description]
             );
 
-            // Find matching category ID
-            const matchedCat = categoryRows.find(c => {
-                const fullStr = `${c.ImagenCategoria || ''} ${c.Categoria}`.trim().toLowerCase();
-                const aiCat = (product.category || '').trim().toLowerCase();
-                return fullStr === aiCat || c.Categoria.trim().toLowerCase() === aiCat;
-            });
-
-            const baseProduct = {
-                ...product,
-                IdCategoria: matchedCat?.IdCategoria || null
-            };
-
             if (relRows.length > 0) {
                 processedProducts.push({
-                    ...baseProduct,
+                    ...product,
+                    IdCategoria: null,
                     systemId: relRows[0].IdProducto,
+                    systemName: relRows[0].systemName,
+                    systemCodigo: relRows[0].systemCodigo,
                     isLinked: true
                 });
-            } else {
-                processedProducts.push({
-                    ...baseProduct,
-                    systemId: null,
-                    isLinked: false
-                });
+                continue;
             }
+
+            // Priority 2: Check tblProductos directly by name (exact)
+            const [nameRows] = await connection.query<RowDataPacket[]>(
+                'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Producto = ? AND Status = 0',
+                [product.description]
+            );
+
+            if (nameRows.length > 0) {
+                processedProducts.push({
+                    ...product,
+                    IdCategoria: null,
+                    systemId: nameRows[0].IdProducto,
+                    systemName: nameRows[0].systemName,
+                    systemCodigo: nameRows[0].systemCodigo,
+                    isLinked: true // Mark as linked since it exists by name
+                });
+                continue;
+            }
+
+            // Priority 3: Check tblProductos by Code (exact)
+            if (product.CodigoBarras) {
+                const [codeRows] = await connection.query<RowDataPacket[]>(
+                    'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Codigo = ? AND Status = 0',
+                    [product.CodigoBarras]
+                );
+
+                if (codeRows.length > 0) {
+                    processedProducts.push({
+                        ...product,
+                        IdCategoria: null,
+                        systemId: codeRows[0].IdProducto,
+                        systemName: codeRows[0].systemName,
+                        systemCodigo: codeRows[0].systemCodigo,
+                        isLinked: true // Mark as linked since it exists by code
+                    });
+                    continue;
+                }
+            }
+
+            // Not found in system
+            processedProducts.push({
+                ...product,
+                IdCategoria: null,
+                systemId: null,
+                systemName: null,
+                systemCodigo: null,
+                isLinked: false
+            });
         }
 
         return NextResponse.json({
