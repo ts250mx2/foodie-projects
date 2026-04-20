@@ -5541,3 +5541,30 @@ Body: {
   "unidadMedidaRecetario": ""
 }
 
+[2026-04-18T00:49:05.881Z] PUT /api/products/440
+Body: {
+  "projectId": 12,
+  "producto": "CHICHARRON GUISADO",
+  "codigo": "CHICHARRON GUISADO.",
+  "idCategoria": 19,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 0.9,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": 14,
+  "rutaFoto": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "KILOS",
+  "unidadMedidaInventario": "KILOS",
+  "unidadMedidaRecetario": "KILOS"
+}
+
