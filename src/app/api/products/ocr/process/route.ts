@@ -30,7 +30,7 @@ Return ONLY a JSON object with this structure:
 Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly.
 `;
 
-async function processWithClaude(files: File[], prompt: string): Promise<string> {
+async function processWithClaude(files: File[], prompt: string, modelName: string): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured in .env');
 
@@ -57,7 +57,7 @@ async function processWithClaude(files: File[], prompt: string): Promise<string>
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: modelName,
             max_tokens: 4096,
             messages: [{
                 role: 'user',
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         if (model === 'gpt-4o') {
             content = await processWithGPT4o(files, prompt);
         } else {
-            content = await processWithClaude(files, prompt);
+            content = await processWithClaude(files, prompt, model);
         }
 
         // 3. Parse JSON result
@@ -186,8 +186,9 @@ export async function POST(request: NextRequest) {
 
             // Find matching category ID
             const matchedCat = categoryRows.find(c => {
-                const fullStr = `${c.ImagenCategoria || ''} ${c.Categoria}`.trim();
-                return fullStr === product.category;
+                const fullStr = `${c.ImagenCategoria || ''} ${c.Categoria}`.trim().toLowerCase();
+                const aiCat = (product.category || '').trim().toLowerCase();
+                return fullStr === aiCat || c.Categoria.trim().toLowerCase() === aiCat;
             });
 
             const baseProduct = {
