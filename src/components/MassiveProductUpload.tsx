@@ -79,8 +79,17 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(worksheet);
+            
+            // Convert everything to uppercase for consistency
+            const uppercasedJson = json.map((row: any) => {
+                const newRow: any = {};
+                Object.keys(row).forEach(key => {
+                    newRow[key] = typeof row[key] === 'string' ? row[key].toUpperCase().trim() : row[key];
+                });
+                return newRow;
+            });
 
-            setUploadedData(json);
+            setUploadedData(uppercasedJson);
         };
         reader.readAsArrayBuffer(file);
     };
@@ -238,8 +247,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             const data = await response.json();
             if (data.success) {
                 const formattedData = data.data.products.map((p: any) => ({
-                    Codigo: p.CodigoBarras || '',
-                    Descripción: p.description,
+                    Codigo: (p.CodigoBarras || '').toString().toUpperCase().trim(),
+                    Descripción: (p.description || '').toUpperCase().trim(),
                     'CANTIDAD COMPRA': p.cantidadCompra || 1,
                     _isOcr: true,
                     _isLinked: p.isLinked,
@@ -333,8 +342,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                 const newProducts = uploadedData
                     .filter(row => !row._systemId)
                     .map(row => ({
-                        Producto: row.Descripción || row.Producto,
-                        Codigo: row.Codigo || row.CodigoBarras || '', 
+                        Producto: (row.Descripción || row.Producto || '').toUpperCase().trim(),
+                        Codigo: (row.Codigo || row.CodigoBarras || '').toString().toUpperCase().trim(), 
                         Precio: 0,
                         IdTipoProducto: 0, 
                         CantidadCompra: row['CANTIDAD COMPRA'] || row.Cantidad || row.CantidadCompra || 1
