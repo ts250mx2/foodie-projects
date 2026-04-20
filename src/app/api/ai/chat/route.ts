@@ -8,7 +8,7 @@ async function executeQuery(connection: any, sql: string) {
     if (!sql.toLowerCase().trim().startsWith('select')) {
         throw new Error('Solo se permiten consultas de lectura (SELECT).');
     }
-    
+
     try {
         const [rows] = await connection.execute(sql);
         return rows;
@@ -101,7 +101,7 @@ Instrucciones:
 
         if (modelType === 'gpt-4o') {
             const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-            
+
             let response = await openai.chat.completions.create({
                 model: "gpt-4o",
                 messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -115,11 +115,11 @@ Instrucciones:
             // Handle tool calls
             if (responseMessage.tool_calls) {
                 const toolMessages = [...messages, responseMessage];
-                
+
                 for (const toolCall of responseMessage.tool_calls) {
                     // Type narrowing for toolCall
                     if (toolCall.type !== 'function') continue;
-                    
+
                     const functionArgs = JSON.parse(toolCall.function.arguments);
                     if (functionArgs.sql) executedSql.push(functionArgs.sql);
 
@@ -145,8 +145,8 @@ Instrucciones:
                     messages: [{ role: "system", content: systemPrompt }, ...toolMessages],
                 });
 
-                return NextResponse.json({ 
-                    content: secondResponse.choices[0].message.content, 
+                return NextResponse.json({
+                    content: secondResponse.choices[0].message.content,
                     modelUsed: 'gpt-4o',
                     executedSql: executedSql.join(';\n')
                 });
@@ -173,7 +173,7 @@ Instrucciones:
             ];
 
             let response = await anthropic.messages.create({
-                model: "claude-3-5-sonnet-latest",
+                model: "claude-opus-4-6",
                 max_tokens: 2048,
                 system: systemPrompt,
                 tools: claudeTools,
@@ -189,7 +189,7 @@ Instrucciones:
                     role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
                     content: m.content
                 }));
-                
+
                 toolResultMessages.push({ role: 'assistant' as const, content: response.content });
 
                 if (toolUse) {
@@ -224,7 +224,7 @@ Instrucciones:
                 }
 
                 const finalResponse = await anthropic.messages.create({
-                    model: "claude-3-5-sonnet-latest",
+                    model: "claude-opus-4-6",
                     max_tokens: 2048,
                     system: systemPrompt,
                     tools: claudeTools,
@@ -232,15 +232,15 @@ Instrucciones:
                 });
 
                 const content = finalResponse.content[0].type === 'text' ? finalResponse.content[0].text : '';
-                return NextResponse.json({ 
-                    content, 
-                    modelUsed: 'claude-3-5-sonnet',
+                return NextResponse.json({
+                    content,
+                    modelUsed: 'claude-opus-4-6',
                     executedSql: executedSql.join(';\n')
                 });
             }
 
             const content = response.content[0].type === 'text' ? response.content[0].text : '';
-            return NextResponse.json({ content, modelUsed: 'claude-3-5-sonnet' });
+            return NextResponse.json({ content, modelUsed: 'claude-opus-4-6' });
         }
 
         return NextResponse.json({ error: 'Invalid model type' }, { status: 400 });

@@ -488,13 +488,13 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Modelo IA</label>
                                 <div className="flex gap-4">
                                     <button
-                                        onClick={() => setSelectedModel('claude-opus-4-6')}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'claude-opus-4-6'
+                                        onClick={() => setSelectedModel('claude-sonnet-4-6')}
+                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'claude-sonnet-4-6'
                                             ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm'
                                             : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
                                             }`}
                                     >
-                                        🤖 Claude 3.5
+                                        🤖 Claude 4.6 Sonnet
                                     </button>
                                     <button
                                         onClick={() => setSelectedModel('gpt-4o')}
