@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/Button';
+import Button from '@/components/Button';
 
 export default function QrCapturePage() {
     const searchParams = useSearchParams();
