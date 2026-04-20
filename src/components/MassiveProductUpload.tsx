@@ -27,10 +27,10 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isOcrMode, setIsOcrMode] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'claude-3-5-sonnet-20241022' | 'gpt-4o'>('claude-3-5-sonnet-20241022');
+    const [selectedModel, setSelectedModel] = useState<'claude-opus-4-6' | 'gpt-4o'>('claude-opus-4-6');
     const [ocrPreviews, setOcrPreviews] = useState<string[]>([]);
     const [ocrFiles, setOcrFiles] = useState<File[]>([]);
-    const [allCategories, setAllCategories] = useState<{IdCategoria: number, Categoria: string}[]>([]);
+    const [allCategories, setAllCategories] = useState<{ IdCategoria: number, Categoria: string }[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const ocrFileInputRef = useRef<HTMLInputElement>(null);
@@ -141,17 +141,17 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                 try {
                     const response = await fetch(`/api/ocr/qr-sync?sessionId=${sessionId}`);
                     const data = await response.json();
-                    
+
                     if (data.success && data.image) {
                         // Received image
                         const dataUrl = data.image;
                         const res = await fetch(dataUrl);
                         const blob = await res.blob();
                         const file = new File([blob], `qr-capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                        
+
                         setOcrFiles(prev => [...prev, file]);
                         setOcrPreviews(prev => [...prev, dataUrl]);
-                        
+
                         // Cleanup
                         clearInterval(pollInterval);
                         setIsPolling(false);
@@ -177,8 +177,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const startCamera = async () => {
         setIsCameraOpen(true);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'environment' } 
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -206,7 +206,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
+
             const dataUrl = canvas.toDataURL('image/jpeg');
             fetch(dataUrl)
                 .then(res => res.blob())
@@ -488,22 +488,20 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Modelo IA</label>
                                 <div className="flex gap-4">
                                     <button
-                                        onClick={() => setSelectedModel('claude-3-5-sonnet-20241022')}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${
-                                            selectedModel === 'claude-3-5-sonnet-20241022'
-                                                ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm'
-                                                : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
-                                        }`}
+                                        onClick={() => setSelectedModel('claude-opus-4-6')}
+                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'claude-opus-4-6'
+                                            ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm'
+                                            : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
+                                            }`}
                                     >
                                         🤖 Claude 3.5
                                     </button>
                                     <button
                                         onClick={() => setSelectedModel('gpt-4o')}
-                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${
-                                            selectedModel === 'gpt-4o'
-                                                ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-sm'
-                                                : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
-                                        }`}
+                                        className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${selectedModel === 'gpt-4o'
+                                            ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-sm'
+                                            : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
+                                            }`}
                                     >
                                         🌿 GPT-4o
                                     </button>
@@ -516,14 +514,14 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 📤 Archivos y Fotos
                             </h3>
                             <div className="flex gap-4 overflow-x-auto pb-4 min-h-[120px] snap-x">
-                                <div 
+                                <div
                                     onClick={startCamera}
                                     className="min-w-[120px] h-[120px] border-2 border-dashed border-primary-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-primary-50/30 cursor-pointer hover:bg-primary-50 hover:border-primary-400 transition-all font-bold text-primary-600 text-[10px] text-center p-2 snap-start group"
                                 >
                                     <span className="text-3xl group-hover:scale-110 transition-transform">📸</span>
                                     Cámara Directa
                                 </div>
-                                <div 
+                                <div
                                     onClick={startQrSession}
                                     className="min-w-[120px] h-[120px] border-2 border-dashed border-indigo-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-indigo-50/30 cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 transition-all font-bold text-indigo-600 text-[10px] text-center p-2 snap-start group"
                                 >
@@ -540,25 +538,25 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                                 {src}
                                             </div>
                                         )}
-                                        <button 
+                                        <button
                                             onClick={() => removeOcrFile(idx)}
                                             className="absolute top-1 right-1 bg-black/50 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] backdrop-blur-sm"
                                         >✕</button>
                                     </div>
                                 ))}
-                                <div 
+                                <div
                                     onClick={() => ocrFileInputRef.current?.click()}
                                     className="min-w-[120px] h-[120px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 bg-white cursor-pointer hover:bg-gray-50 hover:border-primary-400 transition-all font-bold text-gray-400 text-[10px] text-center p-2 snap-start group"
                                 >
                                     <span className="text-3xl group-hover:scale-110 transition-transform">➕</span>
                                     Subir Archivo
-                                    <input 
-                                        type="file" 
+                                    <input
+                                        type="file"
                                         ref={ocrFileInputRef}
-                                        accept="image/*, application/pdf, .xlsx, .xls" 
+                                        accept="image/*, application/pdf, .xlsx, .xls"
                                         multiple
-                                        onChange={handleOcrFileChange} 
-                                        className="hidden" 
+                                        onChange={handleOcrFileChange}
+                                        className="hidden"
                                     />
                                 </div>
                             </div>
@@ -568,34 +566,34 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                     {/* Camera Modal */}
                     {isCameraOpen && (
                         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300">
-                            <button 
+                            <button
                                 onClick={stopCamera}
                                 className="absolute top-6 right-6 text-white text-2xl z-[110] bg-white/10 w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-md"
                             >✕</button>
-                            
+
                             <div className="relative w-full max-w-lg aspect-[3/4] overflow-hidden rounded-2xl shadow-2xl border-2 border-white/20">
-                                <video 
-                                    ref={videoRef} 
-                                    autoPlay 
-                                    playsInline 
+                                <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
                                     className="w-full h-full object-cover"
                                 />
                                 <div className="absolute inset-0 border-2 border-white/20 pointer-events-none">
                                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-white/40 rounded-3xl opacity-50"></div>
                                 </div>
                             </div>
-                            
+
                             <canvas ref={canvasRef} className="hidden" />
-                            
+
                             <div className="mt-12 flex items-center gap-12">
-                                <button 
+                                <button
                                     onClick={capturePhoto}
                                     className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white/30 hover:scale-110 active:scale-95 transition-all"
                                 >
                                     <div className="w-16 h-16 rounded-full border-2 border-gray-100"></div>
                                 </button>
                             </div>
-                            
+
                             <p className="mt-6 text-white/60 text-sm font-medium tracking-wide">Captura tu documento con buena luz</p>
                         </div>
                     )}
@@ -604,7 +602,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                     {showQrModal && (
                         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
                             <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center relative">
-                                <button 
+                                <button
                                     onClick={() => { setShowQrModal(false); setIsPolling(false); }}
                                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
                                 >✕</button>
@@ -612,16 +610,16 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 text-3xl mb-4">📱</div>
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">Escanea para capturar</h3>
                                 <p className="text-sm text-gray-500 mb-8">Escanea este código con tu celular para tomar la foto del documento.</p>
-                                
+
                                 <div className="bg-white p-4 rounded-2xl border-4 border-gray-50 shadow-inner mb-8">
-                                    <QRCode 
+                                    <QRCode
                                         value={`${window.location.origin}/${locale}/ocr/qr-capture?id=${qrSessionId}`}
                                         size={200}
                                         style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                         viewBox={`0 0 256 256`}
                                     />
                                 </div>
-                                
+
                                 <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium animate-pulse">
                                     <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
                                     Esperando captura...
