@@ -27,7 +27,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isOcrMode, setIsOcrMode] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'claude-3-5-sonnet-20240620' | 'gpt-4o'>('claude-3-5-sonnet-20240620');
+    const [selectedModel, setSelectedModel] = useState<'claude-3-5-sonnet-20241022' | 'gpt-4o'>('claude-3-5-sonnet-20241022');
     const [ocrPreviews, setOcrPreviews] = useState<string[]>([]);
     const [ocrFiles, setOcrFiles] = useState<File[]>([]);
     const [allCategories, setAllCategories] = useState<{IdCategoria: number, Categoria: string}[]>([]);
@@ -488,9 +488,9 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Modelo IA</label>
                                 <div className="flex gap-4">
                                     <button
-                                        onClick={() => setSelectedModel('claude-3-5-sonnet-20240620')}
+                                        onClick={() => setSelectedModel('claude-3-5-sonnet-20241022')}
                                         className={`flex-1 py-3 px-4 rounded-xl text-xs font-black transition-all border-2 flex items-center justify-center gap-2 ${
-                                            selectedModel === 'claude-3-5-sonnet-20240620'
+                                            selectedModel === 'claude-3-5-sonnet-20241022'
                                                 ? 'bg-primary-50 border-primary-400 text-primary-700 shadow-sm'
                                                 : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
                                         }`}

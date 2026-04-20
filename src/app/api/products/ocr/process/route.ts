@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const files = formData.getAll('image') as File[];
-        const model = (formData.get('model') as string) || 'claude-3-5-sonnet-20240620';
+        const model = (formData.get('model') as string) || 'claude-3-5-sonnet-20241022';
         const projectIdStr = formData.get('projectId') as string;
 
         if (!files || files.length === 0) {
