@@ -454,6 +454,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     date={date}
                     projectId={projectId}
                     branchId={branchId}
+                    sourceSummary={gridItems.map(item => `${item.Producto} (${item.Cantidad})`).join(', ')}
                 />
             )}
         </div>

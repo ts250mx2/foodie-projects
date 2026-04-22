@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslations } from 'next-intl';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import Button from '@/components/Button';
 
@@ -11,6 +11,7 @@ interface ProductionTotalExplosionModalProps {
     date: Date;
     projectId: number;
     branchId: number;
+    sourceSummary?: string;
 }
 
 interface ExplosionItem {
@@ -29,11 +30,12 @@ interface GroupedCategory {
     subtotal: number;
 }
 
-export default function ProductionTotalExplosionModal({ isOpen, onClose, date, projectId, branchId }: ProductionTotalExplosionModalProps) {
+export default function ProductionTotalExplosionModal({ isOpen, onClose, date, projectId, branchId, sourceSummary }: ProductionTotalExplosionModalProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [groupedData, setGroupedData] = useState<GroupedCategory[]>([]);
     const [grandTotal, setGrandTotal] = useState(0);
     const { colors } = useTheme();
+    const t = useTranslations('MaterialExplosion');
 
     useEffect(() => {
         if (isOpen && projectId && branchId) {
@@ -97,9 +99,14 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
-                            💥 Explosión de Materiales Total
+                            💥 {t('title')}
                         </h2>
-                        <div className="text-sm opacity-90 mt-1">
+                        {sourceSummary && (
+                            <div className="text-lg font-bold opacity-90 mt-1 line-clamp-1" title={sourceSummary}>
+                                {sourceSummary}
+                            </div>
+                        )}
+                        <div className="text-sm opacity-80 mt-1 italic">
                             Fecha: {date.toLocaleDateString()}
                         </div>
                     </div>
@@ -110,19 +117,19 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
 
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
                     {isLoading ? (
-                        <div className="text-center py-10 text-gray-500">Calculando explosión de materiales...</div>
+                        <div className="text-center py-10 text-gray-500">{t('loading', { defaultValue: 'Calculando explosión de materiales...' })}</div>
                     ) : groupedData.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500 italic">No hay datos de producción o recetas configuradas para este día.</div>
+                        <div className="text-center py-10 text-gray-500 italic">{t('noData', { defaultValue: 'No hay datos de producción o recetas configuradas para este día.' })}</div>
                     ) : (
                         <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <ThemedGridHeader>
-                                    <ThemedGridHeaderCell>Código</ThemedGridHeaderCell>
-                                    <ThemedGridHeaderCell>Insumo</ThemedGridHeaderCell>
-                                    <ThemedGridHeaderCell className="text-right">Cant. Total</ThemedGridHeaderCell>
-                                    <ThemedGridHeaderCell>Presentación</ThemedGridHeaderCell>
-                                    <ThemedGridHeaderCell className="text-right">Precio Unit.</ThemedGridHeaderCell>
-                                    <ThemedGridHeaderCell className="text-right">Total Costo</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell>{t('code', { defaultValue: 'Código' })}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell>{t('product', { defaultValue: 'Insumo' })}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell className="text-right">{t('totalQuantity', { defaultValue: 'Cant. Total' })}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell>{t('presentation', { defaultValue: 'Presentación' })}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell className="text-right">{t('unitPrice', { defaultValue: 'Precio Unit.' })}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell className="text-right">{t('totalCost', { defaultValue: 'Total Costo' })}</ThemedGridHeaderCell>
                                 </ThemedGridHeader>
                                 <tbody className="bg-white">
                                     {groupedData.map((group) => (
@@ -135,7 +142,7 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
                                                             {group.categoryName}
                                                         </span>
                                                         <span className="text-sm font-bold text-primary-700">
-                                                            Subtotal: ${group.subtotal.toFixed(2)}
+                                                            {t('subtotal', { defaultValue: 'Subtotal' })}: ${group.subtotal.toFixed(2)}
                                                         </span>
                                                     </div>
                                                 </td>
@@ -174,12 +181,12 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
 
                 {/* Footer */}
                 <div className="p-4 border-t border-gray-200 bg-white flex justify-end gap-6 items-center rounded-b-lg">
-                    <div className="text-lg font-medium text-gray-600">Total General de Insumos:</div>
+                    <div className="text-lg font-medium text-gray-600">{t('grandTotal', { defaultValue: 'Total General de Insumos' })}:</div>
                     <div className="text-2xl font-bold text-blue-600">
                         ${grandTotal.toFixed(2)}
                     </div>
                     <Button onClick={onClose} className="bg-gray-500 ml-4">
-                        Cerrar
+                        {t('close', { defaultValue: 'Cerrar' })}
                     </Button>
                 </div>
             </div>

@@ -7,6 +7,19 @@ interface SubRecipeInput {
     quantity: number;
 }
 
+interface ExplosionItem {
+    productId: number;
+    product: string;
+    code: string;
+    quantity: number;
+    unit: string;
+    price: number;
+    total: number;
+    category: string;
+    productType: number;
+    productData: any;
+}
+
 export async function POST(request: NextRequest) {
     let connection;
     try {
@@ -17,7 +30,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
-        // Filter out zero quantities
         const activeSubRecipes = subRecipes.filter(sr => sr.quantity > 0);
 
         if (activeSubRecipes.length === 0) {
@@ -26,65 +38,62 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
-        // We need to fetch all components for all active sub-recipes
-        const productIds = activeSubRecipes.map(sr => sr.productId);
-        
-        // This query gets the components (children) of the sub-recipes (parents)
-        const [components] = await connection.query(`
-            SELECT 
-                pk.IdProductoPadre,
-                pk.IdProductoHijo,
-                pk.Cantidad as CantidadBase,
-                p.*,
-                c.Categoria
-            FROM tblProductosKits pk
-            INNER JOIN vlProductos p ON pk.IdProductoHijo = p.IdProducto
-            LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
-            WHERE pk.IdProductoPadre IN (?)
-        `, [productIds]) as [RowDataPacket[], any];
+        const materialsMap: Record<number, ExplosionItem> = {};
 
-        // Group and aggregate
-        const materialsMap: Record<number, {
-            productId: number;
-            product: string;
-            code: string;
-            quantity: number;
-            unit: string;
-            price: number;
-            total: number;
-            category: string;
-            productType: number;
-            productData: any;
-        }> = {};
+        // Función recursiva para explotar subrecetas
+        async function explode(parentId: number, parentQuantity: number) {
+            const query = `
+                SELECT 
+                    pk.IdProductoPadre,
+                    pk.IdProductoHijo,
+                    pk.Cantidad / e.PesoFinal as CantidadBase,
+                    p.*,
+                    c.Categoria
+                FROM tblProductosKits pk
+                INNER JOIN vlProductos p ON pk.IdProductoHijo = p.IdProducto
+                INNER JOIN tblProductos e ON pk.IdProductoPadre = e.IdProducto
+                LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
+                WHERE pk.IdProductoPadre = ?
+            `;
 
-        activeSubRecipes.forEach(input => {
-            const recipeComponents = components.filter(c => c.IdProductoPadre === input.productId);
-            
-            recipeComponents.forEach(comp => {
-                const totalQty = comp.CantidadBase * input.quantity;
+            const [components] = await connection.query(query, [parentId]) as [RowDataPacket[], any];
+
+            for (const comp of components) {
+                const totalQty = comp.CantidadBase * parentQuantity;
                 const totalCost = totalQty * (comp.Costo || 0);
 
-                if (materialsMap[comp.IdProductoHijo]) {
-                    materialsMap[comp.IdProductoHijo].quantity += totalQty;
-                    materialsMap[comp.IdProductoHijo].total += totalCost;
+                // Si el componente es una subreceta (IdTipoProducto = 2)
+                if (comp.IdTipoProducto === 2) {
+                    await explode(comp.IdProductoHijo, totalQty);
                 } else {
-                    materialsMap[comp.IdProductoHijo] = {
-                        productId: comp.IdProductoHijo,
-                        product: comp.Producto,
-                        code: comp.Codigo,
-                        quantity: totalQty,
-                        unit: comp.UnidadMedidaRecetario || comp.UnidadMedidaInventario || 'pza',
-                        price: comp.Costo || 0,
-                        total: totalCost,
-                        category: comp.Categoria || 'General',
-                        productType: comp.IdTipoProducto,
-                        productData: { ...comp }
-                    };
+                    // Si es un insumo normal, lo agregamos al mapa final
+                    if (materialsMap[comp.IdProductoHijo]) {
+                        materialsMap[comp.IdProductoHijo].quantity += totalQty;
+                        materialsMap[comp.IdProductoHijo].total += totalCost;
+                    } else {
+                        materialsMap[comp.IdProductoHijo] = {
+                            productId: comp.IdProductoHijo,
+                            product: comp.Producto,
+                            code: comp.Codigo,
+                            quantity: totalQty,
+                            unit: comp.UnidadMedidaRecetario || comp.UnidadMedidaInventario || 'pza',
+                            price: comp.Costo || 0,
+                            total: totalCost,
+                            category: comp.Categoria || 'General',
+                            productType: comp.IdTipoProducto,
+                            productData: { ...comp }
+                        };
+                    }
                 }
-            });
-        });
+            }
+        }
 
-        // Convert map to array and sort by category/product
+        // Ejecutar explosión para cada subreceta inicial
+        for (const input of activeSubRecipes) {
+            await explode(input.productId, input.quantity);
+        }
+
+        // Convertir mapa a array y ordenar por categoría/producto
         const result = Object.values(materialsMap).sort((a, b) => {
             if (a.category !== b.category) return a.category.localeCompare(b.category);
             return a.product.localeCompare(b.product);

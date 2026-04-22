@@ -277,7 +277,18 @@ export default function MaterialExplosionPage() {
                         >
                             <div>
                                 <h2 className="text-2xl font-black uppercase tracking-tight">{t('results')}</h2>
-                                <p className="text-xs opacity-80 font-bold uppercase tracking-widest mt-1">
+                                <div className="text-lg font-bold text-white mt-1 line-clamp-2" title={
+                                    subRecipes
+                                        .filter(sr => parseFloat(quantities[sr.IdProducto]) > 0)
+                                        .map(sr => `${sr.Producto} (${quantities[sr.IdProducto]})`)
+                                        .join(', ')
+                                }>
+                                    🚀 {subRecipes
+                                        .filter(sr => parseFloat(quantities[sr.IdProducto]) > 0)
+                                        .map(sr => `${sr.Producto} (${quantities[sr.IdProducto]})`)
+                                        .join(', ')}
+                                </div>
+                                <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1 italic">
                                     {explosionResults.length} Insumos Requeridos
                                 </p>
                             </div>
@@ -349,7 +360,7 @@ export default function MaterialExplosionPage() {
                                     🖨️ PDF
                                 </Button>
                                 <Button onClick={() => setExplosionResults(null)} className="px-12 shadow-lg shadow-primary-200">
-                                    {tCommon('close')}
+                                    {t('close')}
                                 </Button>
                             </div>
                         </div>

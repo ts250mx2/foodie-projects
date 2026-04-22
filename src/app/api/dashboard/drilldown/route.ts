@@ -13,8 +13,10 @@ export async function GET(request: NextRequest) {
         const kpi = searchParams.get('kpi');
         const grouping = searchParams.get('grouping');
         const itemName = searchParams.get('itemName');
+        const startDate = searchParams.get('startDate'); // YYYY-MM-DD
+        const endDate = searchParams.get('endDate'); // YYYY-MM-DD
 
-        if (!projectIdStr || !branchIdStr || monthStr === null || !yearStr || !kpi || !grouping || !itemName) {
+        if (!projectIdStr || !branchIdStr || (monthStr === null && !startDate) || !yearStr || !kpi || !grouping || !itemName) {
             return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
         }
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
         const branchId = parseInt(branchIdStr);
         const year = parseInt(yearStr);
 
-        let month = parseInt(monthStr);
+        let month = parseInt(monthStr || '0');
         let monthNum = month + 1; // 1-12 for SQL
 
         connection = await getProjectConnection(projectId);
@@ -51,17 +53,28 @@ export async function GET(request: NextRequest) {
                          GROUP BY v.Dia ORDER BY v.Dia ASC`;
             }
         } else if (kpi === 'payroll') {
+            let whereClause = `n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ? AND p.Puesto = ?`;
+            let empWhere = `n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ? AND e.Empleado = ?`;
             params = [branchId, monthNum, year, itemName];
+
+            if (startDate && endDate) {
+                whereClause = `n.IdSucursal = ? AND DATE(CONCAT(n.Anio, '-', n.Mes, '-', n.Dia)) BETWEEN ? AND ? AND p.Puesto = ?`;
+                empWhere = `n.IdSucursal = ? AND DATE(CONCAT(n.Anio, '-', n.Mes, '-', n.Dia)) BETWEEN ? AND ? AND e.Empleado = ?`;
+                params = [branchId, startDate, endDate, itemName];
+            }
+
+            const nameExpr = (startDate && endDate) ? `CONCAT(n.Dia, '/', n.Mes)` : `CAST(n.Dia AS CHAR)`;
+
             if (grouping === 'positions') {
-                query = `SELECT CAST(n.Dia AS CHAR) as name, SUM(n.Pago) as value, COUNT(DISTINCT n.IdUsuario) as count
+                query = `SELECT ${nameExpr} as name, SUM(n.Pago) as value, COUNT(DISTINCT n.IdUsuario) as count
                          FROM tblNomina n JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado JOIN BDFoodieProjects.tblPuestos p ON e.IdPuesto = p.IdPuesto
-                         WHERE n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ? AND p.Puesto = ?
-                         GROUP BY n.Dia ORDER BY n.Dia ASC`;
+                         WHERE ${whereClause}
+                         GROUP BY n.Anio, n.Mes, n.Dia ORDER BY n.Anio ASC, n.Mes ASC, n.Dia ASC`;
             } else if (grouping === 'employees') {
-                query = `SELECT CAST(n.Dia AS CHAR) as name, SUM(n.Pago) as value, COUNT(*) as count
+                query = `SELECT ${nameExpr} as name, SUM(n.Pago) as value, COUNT(*) as count
                          FROM tblNomina n JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
-                         WHERE n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ? AND e.Empleado = ?
-                         GROUP BY n.Dia ORDER BY n.Dia ASC`;
+                         WHERE ${empWhere}
+                         GROUP BY n.Anio, n.Mes, n.Dia ORDER BY n.Anio ASC, n.Mes ASC, n.Dia ASC`;
             }
         } else if (kpi === 'expenses') {
             params = [branchId, monthNum, year, itemName];

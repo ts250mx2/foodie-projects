@@ -35,7 +35,7 @@ interface Scenario {
 }
 
 // Local Price Input Component for consistent currency formatting
-const PriceInput = ({ value, onChange, className, color = 'indigo', disabled = false }: any) => {
+const PriceInput = ({ value, onChange, onBlur, className, color = 'indigo', disabled = false }: any) => {
     const [isFocused, setIsFocused] = useState(false);
     const [displayValue, setDisplayValue] = useState('');
 
@@ -78,7 +78,10 @@ const PriceInput = ({ value, onChange, className, color = 'indigo', disabled = f
                 value={isFocused ? displayValue.replace(/,/g, '') : displayValue}
                 onChange={handleChange}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
+                onBlur={() => {
+                    setIsFocused(false);
+                    if (onBlur) onBlur();
+                }}
                 disabled={disabled}
                 className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-900 text-right bg-transparent disabled:cursor-not-allowed"
             />
@@ -120,6 +123,9 @@ export default function BreakEvenPage() {
 
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+    const preventAutoSaveRef = useRef(false);
+    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
 
@@ -260,6 +266,7 @@ export default function BreakEvenPage() {
     const fetchData = async () => {
         if (!project || !selectedBranch) return;
         setIsLoading(true);
+        preventAutoSaveRef.current = true;
         try {
             const params = new URLSearchParams({
                 projectId: project.idProyecto,
@@ -289,9 +296,9 @@ export default function BreakEvenPage() {
         }
     };
 
-    const handleSave = async () => {
-        if (!project || !selectedBranch) return;
-        setIsSaving(true);
+    const handleSave = async (silent = false) => {
+        if (!project || !selectedBranch || isLoading) return;
+        if (!silent) setIsSaving(true);
         try {
             const response = await fetch('/api/config/break-even', {
                 method: 'POST',
@@ -305,14 +312,52 @@ export default function BreakEvenPage() {
                 })
             });
             const data = await response.json();
-            if (data.success) alert(t('successSave'));
-            else alert(t('errorSave'));
+            if (data.success) {
+                if (!silent) alert(t('successSave'));
+                if (silent) setAutoSaveStatus('saved');
+            } else {
+                if (!silent) alert(t('errorSave'));
+                if (silent) setAutoSaveStatus('error');
+            }
         } catch (error) { 
             console.error('Error saving break-even data:', error); 
-            alert(t('errorSave')); 
+            if (!silent) alert(t('errorSave')); 
+            if (silent) setAutoSaveStatus('error');
         } finally { 
-            setIsSaving(false); 
+            if (!silent) setIsSaving(false); 
         }
+    };
+
+    // Auto-save logic
+    useEffect(() => {
+        // Don't auto-save while loading initial data or if we don't have a selection
+        if (isLoading || !selectedBranch || !project) return;
+
+        if (preventAutoSaveRef.current) {
+            preventAutoSaveRef.current = false;
+            return;
+        }
+
+        setAutoSaveStatus('saving');
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => {
+            handleSave(true);
+        }, 1500); // Back to a slightly longer debounce for typed changes
+
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+                handleSave(true);
+            }
+        };
+    }, [monthlySales, volume, rawMaterial, packaging, fixedExpenses, representativeProducts]);
+
+    const flushSave = () => {
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = null;
+        }
+        handleSave(true);
     };
 
     const handleAddExpense = () => setFixedExpenses([...fixedExpenses, { ConceptoGasto: '', Monto: 0 }]);
@@ -468,7 +513,20 @@ export default function BreakEvenPage() {
                     <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">📈 {t('title')}</h1>
                     <p className="text-[10px] text-slate-400 font-bold tracking-wider">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>
                 </div>
-                <div className="flex items-center gap-3 flex-wrap justify-center">
+                <div className="flex items-center gap-4">
+                    {autoSaveStatus && (
+                        <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded flex items-center gap-2 ${
+                            autoSaveStatus === 'saving' ? 'bg-amber-50 text-amber-600' :
+                            autoSaveStatus === 'saved' ? 'bg-emerald-50 text-emerald-600' :
+                            'bg-rose-50 text-rose-600'
+                        }`}>
+                            <span className={autoSaveStatus === 'saving' ? 'animate-pulse' : ''}>
+                                {autoSaveStatus === 'saving' ? '🔄' : autoSaveStatus === 'saved' ? '✅' : '❌'}
+                            </span>
+                            {autoSaveStatus === 'saving' ? 'Guardando...' : autoSaveStatus === 'saved' ? 'Guardado' : 'Error'}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-3 flex-wrap justify-center">
                     {/* Selectors */}
                     <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
                         {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
@@ -496,6 +554,7 @@ export default function BreakEvenPage() {
                     </div>
                 </div>
             </div>
+        </div>
 
             <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 pb-20">
                 
@@ -512,7 +571,7 @@ export default function BreakEvenPage() {
                             <div className="flex items-center justify-between gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors">
                                 <span className="text-[11px] font-black text-slate-500 uppercase flex-1">{t('monthlySales')}</span>
                                 <div className="w-32 flex-shrink-0">
-                                    <PriceInput value={monthlySales} onChange={setMonthlySales} />
+                                    <PriceInput value={monthlySales} onChange={setMonthlySales} onBlur={flushSave} />
                                 </div>
                             </div>
                             <div className="flex items-center justify-between gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors">
@@ -521,7 +580,13 @@ export default function BreakEvenPage() {
                                     <div className="pl-2.5 pr-1 py-1.5 flex items-center bg-slate-100/50 border-r border-slate-200">
                                         <span className="text-slate-400 text-[10px] font-bold">#</span>
                                     </div>
-                                    <input type="number" value={volume || ''} onChange={e => setVolume(parseFloat(e.target.value) || 0)} className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-800 text-right bg-transparent" />
+                                    <input 
+                                        type="number" 
+                                        value={volume} 
+                                        onChange={e => setVolume(parseFloat(e.target.value) || 0)} 
+                                        onBlur={flushSave}
+                                        className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-800 text-right bg-transparent" 
+                                    />
                                 </div>
                             </div>
                             <div className="flex items-center justify-between gap-4 p-3.5 bg-indigo-50 rounded-xl border border-indigo-100 mt-2">
@@ -622,11 +687,12 @@ export default function BreakEvenPage() {
                                             type="text"
                                             value={exp.ConceptoGasto}
                                             onChange={e => handleUpdateExpense(idx, 'ConceptoGasto', e.target.value)}
+                                            onBlur={flushSave}
                                             placeholder="Concepto..."
                                             className="flex-1 px-3 py-2 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/5 transition-all shadow-sm"
                                         />
                                         <div className="w-32 flex-shrink-0">
-                                            <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} color="indigo" />
+                                            <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} onBlur={flushSave} color="indigo" />
                                         </div>
                                         <button onClick={() => handleDeleteExpense(idx)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm">🗑️</button>
                                     </div>

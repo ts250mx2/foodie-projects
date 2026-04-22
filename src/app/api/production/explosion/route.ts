@@ -31,15 +31,15 @@ export async function GET(request: NextRequest) {
                 B.Codigo, 
                 B.Producto, 
                 C.Categoria, 
-                SUM(E.Cantidad * A.Cantidad) AS Cantidad, 
+                SUM(E.Cantidad * A.Cantidad)/E.PesoFinal AS Cantidad, 
                 D.Presentacion, 
-                B.Precio, 
-                SUM(E.Cantidad * A.Cantidad * B.Precio) As Total 
+                B.Costo, 
+                SUM(E.Cantidad * A.Cantidad * B.Costo)/E.PesoFinal As Total 
             FROM tblProductosKits A 
-            INNER JOIN tblProductos B ON A.IdProductoHijo = B.IdProducto 
+            INNER JOIN vlProductos B ON A.IdProductoHijo = B.IdProducto 
             INNER JOIN tblCategorias C ON B.IdCategoria = C.IdCategoria 
             INNER JOIN tblPresentaciones D ON B.IdPresentacion = D.IdPresentacion 
-            INNER JOIN tblProduccion E ON A.IdProductoPadre = E.IdProducto 
+            INNER JOIN vlProduccion E ON A.IdProductoPadre = E.IdProducto 
             WHERE 
                 DAY(E.FechaProduccion) = ? AND 
                 MONTH(E.FechaProduccion) = ? AND 
@@ -50,11 +50,15 @@ export async function GET(request: NextRequest) {
                 B.Producto, 
                 C.Categoria, 
                 D.Presentacion, 
-                B.Precio
+                B.Costo, 
+                E.PesoFinal
             ORDER BY
                 C.Categoria,
                 B.Producto
         `;
+
+        console.log('Executing query:', query);
+        console.log('With params:', [day, month, year, branchId]);
 
         const [rows] = await connection.query(query, [day, month, year, branchId]);
 

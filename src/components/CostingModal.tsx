@@ -2784,7 +2784,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                                         <input
                                                                                             type="number"
                                                                                             step="0.01"
-                                                                                            value={cantidad === 0 ? '' : cantidad}
+                                                                                            value={cantidad}
                                                                                             onChange={(e) => handleQuantityChange(item.IdProductoHijo, parseFloat(e.target.value) || 0)}
                                                                                             className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500"
                                                                                         />

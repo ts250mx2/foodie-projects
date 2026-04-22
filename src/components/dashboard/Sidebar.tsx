@@ -61,7 +61,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 { key: 'branches', href: '/dashboard/settings/branches', emoji: '📍' },
                 { key: 'employees', href: '/dashboard/payroll/employees', emoji: '👥' },
                 { key: 'taxes', href: '/dashboard/config/taxes', emoji: '🧾' },
-                { key: 'tips', href: '/dashboard/settings/tips', emoji: '💰' },
+                // { key: 'tips', href: '/dashboard/settings/tips', emoji: '💰' },
                 { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', emoji: '📈' }
             ]
         },
@@ -70,7 +70,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '💰',
             items: [
                 { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', emoji: '🏪' },
-                { key: 'tipsCapture', href: '/dashboard/sales/tips-capture', emoji: '💸' }
+                // { key: 'tipsCapture', href: '/dashboard/sales/tips-capture', emoji: '💸' }
             ]
         },
         {

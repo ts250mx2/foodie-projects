@@ -156,9 +156,7 @@ export default function BranchEditModal({
         { id: 'costs', label: 'Objetivos y Costos', icon: '🎯', show: !isNewBranch },
         { id: 'inventory', label: 'Fechas de Inventario', icon: '📋', show: !isNewBranch },
         { id: 'payroll', label: 'Nomina', icon: '📁', show: !isNewBranch },
-        { id: 'documents', label: 'Documentos', icon: '📄', show: !isNewBranch },
         { id: 'shifts', label: 'Turnos', icon: '⏰', show: !isNewBranch },
-        { id: 'employees', label: 'Empleados', icon: '👥', show: !isNewBranch },
         { id: 'sales-channels', label: 'Canales de Venta', icon: '📈', show: !isNewBranch },
         { id: 'payment-methods', label: 'Formas de Pago', icon: '💳', show: !isNewBranch }
     ];
@@ -276,6 +274,20 @@ export default function BranchEditModal({
                                     </Button>
                                 </div>
                             </form>
+
+                            {!isNewBranch && (
+                                <div className="mt-12 pt-8 border-t border-gray-100">
+                                    <h2 className="text-xl font-bold text-gray-800 mb-6 font-black uppercase tracking-tight">Documentos de Sucursal</h2>
+                                    <BranchDocumentsModal
+                                        isOpen={true}
+                                        onClose={onClose}
+                                        branchId={branch.IdSucursal}
+                                        branchName={branch.Sucursal}
+                                        projectId={projectId}
+                                        isTabMode={true}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -319,17 +331,6 @@ export default function BranchEditModal({
                         />
                     )}
 
-                    {!isNewBranch && activeTab === 'documents' && (
-                        <BranchDocumentsModal
-                            isOpen={true}
-                            onClose={onClose}
-                            branchId={branch.IdSucursal}
-                            branchName={branch.Sucursal}
-                            projectId={projectId}
-                            isTabMode={true}
-                        />
-                    )}
-
                     {!isNewBranch && activeTab === 'shifts' && (
                         <BranchShiftsModal
                             isOpen={true}
@@ -341,16 +342,6 @@ export default function BranchEditModal({
                         />
                     )}
 
-                    {!isNewBranch && activeTab === 'employees' && (
-                        <BranchEmployeesModal
-                            isOpen={true}
-                            onClose={onClose}
-                            branchId={branch.IdSucursal}
-                            branchName={branch.Sucursal}
-                            projectId={projectId}
-                            isTabMode={true}
-                        />
-                    )}
 
                     {!isNewBranch && activeTab === 'sales-channels' && (
                         <BranchSalesChannelsModal

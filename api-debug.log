@@ -5568,3 +5568,219 @@ Body: {
   "unidadMedidaRecetario": "KILOS"
 }
 
+[2026-04-22T20:45:20.336Z] PUT /api/products/440
+Body: {
+  "projectId": 12,
+  "producto": "CHICHARRON GUISADO",
+  "codigo": "CHICHARRON GUISADO.",
+  "idCategoria": 19,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": 14,
+  "pesoFinal": 9.45,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 2,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": 14,
+  "rutaFoto": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "KILOS",
+  "unidadMedidaInventario": "KILOS",
+  "unidadMedidaRecetario": "KILOS"
+}
+
+[2026-04-22T20:45:28.092Z] PUT /api/products/440
+Body: {
+  "projectId": 12,
+  "producto": "CHICHARRON GUISADO",
+  "codigo": "CHICHARRON GUISADO.",
+  "idCategoria": 19,
+  "idPresentacion": 14,
+  "precio": 0,
+  "iva": 0,
+  "idTipoProducto": 2,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": 1,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": 14,
+  "idPresentacionConversion": 14,
+  "pesoInicial": 1,
+  "pesoFinal": 9.45,
+  "unidadMedidaCompra": "KILOS",
+  "unidadMedidaInventario": "KILOS",
+  "unidadMedidaRecetario": "KILOS"
+}
+
+[2026-04-22T21:02:34.269Z] PUT /api/products/484
+Body: {
+  "projectId": 12,
+  "producto": "SOPA TORTILLA CHICO",
+  "codigo": "SOPA TORTILLA CHICO",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 145,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": 5,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-22T21:02:51.510Z] PUT /api/products/484
+Body: {
+  "projectId": 12,
+  "producto": "SOPA TORTILLA CHICO",
+  "codigo": "SOPA TORTILLA CHICO",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 145,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": 5,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-22T21:03:09.845Z] PUT /api/products/501
+Body: {
+  "projectId": 12,
+  "producto": "SOPES DE CHICHARRON PZ",
+  "codigo": "SOPES PZ",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 64,
+  "iva": 0,
+  "idTipoProducto": 1,
+  "conversionSimple": 1,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": 8,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-22T21:03:18.518Z] PUT /api/products/501
+Body: {
+  "projectId": 12,
+  "producto": "SOPES DE CHICHARRON PZ",
+  "codigo": "SOPES PZ",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 64,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": 8,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-22T21:03:32.413Z] PUT /api/products/501
+Body: {
+  "projectId": 12,
+  "producto": "SOPES DE CHICHARRON PZ",
+  "codigo": "SOPES PZ",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 64,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": 8,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+
+[2026-04-22T21:03:34.898Z] PUT /api/products/501
+Body: {
+  "projectId": 12,
+  "producto": "SOPES DE CHICHARRON PZ",
+  "codigo": "SOPES PZ",
+  "idCategoria": null,
+  "idPresentacion": null,
+  "precio": 64,
+  "iva": 0,
+  "conversionSimple": 1,
+  "idPresentacionConversion": null,
+  "pesoFinal": 1,
+  "pesoInicial": 1,
+  "idCategoriaRecetario": null,
+  "idTipoProducto": 1,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "rutaFoto": null,
+  "idSeccionMenu": 8,
+  "porcentajeCostoIdeal": null,
+  "unidadMedidaCompra": "",
+  "unidadMedidaInventario": "",
+  "unidadMedidaRecetario": ""
+}
+

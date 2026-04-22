@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import Button from '@/components/Button';
@@ -38,6 +39,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
     const [groupedData, setGroupedData] = useState<GroupedCategory[]>([]);
     const [grandTotal, setGrandTotal] = useState(0);
     const { colors } = useTheme();
+    const t = useTranslations('MaterialExplosion');
 
     useEffect(() => {
         if (isOpen && productionItem?.IdProducto && projectId) {
@@ -185,7 +187,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
                         ${grandTotal.toFixed(2)}
                     </div>
                     <Button onClick={onClose} className="bg-gray-500 ml-4">
-                        Cerrar
+                        {t('close')}
                     </Button>
                 </div>
             </div>

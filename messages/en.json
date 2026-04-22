@@ -137,7 +137,17 @@
         "cost": "Cost",
         "total": "Total",
         "noSubRecipes": "No active sub-recipes found.",
-        "searchPlaceholder": "Search sub-recipe..."
+        "searchPlaceholder": "Search sub-recipe...",
+        "close": "Close",
+        "loading": "Calculating material explosion...",
+        "noData": "No production data or recipes configured for this day.",
+        "code": "Code",
+        "totalQuantity": "Total Qty",
+        "presentation": "Presentation",
+        "unitPrice": "Unit Price",
+        "totalCost": "Total Cost",
+        "subtotal": "Subtotal",
+        "grandTotal": "Grand Total Inputs"
     },
     "Terminals": {
         "title": "Payment Methods Management",

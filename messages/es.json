@@ -162,7 +162,8 @@
             "fri": "Vie",
             "sat": "Sáb",
             "sun": "Dom"
-        }
+        },
+        "close": "Cerrar"
     },
     "MaterialExplosion": {
         "title": "Explosión de Materiales",
@@ -177,7 +178,17 @@
         "cost": "Costo",
         "total": "Total",
         "noSubRecipes": "No se encontraron subrecetas activas.",
-        "searchPlaceholder": "Buscar subreceta..."
+        "searchPlaceholder": "Buscar subreceta...",
+        "close": "Cerrar",
+        "loading": "Calculando explosión de materiales...",
+        "noData": "No hay datos de producción o recetas configuradas para este día.",
+        "code": "Código",
+        "totalQuantity": "Cant. Total",
+        "presentation": "Presentación",
+        "unitPrice": "Precio Unit.",
+        "totalCost": "Total Costo",
+        "subtotal": "Subtotal",
+        "grandTotal": "Total General de Insumos"
     },
     "Terminals": {
         "title": "Administración de Formas de Pago",
@@ -1131,7 +1142,8 @@
         "branch": "Sucursal",
         "category": "Categoría",
         "noChanges": "No hay cambios para guardar",
-        "download": "Descargar"
+        "download": "Descargar",
+        "close": "Cerrar"
     },
     "BranchMinMax": {
         "title": "Mínimos y Máximos",

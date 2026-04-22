@@ -32,6 +32,15 @@ export default function DashboardPage() {
     // Payroll KPI State
     const [totalPayroll, setTotalPayroll] = useState<number>(0);
     const [payrollObjective, setPayrollObjective] = useState<number>(0);
+    const [payrollStartDate, setPayrollStartDate] = useState<string>(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    });
+    const [payrollEndDate, setPayrollEndDate] = useState<string>(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    });
+    const [isPayrollLoading, setIsPayrollLoading] = useState<boolean>(false);
 
     // Operating Expense KPI State
     const [totalOperatingExpense, setTotalOperatingExpense] = useState<number>(0);
@@ -142,8 +151,16 @@ export default function DashboardPage() {
 
         const savedMonth = localStorage.getItem('dashboardSelectedMonth');
         const savedYear = localStorage.getItem('dashboardSelectedYear');
-        if (savedMonth) setSelectedMonth(parseInt(savedMonth));
-        if (savedYear) setSelectedYear(parseInt(savedYear));
+        if (savedMonth) {
+            setSelectedMonth(parseInt(savedMonth));
+            // Sync payroll dates too
+            const d = new Date(parseInt(savedYear || new Date().getFullYear().toString()), parseInt(savedMonth), 1);
+            setPayrollStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
+            setPayrollEndDate(new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]);
+        }
+        if (savedYear) {
+            setSelectedYear(parseInt(savedYear));
+        }
     }, []);
 
     useEffect(() => {
@@ -195,7 +212,10 @@ export default function DashboardPage() {
         setDrilldownData([]);
 
         try {
-            const response = await fetch(`/api/dashboard/drilldown?projectId=${project?.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth}&year=${selectedYear}&kpi=${selectedKpi}&grouping=${detailGrouping}&itemName=${encodeURIComponent(item.name)}`);
+            const m = selectedKpi === 'payroll' ? null : selectedMonth;
+            const y = selectedKpi === 'payroll' ? null : selectedYear;
+            const payrollDates = selectedKpi === 'payroll' ? `&startDate=${payrollStartDate}&endDate=${payrollEndDate}` : '';
+            const response = await fetch(`/api/dashboard/drilldown?projectId=${project?.idProyecto}&branchId=${selectedBranch}&month=${m}&year=${y}&kpi=${selectedKpi}&grouping=${detailGrouping}&itemName=${encodeURIComponent(item.name)}${payrollDates}`);
             const data = await response.json();
             if (data.success) {
                 setDrilldownData(data.data);
@@ -304,6 +324,24 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchPayrollKpi = async () => {
+        if (!project?.idProyecto || !selectedBranch || !payrollStartDate || !payrollEndDate) return;
+        
+        setIsPayrollLoading(true);
+        try {
+            const response = await fetch(`/api/dashboard/kpi/sales?projectId=${project.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth}&year=${selectedYear}&payrollStartDate=${payrollStartDate}&payrollEndDate=${payrollEndDate}`);
+            const data = await response.json();
+            if (data.success) {
+                setTotalPayroll(data.data.totalPayroll);
+                setPayrollObjective(data.data.payrollObjective);
+            }
+        } catch (error) {
+            console.error('Error fetching payroll KPI:', error);
+        } finally {
+            setIsPayrollLoading(false);
+        }
+    };
+
     const fetchSalesDetails = async () => {
         if (!project?.idProyecto || !selectedBranch || selectedKpi !== 'sales') return;
 
@@ -329,7 +367,7 @@ export default function DashboardPage() {
 
         setIsLoadingDetails(true);
         try {
-            const response = await fetch(`/api/dashboard/payroll-details?projectId=${project.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth}&year=${selectedYear}`);
+            const response = await fetch(`/api/dashboard/payroll-details?projectId=${project.idProyecto}&branchId=${selectedBranch}&startDate=${payrollStartDate}&endDate=${payrollEndDate}`);
             const data = await response.json();
             if (data.success) {
                 setPayrollDetailData(data.data);
@@ -442,7 +480,11 @@ export default function DashboardPage() {
         } else if ((selectedKpi as string) === 'inventory') {
             fetchInventoryDetails();
         }
-    }, [selectedKpi, selectedMonth, selectedYear, selectedBranch, lastInventoryDay]);
+    }, [selectedKpi, selectedMonth, selectedYear, payrollStartDate, payrollEndDate, selectedBranch, lastInventoryDay]);
+
+    useEffect(() => {
+        fetchPayrollKpi();
+    }, [project, selectedBranch, payrollStartDate, payrollEndDate]);
 
     useEffect(() => {
         fetchSalesKpi();
@@ -626,12 +668,17 @@ export default function DashboardPage() {
                     <div className="flex flex-col h-full justify-between relative z-10">
                         <div>
                             <span className={`text-[8px] font-black uppercase tracking-widest block leading-none mb-0.5 ${selectedKpi === 'payroll' ? 'text-indigo-500' : 'text-slate-400'}`}>Costo Nómina</span>
-                            {isLoadingKpi ? (
+                            {isLoadingKpi || isPayrollLoading ? (
                                 <div className="h-5 w-24 bg-slate-200 animate-pulse rounded"></div>
                             ) : (
-                                <h2 className={`${getKpiFontSize(formatCurrency(totalPayroll))} font-black tracking-tight text-slate-800 leading-none`}>
-                                    {formatCurrency(totalPayroll)}
-                                </h2>
+                                <div className="flex flex-col">
+                                    <h2 className={`${getKpiFontSize(formatCurrency(totalPayroll))} font-black tracking-tight text-slate-800 leading-none`}>
+                                        {formatCurrency(totalPayroll)}
+                                    </h2>
+                                    <span className="text-[6.5px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
+                                        Rango: {payrollStartDate.split('-').reverse().slice(0, 2).join('/')} al {payrollEndDate.split('-').reverse().slice(0, 2).join('/')}
+                                    </span>
+                                </div>
                             )}
                         </div>
 
@@ -833,11 +880,39 @@ export default function DashboardPage() {
                                 <span className={`w-2 h-8 rounded-full ${selectedKpi === 'sales' ? 'bg-emerald-500' : selectedKpi === 'payroll' ? 'bg-indigo-500' : selectedKpi === 'expenses' ? 'bg-rose-500' : selectedKpi === 'purchases' ? 'bg-amber-500' : (selectedKpi as string) === 'inventory' ? 'bg-blue-500' : 'bg-pink-500'}`}></span>
                                 {selectedKpi === 'sales' ? 'Análisis Detallado de Ventas' : selectedKpi === 'payroll' ? 'Análisis Detallado de Nómina' : selectedKpi === 'expenses' ? 'Análisis Detallado de Gastos' : selectedKpi === 'purchases' ? 'Análisis Detallado de Compras' : (selectedKpi as string) === 'inventory' ? 'Análisis Detallado de Inventario' : 'Análisis Detallado de Mermas'}
                             </h3>
-                            <p className="text-sm text-slate-500 mt-1">
-                                {(selectedKpi as string) === 'inventory' 
-                                    ? `Inventario del día ${lastInventoryDay}/${(lastInventoryMonth || 0) + 1}/${lastInventoryYear}`
-                                    : 'Desglose porcentual y comparativo por diversas dimensiones'}
-                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                                {selectedKpi === 'payroll' ? (
+                                    <div className="flex items-center gap-2 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
+                                        <label className="text-[10px] font-black text-indigo-400 uppercase">Rango Nómina:</label>
+                                        <div className="flex items-center gap-1">
+                                            <input 
+                                                type="date"
+                                                value={payrollStartDate}
+                                                onChange={(e) => setPayrollStartDate(e.target.value)}
+                                                className="bg-transparent text-[10px] font-black text-indigo-700 outline-none cursor-pointer"
+                                            />
+                                            <span className="text-indigo-300 text-[10px]">al</span>
+                                            <input 
+                                                type="date"
+                                                value={payrollEndDate}
+                                                onChange={(e) => setPayrollEndDate(e.target.value)}
+                                                className="bg-transparent text-[10px] font-black text-indigo-700 outline-none cursor-pointer"
+                                            />
+                                        </div>
+                                        <div className="h-8 w-[1px] bg-indigo-200 mx-2 hidden md:block"></div>
+                                        <div className="flex flex-col items-end bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 shadow-sm">
+                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Monto total del periodo</span>
+                                            <span className="text-3xl font-black text-indigo-700 leading-none">{formatCurrency(totalPayroll)}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-500">
+                                        {(selectedKpi as string) === 'inventory' 
+                                            ? `Inventario del día ${lastInventoryDay}/${(lastInventoryMonth || 0) + 1}/${lastInventoryYear}`
+                                            : 'Desglose porcentual y comparativo por diversas dimensiones'}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">

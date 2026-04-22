@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
         const branchIdStr = searchParams.get('branchId');
         const monthStr = searchParams.get('month'); // 0-11
         const yearStr = searchParams.get('year');
+        const payrollStartDate = searchParams.get('payrollStartDate');
+        const payrollEndDate = searchParams.get('payrollEndDate');
 
         if (!projectIdStr || !branchIdStr || monthStr === null || !yearStr) {
             return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
@@ -31,6 +33,13 @@ export async function GET(request: NextRequest) {
         )) as [RowDataPacket[], FieldPacket[]];
 
         // Objectives and Targets: tblSucursalesCostos uses 1-12 for Mes index
+        // We use the payroll month for payroll objective if specified, otherwise the global month
+        let targetMonth = month + 1;
+        if (payrollStartDate) {
+            const startDate = new Date(payrollStartDate);
+            targetMonth = startDate.getMonth() + 1;
+        }
+
         const [targetRows] = (await connection.query(
             `SELECT ObjetivoVentas as salesObjective, 
                     CostoNomina as payrollObjective,
@@ -38,15 +47,23 @@ export async function GET(request: NextRequest) {
                     CostoMateriaPrima as rawMaterialObjective
              FROM tblSucursalesCostos 
              WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
-            [branchId, month + 1, year]
+            [branchId, targetMonth, year]
         )) as [RowDataPacket[], FieldPacket[]];
 
         // Payroll: tblNomina uses 1-12 for Mes index. Sum of 'Pago' column as requested.
+        let payrollWhere = `IdSucursal = ? AND Mes = ? AND Anio = ?`;
+        let payrollParams = [branchId, month + 1, year];
+
+        if (payrollStartDate && payrollEndDate) {
+            payrollWhere = `IdSucursal = ? AND DATE(CONCAT(Anio, '-', Mes, '-', Dia)) BETWEEN ? AND ?`;
+            payrollParams = [branchId, payrollStartDate, payrollEndDate];
+        }
+
         const [payrollRows] = (await connection.query(
             `SELECT SUM(Pago) as totalPayroll 
              FROM tblNomina 
-             WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
-            [branchId, month + 1, year]
+             WHERE ${payrollWhere}`,
+            payrollParams
         )) as [RowDataPacket[], FieldPacket[]];
 
         // Expenses: tblGastos uses 1-12 for Mes index. Sum of 'Gasto' column.

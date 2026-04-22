@@ -10,24 +10,31 @@ export async function GET(request: NextRequest) {
         const branchIdStr = searchParams.get('branchId');
         const monthStr = searchParams.get('month'); // 0-11
         const yearStr = searchParams.get('year');
+        const startDate = searchParams.get('startDate'); // YYYY-MM-DD
+        const endDate = searchParams.get('endDate'); // YYYY-MM-DD
 
-        if (!projectIdStr || !branchIdStr || monthStr === null || !yearStr) {
+        if (!projectIdStr || !branchIdStr || (monthStr === null && !startDate)) {
             return NextResponse.json({ success: false, message: 'Missing parameters' }, { status: 400 });
         }
 
         const projectId = parseInt(projectIdStr);
         const branchId = parseInt(branchIdStr);
-        const monthNum = parseInt(monthStr) + 1; // 1-12 for tblNomina
-        const year = parseInt(yearStr);
-
         connection = await getProjectConnection(projectId);
+
+        let whereClause = `n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ?`;
+        let params = [branchId, parseInt(monthStr || '0') + 1, parseInt(yearStr || '0')];
+
+        if (startDate && endDate) {
+            whereClause = `n.IdSucursal = ? AND DATE(CONCAT(n.Anio, '-', n.Mes, '-', n.Dia)) BETWEEN ? AND ?`;
+            params = [branchId, startDate, endDate];
+        }
 
         // 1. Total Payroll
         const [totalPayrollRows] = (await connection.query(
             `SELECT SUM(Pago) as total 
-             FROM tblNomina 
-             WHERE IdSucursal = ? AND Mes = ? AND Anio = ?`,
-            [branchId, monthNum, year]
+             FROM tblNomina n
+             WHERE ${whereClause}`,
+            params
         )) as [RowDataPacket[], FieldPacket[]];
         const totalPayroll = totalPayrollRows[0]?.total || 0;
 
@@ -37,9 +44,9 @@ export async function GET(request: NextRequest) {
              FROM tblNomina n
              JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
              JOIN BDFoodieProjects.tblPuestos p ON e.IdPuesto = p.IdPuesto
-             WHERE n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ?
+             WHERE ${whereClause}
              GROUP BY p.Puesto`,
-            [branchId, monthNum, year]
+            params
         )) as [RowDataPacket[], FieldPacket[]];
 
         // 3. Group by Employee
@@ -47,19 +54,20 @@ export async function GET(request: NextRequest) {
             `SELECT e.Empleado as name, SUM(n.Pago) as value, COUNT(*) as count
              FROM tblNomina n
              JOIN tblEmpleados e ON n.IdUsuario = e.IdEmpleado
-             WHERE n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ?
+             WHERE ${whereClause}
              GROUP BY e.Empleado`,
-            [branchId, monthNum, year]
+            params
         )) as [RowDataPacket[], FieldPacket[]];
 
         // 4. Group by Day
+        const dateExpr = (startDate && endDate) ? `CONCAT(n.Dia, '/', n.Mes)` : `CAST(n.Dia AS CHAR)`;
         const [dayRows] = (await connection.query(
-            `SELECT CAST(n.Dia AS CHAR) as name, SUM(n.Pago) as value, COUNT(*) as count
+            `SELECT ${dateExpr} as name, SUM(n.Pago) as value, COUNT(*) as count
              FROM tblNomina n
-             WHERE n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ?
-             GROUP BY n.Dia
-             ORDER BY n.Dia ASC`,
-            [branchId, monthNum, year]
+             WHERE ${whereClause}
+             GROUP BY n.Anio, n.Mes, n.Dia
+             ORDER BY n.Anio ASC, n.Mes ASC, n.Dia ASC`,
+            params
         )) as [RowDataPacket[], FieldPacket[]];
 
         return NextResponse.json({
