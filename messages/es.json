@@ -594,7 +594,8 @@
             "sat": "Sáb",
             "sun": "Dom"
         },
-        "today": "HOY"
+        "today": "HOY",
+        "captureByImage": "Captura por Imagen"
     },
     "ExpensesModal": {
         "title": "Captura de Gastos",
@@ -611,7 +612,9 @@
         "provider": "Proveedor",
         "invoiceNumber": "Número de Factura",
         "addExpense": "Agregar Gasto",
-        "editExpense": "Editar Gasto"
+        "editExpense": "Editar Gasto",
+        "file": "Archivo",
+        "new": "Nuevo"
     },
     "ExpenseDetailsModal": {
         "title": "Detalles del Gasto",
@@ -1143,7 +1146,8 @@
         "category": "Categoría",
         "noChanges": "No hay cambios para guardar",
         "download": "Descargar",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "Action": "Acción"
     },
     "BranchMinMax": {
         "title": "Mínimos y Máximos",

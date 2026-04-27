@@ -446,7 +446,7 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
                     >
                         {activeTab === 'ocr' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600"></span>}
                         <span className="text-lg">🔍</span>
-                        CARGA POR OCR
+                        Carga por Imagen
                     </button>
                     <button
                         onClick={() => setActiveTab('excel')}

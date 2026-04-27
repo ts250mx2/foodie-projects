@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import QRCode from 'react-qr-code';
+import ExpenseImageCaptureModal from '@/components/ExpenseImageCaptureModal';
 
 interface Branch {
     IdSucursal: number;
@@ -58,6 +60,7 @@ export default function ExpensesCapturePage() {
     const [monthlyExpensesDetails, setMonthlyExpensesDetails] = useState<Record<number, Array<{ conceptName: string, total: number }>>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         idGasto: null as number | null,
@@ -97,6 +100,28 @@ export default function ExpensesCapturePage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingExpenseKey, setUploadingExpenseKey] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Supplier creation modal
+    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+    const [supplierFormData, setSupplierFormData] = useState({
+        proveedor: '',
+        rfc: '',
+        telefonos: '',
+        correoElectronico: '',
+        calle: '',
+        contacto: ''
+    });
+
+    // Concept creation modal
+    const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
+    const [conceptFormData, setConceptFormData] = useState({
+        concept: '',
+        paymentChannelId: ''
+    });
+
+    // Form visibility and Preview
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [previewFile, setPreviewFile] = useState<{ content: string, name: string, type: string } | null>(null);
 
 
     // Generate years
@@ -288,6 +313,22 @@ export default function ExpensesCapturePage() {
         }
     };
 
+    const handleNewExpense = () => {
+        setFormData({
+            idGasto: null,
+            conceptId: '',
+            providerId: '',
+            amount: '',
+            reference: '',
+            invoiceNumber: '',
+            paymentChannelId: ''
+        });
+        setConceptSearch('');
+        setProviderSearch('');
+        setPaymentChannelSearch('');
+        setIsFormOpen(true);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDate || !project || !selectedBranch || !formData.conceptId) return;
@@ -314,22 +355,23 @@ export default function ExpensesCapturePage() {
             });
 
             if (response.ok) {
-                fetchDailyExpenses(selectedDate);
+                if (selectedDate) fetchDailyExpenses(selectedDate);
                 fetchMonthlyExpenses();
-                setFormData({ 
-                    idGasto: null, 
-                    conceptId: '', 
-                    providerId: '', 
-                    amount: '', 
-                    reference: '', 
-                    invoiceNumber: '', 
-                    paymentChannelId: '' 
+                setIsFormOpen(false); // Close form after save
+                setFormData({
+                    idGasto: null,
+                    conceptId: '',
+                    providerId: '',
+                    amount: '',
+                    reference: '',
+                    invoiceNumber: '',
+                    paymentChannelId: ''
                 });
                 setConceptSearch('');
-                setSelectedConcept(null);
                 setProviderSearch('');
-                setSelectedProvider(null);
                 setPaymentChannelSearch('');
+                setSelectedConcept(null);
+                setSelectedProvider(null);
                 setSelectedPaymentChannel(null);
             }
         } catch (error) {
@@ -415,6 +457,56 @@ export default function ExpensesCapturePage() {
         }
     };
 
+    const handleSaveSupplier = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!project || !supplierFormData.proveedor) return;
+        try {
+            const response = await fetch('/api/suppliers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    proveedor: supplierFormData.proveedor,
+                    rfc: supplierFormData.rfc,
+                    telefonos: supplierFormData.telefonos,
+                    correoElectronico: supplierFormData.correoElectronico,
+                    calle: supplierFormData.calle,
+                    contacto: supplierFormData.contacto
+                })
+            });
+            if (response.ok) {
+                await fetchProviders();
+                setIsSupplierModalOpen(false);
+                setSupplierFormData({ proveedor: '', rfc: '', telefonos: '', correoElectronico: '', calle: '', contacto: '' });
+            }
+        } catch (error) {
+            console.error('Error saving supplier:', error);
+        }
+    };
+
+    const handleSaveConcept = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!project || !conceptFormData.concept) return;
+        try {
+            const response = await fetch('/api/expense-concepts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    concept: conceptFormData.concept,
+                    paymentChannelId: conceptFormData.paymentChannelId || null
+                })
+            });
+            if (response.ok) {
+                await fetchExpenseConcepts();
+                setIsConceptModalOpen(false);
+                setConceptFormData({ concept: '', paymentChannelId: '' });
+            }
+        } catch (error) {
+            console.error('Error saving concept:', error);
+        }
+    };
+
 
     // --- File Upload (Grid) ---
     const handleFileSelect = (expense: any) => {
@@ -492,6 +584,17 @@ export default function ExpensesCapturePage() {
                 </h1>
 
                 <div className="flex items-center gap-4">
+                    {/* OCR Capture Button */}
+                    <div className="flex flex-col">
+                        <label className="text-xs text-transparent mb-1">.</label>
+                        <button
+                            onClick={() => setIsOcrModalOpen(true)}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-bold shadow-md shadow-indigo-100 flex items-center gap-2 text-sm"
+                            title={t('captureByImage')}
+                        >
+                            📸 {t('captureByImage')}
+                        </button>
+                    </div>
                     {/* Branch Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
@@ -639,38 +742,58 @@ export default function ExpensesCapturePage() {
                             {/* Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Gasto Total Capturado</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Gastos Totales</label>
                                     <div className="text-xl font-black text-red-600">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalExpenses)}
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🏷️ Gastos Registrados</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">📄 Registros</label>
                                     <div className="text-xl font-black text-gray-800">
                                         {dailyExpenses.length}
                                     </div>
                                 </div>
                             </div>
 
+                            {!isFormOpen && (
+                                <button
+                                    onClick={handleNewExpense}
+                                    className="bg-red-500 text-white px-6 py-2.5 rounded-lg hover:bg-red-600 font-bold transition-all shadow-md active:scale-95 self-start flex items-center gap-2"
+                                >
+                                    📄 {tModal('new') || "Nuevo"}
+                                </button>
+                            )}
+
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm">
+                            {isFormOpen && (
+                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                                 {/* Provider */}
                                 <div className="flex flex-col relative text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('provider')}</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
-                                        value={providerSearch}
-                                        onChange={(e) => {
-                                            setProviderSearch(e.target.value);
-                                            setShowProviderDropdown(true);
-                                            setFormData({ ...formData, providerId: '' });
-                                            setSelectedProvider(null);
-                                        }}
-                                        onFocus={() => setShowProviderDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
-                                        placeholder="Buscar proveedor... (Opcional)"
-                                    />
+                                    <div className="flex gap-1">
+                                        <input
+                                            type="text"
+                                            className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                            value={providerSearch}
+                                            onChange={(e) => {
+                                                setProviderSearch(e.target.value);
+                                                setShowProviderDropdown(true);
+                                                setFormData({ ...formData, providerId: '' });
+                                                setSelectedProvider(null);
+                                            }}
+                                            onFocus={() => setShowProviderDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowProviderDropdown(false), 200)}
+                                            placeholder="Buscar proveedor... (Opcional)"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsSupplierModalOpen(true)}
+                                            className="p-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                                            title={tModal('new') || "Nuevo"}
+                                        >
+                                            ➕
+                                        </button>
+                                    </div>
                                     {showProviderDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {providers
@@ -708,21 +831,31 @@ export default function ExpensesCapturePage() {
                                 {/* Concept (Header level) */}
                                 <div className="flex flex-col relative text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('concept')}</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
-                                        value={conceptSearch}
-                                        onChange={(e) => {
-                                            setConceptSearch(e.target.value);
-                                            setShowConceptDropdown(true);
-                                            setFormData({ ...formData, conceptId: '' });
-                                            setSelectedConcept(null);
-                                        }}
-                                        onFocus={() => setShowConceptDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowConceptDropdown(false), 200)}
-                                        placeholder={tModal('searchConcept')}
-                                        required
-                                    />
+                                    <div className="flex gap-1">
+                                        <input
+                                            type="text"
+                                            className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                            value={conceptSearch}
+                                            onChange={(e) => {
+                                                setConceptSearch(e.target.value);
+                                                setShowConceptDropdown(true);
+                                                setFormData({ ...formData, conceptId: '' });
+                                                setSelectedConcept(null);
+                                            }}
+                                            onFocus={() => setShowConceptDropdown(true)}
+                                            onBlur={() => setTimeout(() => setShowConceptDropdown(false), 200)}
+                                            placeholder={tModal('searchConcept')}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsConceptModalOpen(true)}
+                                            className="p-2.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                                            title={tModal('new') || "Nuevo"}
+                                        >
+                                            ➕
+                                        </button>
+                                    </div>
                                     {showConceptDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {expenseConcepts
@@ -743,6 +876,31 @@ export default function ExpensesCapturePage() {
                                                 ))}
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Row 1 Spacer */}
+                                <div className="hidden lg:block"></div>
+
+
+                                {/* Amount */}
+                                <div className="flex flex-col text-gray-800">
+                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        value={formData.amount}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                            if ((val.match(/\./g) || []).length > 1) return;
+                                            setFormData({ ...formData, amount: val });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
+                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
+                                        }}
+                                        required
+                                        placeholder="0.00"
+                                    />
                                 </div>
 
                                 {/* Payment Channel */}
@@ -783,31 +941,23 @@ export default function ExpensesCapturePage() {
                                     )}
                                 </div>
 
-                                {/* Amount */}
-                                <div className="flex flex-col text-gray-800">
-                                    <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2.5 bg-white border border-red-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
-                                        value={formData.amount}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                            if ((val.match(/\./g) || []).length > 1) return;
-                                            setFormData({ ...formData, amount: val });
+                                <div className="flex gap-2 lg:col-span-2">
+                                    <Button type="submit" className="flex-1 md:h-[42px]">
+                                        {formData.idGasto ? tModal('editExpense') || "Guardar Cambios" : tModal('addExpense')}
+                                    </Button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsFormOpen(false);
+                                            setFormData({ idGasto: null, conceptId: '', providerId: '', amount: '', reference: '', invoiceNumber: '', paymentChannelId: '' });
                                         }}
-                                        onBlur={(e) => {
-                                            const val = parseFloat(e.target.value.replace(/[^0-9.]/g, '') || '0');
-                                            setFormData({ ...formData, amount: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val) });
-                                        }}
-                                        required
-                                        placeholder="0.00"
-                                    />
+                                        className="px-4 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 font-bold transition-all h-[42px]"
+                                    >
+                                        {tCommon('cancel')}
+                                    </button>
                                 </div>
-
-                                <Button type="submit" className="md:h-[42px]">
-                                    {formData.idGasto ? tModal('editExpense') : tModal('addExpense')}
-                                </Button>
                             </form>
+                            )}
 
                             {/* Table */}
                             <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
@@ -820,7 +970,7 @@ export default function ExpensesCapturePage() {
                                                 <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('concept')}</th>
                                                 <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
                                                 <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('file') || "Archivo"}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tCommon('actions') || "Acciones"}</th>
+                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tCommon('Action') || "Acción"}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-50">
@@ -838,31 +988,39 @@ export default function ExpensesCapturePage() {
                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Total || exp.Gasto))}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                            {exp.NombreArchivo ? (
+                                                            {exp.ArchivoDocumento ? (
                                                                 <div className="flex items-center justify-center gap-2">
                                                                      <button
-                                                                        onClick={() => {
-                                                                            const byteCharacters = atob(exp.ArchivoDocumento);
-                                                                            const byteNumbers = new Array(byteCharacters.length);
-                                                                            for (let i = 0; i < byteCharacters.length; i++) {
-                                                                                byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                                                            }
-                                                                            const byteArray = new Uint8Array(byteNumbers);
-                                                                            const blob = new Blob([byteArray], { type: 'application/octet-stream' });
-                                                                            const url = URL.createObjectURL(blob);
-                                                                            const a = document.createElement('a');
-                                                                            a.href = url;
-                                                                            a.download = exp.NombreArchivo;
-                                                                            a.click();
-                                                                        }}
-                                                                        className="text-blue-600 hover:scale-110 transition-transform flex items-center gap-1"
-                                                                    >
-                                                                        📎
-                                                                    </button>
+                                                                         onClick={() => {
+                                                                             setPreviewFile({
+                                                                                 content: exp.ArchivoDocumento,
+                                                                                 name: exp.NombreArchivo || 'documento',
+                                                                                 type: exp.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
+                                                                             });
+                                                                         }}
+                                                                         className="relative group w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-100 hover:border-blue-500 transition-all shadow-sm flex items-center justify-center bg-gray-50"
+                                                                         title="Ver Documento"
+                                                                     >
+                                                                         {exp.NombreArchivo?.toLowerCase().endsWith('.pdf') ? (
+                                                                             <div className="flex flex-col items-center">
+                                                                                <span className="text-[10px] font-black text-red-600">PDF</span>
+                                                                                <span className="text-[8px] text-gray-400 uppercase">Ver</span>
+                                                                             </div>
+                                                                         ) : (
+                                                                             <img
+                                                                                 src={`data:image/*;base64,${exp.ArchivoDocumento}`}
+                                                                                 className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-300"
+                                                                                 alt="Miniatura"
+                                                                             />
+                                                                         )}
+                                                                         <div className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                             <span className="text-white text-xs">👁️</span>
+                                                                         </div>
+                                                                     </button>
                                                                     <button onClick={() => {
                                                                         setUploadingExpenseKey(exp.IdGasto.toString());
                                                                         fileInputRef.current?.click();
-                                                                    }} className="text-gray-400 hover:text-blue-600">🔄</button>
+                                                                    }} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Cambiar Archivo">🔄</button>
                                                                 </div>
                                                             ) : (
                                                                 <button
@@ -892,6 +1050,7 @@ export default function ExpensesCapturePage() {
                                                                     setConceptSearch(exp.ConceptoGasto || '');
                                                                     setProviderSearch(exp.Proveedor || '');
                                                                     setPaymentChannelSearch(exp.CanalPago || '');
+                                                                    setIsFormOpen(true);
                                                                 }}
                                                                 className="text-gray-300 hover:text-blue-500 transition-colors p-1"
                                                                 title="Editar Gasto"
@@ -1069,6 +1228,132 @@ export default function ExpensesCapturePage() {
                     }
                 }}
             />
+
+            {/* Supplier Modal */}
+            {isSupplierModalOpen && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <h3 className="text-xl font-black uppercase tracking-tight">🏢 Nuevo Proveedor</h3>
+                            <button onClick={() => setIsSupplierModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                        </div>
+                        <form onSubmit={handleSaveSupplier} className="p-6 flex flex-col gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nombre / Razón Social</label>
+                                <Input value={supplierFormData.proveedor} onChange={val => setSupplierFormData({ ...supplierFormData, proveedor: val })} required />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">RFC</label>
+                                <Input value={supplierFormData.rfc} onChange={val => setSupplierFormData({ ...supplierFormData, rfc: val })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Teléfonos</label>
+                                    <Input value={supplierFormData.telefonos} onChange={val => setSupplierFormData({ ...supplierFormData, telefonos: val })} />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Correo</label>
+                                    <Input type="email" value={supplierFormData.correoElectronico} onChange={val => setSupplierFormData({ ...supplierFormData, correoElectronico: val })} />
+                                </div>
+                            </div>
+                            <Button type="submit" className="mt-2">Guardar Proveedor</Button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Concept Modal */}
+            {isConceptModalOpen && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                            <h3 className="text-xl font-black uppercase tracking-tight">🏷️ Nuevo Concepto</h3>
+                            <button onClick={() => setIsConceptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                        </div>
+                        <form onSubmit={handleSaveConcept} className="p-6 flex flex-col gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nombre del Concepto</label>
+                                <Input value={conceptFormData.concept} onChange={val => setConceptFormData({ ...conceptFormData, concept: val })} required />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Canal de Pago Sugerido</label>
+                                <select 
+                                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                    value={conceptFormData.paymentChannelId}
+                                    onChange={(e) => setConceptFormData({ ...conceptFormData, paymentChannelId: e.target.value })}
+                                >
+                                    <option value="">Ninguno</option>
+                                    {paymentChannels.map(pc => (
+                                        <option key={pc.IdCanalPago} value={pc.IdCanalPago}>{pc.CanalPago}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <Button type="submit" className="mt-2">Guardar Concepto</Button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* OCR Modal */}
+            {isOcrModalOpen && (
+                <ExpenseImageCaptureModal
+                    isOpen={isOcrModalOpen}
+                    onClose={() => setIsOcrModalOpen(false)}
+                    projectId={project?.idProyecto}
+                    branchId={parseInt(selectedBranch)}
+                    selectedDate={selectedDate || new Date()}
+                    onSuccess={() => {
+                        if (selectedDate) fetchDailyExpenses(selectedDate);
+                        fetchMonthlyExpenses();
+                        setIsOcrModalOpen(false);
+                    }}
+                />
+            )}
+
+            {/* Preview Modal */}
+            {previewFile && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+                    <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                            <div className="flex flex-col">
+                                <h3 className="font-bold text-gray-800">{previewFile.name}</h3>
+                                <button 
+                                    onClick={() => {
+                                        const byteCharacters = atob(previewFile.content);
+                                        const byteNumbers = new Array(byteCharacters.length);
+                                        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+                                        const byteArray = new Uint8Array(byteNumbers);
+                                        const blob = new Blob([byteArray], { type: previewFile.type });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = previewFile.name;
+                                        a.click();
+                                    }}
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                    📥 Descargar original
+                                </button>
+                            </div>
+                            <button onClick={() => setPreviewFile(null)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition-all text-gray-500 font-bold">✕</button>
+                        </div>
+                        <div className="flex-1 bg-gray-200 overflow-hidden flex items-center justify-center p-4">
+                            {previewFile.type === 'application/pdf' ? (
+                                <iframe
+                                    src={`data:application/pdf;base64,${previewFile.content}#toolbar=0`}
+                                    className="w-full h-full rounded-lg"
+                                />
+                            ) : (
+                                <img
+                                    src={`data:image/*;base64,${previewFile.content}`}
+                                    className="max-w-full max-h-full object-contain shadow-lg rounded-lg"
+                                    alt="Vista previa"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

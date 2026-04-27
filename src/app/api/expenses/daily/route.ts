@@ -81,16 +81,17 @@ export async function POST(request: NextRequest) {
             await connection.query(
                 `UPDATE tblGastos 
                  SET IdProveedor = ?, IdConceptoGasto = ?, Total = ?, NumeroFactura = ?, 
-                     IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento),  FechaAct = Now()
+                     IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), 
+                     NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()
                  WHERE IdGasto = ?`,
-                [providerId, conceptId, amount, invoiceNumber, paymentChannelId || null, base64File, idGasto]
+                [providerId, conceptId, amount, invoiceNumber, paymentChannelId || null, base64File, fileName, idGasto]
             );
         } else {
             // Insert new expense
             await connection.query(
-                `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, IdProveedor, Total, NumeroFactura, IdCanalPago, ArchivoDocumento, FechaAct, Status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), 0)`,
-                [day, monthNum, year, conceptId, branchId, providerId, amount, invoiceNumber, paymentChannelId || null, base64File]
+                `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, IdProveedor, Total, NumeroFactura, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct, Status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), 0)`,
+                [day, monthNum, year, conceptId, branchId, providerId, amount, invoiceNumber, paymentChannelId || null, base64File, fileName]
             );
         }
 

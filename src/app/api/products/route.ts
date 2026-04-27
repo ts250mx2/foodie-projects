@@ -154,8 +154,11 @@ export async function POST(request: NextRequest) {
             productId: insertId
         });
     } catch (error) {
-        console.error('Error creating product:', error);
-        return NextResponse.json({ success: false, message: 'Error creating product' }, { status: 500 });
+        console.error('--- ERROR AL CREAR PRODUCTO ---');
+        console.error('SQL:', `INSERT INTO tblProductos (Producto, Codigo, IdCategoria, Precio, IVA, IdTipoProducto, ArchivoImagen, NombreArchivo, Status, IdSeccionMenu, PorcentajeCostoIdeal, CantidadCompra, UnidadMedidaCompra, UnidadMedidaInventario, UnidadMedidaRecetario, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, Now())`);
+        console.error('Params:', [producto, codigo, idCategoria || null, precio, iva, idTipoProducto || 0, archivoImagen || null, nombreArchivo || null, idSeccionMenu || null, porcentajeCostoIdeal || null, cantidadCompra || 0, unidadMedidaCompra || null, unidadMedidaInventario || null, unidadMedidaRecetario || null]);
+        console.error('Error:', error);
+        return NextResponse.json({ success: false, message: 'Error creating product', details: (error as Error).message }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const OCR_PROMPT = 'Analyze these receipt images. Extract the provider name, the total amount, the ticket/receipt number (if available), the date of the receipt (YYYY-MM-DD), and a detailed list of concepts/items with their quantity and price. Return ONLY a JSON object with this structure: {"provider": "NAME", "total": 0.00, "ticketNumber": "12345", "date": "2024-03-19", "concepts": [{"description": "Item Name", "quantity": 1, "price": 0.00, "total": 0.00}]}. Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly, do not leave it truncated.';
+const OCR_PROMPT = 'Analyze these receipt images. Extract the provider name, the total amount, the ticket/receipt number (if available), the date of the receipt (YYYY-MM-DD), and a detailed list of concepts/items with their quantity and price. For each concept, also try to extract any product code or SKU if visible. Return ONLY a JSON object with this structure: {"provider": "NAME", "total": 0.00, "ticketNumber": "12345", "date": "2024-03-19", "concepts": [{"description": "Item Name", "code": "SKU123", "quantity": 1, "price": 0.00, "total": 0.00}]}. Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly, do not leave it truncated.';
 
 async function processWithClaude(files: File[]): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -10,6 +10,18 @@ async function processWithClaude(files: File[]): Promise<string> {
         files.map(async (file) => {
             const bytes = await file.arrayBuffer();
             const base64Image = Buffer.from(bytes).toString('base64');
+            
+            if (file.type === 'application/pdf') {
+                return {
+                    type: 'document' as const,
+                    source: {
+                        type: 'base64' as const,
+                        media_type: 'application/pdf',
+                        data: base64Image
+                    }
+                };
+            }
+
             return {
                 type: 'image' as const,
                 source: {
@@ -57,6 +69,9 @@ async function processWithGPT4o(files: File[]): Promise<string> {
 
     const imageContents = await Promise.all(
         files.map(async (file) => {
+            if (file.type === 'application/pdf') {
+                throw new Error('GPT-4o no soporta archivos PDF directamente. Por favor use el modelo Claude para procesar PDFs o suba imágenes.');
+            }
             const bytes = await file.arrayBuffer();
             const base64Image = Buffer.from(bytes).toString('base64');
             const mimeType = file.type || 'image/jpeg';

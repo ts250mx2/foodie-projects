@@ -59,3 +59,40 @@ export async function GET(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+export async function POST(request: NextRequest) {
+    let connection = null;
+    try {
+        const body = await request.json();
+        const { projectId, type, ocrName, systemId } = body;
+
+        if (!projectId || !type || !ocrName || !systemId) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(parseInt(projectId));
+
+        if (type === 'provider') {
+            await connection.query(
+                `INSERT INTO tblRelacionProveedoresOCR (ProveedorOCR, IdProveedor, FechaAct, Status)
+                 VALUES (?, ?, NOW(), 0)
+                 ON DUPLICATE KEY UPDATE IdProveedor = VALUES(IdProveedor), FechaAct = NOW()`,
+                [ocrName, systemId]
+            );
+        } else if (type === 'product') {
+            await connection.query(
+                `INSERT INTO tblRelacionProductosOCR (ProductoOCR, IdProducto, FechaAct, Status)
+                 VALUES (?, ?, NOW(), 0)
+                 ON DUPLICATE KEY UPDATE IdProducto = VALUES(IdProducto), FechaAct = NOW()`,
+                [ocrName, systemId]
+            );
+        }
+
+        return NextResponse.json({ success: true, message: 'Relación guardada exitosamente' });
+
+    } catch (error: any) {
+        console.error('Error saving OCR relationship:', error);
+        return NextResponse.json({ success: false, message: 'Error saving relationship: ' + error.message }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}

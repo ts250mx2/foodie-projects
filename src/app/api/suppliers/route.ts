@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, proveedor, rfc, telefonos, correoElectronico, calle, contacto } = body;
-
+        const { projectId, proveedor, rfc, telefonos, correoElectronico, calle, contacto, esProveedorGasto } = body;
+        
         if (!projectId || !proveedor) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
 
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
-            'INSERT INTO tblProveedores (Proveedor, RFC, Telefonos, CorreoElectronico, Calle, Contacto, Status, FechaAct) VALUES (?, ?, ?, ?, ?, ?, 0, Now())',
-            [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '']
+            'INSERT INTO tblProveedores (Proveedor, RFC, Telefonos, CorreoElectronico, Calle, Contacto, EsProveedorGasto, Status, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, 0, Now())',
+            [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '', esProveedorGasto ? 1 : 0]
         );
 
         return NextResponse.json({

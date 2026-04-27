@@ -14,6 +14,7 @@ interface Supplier {
     CorreoElectronico: string;
     Calle: string;
     Contacto: string;
+    EsProveedorGasto: number;
     Status: number;
 }
 
@@ -30,7 +31,8 @@ export default function SuppliersPage() {
         telefonos: '',
         correoElectronico: '',
         calle: '',
-        contacto: ''
+        contacto: '',
+        esProveedorGasto: false
     });
     const [project, setProject] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -90,7 +92,8 @@ export default function SuppliersPage() {
                     telefonos: '',
                     correoElectronico: '',
                     calle: '',
-                    contacto: ''
+                    contacto: '',
+                    esProveedorGasto: false
                 });
                 setEditingSupplier(null);
             }
@@ -124,7 +127,8 @@ export default function SuppliersPage() {
             telefonos: supplier.Telefonos,
             correoElectronico: supplier.CorreoElectronico,
             calle: supplier.Calle,
-            contacto: supplier.Contacto
+            contacto: supplier.Contacto,
+            esProveedorGasto: supplier.EsProveedorGasto === 1
         });
         setIsModalOpen(true);
     };
@@ -173,7 +177,8 @@ export default function SuppliersPage() {
                         telefonos: '',
                         correoElectronico: '',
                         calle: '',
-                        contacto: ''
+                        contacto: '',
+                        esProveedorGasto: false
                     });
                     setIsModalOpen(true);
                 }}>
@@ -220,6 +225,9 @@ export default function SuppliersPage() {
                         <ThemedGridHeaderCell>
                             {t('active')}
                         </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell>
+                            ¿Gasto?
+                        </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell className="text-right">
                             {t('actions')}
                         </ThemedGridHeaderCell>
@@ -248,6 +256,14 @@ export default function SuppliersPage() {
                                         : 'bg-red-100 text-red-800'
                                         }`}>
                                         {supplier.Status === 0 ? t('active') : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${supplier.EsProveedorGasto === 1
+                                        ? 'bg-purple-100 text-purple-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                        {supplier.EsProveedorGasto === 1 ? 'SÍ' : 'NO'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -279,53 +295,82 @@ export default function SuppliersPage() {
                         <h2 className="text-xl font-bold mb-4">
                             {editingSupplier ? t('editSupplier') : t('addSupplier')}
                         </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('supplierName')}
-                                value={formData.proveedor}
-                                onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label="RFC"
-                                value={formData.rfc}
-                                onChange={(e) => setFormData({ ...formData, rfc: e.target.value })}
-                            />
-                            <Input
-                                label={t('phones')}
-                                value={formData.telefonos}
-                                onChange={(e) => setFormData({ ...formData, telefonos: e.target.value })}
-                            />
-                            <Input
-                                label={t('email')}
-                                type="email"
-                                value={formData.correoElectronico}
-                                onChange={(e) => setFormData({ ...formData, correoElectronico: e.target.value })}
-                            />
-                            <Input
-                                label={t('address')}
-                                value={formData.calle}
-                                onChange={(e) => setFormData({ ...formData, calle: e.target.value })}
-                            />
-                            <Input
-                                label={t('contact')}
-                                value={formData.contacto}
-                                onChange={(e) => setFormData({ ...formData, contacto: e.target.value })}
-                            />
-                            <div className="flex justify-end gap-3 mt-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <Input
+                                    label={t('supplierName')}
+                                    value={formData.proveedor}
+                                    onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
+                                    required
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
+                                />
+                                <Input
+                                    label="RFC"
+                                    value={formData.rfc}
+                                    onChange={(e) => setFormData({ ...formData, rfc: e.target.value })}
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold uppercase"
+                                />
+                                <Input
+                                    label={t('phones')}
+                                    value={formData.telefonos}
+                                    onChange={(e) => setFormData({ ...formData, telefonos: e.target.value })}
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
+                                />
+                                <Input
+                                    label={t('email')}
+                                    type="email"
+                                    value={formData.correoElectronico}
+                                    onChange={(e) => setFormData({ ...formData, correoElectronico: e.target.value })}
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
+                                />
+                                <Input
+                                    label={t('address')}
+                                    value={formData.calle}
+                                    onChange={(e) => setFormData({ ...formData, calle: e.target.value })}
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
+                                />
+                                <Input
+                                    label={t('contact')}
+                                    value={formData.contacto}
+                                    onChange={(e) => setFormData({ ...formData, contacto: e.target.value })}
+                                    className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 transition-all hover:border-primary-100">
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">¿Es Proveedor de Gasto?</span>
+                                    <span className="text-[10px] text-slate-400 font-bold mt-0.5">Marcar si este proveedor es solo para gastos operativos</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-[10px] font-black tracking-widest transition-colors ${formData.esProveedorGasto ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                        {formData.esProveedorGasto ? 'SÍ, ES GASTO' : 'NO ES GASTO'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, esProveedorGasto: !formData.esProveedorGasto })}
+                                        className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${formData.esProveedorGasto ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                                    >
+                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${formData.esProveedorGasto ? 'left-8' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 mt-10">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                                    className="px-8 py-3.5 text-sm font-black text-slate-500 bg-slate-100 rounded-2xl hover:bg-slate-200 active:scale-95 transition-all uppercase tracking-widest"
                                 >
                                     {t('cancel')}
                                 </button>
-                                <button
+                                <Button
                                     type="submit"
-                                    className="px-4 py-2 text-white bg-primary-500 rounded hover:bg-primary-600"
+                                    isLoading={isLoading}
+                                    className="px-10 rounded-2xl shadow-xl shadow-primary-100 uppercase tracking-widest font-black"
                                 >
                                     {t('save')}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
 
         try {
             // 0. Fetch the first image of the batch for ArchivoDocumento (if gasto)
+            console.log('Registering transaction for batchId:', batchId);
             const [batchDetails] = await connection.query<RowDataPacket[]>(
                 'SELECT DocumentoOCR FROM tblDetalleDocumentosOCR WHERE IdDocumentoOCR = ? ORDER BY Orden LIMIT 1',
                 [batchId]
             );
             const firstImage = batchDetails.length > 0 ? batchDetails[0].DocumentoOCR : null;
+            console.log('Found firstImage:', firstImage ? 'Length: ' + firstImage.length : 'NULL');
 
             const receiptDate = new Date(ocrResult.date);
             const dia = receiptDate.getDate();
@@ -86,12 +88,14 @@ export async function POST(request: NextRequest) {
                 const [purchaseResult] = await connection.query<ResultSetHeader>(
                     `INSERT INTO tblCompras (
                         ConceptoCompra, FechaCompra, IdProveedor, NumeroFactura, 
-                        Status, FechaAct, Total, IdCanalPago, IdSucursal
-                    ) VALUES (?, ?, ?, ?, 0, NOW(), ?, ?, ?)`,
+                        Status, FechaAct, Total, IdCanalPago, IdSucursal,
+                        ArchivoDocumento, NombreArchivo
+                    ) VALUES (?, ?, ?, ?, 0, NOW(), ?, ?, ?, ?, ?)`,
                     [
                         compoundConcept, formattedDate, selectedProviderId, 
                         ocrResult.ticketNumber.toUpperCase(), ocrResult.total, 
-                        selectedPaymentChannelId, selectedBranchId
+                        selectedPaymentChannelId, selectedBranchId,
+                        firstImage, `OCR_Compra_${formattedDate}.jpg`
                     ]
                 );
                 purchaseId = purchaseResult.insertId;

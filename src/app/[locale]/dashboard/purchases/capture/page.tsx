@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
+import PurchaseImageCaptureModal from '@/components/PurchaseImageCaptureModal';
+
 
 interface Branch {
     IdSucursal: number;
@@ -97,6 +99,11 @@ export default function PurchasesCapturePage() {
     const [providerSearch, setProviderSearch] = useState('');
     const [showProviderDropdown, setShowProviderDropdown] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+    const [isNewProviderModalOpen, setIsNewProviderModalOpen] = useState(false);
+    const [isEditingProvider, setIsEditingProvider] = useState(false);
+    const [newProviderName, setNewProviderName] = useState('');
+    const [esProveedorGasto, setEsProveedorGasto] = useState(false);
+    const [isSavingProvider, setIsSavingProvider] = useState(false);
 
     const [paymentChannelSearch, setPaymentChannelSearch] = useState('');
     const [showPaymentChannelDropdown, setShowPaymentChannelDropdown] = useState(false);
@@ -134,8 +141,15 @@ export default function PurchasesCapturePage() {
 
     // Inline editing state for purchase details
     const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
-    const [editQuantity, setEditQuantity] = useState('');
-    const [editCost, setEditCost] = useState('');
+
+    // OCR Modal state
+    const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+
+    // File Preview & Upload state
+    const [previewFile, setPreviewFile] = useState<{ content: string, name: string, type: string } | null>(null);
+    const [uploadingPurchaseKey, setUploadingPurchaseKey] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -491,6 +505,36 @@ export default function PurchasesCapturePage() {
         setEditingPurchase(null);
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !uploadingPurchaseKey || !project) return;
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const formData = new FormData();
+                formData.append('projectId', project.idProyecto);
+                formData.append('purchaseId', uploadingPurchaseKey);
+                formData.append('file', file);
+
+                const response = await fetch('/api/purchases/daily', {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    if (selectedDate) fetchDailyPurchases(selectedDate);
+                } else {
+                    alert('Error al subir archivo');
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     const fetchDailyPurchases = async (date: Date) => {
         if (!project || !selectedBranch) return;
         try {
@@ -523,6 +567,7 @@ export default function PurchasesCapturePage() {
             total: ''
         });
         setProviderSearch('');
+        setEsProveedorGasto(false);
         setSelectedProvider(null);
         setPaymentChannelSearch('');
         setSelectedPaymentChannel(null);
@@ -542,6 +587,7 @@ export default function PurchasesCapturePage() {
 
         const provider = providers.find(p => p.IdProveedor === purchase.IdProveedor);
         if (provider) {
+            setEsProveedorGasto(provider.EsProveedorGasto === 1);
             setSelectedProvider(provider);
             setProviderSearch(provider.Proveedor);
         }
@@ -551,6 +597,44 @@ export default function PurchasesCapturePage() {
             setSelectedPaymentChannel(paymentChannel);
             setPaymentChannelSearch(paymentChannel.CanalPago);
         }
+    };
+
+    const handleSaveProvider = async () => {
+        if (!newProviderName || !project) return;
+        setIsSavingProvider(true);
+        const uppercaseName = newProviderName.toUpperCase();
+        try {
+            const url = isEditingProvider ? `/api/suppliers/${selectedProvider?.IdProveedor}` : '/api/suppliers';
+            const method = isEditingProvider ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    proveedor: uppercaseName,
+                    esProveedorGasto: esProveedorGasto,
+                    status: 0
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                await fetchProviders();
+                const providerId = isEditingProvider ? selectedProvider?.IdProveedor : data.id;
+                const newProv = { IdProveedor: providerId, Proveedor: uppercaseName };
+                
+                setSelectedProvider(newProv as Provider);
+                setFormData(prev => ({ ...prev, providerId: providerId.toString() }));
+                setProviderSearch(uppercaseName);
+                
+                setIsNewProviderModalOpen(false);
+                setIsEditingProvider(false);
+                setNewProviderName('');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) { alert('Error de conexión'); }
+        finally { setIsSavingProvider(false); }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -594,33 +678,27 @@ export default function PurchasesCapturePage() {
                 return;
             }
 
-            const body = editingPurchase ? {
-                projectId: project.idProyecto,
-                purchaseId: editingPurchase.IdCompra,
-                providerId: parseInt(formData.providerId),
-                invoiceNumber: formData.invoiceNumber,
-                paymentChannelId: parseInt(formData.paymentChannelId),
-                reference: formData.reference,
-                payTo: formData.payTo,
-                total: totalNum
-            } : {
-                projectId: project.idProyecto,
-                branchId: parseInt(selectedBranch),
-                day: selectedDate.getDate(),
-                month: selectedDate.getMonth(),
-                year: selectedDate.getFullYear(),
-                providerId: parseInt(formData.providerId),
-                invoiceNumber: formData.invoiceNumber,
-                paymentChannelId: parseInt(formData.paymentChannelId),
-                reference: formData.reference,
-                payTo: formData.payTo,
-                total: totalNum
-            };
+            const submitData = new FormData();
+            submitData.append('projectId', project.idProyecto);
+            submitData.append('providerId', formData.providerId);
+            submitData.append('invoiceNumber', formData.invoiceNumber);
+            submitData.append('paymentChannelId', formData.paymentChannelId);
+            submitData.append('reference', formData.reference);
+            submitData.append('payTo', formData.payTo);
+            submitData.append('total', totalNum.toString());
+
+            if (editingPurchase) {
+                submitData.append('purchaseId', editingPurchase.IdCompra.toString());
+            } else {
+                submitData.append('branchId', selectedBranch);
+                submitData.append('day', selectedDate.getDate().toString());
+                submitData.append('month', selectedDate.getMonth().toString());
+                submitData.append('year', selectedDate.getFullYear().toString());
+            }
 
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: submitData
             });
 
             const data = await response.json();
@@ -699,6 +777,18 @@ export default function PurchasesCapturePage() {
                 </h1>
 
                 <div className="flex items-center gap-4">
+                    {/* OCR Capture Button */}
+                    <div className="flex flex-col">
+                        <label className="text-xs text-transparent mb-1">.</label>
+                        <button
+                            onClick={() => setIsOcrModalOpen(true)}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-bold shadow-md shadow-indigo-100 flex items-center gap-2 text-sm"
+                            title="Captura por Imagen (OCR)"
+                        >
+                            📸 Captura por Imagen
+                        </button>
+                    </div>
+
                     {/* Branch Selector */}
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
@@ -877,7 +967,7 @@ export default function PurchasesCapturePage() {
                                     onClick={handleNewPurchase}
                                     className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 font-bold transition-all shadow-md active:scale-95 self-start flex items-center gap-2"
                                 >
-                                    ✨ {tModal('new')}
+                                    📄 {tModal('new')}
                                 </button>
                             )}
 
@@ -1042,6 +1132,7 @@ export default function PurchasesCapturePage() {
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest">{tModal('invoiceNumber')}</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest">Canal</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">{tModal('total')}</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Archivo</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
                                         </ThemedGridHeader>
                                         <tbody className="bg-white divide-y divide-gray-50">
@@ -1061,6 +1152,54 @@ export default function PurchasesCapturePage() {
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.CanalPago}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-black">
                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchase.Total)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                            {purchase.ArchivoDocumento ? (
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                     <button
+                                                                         onClick={() => {
+                                                                             setPreviewFile({
+                                                                                 content: purchase.ArchivoDocumento,
+                                                                                 name: purchase.NombreArchivo || 'documento',
+                                                                                 type: purchase.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
+                                                                             });
+                                                                         }}
+                                                                         className="relative group w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-100 hover:border-blue-500 transition-all shadow-sm flex items-center justify-center bg-gray-50"
+                                                                         title="Ver Documento"
+                                                                     >
+                                                                         {purchase.NombreArchivo?.toLowerCase().endsWith('.pdf') ? (
+                                                                             <div className="flex flex-col items-center">
+                                                                                <span className="text-[10px] font-black text-red-600">PDF</span>
+                                                                                <span className="text-[8px] text-gray-400 uppercase">Ver</span>
+                                                                             </div>
+                                                                         ) : (
+                                                                             <img
+                                                                                 src={`data:image/*;base64,${purchase.ArchivoDocumento}`}
+                                                                                 className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-300"
+                                                                                 alt="Miniatura"
+                                                                             />
+                                                                         )}
+                                                                         <div className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                             <span className="text-white text-xs">👁️</span>
+                                                                         </div>
+                                                                     </button>
+                                                                    <button onClick={() => {
+                                                                        setUploadingPurchaseKey(purchase.IdCompra.toString());
+                                                                        fileInputRef.current?.click();
+                                                                    }} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Cambiar Archivo">🔄</button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setUploadingPurchaseKey(purchase.IdCompra.toString());
+                                                                        fileInputRef.current?.click();
+                                                                    }}
+                                                                    className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-all"
+                                                                    title="Subir Comprobante"
+                                                                >
+                                                                    📤
+                                                                </button>
+                                                            )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                                             <div className="flex items-center justify-center gap-2">
@@ -1262,6 +1401,7 @@ export default function PurchasesCapturePage() {
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest">Producto</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Costo</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Total</ThemedGridHeaderCell>
+                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Archivo</ThemedGridHeaderCell>
                                             <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
                                         </ThemedGridHeader>
                                     <tbody className="bg-white divide-y divide-gray-50">
@@ -1424,6 +1564,132 @@ export default function PurchasesCapturePage() {
                     </div>
                 </div>
             )}
-        </div>
+
+            <PurchaseImageCaptureModal
+                isOpen={isOcrModalOpen}
+                onClose={() => setIsOcrModalOpen(false)}
+                projectId={project?.idProyecto}
+                selectedBranchId={selectedBranch}
+                selectedPaymentChannelId=""
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
+                onSuccess={() => {
+                    fetchMonthlyPurchases();
+                    if (selectedDate) fetchDailyPurchases(selectedDate);
+                }}
+            />
+        
+            {/* Modal for New/Edit Provider */}
+            {isNewProviderModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 transform animate-in zoom-in-95 duration-300">
+                        <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
+                            <h3 className="text-xl font-black tracking-tight">{isEditingProvider ? 'EDITAR PROVEEDOR' : 'NUEVO PROVEEDOR'}</h3>
+                            <button onClick={() => setIsNewProviderModalOpen(false)} className="text-white/80 hover:text-white text-2xl font-bold transition-colors">×</button>
+                        </div>
+                        <div className="p-8">
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-1">Nombre del Proveedor</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold uppercase placeholder:text-slate-300"
+                                        value={newProviderName}
+                                        onChange={(e) => setNewProviderName(e.target.value)}
+                                        placeholder="EJ: ABARROTES EL CENTRO"
+                                        autoFocus
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-2 italic">* El nombre se guardará automáticamente en MAYÚSCULAS</p>
+                                </div>
+                                <div className="flex items-center justify-between px-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">¿Es Proveedor de Gasto?</span>
+                                        <span className={`text-[10px] font-black tracking-widest transition-colors ${esProveedorGasto ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                            {esProveedorGasto ? 'SÍ, ES GASTO' : 'NO ES GASTO'}
+                                        </span>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setEsProveedorGasto(!esProveedorGasto)}
+                                        className={`w-14 h-7 rounded-full transition-all relative ${esProveedorGasto ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                                    >
+                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${esProveedorGasto ? 'left-8' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                                
+                                <div className="flex gap-3 pt-2">
+                                    <button 
+                                        onClick={handleSaveProvider}
+                                        disabled={isSavingProvider || !newProviderName}
+                                        className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50"
+                                    >
+                                        {isSavingProvider ? 'GUARDANDO...' : 'GUARDAR'}
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsNewProviderModalOpen(false)}
+                                        className="px-6 bg-slate-100 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                                    >
+                                        CANCELAR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Hidden File Input for Grid Uploads */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept="image/*,.pdf"
+            />
+
+            {/* File Preview Modal */}
+            {previewFile && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 className="text-xl font-black text-gray-800 flex items-center gap-3">
+                                <span className="bg-blue-600 text-white p-2 rounded-xl text-sm">👁️</span>
+                                {previewFile.name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={`data:${previewFile.type};base64,${previewFile.content}`}
+                                    download={previewFile.name}
+                                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition-all text-sm"
+                                >
+                                    Descargar
+                                </a>
+                                <button
+                                    onClick={() => setPreviewFile(null)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-gray-900 overflow-auto flex items-center justify-center p-4">
+                            {previewFile.type === 'application/pdf' ? (
+                                <iframe
+                                    src={`data:application/pdf;base64,${previewFile.content}#toolbar=0`}
+                                    className="w-full h-full rounded-lg"
+                                    title="PDF Preview"
+                                />
+                            ) : (
+                                <img
+                                    src={`data:image/*;base64,${previewFile.content}`}
+                                    className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                                    alt="Preview"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+</div>
     );
 }

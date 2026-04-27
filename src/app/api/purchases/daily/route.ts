@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { Connection } from 'mysql2/promise';
 
 export async function GET(request: NextRequest) {
-    let connection;
+    let connection: Connection | null = null;
     try {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
         // Get daily purchases with provider and payment channel info
         const [rows] = await connection.query(
             `SELECT A.IdCompra, A.FechaCompra, B.Proveedor, A.NumeroFactura, 
-                    C.CanalPago, A.Total, A.Status, A.Referencia, A.PagarA, A.IdProveedor, A.IdCanalPago
+                    C.CanalPago, A.Total, A.Status, A.Referencia, A.PagarA, A.IdProveedor, A.IdCanalPago,
+                    A.ArchivoDocumento
              FROM tblCompras A
              INNER JOIN tblProveedores B ON A.IdProveedor = B.IdProveedor
              INNER JOIN tblCanalesPago C ON A.IdCanalPago = C.IdCanalPago
@@ -46,12 +48,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    let connection;
+    let connection: Connection | null = null;
     try {
-        const body = await request.json();
-        const { projectId, branchId, day, month, year, providerId, invoiceNumber, paymentChannelId, reference, payTo, total } = body;
+        const formData = await request.formData();
+        const projectId = parseInt(formData.get('projectId') as string);
+        const branchId = parseInt(formData.get('branchId') as string);
+        const day = parseInt(formData.get('day') as string);
+        const month = parseInt(formData.get('month') as string);
+        const year = parseInt(formData.get('year') as string);
+        const providerId = parseInt(formData.get('providerId') as string);
+        const invoiceNumber = formData.get('invoiceNumber') as string;
+        const paymentChannelId = formData.get('paymentChannelId') as string;
+        const reference = formData.get('reference') as string || '';
+        const payTo = formData.get('payTo') as string || '';
+        const total = parseFloat(formData.get('total') as string);
+        const file = formData.get('file') as File | null;
 
-        if (!projectId || !branchId || day === undefined || month === null || !year || !providerId || !invoiceNumber || !paymentChannelId || total === undefined) {
+        if (!projectId || !branchId || day === undefined || month === null || !year || !providerId || !invoiceNumber || !paymentChannelId || isNaN(total)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
@@ -61,11 +74,19 @@ export async function POST(request: NextRequest) {
         // Create purchase date
         const purchaseDate = `${year}-${monthNum.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
+        let base64File = null;
+        let fileName = null;
+        if (file && file.size > 0) {
+            const fileBuffer = Buffer.from(await file.arrayBuffer());
+            base64File = fileBuffer.toString('base64');
+            fileName = file.name;
+        }
+
         // Insert new purchase
-        const [result] = await connection.query(
-            `INSERT INTO tblCompras (IdSucursal, IdProveedor, NumeroFactura, IdCanalPago, Referencia, PagarA, Total, FechaCompra, Status, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
-            [branchId, providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseDate]
+        const [result] = await connection.query<ResultSetHeader>(
+            `INSERT INTO tblCompras (IdSucursal, IdProveedor, NumeroFactura, IdCanalPago, Referencia, PagarA, Total, FechaCompra, Status, FechaAct, ArchivoDocumento)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), ?)`,
+            [branchId, providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseDate, base64File]
         );
 
         return NextResponse.json({
@@ -82,24 +103,48 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-    let connection;
+    let connection: Connection | null = null;
     try {
-        const body = await request.json();
-        const { projectId, purchaseId, providerId, invoiceNumber, paymentChannelId, reference, payTo, total } = body;
+        const formData = await request.formData();
+        const projectId = parseInt(formData.get('projectId') as string);
+        const purchaseId = parseInt(formData.get('purchaseId') as string);
+        const file = formData.get('file') as File | null;
 
-        if (!projectId || !purchaseId || !providerId || !invoiceNumber || !paymentChannelId || total === undefined) {
+        // Also support JSON-like fields if they come via FormData (for regular updates)
+        const providerId = formData.get('providerId') ? parseInt(formData.get('providerId') as string) : null;
+        const invoiceNumber = formData.get('invoiceNumber') as string | null;
+        const paymentChannelId = formData.get('paymentChannelId') as string | null;
+        const total = formData.get('total') ? parseFloat(formData.get('total') as string) : null;
+        const reference = formData.get('reference') as string | null;
+        const payTo = formData.get('payTo') as string | null;
+
+        if (!projectId || !purchaseId) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
 
-        // Update purchase
-        await connection.query(
-            `UPDATE tblCompras 
-             SET IdProveedor = ?, NumeroFactura = ?, IdCanalPago = ?, Referencia = ?, PagarA = ?, Total = ?, FechaAct = NOW()
-             WHERE IdCompra = ?`,
-            [providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseId]
-        );
+        if (file) {
+            // File Upload only update
+            const fileBuffer = Buffer.from(await file.arrayBuffer());
+            const base64File = fileBuffer.toString('base64');
+            const fileName = file.name;
+
+            await connection.query(
+                `UPDATE tblCompras 
+                 SET ArchivoDocumento = ?, FechaAct = NOW()
+                 WHERE IdCompra = ?`,
+                [base64File, purchaseId]
+            );
+        } else if (providerId && invoiceNumber) {
+            // Regular update
+            await connection.query(
+                `UPDATE tblCompras 
+                 SET IdProveedor = ?, NumeroFactura = ?, IdCanalPago = ?, Referencia = ?, PagarA = ?, Total = ?, FechaAct = NOW()
+                 WHERE IdCompra = ?`,
+                [providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseId]
+            );
+        }
 
         return NextResponse.json({
             success: true,
@@ -114,7 +159,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-    let connection;
+    let connection: Connection | null = null;
     try {
         const { searchParams } = new URL(request.url);
         const projectIdStr = searchParams.get('projectId');

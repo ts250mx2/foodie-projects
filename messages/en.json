@@ -562,7 +562,8 @@
             "sat": "Sat",
             "sun": "Sun"
         },
-        "today": "TODAY"
+        "today": "TODAY",
+        "captureByImage": "Capture by Image"
     },
     "ExpensesModal": {
         "title": "Capture Expenses",
@@ -574,7 +575,9 @@
         "save": "Save",
         "add": "Add Expense",
         "total": "Total",
-        "close": "Close"
+        "close": "Close",
+        "file": "File",
+        "new": "New"
     },
     "PurchasesCapture": {
         "title": "Purchases Capture",
@@ -952,7 +955,8 @@
         "cancel": "Cancel",
         "branch": "Branch",
         "category": "Category",
-        "noChanges": "No changes to save"
+        "noChanges": "No changes to save",
+        "Action": "Action"
     },
     "BranchMinMax": {
         "title": "Min & Max",

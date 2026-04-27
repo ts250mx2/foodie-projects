@@ -7,7 +7,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, proveedor, rfc, telefonos, correoElectronico, calle, contacto } = body;
+        const { projectId, proveedor, rfc, telefonos, correoElectronico, calle, contacto, esProveedorGasto } = body;
 
         if (!projectId || !proveedor) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -16,8 +16,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         connection = await getProjectConnection(projectId);
 
         await connection.query(
-            'UPDATE tblProveedores SET Proveedor = ?, RFC = ?, Telefonos = ?, CorreoElectronico = ?, Calle = ?, Contacto = ?, FechaAct = Now() WHERE IdProveedor = ?',
-            [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '', id]
+            'UPDATE tblProveedores SET Proveedor = ?, RFC = ?, Telefonos = ?, CorreoElectronico = ?, Calle = ?, Contacto = ?, EsProveedorGasto = ?, FechaAct = Now() WHERE IdProveedor = ?',
+            [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '', esProveedorGasto ? 1 : 0, id]
         );
 
         return NextResponse.json({ success: true, message: 'Supplier updated successfully' });
