@@ -118,24 +118,45 @@ export default function MobileBatchModal({
 
     const openBatch = async (batch: BatchCard) => {
         setLoadingPhotos(true);
+        setView('detail'); // Switch view immediately
+        setPhotos([]);     // Reset photos
+        setSelectedIds(new Set());
+        
         try {
             const dateStr = batch.FechaCompraGasto.split('T')[0];
             const res = await fetch(`/api/ocr/mobile-batches?projectId=${projectId}&date=${dateStr}`);
             const data = await res.json();
             if (!data.success || !data.data) return;
-            setActiveBatch(data.data);
+            
+            const batchDetail = data.data as BatchDetail;
+            setActiveBatch(batchDetail);
 
-            const photoPromises = data.data.details.map(async (d: any) => {
-                const r = await fetch(`/api/ocr/mobile-batches?projectId=${projectId}&detailId=${d.IdDetalleDocumentoOCR}`);
-                const pd = await r.json();
-                return pd.success ? pd.data : null;
-            });
-            const loaded = (await Promise.all(photoPromises)).filter(Boolean);
-            setPhotos(loaded);
-            setSelectedIds(new Set());
-            setView('detail');
-        } catch { }
-        finally { setLoadingPhotos(false); }
+            // Initialize photos with metadata (but no base64 yet)
+            const initialPhotos: PhotoData[] = batchDetail.details.map(d => ({
+                ...d,
+                DocumentoOCR: '' // Empty base64 initially
+            }));
+            setPhotos(initialPhotos);
+            setLoadingPhotos(false); // Metadata loaded, now loading content
+
+            // Load photos one by one to show progress
+            for (const detail of batchDetail.details) {
+                fetch(`/api/ocr/mobile-batches?projectId=${projectId}&detailId=${detail.IdDetalleDocumentoOCR}`)
+                    .then(r => r.json())
+                    .then(pd => {
+                        if (pd.success && pd.data) {
+                            setPhotos(prev => prev.map(p => 
+                                p.IdDetalleDocumentoOCR === detail.IdDetalleDocumentoOCR 
+                                ? { ...p, DocumentoOCR: pd.data.DocumentoOCR } 
+                                : p
+                            ));
+                        }
+                    })
+                    .catch(() => { });
+            }
+        } catch { 
+            setLoadingPhotos(false);
+        }
     };
 
     const toggleSelect = (id: number) => {
@@ -424,6 +445,8 @@ export default function MobileBatchModal({
                                                 const isProcessed = photo.IdGasto > 0 || photo.IdCompra > 0;
                                                 const isSelected = selectedIds.has(photo.IdDetalleDocumentoOCR);
                                                 const isDeleting = deletingId === photo.IdDetalleDocumentoOCR;
+                                                const hasImage = !!photo.DocumentoOCR;
+
                                                 return (
                                                     <div
                                                         key={photo.IdDetalleDocumentoOCR}
@@ -434,12 +457,18 @@ export default function MobileBatchModal({
                                                         }`}
                                                     >
                                                         {/* Image — click to select (if not processed) */}
-                                                        <img
-                                                            src={`data:image/jpeg;base64,${photo.DocumentoOCR}`}
-                                                            alt={`Foto ${photo.Orden}`}
-                                                            className="w-full h-full object-cover"
-                                                            onClick={() => !isProcessed && toggleSelect(photo.IdDetalleDocumentoOCR)}
-                                                        />
+                                                        {hasImage ? (
+                                                            <img
+                                                                src={`data:image/jpeg;base64,${photo.DocumentoOCR}`}
+                                                                alt={`Foto ${photo.Orden}`}
+                                                                className="w-full h-full object-cover cursor-pointer"
+                                                                onClick={() => !isProcessed && toggleSelect(photo.IdDetalleDocumentoOCR)}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                                                                <div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+                                                            </div>
+                                                        )}
 
                                                         {/* Deleting overlay */}
                                                         {isDeleting && (
@@ -458,7 +487,7 @@ export default function MobileBatchModal({
                                                         )}
 
                                                         {/* Selection indicator */}
-                                                        {!isProcessed && !isDeleting && (
+                                                        {!isProcessed && !isDeleting && hasImage && (
                                                             <div
                                                                 className={`absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center z-10 transition-all cursor-pointer ${
                                                                     isSelected ? 'bg-indigo-500 text-white shadow-lg' : 'bg-black/30 border-2 border-white'
@@ -470,7 +499,7 @@ export default function MobileBatchModal({
                                                         )}
 
                                                         {/* Zoom button */}
-                                                        {!isDeleting && (
+                                                        {!isDeleting && hasImage && (
                                                             <button
                                                                 onClick={e => { e.stopPropagation(); setZoomSrc(photo.DocumentoOCR); }}
                                                                 className="absolute bottom-2 left-2 w-8 h-8 bg-black/50 backdrop-blur-sm text-white rounded-full flex items-center justify-center text-sm transition-all hover:bg-black/70 active:scale-90 z-10"
@@ -481,7 +510,7 @@ export default function MobileBatchModal({
                                                         )}
 
                                                         {/* Delete button (only for unprocessed) */}
-                                                        {!isProcessed && !isDeleting && (
+                                                        {!isProcessed && !isDeleting && hasImage && (
                                                             <button
                                                                 onClick={e => { e.stopPropagation(); handleDeletePhoto(photo); }}
                                                                 className="absolute top-2 right-2 w-8 h-8 bg-red-500/80 backdrop-blur-sm text-white rounded-full flex items-center justify-center text-sm font-black transition-all hover:bg-red-600 active:scale-90 z-10"

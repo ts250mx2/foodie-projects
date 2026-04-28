@@ -56,7 +56,7 @@ export default function PurchaseImageCaptureModal({
     const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'claude-sonnet-4-6'>('gpt-4o');
+    const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'claude-sonnet-4-6'>('claude-sonnet-4-6');
     
     // Camera state
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -555,27 +555,8 @@ export default function PurchaseImageCaptureModal({
                     <div className="flex items-center gap-4">
                         <div className="hidden md:flex flex-col gap-1 items-end">
                             <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
-                            <div className="flex items-center gap-2 bg-white rounded-xl p-1 border border-slate-100 shadow-sm">
-                                <button
-                                    onClick={() => setSelectedModel('claude-sonnet-4-6')}
-                                    className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
-                                        selectedModel === 'claude-sonnet-4-6' 
-                                        ? 'bg-slate-50 text-indigo-600 shadow-inner' 
-                                        : 'text-slate-400 hover:text-slate-600'
-                                    }`}
-                                >
-                                    CLAUDE 3.5
-                                </button>
-                                <button
-                                    onClick={() => setSelectedModel('gpt-4o')}
-                                    className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
-                                        selectedModel === 'gpt-4o' 
-                                        ? 'bg-slate-50 text-indigo-600 shadow-inner' 
-                                        : 'text-slate-400 hover:text-slate-600'
-                                    }`}
-                                >
-                                    GPT-4o
-                                </button>
+                            <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-1.5 border border-slate-100 shadow-sm text-[9px] font-black text-indigo-600 shadow-inner">
+                                CLAUDE 3.5
                             </div>
                         </div>
                         <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
