@@ -105,8 +105,8 @@ function MobileUploadContent() {
         c.height = v.videoHeight;
         c.getContext('2d')?.drawImage(v, 0, 0);
         const dataUrl = c.toDataURL('image/jpeg', 0.85);
-        addPending(dataUrl);
         stopCamera();
+        resizeAndQueue(dataUrl);
     };
 
     // ── File picker ───────────────────────────────────────────────────────────
@@ -114,19 +114,45 @@ function MobileUploadContent() {
         if (!e.target.files) return;
         Array.from(e.target.files).forEach(file => {
             const reader = new FileReader();
-            reader.onload = () => addPending(reader.result as string);
+            reader.onload = () => resizeAndQueue(reader.result as string);
             reader.readAsDataURL(file);
         });
         e.target.value = '';
     };
 
+    /**
+     * Resize + compress a dataUrl to at most 1920px on longest side, quality 0.75.
+     * This keeps base64 payload under ~500 KB, preventing iOS Safari body-size errors.
+     */
+    const resizeAndQueue = (dataUrl: string) => {
+        const img = new Image();
+        img.onload = () => {
+            const MAX = 1920;
+            let { width, height } = img;
+            if (width > MAX || height > MAX) {
+                if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                else { width = Math.round(width * MAX / height); height = MAX; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.75);
+            const base64 = compressed.split(',')[1];
+            if (!base64) { alert('No se pudo procesar la imagen. Intenta con otra foto.'); return; }
+            setPending(prev => [...prev, {
+                id: `${Date.now()}-${Math.random()}`,
+                dataUrl: compressed,
+                base64
+            }]);
+        };
+        img.onerror = () => alert('No se pudo leer la imagen seleccionada.');
+        img.src = dataUrl;
+    };
+
+    // Legacy (kept for direct camera capture path)
     const addPending = (dataUrl: string) => {
-        const base64 = dataUrl.split(',')[1];
-        setPending(prev => [...prev, {
-            id: `${Date.now()}-${Math.random()}`,
-            dataUrl,
-            base64
-        }]);
+        resizeAndQueue(dataUrl);
     };
 
     const removePending = (id: string) =>
