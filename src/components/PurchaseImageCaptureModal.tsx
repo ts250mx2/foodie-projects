@@ -685,18 +685,11 @@ export default function PurchaseImageCaptureModal({
                                             ))}
                                         </select>
                                         <button 
-                                            onClick={handleManualLinkProvider}
-                                            disabled={!regProviderId || isLinkingProvider}
-                                            className="px-6 rounded-2xl bg-indigo-50 text-indigo-600 font-black text-[10px] uppercase tracking-widest border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50"
-                                            title="Vincular nombre detectado a este proveedor"
-                                        >
-                                            {isLinkingProvider ? '⏳' : '🔗 Vincular'}
-                                        </button>
-                                        <button 
                                             onClick={() => { setNewProviderName(ocrResult.provider || ''); setIsNewProviderModalOpen(true); }}
                                             className="px-6 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all"
+                                            title="Vincular o crear nuevo proveedor"
                                         >
-                                            ➕ Nuevo
+                                            🔗 Vincular / Nuevo
                                         </button>
                                     </div>
                                 </div>
