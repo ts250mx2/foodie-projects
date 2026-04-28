@@ -946,13 +946,53 @@ export default function PurchaseImageCaptureModal({
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre del Proveedor</label>
-                                <input 
-                                    type="text" 
-                                    value={newProviderName}
-                                    onChange={(e) => setNewProviderName(e.target.value)}
-                                    placeholder="Ej. SAMS CLUB MEXICO"
-                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all"
-                                />
+                                <div className="relative">
+                                    <input 
+                                        type="text" 
+                                        value={newProviderName}
+                                        onChange={(e) => setNewProviderName(e.target.value.toUpperCase())}
+                                        placeholder="Ej. SAMS CLUB MEXICO"
+                                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all uppercase"
+                                    />
+                                    {/* Suggestions list */}
+                                    {newProviderName.length >= 2 && providers.filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase())).length > 0 && (
+                                        <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-[100] max-h-40 overflow-auto overflow-x-hidden p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {providers
+                                                .filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase()))
+                                                .slice(0, 5)
+                                                .map(p => (
+                                                    <button
+                                                        key={p.IdProveedor}
+                                                    onClick={async () => {
+                                                        setRegProviderId(p.IdProveedor.toString());
+                                                        setIsNewProviderModalOpen(false);
+                                                        setNewProviderName('');
+                                                        if (ocrResult?.provider) {
+                                                            try {
+                                                                await fetch('/api/ocr/relationships', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        projectId,
+                                                                        type: 'provider',
+                                                                        ocrName: ocrResult.provider,
+                                                                        systemId: p.IdProveedor
+                                                                    })
+                                                                });
+                                                                fetchRelationships();
+                                                            } catch (e) {}
+                                                        }
+                                                    }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-colors flex items-center justify-between"
+                                                    >
+                                                        <span>{p.Proveedor}</span>
+                                                        <span className="text-[9px] text-slate-400 font-medium">EXISTENTE</span>
+                                                    </button>
+                                                ))
+                                            }
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex items-center justify-between px-2 bg-slate-50 p-5 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => setEsProveedorGasto(!esProveedorGasto)}>

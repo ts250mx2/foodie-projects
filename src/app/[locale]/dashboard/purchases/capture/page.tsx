@@ -1596,14 +1596,35 @@ export default function PurchasesCapturePage() {
                             <div className="space-y-6">
                                 <div>
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-1">Nombre del Proveedor</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold uppercase placeholder:text-slate-300"
-                                        value={newProviderName}
-                                        onChange={(e) => setNewProviderName(e.target.value)}
-                                        placeholder="EJ: ABARROTES EL CENTRO"
-                                        autoFocus
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold uppercase placeholder:text-slate-300"
+                                            value={newProviderName}
+                                            onChange={(e) => setNewProviderName(e.target.value.toUpperCase())}
+                                            placeholder="EJ: ABARROTES EL CENTRO"
+                                            autoFocus
+                                        />
+                                        {/* Suggestions list */}
+                                        {newProviderName.length >= 2 && providers.filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase())).length > 0 && (
+                                            <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-[100] max-h-40 overflow-auto overflow-x-hidden p-2 animate-in fade-in slide-in-from-top-2 duration-200 text-slate-800">
+                                                {providers
+                                                    .filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase()))
+                                                    .slice(0, 5)
+                                                    .map(p => (
+                                                        <button
+                                                            key={p.IdProveedor}
+                                                            onClick={() => setNewProviderName(p.Proveedor)}
+                                                            className="w-full text-left px-4 py-3 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-colors flex items-center justify-between"
+                                                        >
+                                                            <span>{p.Proveedor}</span>
+                                                            <span className="text-[9px] text-slate-400 font-medium">EXISTENTE</span>
+                                                        </button>
+                                                    ))
+                                                }
+                                            </div>
+                                        )}
+                                    </div>
                                     <p className="text-[10px] text-slate-400 mt-2 italic">* El nombre se guardará automáticamente en MAYÚSCULAS</p>
                                 </div>
                                 <div className="flex items-center justify-between px-2 bg-slate-50 p-5 rounded-2xl border-2 border-slate-100 cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => setEsProveedorGasto(!esProveedorGasto)}>

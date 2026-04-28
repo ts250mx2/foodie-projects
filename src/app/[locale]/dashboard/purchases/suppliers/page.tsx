@@ -304,7 +304,7 @@ export default function SuppliersPage() {
                                 <Input
                                     label={t('supplierName')}
                                     value={formData.proveedor}
-                                    onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, proveedor: e.target.value.toUpperCase() })}
                                     required
                                     className="rounded-2xl border-2 border-slate-100 focus:border-primary-500 transition-all font-bold"
                                 />
