@@ -1240,20 +1240,20 @@ export default function ExpensesCapturePage() {
                         <form onSubmit={handleSaveSupplier} className="p-6 flex flex-col gap-4">
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nombre / Razón Social</label>
-                                <Input value={supplierFormData.proveedor} onChange={val => setSupplierFormData({ ...supplierFormData, proveedor: val })} required />
+                                <Input label="" value={supplierFormData.proveedor} onChange={e => setSupplierFormData({ ...supplierFormData, proveedor: e.target.value })} required />
                             </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase ml-1">RFC</label>
-                                <Input value={supplierFormData.rfc} onChange={val => setSupplierFormData({ ...supplierFormData, rfc: val })} />
+                                <Input label="" value={supplierFormData.rfc} onChange={e => setSupplierFormData({ ...supplierFormData, rfc: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase ml-1">Teléfonos</label>
-                                    <Input value={supplierFormData.telefonos} onChange={val => setSupplierFormData({ ...supplierFormData, telefonos: val })} />
+                                    <Input label="" value={supplierFormData.telefonos} onChange={e => setSupplierFormData({ ...supplierFormData, telefonos: e.target.value })} />
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase ml-1">Correo</label>
-                                    <Input type="email" value={supplierFormData.correoElectronico} onChange={val => setSupplierFormData({ ...supplierFormData, correoElectronico: val })} />
+                                    <Input label="" type="email" value={supplierFormData.correoElectronico} onChange={e => setSupplierFormData({ ...supplierFormData, correoElectronico: e.target.value })} />
                                 </div>
                             </div>
                             <Button type="submit" className="mt-2">Guardar Proveedor</Button>
@@ -1273,7 +1273,7 @@ export default function ExpensesCapturePage() {
                         <form onSubmit={handleSaveConcept} className="p-6 flex flex-col gap-4">
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase ml-1">Nombre del Concepto</label>
-                                <Input value={conceptFormData.concept} onChange={val => setConceptFormData({ ...conceptFormData, concept: val })} required />
+                                <Input label="" value={conceptFormData.concept} onChange={e => setConceptFormData({ ...conceptFormData, concept: e.target.value })} required />
                             </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase ml-1">Canal de Pago Sugerido</label>
@@ -1300,8 +1300,9 @@ export default function ExpensesCapturePage() {
                     isOpen={isOcrModalOpen}
                     onClose={() => setIsOcrModalOpen(false)}
                     projectId={project?.idProyecto}
-                    branchId={parseInt(selectedBranch)}
-                    selectedDate={selectedDate || new Date()}
+                    selectedBranchId={selectedBranch}
+                    selectedMonth={selectedDate ? selectedDate.getMonth() : new Date().getMonth()}
+                    selectedYear={selectedDate ? selectedDate.getFullYear() : new Date().getFullYear()}
                     onSuccess={() => {
                         if (selectedDate) fetchDailyExpenses(selectedDate);
                         fetchMonthlyExpenses();

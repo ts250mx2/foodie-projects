@@ -15,6 +15,7 @@ interface Branch {
 interface Provider {
     IdProveedor: number;
     Proveedor: string;
+    EsProveedorGasto?: number;
 }
 
 interface PaymentChannel {
@@ -34,6 +35,8 @@ interface Purchase {
     PagarA: string;
     IdProveedor: number;
     IdCanalPago: number;
+    ArchivoDocumento?: string;
+    NombreArchivo?: string;
 }
 
 interface Product {
@@ -141,6 +144,8 @@ export default function PurchasesCapturePage() {
 
     // Inline editing state for purchase details
     const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
+    const [editQuantity, setEditQuantity] = useState('');
+    const [editCost, setEditCost] = useState('');
 
     // OCR Modal state
     const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);

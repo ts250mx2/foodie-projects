@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         let whereClause = `n.IdSucursal = ? AND n.Mes = ? AND n.Anio = ?`;
-        let params = [branchId, parseInt(monthStr || '0') + 1, parseInt(yearStr || '0')];
+        let params: (number | string)[] = [branchId, parseInt(monthStr || '0') + 1, parseInt(yearStr || '0')];
 
         if (startDate && endDate) {
             whereClause = `n.IdSucursal = ? AND DATE(CONCAT(n.Anio, '-', n.Mes, '-', n.Dia)) BETWEEN ? AND ?`;

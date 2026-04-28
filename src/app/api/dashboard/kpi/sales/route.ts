@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
         // Payroll: tblNomina uses 1-12 for Mes index. Sum of 'Pago' column as requested.
         let payrollWhere = `IdSucursal = ? AND Mes = ? AND Anio = ?`;
-        let payrollParams = [branchId, month + 1, year];
+        let payrollParams: (number | string)[] = [branchId, month + 1, year];
 
         if (payrollStartDate && payrollEndDate) {
             payrollWhere = `IdSucursal = ? AND DATE(CONCAT(Anio, '-', Mes, '-', Dia)) BETWEEN ? AND ?`;

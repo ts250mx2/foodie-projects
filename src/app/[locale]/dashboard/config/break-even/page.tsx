@@ -548,7 +548,7 @@ export default function BreakEvenPage() {
 
                             <span>📄</span> Exportar
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
+                        <Button onClick={() => handleSave()} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
                             {isSaving ? '⏳' : '💾'} {t('save')}
                         </Button>
                     </div>

@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/ThemeContext';
-import QRCode from 'react-qr-code';
+import MobileBatchModal, { BatchSelectedPhoto } from '@/components/MobileBatchModal';
 
 interface ExpenseImageCaptureModalProps {
     isOpen: boolean;
@@ -17,6 +17,10 @@ interface ExpenseImageCaptureModalProps {
     selectedMonth: number; // 0-indexed
     selectedYear: number;
     onSuccess?: () => void;
+    /** Pre-loaded images from MobileBatchModal */
+    preloadedItems?: BatchSelectedPhoto[];
+    /** Called after successful registration with the new IdGasto and processed detail IDs */
+    onProcessed?: (idGasto: number, detailIds: number[]) => void;
 }
 
 type Step = 'capture' | 'preview' | 'register';
@@ -29,7 +33,9 @@ export default function ExpenseImageCaptureModal({
     selectedPaymentChannelId,
     selectedMonth,
     selectedYear,
-    onSuccess 
+    onSuccess,
+    preloadedItems,
+    onProcessed
 }: ExpenseImageCaptureModalProps) {
     const tNav = useTranslations('Navigation');
     const tOcr = useTranslations('OCRDocuments');
@@ -56,10 +62,10 @@ export default function ExpenseImageCaptureModal({
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // QR Session state
-    const [showQrModal, setShowQrModal] = useState(false);
-    const [qrSessionId, setQrSessionId] = useState('');
-    const [isPolling, setIsPolling] = useState(false);
+    // Mobile Batch Modal
+    const [showMobileBatchModal, setShowMobileBatchModal] = useState(false);
+    // IDs of tblDetalleDocumentosOCR rows for current batch session
+    const [batchDetailIds, setBatchDetailIds] = useState<number[]>([]);
 
     // Registration state
     const [ocrResult, setOcrResult] = useState<any>(null);
@@ -96,8 +102,24 @@ export default function ExpenseImageCaptureModal({
             
             setRegBranchId(selectedBranchId);
             setRegPaymentChannelId(selectedPaymentChannelId || '');
+
+            // If preloaded items arrive, convert them and jump to preview step
+            if (preloadedItems && preloadedItems.length > 0) {
+                const converted: OcrItem[] = preloadedItems.map(p => {
+                    const dataUrl = `data:image/jpeg;base64,${p.base64}`;
+                    return {
+                        id: p.idDetalleDocumentoOCR.toString(),
+                        file: new File([Uint8Array.from(atob(p.base64), c => c.charCodeAt(0))], p.filename, { type: 'image/jpeg' }),
+                        preview: dataUrl,
+                        selected: true
+                    };
+                });
+                setBatchDetailIds(preloadedItems.map(p => p.idDetalleDocumentoOCR));
+                setOcrItems(converted);
+                setStep('preview');
+            }
         }
-    }, [isOpen, selectedBranchId, selectedPaymentChannelId]);
+    }, [isOpen, selectedBranchId, selectedPaymentChannelId, preloadedItems]);
 
     const fetchProviders = async () => {
         try {
@@ -176,33 +198,17 @@ export default function ExpenseImageCaptureModal({
         }
     };
 
-    // QR Logic
-    const startQrSession = async () => {
-        const sessionId = uuidv4();
-        setQrSessionId(sessionId);
-        setShowQrModal(true);
-        setIsPolling(true);
-        try {
-            await fetch('/api/ocr/qr-sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, action: 'register' })
-            });
-            const pollInterval = setInterval(async () => {
-                const response = await fetch(`/api/ocr/qr-sync?sessionId=${sessionId}`);
-                const data = await response.json();
-                if (data.success && data.image) {
-                    const res = await fetch(data.image);
-                    const blob = await res.blob();
-                    const file = new File([blob], `qr-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                    setOcrItems(prev => [...prev, { id: uuidv4(), file, preview: data.image, selected: true }]);
-                    setStep('preview');
-                    clearInterval(pollInterval);
-                    setIsPolling(false);
-                    setShowQrModal(false);
-                }
-            }, 2000);
-        } catch (err) { setShowQrModal(false); }
+    // Batch photos loaded from MobileBatchModal
+    const handleBatchExpensePhotos = (photos: BatchSelectedPhoto[]) => {
+        const converted: OcrItem[] = photos.map(p => ({
+            id: p.idDetalleDocumentoOCR.toString(),
+            file: new File([Uint8Array.from(atob(p.base64), c => c.charCodeAt(0))], p.filename, { type: 'image/jpeg' }),
+            preview: `data:image/jpeg;base64,${p.base64}`,
+            selected: true
+        }));
+        setBatchDetailIds(photos.map(p => p.idDetalleDocumentoOCR));
+        setOcrItems(converted);
+        setStep('preview');
     };
 
     // File Upload logic
@@ -338,7 +344,20 @@ export default function ExpenseImageCaptureModal({
             const data = await response.json();
             if (data.success) {
                 alert(`✅ ¡Gasto registrado exitosamente!\n\nSe ha insertado en la fecha: ${regDate}`);
-                
+
+                // PATCH batch detail rows with the new IdGasto
+                if (batchDetailIds.length > 0 && data.idGasto) {
+                    await Promise.all(batchDetailIds.map(id =>
+                        fetch('/api/ocr/mobile-batches', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ projectId, idDetalleDocumentoOCR: id, idGasto: data.idGasto })
+                        })
+                    ));
+                    onProcessed?.(data.idGasto, batchDetailIds);
+                    setBatchDetailIds([]);
+                }
+
                 const remainingItems = ocrItems.filter(item => !item.selected);
                 setOcrItems(remainingItems);
                 
@@ -505,9 +524,9 @@ export default function ExpenseImageCaptureModal({
                                     <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-4xl mb-4 shadow-sm group-hover:scale-110 transition-transform">📸</div>
                                     <span className="text-sm font-black text-slate-700 uppercase tracking-widest">Cámara Directa</span>
                                 </button>
-                                <button onClick={startQrSession} className="flex flex-col items-center justify-center p-10 rounded-[2.5rem] bg-slate-50 border border-slate-100 hover:border-red-200 hover:bg-red-50/30 transition-all group">
+                                <button onClick={() => setShowMobileBatchModal(true)} className="flex flex-col items-center justify-center p-10 rounded-[2.5rem] bg-slate-50 border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group">
                                     <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-4xl mb-4 shadow-sm group-hover:scale-110 transition-transform">📱</div>
-                                    <span className="text-sm font-black text-slate-700 uppercase tracking-widest">Desde Celular</span>
+                                    <span className="text-sm font-black text-slate-700 uppercase tracking-widest">Lotes de Celular</span>
                                 </button>
                                 <div className="relative">
                                     <input type="file" ref={ocrFileInputRef} onChange={handleOcrFileChange} multiple accept="image/*,.pdf" className="hidden" />
@@ -781,24 +800,21 @@ export default function ExpenseImageCaptureModal({
                     </div>
                 )}
 
-                {/* QR Modal Overlay */}
-                {showQrModal && (
-                    <div className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-[3rem] p-12 flex flex-col items-center max-w-sm text-center">
-                            <div className="p-6 bg-slate-50 rounded-3xl mb-8 border border-slate-100 shadow-inner">
-                                <QRCode 
-                                    value={`${window.location.origin}/${locale}/ocr/upload?projectId=${projectId}&sessionId=${qrSessionId}`} 
-                                    size={200}
-                                    bgColor="transparent"
-                                    fgColor="#dc2626"
-                                />
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Escanea para Capturar</h3>
-                            <p className="text-xs text-slate-400 font-medium mb-8">Usa la cámara de tu celular para tomar la foto del recibo de gasto.</p>
-                            <Button onClick={() => setShowQrModal(false)} variant="secondary" className="w-full rounded-2xl font-black tracking-widest uppercase py-4">Cancelar</Button>
-                        </div>
-                    </div>
-                )}
+
+                {/* Mobile Batch Modal */}
+                <MobileBatchModal
+                    isOpen={showMobileBatchModal}
+                    onClose={() => setShowMobileBatchModal(false)}
+                    projectId={projectId}
+                    onProcessAsExpense={(photos) => {
+                        setShowMobileBatchModal(false);
+                        handleBatchExpensePhotos(photos);
+                    }}
+                    onProcessAsPurchase={() => {
+                        // Not applicable in expense modal — silently ignore
+                        setShowMobileBatchModal(false);
+                    }}
+                />
 
                 {/* New Provider Modal */}
                 {isNewProviderModalOpen && (
