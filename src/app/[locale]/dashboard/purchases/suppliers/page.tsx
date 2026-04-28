@@ -350,8 +350,8 @@ export default function SuppliersPage() {
                                     <span className={`text-[10px] font-black tracking-widest transition-colors ${formData.esProveedorGasto ? 'text-emerald-600' : 'text-slate-400'}`}>
                                         {formData.esProveedorGasto ? 'SÍ, ES GASTO' : 'NO ES GASTO'}
                                     </span>
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 ${formData.esProveedorGasto ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-200 text-transparent'}`}>
-                                        <span className="text-lg font-black leading-none">✓</span>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 ${formData.esProveedorGasto ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-200'}`}>
+                                        {formData.esProveedorGasto && <span className="text-lg font-black leading-none">✓</span>}
                                     </div>
                                 </div>
                             </div>
