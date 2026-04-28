@@ -13,6 +13,7 @@ interface PendingPhoto {
 interface UploadedPhoto {
     dataUrl: string;
     status: 'done' | 'error';
+    errorMsg?: string;
 }
 
 interface ProjectTheme {
@@ -150,9 +151,21 @@ function MobileUploadContent() {
                     })
                 });
                 const data = await res.json();
-                results.push({ dataUrl: photo.dataUrl, status: data.success ? 'done' : 'error' });
-            } catch {
-                results.push({ dataUrl: photo.dataUrl, status: 'error' });
+                if (data.success) {
+                    results.push({ dataUrl: photo.dataUrl, status: 'done' });
+                } else {
+                    results.push({
+                        dataUrl: photo.dataUrl,
+                        status: 'error',
+                        errorMsg: data.message || `Error HTTP ${res.status}`
+                    });
+                }
+            } catch (err: any) {
+                results.push({
+                    dataUrl: photo.dataUrl,
+                    status: 'error',
+                    errorMsg: 'Sin conexión: ' + (err.message || 'Error de red')
+                });
             }
         }
 
@@ -393,12 +406,17 @@ function MobileUploadContent() {
                                         onClick={() => setZoomSrc(photo.dataUrl)}
                                     />
                                     {/* Status overlay */}
-                                    <div className={`absolute inset-0 flex items-end justify-end p-2 ${photo.status === 'done' ? 'bg-green-500/10' : 'bg-red-500/30'}`}>
+                                    <div className={`absolute inset-0 flex flex-col items-end justify-end p-2 ${photo.status === 'done' ? 'bg-green-500/10' : 'bg-red-500/30'}`}>
                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-md ${photo.status === 'done' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                                             {photo.status === 'done' ? '✓' : '!'}
                                         </div>
+                                        {photo.status === 'error' && photo.errorMsg && (
+                                            <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm px-2 py-1.5 text-white text-[9px] font-black leading-tight text-center">
+                                                {photo.errorMsg}
+                                            </div>
+                                        )}
                                     </div>
-                                    {/* Zoom hint */}
+                                    {/* Zoom */}
                                     <button
                                         onClick={() => setZoomSrc(photo.dataUrl)}
                                         className="absolute inset-0 w-full h-full opacity-0"

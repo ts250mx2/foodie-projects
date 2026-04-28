@@ -90,10 +90,10 @@ export async function GET(request: NextRequest) {
                 h.FechaCompraGasto,
                 COUNT(d.IdDetalleDocumentoOCR) AS TotalFotos,
                 SUM(CASE WHEN d.IdGasto = 0 AND d.IdCompra = 0 THEN 1 ELSE 0 END) AS FotosPendientes,
-                (SELECT SUBSTRING(d2.DocumentoOCR, 1, 200)
+                (SELECT d2.IdDetalleDocumentoOCR
                  FROM tblDetalleDocumentosOCR d2
                  WHERE d2.IdDocumentoOCR = h.IdDocumentoOCR
-                 ORDER BY d2.Orden ASC LIMIT 1) AS FirstThumb
+                 ORDER BY d2.Orden ASC LIMIT 1) AS FirstDetailId
             FROM tblDocumentosOCR h
             LEFT JOIN tblDetalleDocumentosOCR d ON d.IdDocumentoOCR = h.IdDocumentoOCR
             WHERE h.DocumentoOCR LIKE 'Documentos del dia%'
@@ -230,6 +230,50 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error updating batch detail:', error);
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+// Remove a single detail photo (only if not yet processed)
+// Body: { projectId, idDetalleDocumentoOCR }
+export async function DELETE(request: NextRequest) {
+    let connection: any;
+    try {
+        const body = await request.json();
+        const { projectId, idDetalleDocumentoOCR } = body;
+
+        if (!projectId || !idDetalleDocumentoOCR) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(parseInt(projectId));
+
+        // Safety check: do not delete if already processed
+        const [rows] = await connection.query(
+            'SELECT IdGasto, IdCompra FROM tblDetalleDocumentosOCR WHERE IdDetalleDocumentoOCR = ?',
+            [idDetalleDocumentoOCR]
+        ) as [RowDataPacket[], any];
+
+        if (rows.length === 0) {
+            return NextResponse.json({ success: false, message: 'Foto no encontrada' }, { status: 404 });
+        }
+
+        const row = rows[0];
+        if (row.IdGasto > 0 || row.IdCompra > 0) {
+            return NextResponse.json({ success: false, message: 'La foto ya fue procesada y no se puede eliminar' }, { status: 409 });
+        }
+
+        await connection.query(
+            'DELETE FROM tblDetalleDocumentosOCR WHERE IdDetalleDocumentoOCR = ?',
+            [idDetalleDocumentoOCR]
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Error deleting batch detail:', error);
         return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     } finally {
         if (connection) await connection.end();
