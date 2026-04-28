@@ -1606,20 +1606,16 @@ export default function PurchasesCapturePage() {
                                     />
                                     <p className="text-[10px] text-slate-400 mt-2 italic">* El nombre se guardará automáticamente en MAYÚSCULAS</p>
                                 </div>
-                                <div className="flex items-center justify-between px-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                <div className="flex items-center justify-between px-2 bg-slate-50 p-5 rounded-2xl border-2 border-slate-100 cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => setEsProveedorGasto(!esProveedorGasto)}>
                                     <div className="flex flex-col">
                                         <span className="text-xs font-black text-slate-500 uppercase tracking-widest">¿Es Proveedor de Gasto?</span>
                                         <span className={`text-[10px] font-black tracking-widest transition-colors ${esProveedorGasto ? 'text-emerald-600' : 'text-slate-400'}`}>
                                             {esProveedorGasto ? 'SÍ, ES GASTO' : 'NO ES GASTO'}
                                         </span>
                                     </div>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setEsProveedorGasto(!esProveedorGasto)}
-                                        className={`w-14 h-7 rounded-full transition-all relative ${esProveedorGasto ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                                    >
-                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${esProveedorGasto ? 'left-8' : 'left-1'}`} />
-                                    </button>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 ${esProveedorGasto ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-200 text-transparent'}`}>
+                                        <span className="text-lg font-black leading-none">✓</span>
+                                    </div>
                                 </div>
                                 
                                 <div className="flex gap-3 pt-2">

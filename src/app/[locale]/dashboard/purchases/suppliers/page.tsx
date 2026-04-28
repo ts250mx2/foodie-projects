@@ -83,7 +83,9 @@ export default function SuppliersPage() {
                 })
             });
 
-            if (response.ok) {
+            const data = await response.json();
+
+            if (data.success) {
                 fetchSuppliers();
                 setIsModalOpen(false);
                 setFormData({
@@ -96,6 +98,8 @@ export default function SuppliersPage() {
                     esProveedorGasto: false
                 });
                 setEditingSupplier(null);
+            } else {
+                alert(data.message || 'Error al guardar el proveedor');
             }
         } catch (error) {
             console.error('Error saving supplier:', error);
@@ -337,7 +341,7 @@ export default function SuppliersPage() {
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 transition-all hover:border-primary-100">
+                            <div className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border-2 border-slate-100 transition-all hover:bg-slate-100/50 cursor-pointer" onClick={() => setFormData({ ...formData, esProveedorGasto: !formData.esProveedorGasto })}>
                                 <div className="flex flex-col">
                                     <span className="text-xs font-black text-slate-700 uppercase tracking-widest">¿Es Proveedor de Gasto?</span>
                                     <span className="text-[10px] text-slate-400 font-bold mt-0.5">Marcar si este proveedor es solo para gastos operativos</span>
@@ -346,13 +350,9 @@ export default function SuppliersPage() {
                                     <span className={`text-[10px] font-black tracking-widest transition-colors ${formData.esProveedorGasto ? 'text-emerald-600' : 'text-slate-400'}`}>
                                         {formData.esProveedorGasto ? 'SÍ, ES GASTO' : 'NO ES GASTO'}
                                     </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, esProveedorGasto: !formData.esProveedorGasto })}
-                                        className={`w-14 h-7 rounded-full transition-all relative shadow-inner ${formData.esProveedorGasto ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                                    >
-                                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${formData.esProveedorGasto ? 'left-8' : 'left-1'}`} />
-                                    </button>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2 ${formData.esProveedorGasto ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white border-slate-200 text-transparent'}`}>
+                                        <span className="text-lg font-black leading-none">✓</span>
+                                    </div>
                                 </div>
                             </div>
 

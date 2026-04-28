@@ -15,6 +15,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
         connection = await getProjectConnection(projectId);
 
+        // Check if supplier name already exists (excluding current ID)
+        const [existing] = await connection.query(
+            'SELECT IdProveedor FROM tblProveedores WHERE Proveedor = ? AND Status = 0 AND IdProveedor != ?',
+            [proveedor, id]
+        ) as [any[], any];
+
+        if (existing.length > 0) {
+            return NextResponse.json({ success: false, message: 'Ya existe un proveedor con este nombre' }, { status: 400 });
+        }
+
         await connection.query(
             'UPDATE tblProveedores SET Proveedor = ?, RFC = ?, Telefonos = ?, CorreoElectronico = ?, Calle = ?, Contacto = ?, EsProveedorGasto = ?, FechaAct = Now() WHERE IdProveedor = ?',
             [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '', esProveedorGasto ? 1 : 0, id]

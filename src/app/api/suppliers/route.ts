@@ -38,11 +38,21 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
 
+        // Check if supplier name already exists
+        const [existing] = await connection.query(
+            'SELECT IdProveedor FROM tblProveedores WHERE Proveedor = ? AND Status = 0',
+            [proveedor]
+        ) as [RowDataPacket[], any];
+
+        if (existing.length > 0) {
+            return NextResponse.json({ success: false, message: 'Ya existe un proveedor con este nombre' }, { status: 400 });
+        }
+
         // Status = 0 (Active), FechaAct = Now()
         const [result] = await connection.query(
             'INSERT INTO tblProveedores (Proveedor, RFC, Telefonos, CorreoElectronico, Calle, Contacto, EsProveedorGasto, Status, FechaAct) VALUES (?, ?, ?, ?, ?, ?, ?, 0, Now())',
             [proveedor, rfc || '', telefonos || '', correoElectronico || '', calle || '', contacto || '', esProveedorGasto ? 1 : 0]
-        );
+        ) as [ResultSetHeader, any];
 
         return NextResponse.json({
             success: true,
