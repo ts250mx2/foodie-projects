@@ -154,7 +154,7 @@ export default function BranchEditModal({
     const tabs = [
         { id: 'general', label: 'Configuración General', icon: '✏️', show: true },
         { id: 'costs', label: 'Objetivos y Costos', icon: '🎯', show: !isNewBranch },
-        { id: 'inventory', label: 'Fechas de Inventario', icon: '📋', show: !isNewBranch },
+        { id: 'inventory', label: 'Inventarios/Ventas', icon: '📅', show: !isNewBranch },
         { id: 'payroll', label: 'Nomina', icon: '📁', show: !isNewBranch },
         { id: 'shifts', label: 'Turnos', icon: '⏰', show: !isNewBranch },
         { id: 'sales-channels', label: 'Canales de Venta', icon: '📈', show: !isNewBranch },
