@@ -89,13 +89,13 @@ export async function POST(request: NextRequest) {
         } else {
             // Insert new expense
             await connection.query(
-                `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, IdProveedor, Total, NumeroFactura, IdCanalPago, ArchivoDocumento, NombreArchivo, FechaAct, Status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), 0)`,
-                [day, monthNum, year, conceptId, branchId, providerId, amount, invoiceNumber, paymentChannelId || null, base64File, fileName]
+                `INSERT INTO tblGastos (Dia, Mes, Anio, IdConceptoGasto, IdSucursal, IdProveedor, Total, NumeroFactura, IdCanalPago, ArchivoDocumento, FechaAct, Status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), 0)`,
+                [day, monthNum, year, conceptId, branchId, providerId, amount, invoiceNumber, paymentChannelId || null, base64File]
             );
         }
 
-        
+
 
         return NextResponse.json({
             success: true,

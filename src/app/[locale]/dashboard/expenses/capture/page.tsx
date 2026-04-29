@@ -29,6 +29,7 @@ interface PaymentChannel {
 interface Provider {
     IdProveedor: number;
     Proveedor: string;
+    EsProveedorGasto: number;
 }
 
 interface ExpenseDetail {
@@ -471,7 +472,8 @@ export default function ExpensesCapturePage() {
                     telefonos: supplierFormData.telefonos,
                     correoElectronico: supplierFormData.correoElectronico,
                     calle: supplierFormData.calle,
-                    contacto: supplierFormData.contacto
+                    contacto: supplierFormData.contacto,
+                    esProveedorGasto: 1
                 })
             });
             if (response.ok) {
@@ -797,7 +799,7 @@ export default function ExpensesCapturePage() {
                                     {showProviderDropdown && (
                                         <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {providers
-                                                .filter(p => !providerSearch || p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()))
+                                                .filter(p => p.EsProveedorGasto === 1 && (!providerSearch || p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase())))
                                                 .map(p => (
                                                     <div
                                                         key={p.IdProveedor}

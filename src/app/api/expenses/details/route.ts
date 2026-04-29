@@ -52,10 +52,9 @@ export async function POST(request: NextRequest) {
         // Update total in header
         await connection.query(
             `UPDATE tblGastos g 
-             SET Total = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0),
-                 Gasto = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0)
+             SET Total = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0)
              WHERE IdGasto = ?`,
-            [expenseId, expenseId, expenseId]
+            [expenseId, expenseId]
         );
 
         return NextResponse.json({ success: true, message: 'Detail added successfully' });
@@ -102,10 +101,9 @@ export async function PUT(request: NextRequest) {
         // Update total in header
         await connection.query(
             `UPDATE tblGastos g 
-             SET Total = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0),
-                 Gasto = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0)
+             SET Total = (SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0)
              WHERE IdGasto = ?`,
-            [expenseId, expenseId, expenseId]
+            [expenseId, expenseId]
         );
 
         return NextResponse.json({ success: true, message: 'Detail updated successfully' });
@@ -147,10 +145,9 @@ export async function DELETE(request: NextRequest) {
         // Update total in header
         await connection.query(
             `UPDATE tblGastos g 
-             SET Total = COALESCE((SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0), 0),
-                 Gasto = COALESCE((SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0), 0)
+             SET Total = COALESCE((SELECT SUM(Cantidad * Costo) FROM tblDetalleGastos WHERE IdGasto = ? AND Status = 0), 0)
              WHERE IdGasto = ?`,
-            [expenseId, expenseId, expenseId]
+            [expenseId, expenseId]
         );
 
         return NextResponse.json({ success: true, message: 'Detail deleted successfully' });
