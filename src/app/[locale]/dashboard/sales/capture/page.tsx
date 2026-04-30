@@ -28,6 +28,7 @@ export default function SalesCapturePage() {
     const [platforms, setPlatforms] = useState<any[]>([]);
     const [dailySales, setDailySales] = useState<any[]>([]);
     const [monthlySalesDetails, setMonthlySalesDetails] = useState<Record<number, Array<{ shiftName: string, total: number }>>>({});
+    const [inventoryDaysDetails, setInventoryDaysDetails] = useState<Record<number, { isMarkedInventoryDay: boolean }>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -56,9 +57,9 @@ export default function SalesCapturePage() {
             fetchDropdowns();
 
             // Load persisted filters
-            const savedBranch = localStorage.getItem('lastSelectedBranch');
-            const savedMonth = localStorage.getItem('lastSelectedMonth');
-            const savedYear = localStorage.getItem('lastSelectedYear');
+            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
+            const savedMonth = localStorage.getItem('lastSelectedMonthInventory');
+            const savedYear = localStorage.getItem('lastSelectedYearInventory');
 
             if (savedBranch) setSelectedBranch(savedBranch);
             if (savedMonth) setSelectedMonth(parseInt(savedMonth));
@@ -67,20 +68,88 @@ export default function SalesCapturePage() {
     }, [project]);
 
     useEffect(() => {
-        if (selectedBranch) localStorage.setItem('lastSelectedBranch', selectedBranch);
+        if (selectedBranch) localStorage.setItem('dashboardSelectedBranch', selectedBranch);
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
-    }, [selectedMonth]);
-
-    useEffect(() => {
-        localStorage.setItem('lastSelectedYear', selectedYear.toString());
+        localStorage.setItem('lastSelectedYearInventory', selectedYear.toString());
+        localStorage.setItem('lastSelectedYearSales', selectedYear.toString());
     }, [selectedYear]);
 
     useEffect(() => {
+        localStorage.setItem('lastSelectedMonthSales', selectedMonth.toString());
+    }, [selectedMonth]);
+
+    const fetchMonthlySales = async () => {
+        if (!project || !selectedBranch) return;
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                month: selectedMonth.toString(),
+                year: selectedYear.toString()
+            });
+            const response = await fetch(`/api/sales/monthly?${params}`);
+            const data = await response.json();
+            if (data.success) {
+                // Group sales by day and shift
+                const detailsMap: Record<number, Array<{ shiftName: string, total: number }>> = {};
+                data.data.forEach((item: any) => {
+                    if (!detailsMap[item.day]) {
+                        detailsMap[item.day] = [];
+                    }
+                    detailsMap[item.day].push({
+                        shiftName: item.shiftName,
+                        total: item.total
+                    });
+                });
+                setMonthlySalesDetails(detailsMap);
+            }
+        } catch (error) {
+            console.error('Error fetching monthly sales:', error);
+        }
+    };
+
+    const fetchInventoryDates = async () => {
+        if (!project?.idProyecto || !selectedBranch) return;
+        try {
+            const params = new URLSearchParams({
+                projectId: String(project.idProyecto),
+                branchId: String(selectedBranch),
+                month: String(selectedMonth),
+                year: String(selectedYear)
+            });
+            const response = await fetch(`/api/inventories/monthly?${params}`);
+            const data = await response.json();
+            
+            if (data.success && Array.isArray(data.data)) {
+                const detailsMap: Record<number, { isMarkedInventoryDay: boolean }> = {};
+                data.data.forEach((item: any) => {
+                    // Match exactly the logic in InventoryCapturePage
+                    const dayNum = item.Dia;
+                    if (dayNum && item.isMarkedInventoryDay === 1) {
+                        detailsMap[dayNum] = {
+                            isMarkedInventoryDay: true
+                        };
+                    }
+                });
+                setInventoryDaysDetails(detailsMap);
+            }
+        } catch (error) {
+            console.error('Error fetching inventory dates:', error);
+        }
+    };
+
+    useEffect(() => {
         if (project?.idProyecto && selectedBranch) {
-            fetchMonthlySales();
+            // Clear details before fetching to avoid showing old data
+            setMonthlySalesDetails({});
+            setInventoryDaysDetails({});
+            
+            Promise.all([
+                fetchMonthlySales(),
+                fetchInventoryDates()
+            ]);
         }
     }, [project, selectedBranch, selectedMonth, selectedYear]);
 
@@ -91,8 +160,8 @@ export default function SalesCapturePage() {
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
 
-                // Only set default if no branch is selected or persisted
-                const savedBranch = localStorage.getItem('lastSelectedBranch');
+                // Use the same storage key as InventoryCapturePage for consistency
+                const savedBranch = localStorage.getItem('dashboardSelectedBranch');
                 if (!savedBranch && !selectedBranch) {
                     setSelectedBranch(data.data[0].IdSucursal.toString());
                 }
@@ -157,6 +226,8 @@ export default function SalesCapturePage() {
             console.error('Error fetching monthly sales:', error);
         }
     };
+
+
 
     const handleDayClick = async (date: Date) => {
         const today = new Date();
@@ -436,14 +507,24 @@ export default function SalesCapturePage() {
                                 className={`
                                     relative border-b border-r border-gray-300 p-2 transition-all hover:bg-primary-50 cursor-pointer group min-h-[120px] flex flex-col
                                     ${isToday ? 'bg-primary-50/30' : ''}
+                                    ${inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay ? 'bg-emerald-50/20 ring-2 ring-emerald-500/30 ring-inset' : ''}
                                 `}
                             >
-                                <span className={`
-                                    text-sm font-medium
-                                    ${isToday ? 'bg-primary-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
-                                `}>
-                                    {date.getDate()}
-                                </span>
+                                <div className="flex justify-between items-start">
+                                    <span className={`
+                                        text-sm font-medium
+                                        ${isToday ? 'bg-primary-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
+                                    `}>
+                                        {date.getDate()}
+                                    </span>
+                                </div>
+                                {inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay && (
+                                    <div className="absolute top-2 right-2 z-50">
+                                        <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-1 rounded-full shadow-lg flex items-center gap-1 animate-bounce border border-white/30">
+                                            💳 <span>Captura de Ventas POS</span>
+                                        </span>
+                                    </div>
+                                )}
                                 {monthlySalesDetails[date.getDate()] && (
                                     <>
                                         <div className="mt-6 space-y-1 flex-1">

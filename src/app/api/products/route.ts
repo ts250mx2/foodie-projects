@@ -68,11 +68,13 @@ export async function GET(request: NextRequest) {
                     p.UnidadMedidaRecetario,
                     c.Categoria,
                     c.ImagenCategoria,
+                    s.SeccionMenu,
                     COALESCE(v.Costo, vp.Costo) as Costo
                 FROM tblProductos p
                 LEFT JOIN vlProductos v ON p.IdProducto = v.IdProducto
                 LEFT JOIN vlPlatillos vp ON p.IdProducto = vp.IdProducto
                 LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
+                LEFT JOIN tblSeccionesMenu s ON p.IdSeccionMenu = s.IdSeccionMenu
                 WHERE p.Status = 0
             `;
 

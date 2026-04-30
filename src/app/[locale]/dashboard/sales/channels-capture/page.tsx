@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
+import POSInsertModal from '@/components/POSInsertModal';
 
 interface Branch {
     IdSucursal: number;
@@ -28,6 +29,7 @@ export default function SalesChannelsCapturePage() {
     const [channels, setChannels] = useState<any[]>([]);
     const [dailySales, setDailySales] = useState<any[]>([]);
     const [monthlySalesDetails, setMonthlySalesDetails] = useState<Record<number, Array<{ shiftName: string, total: number, commission: number }>>>({});
+    const [inventoryDaysDetails, setInventoryDaysDetails] = useState<Record<number, { isMarkedInventoryDay: boolean }>>({});
     const [monthlyPaymentDetails, setMonthlyPaymentDetails] = useState<Record<number, number>>({});
     const [monthlyDailyTotals, setMonthlyDailyTotals] = useState<Record<number, number>>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,6 +59,11 @@ export default function SalesChannelsCapturePage() {
         note: '',
         file: null as string | null
     });
+
+    // POS state
+    const [isPOSModalOpen, setIsPOSModalOpen] = useState(false);
+    const [isSavingPOS, setIsSavingPOS] = useState(false);
+    const [posItems, setPosItems] = useState<any[]>([]);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -121,9 +128,45 @@ export default function SalesChannelsCapturePage() {
         localStorage.setItem('lastSelectedYear', selectedYear.toString());
     }, [selectedYear]);
 
+    const fetchInventoryDates = async () => {
+        if (!project?.idProyecto || !selectedBranch) return;
+        try {
+            const params = new URLSearchParams({
+                projectId: String(project.idProyecto),
+                branchId: String(selectedBranch),
+                month: String(selectedMonth),
+                year: String(selectedYear)
+            });
+            const response = await fetch(`/api/inventories/monthly?${params}`);
+            const data = await response.json();
+            
+            if (data.success && Array.isArray(data.data)) {
+                const detailsMap: Record<number, { isMarkedInventoryDay: boolean }> = {};
+                data.data.forEach((item: any) => {
+                    const dayNum = item.Dia;
+                    if (dayNum && item.isMarkedInventoryDay === 1) {
+                        detailsMap[dayNum] = {
+                            isMarkedInventoryDay: true
+                        };
+                    }
+                });
+                setInventoryDaysDetails(detailsMap);
+            }
+        } catch (error) {
+            console.error('Error fetching inventory dates:', error);
+        }
+    };
+
     useEffect(() => {
         if (project?.idProyecto && selectedBranch) {
+            // Clear details before fetching to avoid showing old data
+            setMonthlySalesDetails({});
+            setInventoryDaysDetails({});
+            setMonthlyPaymentDetails({});
+            setMonthlyDailyTotals({});
+            
             fetchMonthlySales();
+            fetchInventoryDates();
         }
     }, [project, selectedBranch, selectedMonth, selectedYear]);
 
@@ -228,6 +271,59 @@ export default function SalesChannelsCapturePage() {
         ]);
         setActiveTab('channels');
         setIsModalOpen(true);
+        fetchPOSSales(date);
+    };
+
+    const fetchPOSSales = async (date: Date) => {
+        if (!project || !selectedBranch) return;
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto,
+                branchId: selectedBranch,
+                day: date.getDate().toString(),
+                month: date.getMonth().toString(),
+                year: date.getFullYear().toString()
+            });
+            const response = await fetch(`/api/sales/pos?${params}`);
+            const data = await response.json();
+            if (data.success) {
+                setPosItems(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching POS sales:', error);
+        }
+    };
+
+    const handleSavePOS = async (items: any[]) => {
+        if (!selectedDate || !project || !selectedBranch) return;
+        setIsSavingPOS(true);
+        try {
+            const response = await fetch('/api/sales/pos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    branchId: selectedBranch,
+                    day: selectedDate.getDate(),
+                    month: selectedDate.getMonth(),
+                    year: selectedDate.getFullYear(),
+                    items
+                })
+            });
+
+            if (response.ok) {
+                await fetchPOSSales(selectedDate);
+                setIsPOSModalOpen(false);
+                alert('Ventas POS guardadas correctamente');
+            } else {
+                alert('Error al guardar ventas POS');
+            }
+        } catch (error) {
+            console.error('Error saving POS sales:', error);
+            alert('Error al guardar ventas POS');
+        } finally {
+            setIsSavingPOS(false);
+        }
     };
 
     const fetchDailyTotalSale = async (date: Date) => {
@@ -627,6 +723,7 @@ export default function SalesChannelsCapturePage() {
                                             ? 'bg-white border-2 border-primary-400 shadow-primary-100'
                                             : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
                                         }
+                                    ${inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay ? 'bg-emerald-50/30 ring-2 ring-emerald-500/40 ring-inset shadow-emerald-50' : ''}
                                     hover:scale-[1.02] hover:shadow-xl shadow-sm
                                 `}
                                 >
@@ -634,11 +731,18 @@ export default function SalesChannelsCapturePage() {
                                         <span className={`text-xl font-black ${isToday ? 'text-primary-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
                                             {dayNum}
                                         </span>
-                                        {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
-                                                {t('today') || 'HOY'}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-col items-end gap-1">
+                                            {isToday && (
+                                                <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
+                                                    {t('today') || 'HOY'}
+                                                </span>
+                                            )}
+                                            {inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay && (
+                                                <span className="text-[8px] font-black bg-emerald-600 text-white px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 animate-bounce border border-white/20 uppercase">
+                                                    💳 <span>Captura de Ventas POS</span>
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     {(hasSales || monthlyDailyTotals[dayNum] || monthlyPaymentDetails[dayNum]) && (() => {
                                         const reported = monthlyDailyTotals[dayNum] || 0;
@@ -778,6 +882,31 @@ export default function SalesChannelsCapturePage() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Insertar Ventas POS Button (Visible only on inventory days) */}
+                                {inventoryDaysDetails[selectedDate.getDate()]?.isMarkedInventoryDay && (
+                                    <div className="bg-emerald-600 p-5 rounded-xl border border-emerald-500 shadow-lg relative group flex flex-col justify-center text-white overflow-hidden">
+                                        <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-500" />
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest">💳 Punto de Venta Detalle</label>
+                                        </div>
+                                        <div className="flex flex-col gap-2 relative z-10">
+                                            <div className="text-xl font-black">
+                                                {posItems.length > 0 ? (
+                                                    <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(posItems.reduce((s, i) => s + (parseFloat(i.Total) || 0), 0))}</span>
+                                                ) : (
+                                                    <span className="opacity-70 text-sm font-bold italic">Sin captura POS</span>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => setIsPOSModalOpen(true)}
+                                                className="w-full bg-white text-emerald-700 px-3 py-2 rounded-xl text-xs font-black hover:bg-emerald-50 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                <span>🚀 {posItems.length > 0 ? 'Actualizar Detalle POS' : 'Insertar Ventas POS'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* 2. Capturada (Canales) con Diferencia */}
                                 {(() => {
@@ -1218,6 +1347,16 @@ export default function SalesChannelsCapturePage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {isPOSModalOpen && (
+                <POSInsertModal 
+                    isOpen={isPOSModalOpen}
+                    onClose={() => setIsPOSModalOpen(false)}
+                    onSave={handleSavePOS}
+                    isSaving={isSavingPOS}
+                    projectId={project.idProyecto}
+                    initialItems={posItems}
+                />
             )}
         </div>
     );
