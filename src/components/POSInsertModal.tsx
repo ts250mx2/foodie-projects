@@ -264,7 +264,7 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center px-1">
                                             <h3 className="font-black text-gray-800 uppercase tracking-tighter">Items Detectados</h3>
-                                            <Button variant="outline" size="sm" onClick={() => setParsedItems([])} className="text-red-500">Limpiar</Button>
+                                            <Button variant="outline" onClick={() => setParsedItems([])} className="text-red-500 !px-3 !py-1 text-xs">Limpiar</Button>
                                         </div>
                                         <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
                                             <table className="w-full text-left border-collapse">

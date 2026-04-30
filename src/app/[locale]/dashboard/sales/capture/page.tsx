@@ -197,37 +197,6 @@ export default function SalesCapturePage() {
         }
     };
 
-    const fetchMonthlySales = async () => {
-        if (!project || !selectedBranch) return;
-        try {
-            const params = new URLSearchParams({
-                projectId: project.idProyecto,
-                branchId: selectedBranch,
-                month: selectedMonth.toString(),
-                year: selectedYear.toString()
-            });
-            const response = await fetch(`/api/sales/monthly?${params}`);
-            const data = await response.json();
-            if (data.success) {
-                // Group sales by day and shift
-                const detailsMap: Record<number, Array<{ shiftName: string, total: number }>> = {};
-                data.data.forEach((item: any) => {
-                    if (!detailsMap[item.day]) {
-                        detailsMap[item.day] = [];
-                    }
-                    detailsMap[item.day].push({
-                        shiftName: item.shiftName,
-                        total: item.total
-                    });
-                });
-                setMonthlySalesDetails(detailsMap);
-            }
-        } catch (error) {
-            console.error('Error fetching monthly sales:', error);
-        }
-    };
-
-
 
     const handleDayClick = async (date: Date) => {
         const today = new Date();
