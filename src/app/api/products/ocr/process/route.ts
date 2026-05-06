@@ -13,7 +13,7 @@ Analyze these document images (they could be invoices, product lists, receipts, 
 Extract a list of products with exactly these fields:
 - description: The full name of the product as it appears in the document.
 - CodigoBarras: The barcode, SKU, or product code if available, otherwise null.
-- cantidadCompra: Extract the purchase quantity/weight/content ONLY from the text in the description, e.g., 'Jamón 5 KG' -> 5, 'Box 24 units' -> 24. If no quantity is mentioned in the description, default to 1.
+- precio: Extract the unit price or purchase price of the product as a number. If not found, default to 0.
 
 Return ONLY a JSON object with this structure: 
 {
@@ -21,7 +21,7 @@ Return ONLY a JSON object with this structure:
     {
       "description": "HARINA DE TRIGO 5 KG", 
       "CodigoBarras": "SKU123", 
-      "cantidadCompra": 5.0
+      "precio": 125.50
     }
   ]
 }

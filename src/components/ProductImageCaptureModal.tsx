@@ -41,6 +41,7 @@ export default function ProductImageCaptureModal({
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'claude-sonnet-4-6'>('claude-sonnet-4-6');
+    const [isMaximized, setIsMaximized] = useState(false);
     
     // Camera state
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -205,7 +206,8 @@ export default function ProductImageCaptureModal({
                     idCategoria: null,
                     producto: p.description.toUpperCase(),
                     codigo: p.CodigoBarras || '',
-                    cantidadCompra: p.cantidadCompra || 1,
+                    precio: p.precio || 0,
+                    cantidadCompra: 1,
                     suggestions: p.suggestions || []
                 }));
                 setOcrResult(products);
@@ -227,8 +229,8 @@ export default function ProductImageCaptureModal({
                 Producto: p.producto,
                 Codigo: p.codigo,
                 IdCategoria: p.idCategoria,
-                CantidadCompra: p.cantidadCompra,
-                Precio: 0,
+                CantidadCompra: 1,
+                Precio: p.precio || 0,
                 IdTipoProducto: 0
             }));
 
@@ -282,7 +284,7 @@ export default function ProductImageCaptureModal({
 
     return (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 ${!isOpen ? 'hidden' : ''}`}>
-            <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100">
+            <div className={`bg-white w-full transition-all duration-300 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100 ${isMaximized ? 'max-w-[98vw] h-[95vh]' : 'max-w-4xl max-h-[90vh]'}`}>
                 
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
@@ -293,7 +295,16 @@ export default function ProductImageCaptureModal({
                         </h2>
                         <p className="text-xs text-slate-400 font-medium mt-1">Digitaliza productos para tu catálogo con IA</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setIsMaximized(!isMaximized)} 
+                            className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
+                            title={isMaximized ? "Restaurar" : "Maximizar"}
+                        >
+                            {isMaximized ? '🗗' : '🗖'}
+                        </button>
+                        <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-auto p-8 relative">
@@ -366,7 +377,7 @@ export default function ProductImageCaptureModal({
                                             <th className="px-6 py-4">Producto</th>
                                             <th className="px-6 py-4">Código</th>
                                             <th className="px-6 py-4">Categoría</th>
-                                            <th className="px-6 py-4 text-center">Cant.</th>
+                                            <th className="px-6 py-4 text-center">Precio</th>
                                             <th className="px-6 py-4">Estado</th>
                                         </tr>
                                     </thead>
@@ -408,17 +419,17 @@ export default function ProductImageCaptureModal({
                                                             }}
                                                         >
                                                             <option value="">Categoría...</option>
-                                                            {categories.map(c => <option key={c.IdCategoria} value={c.IdCategoria}>{c.Categoria}</option>)}
+                                                            {categories.map(c => <option key={c.IdCategoria} value={c.IdCategoria}>{c.ImagenCategoria} {c.Categoria}</option>)}
                                                         </select>
                                                     </td>
                                                     <td className="px-6 py-3 text-center">
                                                         <input 
                                                             type="number"
-                                                            className="bg-transparent border-none text-center w-12 focus:ring-0" 
-                                                            value={p.cantidadCompra}
+                                                            className="bg-transparent border-none text-center w-20 focus:ring-0" 
+                                                            value={p.precio}
                                                             onChange={(e) => {
                                                                 const next = [...ocrResult];
-                                                                next[i].cantidadCompra = parseFloat(e.target.value);
+                                                                next[i].precio = parseFloat(e.target.value) || 0;
                                                                 setOcrResult(next);
                                                             }}
                                                         />
