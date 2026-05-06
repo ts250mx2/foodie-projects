@@ -360,7 +360,7 @@ export default function ProductsPage() {
                         variant="primary"
                         className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
                     >
-                        📊 Excel
+                        📊 Carga por Excel
                     </Button>
                     <Button
                         onClick={() => {
@@ -369,7 +369,7 @@ export default function ProductsPage() {
                         variant="primary"
                         className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
                     >
-                        📸 Imagen
+                        📸 Carga por Imagen
                     </Button>
                     <Button
                         onClick={() => {
