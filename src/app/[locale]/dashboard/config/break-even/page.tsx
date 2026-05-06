@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { useTheme } from '@/contexts/ThemeContext';
 import { 
     getDashboardSelectedBranch, 
     setDashboardSelectedBranch, 
@@ -35,7 +34,6 @@ interface FixedExpense {
 
 export default function BreakEvenPage() {
     const t = useTranslations('BreakEven');
-    const { theme } = useTheme();
     const [project, setProject] = useState<any>(null);
     const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
