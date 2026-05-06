@@ -42,6 +42,7 @@ export default function ProductImageCaptureModal({
     const [isSaving, setIsSaving] = useState(false);
     const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'claude-sonnet-4-6'>('claude-sonnet-4-6');
     const [isMaximized, setIsMaximized] = useState(false);
+    const [maximizedImage, setMaximizedImage] = useState<string | null>(null);
     
     // Camera state
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -295,15 +296,23 @@ export default function ProductImageCaptureModal({
                         </h2>
                         <p className="text-xs text-slate-400 font-medium mt-1">Digitaliza productos para tu catálogo con IA</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={() => setIsMaximized(!isMaximized)} 
-                            className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
-                            title={isMaximized ? "Restaurar" : "Maximizar"}
-                        >
-                            {isMaximized ? '🗗' : '🗖'}
-                        </button>
-                        <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
+                    <div className="flex items-center gap-4">
+                        <div className="hidden md:flex flex-col gap-1 items-end">
+                            <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
+                            <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-1.5 border border-slate-100 shadow-sm text-[9px] font-black text-indigo-600 shadow-inner">
+                                CLAUDE 3.5
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setIsMaximized(!isMaximized)} 
+                                className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
+                                title={isMaximized ? "Restaurar" : "Maximizar"}
+                            >
+                                {isMaximized ? '🗗' : '🗖'}
+                            </button>
+                            <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
+                        </div>
                     </div>
                 </div>
 
@@ -346,18 +355,35 @@ export default function ProductImageCaptureModal({
 
                     {step === 'preview' && (
                         <div className="animate-in slide-in-from-right-4 duration-500 flex flex-col gap-8">
-                            <div className="flex flex-wrap gap-4 justify-center">
+                             <div className="flex flex-wrap gap-4 justify-center">
                                 {ocrItems.map((item) => (
                                     <div 
                                         key={item.id} 
+                                        className={`relative w-40 h-40 rounded-3xl overflow-hidden shadow-lg border-4 transition-all cursor-pointer ${item.selected ? 'border-indigo-500 scale-105' : 'border-white opacity-70 hover:opacity-100'}`}
                                         onClick={() => setOcrItems(prev => prev.map(it => it.id === item.id ? { ...it, selected: !it.selected } : it))}
-                                        className={`relative w-32 h-32 rounded-2xl overflow-hidden shadow-lg border-4 transition-all cursor-pointer ${item.selected ? 'border-indigo-500 scale-105' : 'border-white opacity-70'}`}
                                     >
+                                        <div className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center z-10 transition-colors ${item.selected ? 'bg-indigo-500 text-white' : 'bg-black/30 text-transparent border-2 border-white'}`}>
+                                            ✓
+                                        </div>
                                         <img src={item.preview} className="w-full h-full object-cover" />
-                                        <button onClick={(e) => {
-                                            e.stopPropagation();
-                                            setOcrItems(prev => prev.filter(it => it.id !== item.id));
-                                        }} className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center text-xs">✕</button>
+                                        <div className="absolute top-2 right-2 flex gap-1 z-20">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setMaximizedImage(item.preview);
+                                                }} 
+                                                className="w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-indigo-600 transition-colors"
+                                                title="Ver más grande"
+                                            >
+                                                🔍
+                                            </button>
+                                            <button onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOcrItems(prev => prev.filter(it => it.id !== item.id));
+                                            }} className="absolute top-0 right-0 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors">
+                                                ✕
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -504,6 +530,25 @@ export default function ProductImageCaptureModal({
                         </div>
                         <p className="text-sm text-indigo-600 font-bold animate-pulse">Esperando captura...</p>
                     </div>
+                </div>
+            )}
+        </div>
+
+            {/* Image Lightbox */}
+            {maximizedImage && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300"
+                    onClick={() => setMaximizedImage(null)}
+                >
+                    <button 
+                        className="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center transition-colors"
+                        onClick={() => setMaximizedImage(null)}
+                    >✕</button>
+                    <img 
+                        src={maximizedImage} 
+                        alt="Maximized" 
+                        className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in duration-300"
+                    />
                 </div>
             )}
         </div>
