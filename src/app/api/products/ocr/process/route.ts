@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { Connection, RowDataPacket } from 'mysql2/promise';
 
+interface SystemProduct extends RowDataPacket {
+    IdProducto: number;
+    systemName: string;
+    systemCodigo: string;
+}
+
 const PRODUCT_OCR_PROMPT = () => `
 Analyze these document images (they could be invoices, product lists, receipts, etc.). 
 Extract a list of products with exactly these fields:
@@ -192,7 +198,7 @@ export async function POST(request: NextRequest) {
         const processedProducts = [];
         for (const product of ocrResult.products) {
             // Priority 1: Check Relationship table
-            const [relRows] = await connection.query<RowDataPacket[]>(
+            const [relRows] = await connection.query<SystemProduct[]>(
                 `SELECT r.IdProducto, p.Producto as systemName, p.Codigo as systemCodigo 
                  FROM tblRelacionProductosOCR r
                  JOIN tblProductos p ON r.IdProducto = p.IdProducto
@@ -213,7 +219,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Priority 2: Check tblProductos directly by name (exact)
-            const [nameRows] = await connection.query<RowDataPacket[]>(
+            const [nameRows] = await connection.query<SystemProduct[]>(
                 'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Producto = ? AND Status = 0',
                 [product.description]
             );
@@ -232,7 +238,7 @@ export async function POST(request: NextRequest) {
 
             // Priority 3: Check tblProductos by Code (exact)
             if (product.CodigoBarras) {
-                const [codeRows] = await connection.query<RowDataPacket[]>(
+                const [codeRows] = await connection.query<SystemProduct[]>(
                     'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Codigo = ? AND Status = 0',
                     [product.CodigoBarras]
                 );
@@ -251,7 +257,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Priority 4: Fuzzy Match (70% similarity)
-            const [allProducts] = await connection.query<RowDataPacket[]>(
+            const [allProducts] = await connection.query<SystemProduct[]>(
                 'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Status = 0'
             );
 
