@@ -205,10 +205,11 @@ export default function ProductImageCaptureModal({
                     ...p,
                     id: uuidv4(),
                     idCategoria: null,
-                    producto: p.description.toUpperCase(),
-                    codigo: p.CodigoBarras || '',
+                    producto: p.systemName ? p.systemName.toUpperCase() : p.description.toUpperCase(),
+                    codigo: p.systemCodigo || p.CodigoBarras || '',
                     precio: p.precio || 0,
                     cantidadCompra: 1,
+                    autoLinked: p.isLinked,
                     suggestions: p.suggestions || []
                 }));
                 setOcrResult(products);
@@ -366,7 +367,7 @@ export default function ProductImageCaptureModal({
                                             ✓
                                         </div>
                                         <img src={item.preview} className="w-full h-full object-cover" />
-                                        <div className="absolute top-2 right-2 flex gap-1 z-20">
+                                        <div className="absolute bottom-2 left-2 flex gap-1 z-20">
                                             <button 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -377,10 +378,12 @@ export default function ProductImageCaptureModal({
                                             >
                                                 🔍
                                             </button>
+                                        </div>
+                                        <div className="absolute top-2 right-2 z-20">
                                             <button onClick={(e) => {
                                                 e.stopPropagation();
                                                 setOcrItems(prev => prev.filter(it => it.id !== item.id));
-                                            }} className="absolute top-0 right-0 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors">
+                                            }} className="w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors">
                                                 ✕
                                             </button>
                                         </div>
@@ -462,7 +465,12 @@ export default function ProductImageCaptureModal({
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         {p.isLinked ? (
-                                                            <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
+                                                                {p.autoLinked && (
+                                                                    <span className="text-[9px] text-slate-400 font-medium italic">Auto: {p.systemName}</span>
+                                                                )}
+                                                            </div>
                                                         ) : p.suggestions?.length > 0 ? (
                                                             <div className="flex flex-col gap-1">
                                                                 <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-black w-fit">SIMILAR AL {Math.round(p.suggestions[0].similarity * 100)}%</span>

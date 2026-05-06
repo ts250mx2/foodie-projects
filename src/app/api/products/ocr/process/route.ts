@@ -274,10 +274,10 @@ export async function POST(request: NextRequest) {
                 processedProducts.push({
                     ...product,
                     IdCategoria: null,
-                    systemId: suggestions[0].similarity >= 0.9 ? suggestions[0].IdProducto : null,
-                    systemName: suggestions[0].similarity >= 0.9 ? suggestions[0].systemName : null,
-                    systemCodigo: suggestions[0].similarity >= 0.9 ? suggestions[0].systemCodigo : null,
-                    isLinked: suggestions[0].similarity >= 0.9,
+                    systemId: suggestions[0].similarity >= 0.7 ? suggestions[0].IdProducto : null,
+                    systemName: suggestions[0].similarity >= 0.7 ? suggestions[0].systemName : null,
+                    systemCodigo: suggestions[0].similarity >= 0.7 ? suggestions[0].systemCodigo : null,
+                    isLinked: suggestions[0].similarity >= 0.7,
                     suggestions: suggestions.map(s => ({
                         id: s.IdProducto,
                         name: s.systemName,
