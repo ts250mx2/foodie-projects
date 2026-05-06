@@ -209,7 +209,7 @@ export default function ProductImageCaptureModal({
                     codigo: p.systemCodigo || p.CodigoBarras || '',
                     precio: p.precio || 0,
                     cantidadCompra: 1,
-                    autoLinked: p.isLinked,
+                    autoLinked: p.isLinked && (!p.suggestions?.[0] || p.suggestions[0].similarity < 1),
                     suggestions: p.suggestions || []
                 }));
                 setOcrResult(products);
@@ -468,7 +468,22 @@ export default function ProductImageCaptureModal({
                                                             <div className="flex flex-col gap-1">
                                                                 <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
                                                                 {p.autoLinked && (
-                                                                    <span className="text-[9px] text-slate-400 font-medium italic">Auto: {p.systemName}</span>
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <span className="text-[9px] text-slate-400 font-medium italic">Auto: {p.systemName}</span>
+                                                                        <button 
+                                                                            onClick={() => {
+                                                                                const next = [...ocrResult];
+                                                                                next[i].isLinked = false;
+                                                                                next[i].autoLinked = false;
+                                                                                next[i].systemId = null;
+                                                                                next[i].producto = p.description.toUpperCase();
+                                                                                setOcrResult(next);
+                                                                            }}
+                                                                            className="text-[9px] text-indigo-600 font-bold hover:underline text-left"
+                                                                        >
+                                                                            Desvincular y crear nuevo
+                                                                        </button>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         ) : p.suggestions?.length > 0 ? (
