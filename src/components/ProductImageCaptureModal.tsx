@@ -236,6 +236,10 @@ export default function ProductImageCaptureModal({
             return;
         }
 
+        if (!confirm(`¿Desea registrar estos ${validProducts.length} productos en el catálogo?`)) {
+            return;
+        }
+
         setIsSaving(true);
         try {
             const response = await fetch('/api/products/massive-upload/process', {

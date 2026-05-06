@@ -359,6 +359,10 @@ export default function MassiveProductUpload({
                     }));
 
                 if (newProducts.length > 0) {
+                    if (!confirm(`Se van a registrar ${newProducts.length} productos nuevos en el catálogo. ¿Desea continuar?`)) {
+                        setIsProcessing(false);
+                        return;
+                    }
                     const response = await fetch('/api/products/massive-upload/process', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
