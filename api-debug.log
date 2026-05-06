@@ -5784,3 +5784,30 @@ Body: {
   "unidadMedidaRecetario": ""
 }
 
+[2026-05-06T21:40:27.198Z] PUT /api/products/695
+Body: {
+  "projectId": 12,
+  "producto": "1LT AGUA",
+  "codigo": "287426",
+  "idCategoria": 13,
+  "idPresentacion": null,
+  "precio": 79.94,
+  "iva": 0,
+  "idTipoProducto": 0,
+  "conversionSimple": 950,
+  "idCategoriaRecetario": null,
+  "idSeccionMenu": null,
+  "porcentajeCostoIdeal": null,
+  "rutaFoto": null,
+  "archivoImagen": null,
+  "nombreArchivo": null,
+  "cantidadCompra": 1,
+  "idPresentacionInventario": null,
+  "idPresentacionConversion": null,
+  "pesoInicial": 1,
+  "pesoFinal": 1,
+  "unidadMedidaCompra": "Botella",
+  "unidadMedidaInventario": "Pieza (pza)",
+  "unidadMedidaRecetario": "Gramo (g)"
+}
+

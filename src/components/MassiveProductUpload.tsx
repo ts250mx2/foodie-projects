@@ -263,7 +263,8 @@ export default function MassiveProductUpload({
                     _isLinked: p.isLinked,
                     _systemId: p.systemId,
                     _systemName: p.systemName,
-                    _systemCodigo: p.systemCodigo
+                    _systemCodigo: p.systemCodigo,
+                    suggestions: p.suggestions || []
                 }));
                 setUploadedData(formattedData);
                 await fetchExistingProducts();
@@ -720,6 +721,35 @@ export default function MassiveProductUpload({
                                                                                     {systemName || "..."}
                                                                                 </span>
                                                                             </div>
+                                                                        </div>
+                                                                    ) : row.suggestions?.length > 0 ? (
+                                                                        <div className="flex flex-col gap-1">
+                                                                            <span className="text-[8px] bg-amber-50 text-amber-600 px-1 rounded-full font-black w-fit uppercase tracking-tighter">Similar al {Math.round(row.suggestions[0].similarity * 100)}%</span>
+                                                                            <select 
+                                                                                className="text-[8px] text-slate-500 bg-slate-50 rounded border-slate-100 focus:ring-0 py-0.5 mt-0.5"
+                                                                                onChange={(e) => {
+                                                                                    const selected = row.suggestions.find((s: any) => s.id.toString() === e.target.value);
+                                                                                    if (selected) {
+                                                                                        const next = [...uploadedData];
+                                                                                        next[idx] = {
+                                                                                            ...next[idx],
+                                                                                            Descripción: selected.name,
+                                                                                            Producto: selected.name,
+                                                                                            Codigo: selected.code,
+                                                                                            _isLinked: true,
+                                                                                            _systemId: selected.id,
+                                                                                            _systemName: selected.name,
+                                                                                            _systemCodigo: selected.code
+                                                                                        };
+                                                                                        setUploadedData(next);
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                <option value="">¿Vincular?</option>
+                                                                                {row.suggestions.map((s: any) => (
+                                                                                    <option key={s.id} value={s.id}>{s.name} ({Math.round(s.similarity * 100)}%)</option>
+                                                                                ))}
+                                                                            </select>
                                                                         </div>
                                                                     ) : hasIssues ? (
                                                                         <div className="flex items-center gap-1">

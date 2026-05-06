@@ -205,7 +205,8 @@ export default function ProductImageCaptureModal({
                     idCategoria: null,
                     producto: p.description.toUpperCase(),
                     codigo: p.CodigoBarras || '',
-                    cantidadCompra: p.cantidadCompra || 1
+                    cantidadCompra: p.cantidadCompra || 1,
+                    suggestions: p.suggestions || []
                 }));
                 setOcrResult(products);
                 setStep('register');
@@ -423,10 +424,36 @@ export default function ProductImageCaptureModal({
                                                         />
                                                     </td>
                                                     <td className="px-6 py-3">
-                                                        {duplicate || p.isLinked ? (
-                                                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
+                                                        {p.isLinked ? (
+                                                            <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
+                                                        ) : p.suggestions?.length > 0 ? (
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-black w-fit">SIMILAR AL {Math.round(p.suggestions[0].similarity * 100)}%</span>
+                                                                <select 
+                                                                    className="text-[9px] text-slate-500 bg-slate-100 rounded border-none focus:ring-0 py-0.5"
+                                                                    onChange={(e) => {
+                                                                        const selected = p.suggestions.find((s: any) => s.id.toString() === e.target.value);
+                                                                        if (selected) {
+                                                                            const next = [...ocrResult];
+                                                                            next[i] = {
+                                                                                ...next[i],
+                                                                                producto: selected.name,
+                                                                                codigo: selected.code,
+                                                                                isLinked: true,
+                                                                                systemId: selected.id
+                                                                            };
+                                                                            setOcrResult(next);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <option value="">¿Es este?</option>
+                                                                    {p.suggestions.map((s: any) => (
+                                                                        <option key={s.id} value={s.id}>{s.name} ({Math.round(s.similarity * 100)}%)</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
                                                         ) : (
-                                                            <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">NUEVO</span>
+                                                            <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-black">NUEVO</span>
                                                         )}
                                                     </td>
                                                 </tr>

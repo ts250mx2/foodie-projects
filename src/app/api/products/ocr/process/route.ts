@@ -22,6 +22,32 @@ Return ONLY a JSON object with this structure:
 Ensure numeric values are numbers, not strings.
 `;
 
+function getSimilarity(s1: string, s2: string): number {
+    s1 = s1.toLowerCase().trim();
+    s2 = s2.toLowerCase().trim();
+    if (s1 === s2) return 1.0;
+    if (s1.length < 2 || s2.length < 2) return 0;
+
+    const getBigrams = (str: string) => {
+        const bigrams = new Set<string>();
+        for (let i = 0; i < str.length - 1; i++) {
+            bigrams.add(str.substring(i, i + 2));
+        }
+        return bigrams;
+    };
+
+    const pairs1 = getBigrams(s1);
+    const pairs2 = getBigrams(s2);
+    const union = pairs1.size + pairs2.size;
+    
+    let intersection = 0;
+    pairs1.forEach(p => {
+        if (pairs2.has(p)) intersection++;
+    });
+
+    return (2.0 * intersection) / union;
+}
+
 async function processWithClaude(files: File[], prompt: string, modelName: string): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured in .env');
@@ -224,6 +250,38 @@ export async function POST(request: NextRequest) {
                 }
             }
 
+            // Priority 4: Fuzzy Match (70% similarity)
+            const [allProducts] = await connection.query<RowDataPacket[]>(
+                'SELECT IdProducto, Producto as systemName, Codigo as systemCodigo FROM tblProductos WHERE Status = 0'
+            );
+
+            const suggestions = allProducts
+                .map(p => ({
+                    ...p,
+                    similarity: getSimilarity(product.description, p.systemName)
+                }))
+                .filter(p => p.similarity >= 0.7)
+                .sort((a, b) => b.similarity - a.similarity)
+                .slice(0, 5);
+
+            if (suggestions.length > 0) {
+                processedProducts.push({
+                    ...product,
+                    IdCategoria: null,
+                    systemId: suggestions[0].similarity >= 0.9 ? suggestions[0].IdProducto : null,
+                    systemName: suggestions[0].similarity >= 0.9 ? suggestions[0].systemName : null,
+                    systemCodigo: suggestions[0].similarity >= 0.9 ? suggestions[0].systemCodigo : null,
+                    isLinked: suggestions[0].similarity >= 0.9,
+                    suggestions: suggestions.map(s => ({
+                        id: s.IdProducto,
+                        name: s.systemName,
+                        code: s.systemCodigo,
+                        similarity: s.similarity
+                    }))
+                });
+                continue;
+            }
+
             // Not found in system
             processedProducts.push({
                 ...product,
@@ -231,7 +289,8 @@ export async function POST(request: NextRequest) {
                 systemId: null,
                 systemName: null,
                 systemCodigo: null,
-                isLinked: false
+                isLinked: false,
+                suggestions: []
             });
         }
 
