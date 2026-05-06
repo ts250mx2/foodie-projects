@@ -88,8 +88,8 @@ export default function InventoryCapturePage() {
             fetchBranches();
 
             const savedBranch = localStorage.getItem('dashboardSelectedBranch');
-            const savedMonth = localStorage.getItem('lastSelectedMonthInventory');
-            const savedYear = localStorage.getItem('lastSelectedYearInventory');
+            const savedMonth = localStorage.getItem('lastSelectedMonth');
+            const savedYear = localStorage.getItem('lastSelectedYear');
 
             if (savedBranch) setSelectedBranch(savedBranch);
             if (savedMonth) setSelectedMonth(parseInt(savedMonth));
@@ -102,11 +102,11 @@ export default function InventoryCapturePage() {
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonthInventory', selectedMonth.toString());
+        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
     }, [selectedMonth]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedYearInventory', selectedYear.toString());
+        localStorage.setItem('lastSelectedYear', selectedYear.toString());
     }, [selectedYear]);
 
     useEffect(() => {

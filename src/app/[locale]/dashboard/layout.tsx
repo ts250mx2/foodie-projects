@@ -3,7 +3,7 @@
 import Header from '@/components/dashboard/Header';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 export default function DashboardLayout({
     children,
@@ -13,6 +13,28 @@ export default function DashboardLayout({
     params: Promise<{ locale: string }>
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    useEffect(() => {
+        // Initialize date filters if not done in this session
+        const initialized = sessionStorage.getItem('dateFiltersInitialized');
+        if (!initialized) {
+            const now = new Date();
+            localStorage.setItem('lastSelectedMonth', now.getMonth().toString());
+            localStorage.setItem('lastSelectedYear', now.getFullYear().toString());
+            
+            // Clean up old specific keys to ensure migration to unified keys
+            const oldKeys = [
+                'dashboardSelectedMonth', 'dashboardSelectedYear',
+                'lastSelectedMonthInventory', 'lastSelectedYearInventory',
+                'lastSelectedMonthSales', 'lastSelectedYearSales',
+                'lastSelectedMonthProduction', 'lastSelectedYearProduction',
+                'lastSelectedMonthPayroll', 'lastSelectedYearPayroll'
+            ];
+            oldKeys.forEach(key => localStorage.removeItem(key));
+            
+            sessionStorage.setItem('dateFiltersInitialized', 'true');
+        }
+    }, []);
 
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);

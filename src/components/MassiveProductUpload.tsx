@@ -13,9 +13,16 @@ import { useParams } from 'next/navigation';
 interface MassiveProductUploadProps {
     onSuccess?: () => void;
     hideHeader?: boolean;
+    initialTab?: 'excel' | 'ocr';
+    onlyExcel?: boolean;
 }
 
-export default function MassiveProductUpload({ onSuccess, hideHeader = false }: MassiveProductUploadProps) {
+export default function MassiveProductUpload({ 
+    onSuccess, 
+    hideHeader = false,
+    initialTab = 'ocr',
+    onlyExcel = false
+}: MassiveProductUploadProps) {
     const t = useTranslations('Navigation');
     const params = useParams();
     const locale = params.locale as string;
@@ -42,6 +49,8 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
     const [showQrModal, setShowQrModal] = useState(false);
     const [qrSessionId, setQrSessionId] = useState('');
     const [isPolling, setIsPolling] = useState(false);
+
+    const [activeTab, setActiveTab] = useState<'excel' | 'ocr'>(onlyExcel ? 'excel' : initialTab);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -417,8 +426,6 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
         }
     };
 
-    const [activeTab, setActiveTab] = useState<'excel' | 'ocr'>('ocr');
-
     return (
         <div className="flex flex-col gap-3 min-h-screen bg-[#fcfdfe] p-2 md:p-4 font-sans text-slate-900">
             {!hideHeader && (
@@ -435,32 +442,34 @@ export default function MassiveProductUpload({ onSuccess, hideHeader = false }: 
 
             <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col relative">
                 {/* TABS (ESTILO CARPETA) */}
-                <div className="flex bg-slate-50 p-1.5 gap-1.5 border-b border-slate-100">
-                    <button
-                        onClick={() => setActiveTab('ocr')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
-                            activeTab === 'ocr' 
-                            ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' 
-                            : 'text-slate-400 hover:bg-slate-100/50'
-                        }`}
-                    >
-                        {activeTab === 'ocr' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600"></span>}
-                        <span className="text-lg">🔍</span>
-                        Carga por Imagen
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('excel')}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
-                            activeTab === 'excel' 
-                            ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-slate-100' 
-                            : 'text-slate-400 hover:bg-slate-100/50'
-                        }`}
-                    >
-                        {activeTab === 'excel' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></span>}
-                        <span className="text-lg">📊</span>
-                        CARGA POR EXCEL
-                    </button>
-                </div>
+                {!onlyExcel && (
+                    <div className="flex bg-slate-50 p-1.5 gap-1.5 border-b border-slate-100">
+                        <button
+                            onClick={() => setActiveTab('ocr')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
+                                activeTab === 'ocr' 
+                                ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' 
+                                : 'text-slate-400 hover:bg-slate-100/50'
+                            }`}
+                        >
+                            {activeTab === 'ocr' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600"></span>}
+                            <span className="text-lg">🔍</span>
+                            Carga por Imagen
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('excel')}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all duration-500 overflow-hidden relative ${
+                                activeTab === 'excel' 
+                                ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-slate-100' 
+                                : 'text-slate-400 hover:bg-slate-100/50'
+                            }`}
+                        >
+                            {activeTab === 'excel' && <span className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></span>}
+                            <span className="text-lg">📊</span>
+                            CARGA POR EXCEL
+                        </button>
+                    </div>
+                )}
 
                 <div className="p-6 relative min-h-[300px] flex flex-col">
                     {/* LOADING OVERLAY PARA OCR */}

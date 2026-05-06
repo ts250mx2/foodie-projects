@@ -55,8 +55,8 @@ export default function ProductionCapturePage() {
 
             // Load persisted filters
             const savedBranch = localStorage.getItem('dashboardSelectedBranch');
-            const savedMonth = localStorage.getItem('lastSelectedMonthProduction');
-            const savedYear = localStorage.getItem('lastSelectedYearProduction');
+            const savedMonth = localStorage.getItem('lastSelectedMonth');
+            const savedYear = localStorage.getItem('lastSelectedYear');
 
             if (savedBranch) setSelectedBranch(savedBranch);
             if (savedMonth) setSelectedMonth(parseInt(savedMonth));
@@ -80,11 +80,11 @@ export default function ProductionCapturePage() {
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonthProduction', selectedMonth.toString());
+        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
     }, [selectedMonth]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedYearProduction', selectedYear.toString());
+        localStorage.setItem('lastSelectedYear', selectedYear.toString());
     }, [selectedYear]);
 
     useEffect(() => {

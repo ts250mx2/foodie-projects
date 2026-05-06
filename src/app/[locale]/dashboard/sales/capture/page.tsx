@@ -58,8 +58,8 @@ export default function SalesCapturePage() {
 
             // Load persisted filters
             const savedBranch = localStorage.getItem('dashboardSelectedBranch');
-            const savedMonth = localStorage.getItem('lastSelectedMonthInventory');
-            const savedYear = localStorage.getItem('lastSelectedYearInventory');
+            const savedMonth = localStorage.getItem('lastSelectedMonth');
+            const savedYear = localStorage.getItem('lastSelectedYear');
 
             if (savedBranch) setSelectedBranch(savedBranch);
             if (savedMonth) setSelectedMonth(parseInt(savedMonth));
@@ -72,12 +72,11 @@ export default function SalesCapturePage() {
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedYearInventory', selectedYear.toString());
-        localStorage.setItem('lastSelectedYearSales', selectedYear.toString());
+        localStorage.setItem('lastSelectedYear', selectedYear.toString());
     }, [selectedYear]);
 
     useEffect(() => {
-        localStorage.setItem('lastSelectedMonthSales', selectedMonth.toString());
+        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
     }, [selectedMonth]);
 
     const fetchMonthlySales = async () => {

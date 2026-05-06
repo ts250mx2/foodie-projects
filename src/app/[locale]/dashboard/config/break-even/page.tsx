@@ -1,293 +1,134 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
+import { 
+    getDashboardSelectedBranch, 
+    setDashboardSelectedBranch, 
+    getDashboardSelectedMonth, 
+    getDashboardSelectedYear, 
+    setDashboardSelectedMonth, 
+    setDashboardSelectedYear 
+} from '@/lib/storage';
+import BranchSelector from '@/components/BranchSelector';
+import MonthSelector from '@/components/MonthSelector';
+import YearSelector from '@/components/YearSelector';
 import Button from '@/components/Button';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { toPng } from 'html-to-image';
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer
-} from 'recharts';
+import BreakEvenProductImageCaptureModal from '@/components/BreakEvenProductImageCaptureModal';
+import MassiveProductUpload from '@/components/MassiveProductUpload';
 
-interface Branch {
-    IdSucursal: number;
-    Sucursal: string;
+interface RepresentativeProduct {
+    IdProducto?: number;
+    NombreProducto: string;
+    CostoMateriaPrima: number;
+    Empaque: number;
 }
 
 interface FixedExpense {
+    IdGasto?: number;
     ConceptoGasto: string;
     Monto: number;
 }
 
-interface Scenario {
-    IdEscenario: number;
-    PrecioTicket: number;
-    VolumenTickets: number;
-}
-
-// Local Price Input Component for consistent currency formatting
-const PriceInput = ({ value, onChange, onBlur, className, color = 'indigo', disabled = false }: any) => {
-    const [isFocused, setIsFocused] = useState(false);
-    const [displayValue, setDisplayValue] = useState('');
-
-    useEffect(() => {
-        if (!isFocused) {
-            setDisplayValue(new Intl.NumberFormat('es-MX', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-            }).format(value || 0));
-        }
-    }, [value, isFocused]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (disabled) return;
-        let raw = e.target.value.replace(/[^0-9.]/g, '');
-        // Handle multiple decimals
-        const parts = raw.split('.');
-        if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
-        
-        setDisplayValue(e.target.value);
-        const num = parseFloat(raw) || 0;
-        onChange(num);
-    };
-
-    const colorClasses: Record<string, string> = {
-        indigo: 'focus-within:border-indigo-500 focus-within:ring-indigo-500/10 text-indigo-900',
-        orange: 'focus-within:border-orange-500 focus-within:ring-orange-500/10 text-orange-900',
-        slate: 'focus-within:border-slate-500 focus-within:ring-slate-500/10 text-slate-900'
-    };
-
-    const currentClasses = colorClasses[color] || colorClasses.indigo;
-
-    return (
-        <div className={`flex items-center bg-white border-2 border-slate-200 rounded-xl overflow-hidden transition-all shadow-sm ${currentClasses.split(' ').slice(0, 2).join(' ')} ${className} ${disabled ? 'bg-slate-50 opacity-75' : ''}`}>
-            <div className="pl-2.5 pr-1 py-1.5 flex items-center pointer-events-none bg-slate-50 border-r border-slate-100">
-                <span className={`text-[10px] font-black italic ${currentClasses.split(' ').pop()}`}>$</span>
-            </div>
-            <input
-                type="text"
-                value={isFocused ? displayValue.replace(/,/g, '') : displayValue}
-                onChange={handleChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => {
-                    setIsFocused(false);
-                    if (onBlur) onBlur();
-                }}
-                disabled={disabled}
-                className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-900 text-right bg-transparent disabled:cursor-not-allowed"
-            />
-        </div>
-    );
-};
-
 export default function BreakEvenPage() {
-
     const t = useTranslations('BreakEven');
-    const tCommon = useTranslations('Common');
-    const tProd = useTranslations('Production');
-    const { colors } = useTheme();
-
-    // Refs for auto-focus and export
-    const expenseInputsRef = useRef<(HTMLInputElement | null)[]>([]);
-    const chartRef = useRef<HTMLDivElement>(null);
-
-
-
-    // Basic state
-    const [branches, setBranches] = useState<Branch[]>([]);
-    const [selectedBranch, setSelectedBranch] = useState<string>('');
+    const { theme } = useTheme();
+    const [project, setProject] = useState<any>(null);
+    const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-    const [project, setProject] = useState<any>(null);
-
-    // Form data
-    const [monthlySales, setMonthlySales] = useState<number>(0);
-    const [avgTicket, setAvgTicket] = useState<number>(0);
-    const [volume, setVolume] = useState<number>(0);
-    const [rawMaterial, setRawMaterial] = useState<number>(0);
-    const [packaging, setPackaging] = useState<number>(0);
-    const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
-    const [representativeProducts, setRepresentativeProducts] = useState<any[]>([]);
-    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [newProduct, setNewProduct] = useState({ name: '', rawMaterial: 0, packaging: 0 });
-    const [isChartModalOpen, setIsChartModalOpen] = useState(false);
-
+    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
-    const preventAutoSaveRef = useRef(false);
-    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const [lastSaved, setLastSaved] = useState<string | null>(null);
 
+    // Form states
+    const [priceTicket, setPriceTicket] = useState<number>(0);
+    const [volumeTickets, setVolumeTickets] = useState<number>(0);
+    const [representativeProducts, setRepresentativeProducts] = useState<RepresentativeProduct[]>([]);
+    const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
 
+    // Modal states
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [newProduct, setNewProduct] = useState<RepresentativeProduct>({ NombreProducto: '', CostoMateriaPrima: 0, Empaque: 0 });
+    const [newExpense, setNewExpense] = useState<FixedExpense>({ ConceptoGasto: '', Monto: 0 });
+    const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+    const [editingExpenseIndex, setEditingExpenseIndex] = useState<number | null>(null);
+    const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+    const [isMassiveExcelModalOpen, setIsMassiveExcelModalOpen] = useState(false);
 
-    // Calculated values (Main Analysis)
-    const avgSalesAmount = monthlySales;
+    // Full screen modals for editing all items
+    const [isFullProductsModalOpen, setIsFullProductsModalOpen] = useState(false);
+    const [isFullExpensesModalOpen, setIsFullExpensesModalOpen] = useState(false);
 
-    // Derived representative costs (Average of products or fallback to manual)
-    const avgRawMaterial = useMemo(() => {
-        if (representativeProducts.length === 0) return rawMaterial;
-        const sum = representativeProducts.reduce((s, p) => s + (p.CostoMateriaPrima || 0), 0);
-        return sum / representativeProducts.length;
-    }, [representativeProducts, rawMaterial]);
-
-    const avgPackaging = useMemo(() => {
-        if (representativeProducts.length === 0) return packaging;
-        const sum = representativeProducts.reduce((s, p) => s + (p.Empaque || 0), 0);
-        return sum / representativeProducts.length;
-    }, [representativeProducts, packaging]);
-
-    const sumVariableCosts = avgRawMaterial + avgPackaging;
-    const variableCostsTotal = sumVariableCosts * volume;
-
-    const unitContributionMargin = avgTicket - sumVariableCosts;
-    const totalFixedExpenses = fixedExpenses.reduce((sum, exp) => sum + (exp.Monto || 0), 0);
-    const totalCostsPerPeriod = totalFixedExpenses + variableCostsTotal;
-
-    // Final Break-Even Results
-    const breakEvenUnits = unitContributionMargin > 0 ? totalFixedExpenses / unitContributionMargin : 0;
-    const breakEvenDollars = breakEvenUnits * avgTicket;
-    const dailyBreakEvenUnits = breakEvenUnits / 30;
-    const dailyBreakEvenDollars = breakEvenDollars / 30;
-
-    // Auto-focus logic for new expenses
-    useEffect(() => {
-        if (fixedExpenses.length > 0) {
-            const lastIdx = fixedExpenses.length - 1;
-            // Safe focus on the last element if it's empty (likely just created)
-            if (expenseInputsRef.current[lastIdx] && !fixedExpenses[lastIdx].ConceptoGasto) {
-                expenseInputsRef.current[lastIdx]?.focus();
-            }
-        }
-    }, [fixedExpenses.length]);
-
-    // Auto-calculate average ticket whenever monthly sales or volume changes
-    useEffect(() => {
-        const calculatedAvg = volume > 0 ? monthlySales / volume : 0;
-        setAvgTicket(calculatedAvg);
-    }, [monthlySales, volume]);
-
-
-    // Chart Data Generation (Dynamic Points: 0, Break-Even, Current, and Projection)
-    const chartData = useMemo(() => {
-        const points = [];
-
-        // 1. Point 0
-        points.push({
-            name: 'Inicio',
-            ventas: 0,
-            costos: totalFixedExpenses,
-            fijos: totalFixedExpenses,
-            variables: 0
-        });
-
-        // 2. Break-Even Point
-        if (breakEvenDollars > 0) {
-            points.push({
-                name: 'Pto. Equilibrio',
-                ventas: breakEvenDollars,
-                costos: breakEvenDollars, // At break-even, costs = sales
-                fijos: totalFixedExpenses,
-                variables: breakEvenDollars - totalFixedExpenses
-            });
-        }
-
-        // 3. Current Point
-        if (monthlySales > 0) {
-            points.push({
-                name: 'Actual',
-                ventas: monthlySales,
-                costos: totalCostsPerPeriod,
-                fijos: totalFixedExpenses,
-                variables: variableCostsTotal
-            });
-        }
-
-        // 4. Projection Point (150% of current or 150% of break-even)
-        const targetVentas = Math.max(monthlySales, breakEvenDollars) * 1.5;
-        if (targetVentas > 0) {
-            const targetVolumen = avgTicket > 0 ? targetVentas / avgTicket : 0;
-            const targetVariables = sumVariableCosts * targetVolumen;
-            points.push({
-                name: 'Proyección',
-                ventas: targetVentas,
-                costos: totalFixedExpenses + targetVariables,
-                fijos: totalFixedExpenses,
-                variables: targetVariables
-            });
-        }
-
-        return points.sort((a, b) => a.ventas - b.ventas);
-    }, [monthlySales, totalCostsPerPeriod, totalFixedExpenses, breakEvenDollars, variableCostsTotal, avgTicket, sumVariableCosts]);
-
-
-    const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i);
+    // Refs for autosave
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
-        if (storedProject) setProject(JSON.parse(storedProject));
+        if (storedProject) {
+            setProject(JSON.parse(storedProject));
+        }
+
+        // Initialize selectors from storage
+        const branchId = getDashboardSelectedBranch();
+        const month = getDashboardSelectedMonth();
+        const year = getDashboardSelectedYear();
+
+        if (branchId) setSelectedBranch(branchId);
+        setSelectedMonth(month);
+        setSelectedYear(year);
+
+        // Sync with storage events
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'dashboardSelectedBranch') {
+                const val = getDashboardSelectedBranch();
+                if (val) setSelectedBranch(val);
+            } else if (e.key === 'lastSelectedMonth') {
+                const val = getDashboardSelectedMonth();
+                setSelectedMonth(val);
+            } else if (e.key === 'lastSelectedYear') {
+                const val = getDashboardSelectedYear();
+                setSelectedYear(val);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     useEffect(() => {
-        if (project?.idProyecto) {
-            fetchBranches();
-            const savedBranch = localStorage.getItem('dashboardSelectedBranch');
-            const savedMonth = localStorage.getItem('lastSelectedMonth');
-            const savedYear = localStorage.getItem('lastSelectedYear');
-            if (savedBranch) setSelectedBranch(savedBranch);
-            if (savedMonth) setSelectedMonth(parseInt(savedMonth));
-            if (savedYear) setSelectedYear(parseInt(savedYear));
+        if (selectedBranch !== null && selectedMonth !== undefined && selectedYear !== undefined) {
+            fetchBreakEvenData();
         }
-    }, [project]);
+    }, [selectedBranch, selectedMonth, selectedYear]);
 
-    useEffect(() => {
-        if (selectedBranch && project) fetchData();
-    }, [selectedBranch, selectedMonth, selectedYear, project]);
-
-    const fetchBranches = async () => {
-        try {
-            const response = await fetch(`/api/branches?projectId=${project.idProyecto}`);
-            const data = await response.json();
-            if (data.success && data.data.length > 0) {
-                setBranches(data.data);
-                if (!selectedBranch) setSelectedBranch(data.data[0].IdSucursal.toString());
-            }
-        } catch (error) { console.error('Error fetching branches:', error); }
-    };
-
-    const fetchData = async () => {
-        if (!project || !selectedBranch) return;
+    const fetchBreakEvenData = async () => {
+        if (!selectedBranch || !project?.idProyecto) return;
         setIsLoading(true);
-        preventAutoSaveRef.current = true;
         try {
-            const params = new URLSearchParams({
-                projectId: project.idProyecto,
-                branchId: selectedBranch,
-                month: (selectedMonth + 1).toString(),
-                year: selectedYear.toString()
-            });
-            const response = await fetch(`/api/config/break-even?${params}`);
+            // API expects 1-indexed month
+            const response = await fetch(`/api/config/break-even?projectId=${project.idProyecto}&branchId=${selectedBranch}&month=${selectedMonth + 1}&year=${selectedYear}`);
             const data = await response.json();
             if (data.success && data.data) {
-                const price = data.data.PrecioTicket || 0;
-                const vol = data.data.VolumenTickets || 0;
-                setVolume(vol);
-                setMonthlySales(price * vol);
-                setRawMaterial(data.data.CostoMateriaPrima || 0);
-                setPackaging(data.data.Empaque || 0);
-                setFixedExpenses(data.data.fixedExpenses || []);
+                setPriceTicket(data.data.PrecioTicket || 0);
+                setVolumeTickets(data.data.VolumenTickets || 0);
                 setRepresentativeProducts(data.data.representativeProducts || []);
+                setFixedExpenses(data.data.fixedExpenses || []);
+                if (data.data.FechaAct) {
+                    setLastSaved(new Date(data.data.FechaAct).toLocaleString());
+                } else {
+                    setLastSaved(null);
+                }
             } else {
-                setMonthlySales(0); setVolume(0); setRawMaterial(0); setPackaging(0); setFixedExpenses([]);
+                setPriceTicket(0);
+                setVolumeTickets(0);
                 setRepresentativeProducts([]);
+                setFixedExpenses([]);
+                setLastSaved(null);
             }
         } catch (error) {
             console.error('Error fetching break-even data:', error);
@@ -296,581 +137,881 @@ export default function BreakEvenPage() {
         }
     };
 
-    const handleSave = async (silent = false) => {
-        if (!project || !selectedBranch || isLoading) return;
-        if (!silent) setIsSaving(true);
+    const handleBranchChange = (branchId: number) => {
+        setSelectedBranch(branchId);
+        setDashboardSelectedBranch(branchId);
+    };
+
+    const handleMonthChange = (month: number) => {
+        setSelectedMonth(month);
+        setDashboardSelectedMonth(month);
+    };
+
+    const handleYearChange = (year: number) => {
+        setSelectedYear(year);
+        setDashboardSelectedYear(year);
+    };
+
+    const flushSave = async () => {
+        if (!selectedBranch || !project?.idProyecto) return;
+        setIsSaving(true);
         try {
             const response = await fetch('/api/config/break-even', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    projectId: project.idProyecto, branchId: selectedBranch, month: selectedMonth + 1, year: selectedYear,
-                    price: avgTicket, volume: volume, 
-                    rawMaterial: representativeProducts.length > 0 ? avgRawMaterial : rawMaterial, 
-                    packaging: representativeProducts.length > 0 ? avgPackaging : packaging, 
-                    fixedExpenses, representativeProducts
+                    projectId: project.idProyecto,
+                    branchId: selectedBranch,
+                    month: selectedMonth + 1, // 1-indexed
+                    year: selectedYear,
+                    price: priceTicket,
+                    volume: volumeTickets,
+                    representativeProducts,
+                    fixedExpenses
                 })
             });
             const data = await response.json();
             if (data.success) {
-                if (!silent) alert(t('successSave'));
-                if (silent) setAutoSaveStatus('saved');
-            } else {
-                if (!silent) alert(t('errorSave'));
-                if (silent) setAutoSaveStatus('error');
+                setLastSaved(new Date().toLocaleString());
             }
-        } catch (error) { 
-            console.error('Error saving break-even data:', error); 
-            if (!silent) alert(t('errorSave')); 
-            if (silent) setAutoSaveStatus('error');
-        } finally { 
-            if (!silent) setIsSaving(false); 
-        }
-    };
-
-    // Auto-save logic
-    useEffect(() => {
-        // Don't auto-save while loading initial data or if we don't have a selection
-        if (isLoading || !selectedBranch || !project) return;
-
-        if (preventAutoSaveRef.current) {
-            preventAutoSaveRef.current = false;
-            return;
-        }
-
-        setAutoSaveStatus('saving');
-        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => {
-            handleSave(true);
-        }, 1500); // Back to a slightly longer debounce for typed changes
-
-        return () => {
-            if (autoSaveTimerRef.current) {
-                clearTimeout(autoSaveTimerRef.current);
-                handleSave(true);
-            }
-        };
-    }, [monthlySales, volume, rawMaterial, packaging, fixedExpenses, representativeProducts]);
-
-    const flushSave = () => {
-        if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-            autoSaveTimerRef.current = null;
-        }
-        handleSave(true);
-    };
-
-    const handleAddExpense = () => setFixedExpenses([...fixedExpenses, { ConceptoGasto: '', Monto: 0 }]);
-    const handleDeleteExpense = (index: number) => setFixedExpenses(fixedExpenses.filter((_, i) => i !== index));
-    const handleUpdateExpense = (index: number, field: keyof FixedExpense, value: any) => {
-        const newExpenses = [...fixedExpenses];
-        newExpenses[index] = { ...newExpenses[index], [field]: value };
-        setFixedExpenses(newExpenses);
-    };
-
-    const handleAddProduct = () => {
-        if (!newProduct.name) return;
-        setRepresentativeProducts([...representativeProducts, { 
-            NombreProducto: newProduct.name, 
-            CostoMateriaPrima: newProduct.rawMaterial, 
-            Empaque: newProduct.packaging 
-        }]);
-        setNewProduct({ name: '', rawMaterial: 0, packaging: 0 });
-        setIsProductModalOpen(false);
-    };
-
-    const handleDeleteProduct = (index: number) => {
-        setRepresentativeProducts(representativeProducts.filter((_, i) => i !== index));
-    };
-
-    const formatCurrency = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
-
-
-    const handleExportPdf = async () => {
-        setIsSaving(true);
-        console.log('Starting PDF Export...');
-        try {
-            let chartDataUrl = '';
-            // 1. Capture Chart Image if available
-            if (chartRef.current) {
-                console.log('Capturing chart...');
-                try {
-                    // Give a small delay to ensure rendering
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    chartDataUrl = await toPng(chartRef.current, { backgroundColor: '#ffffff', quality: 1 });
-                } catch (e) {
-                    console.error('Error capturing chart:', e);
-                }
-            }
-            
-            console.log('Generating PDF structure...');
-            const doc = new jsPDF();
-            const branchName = branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || selectedBranch || 'Sucursal';
-            const period = `${tProd(`months.${selectedMonth}`)} ${selectedYear}`;
-
-            // --- HEADER ---
-            doc.setFillColor(31, 41, 55); 
-            doc.rect(0, 0, 210, 40, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('REPORTE DE PUNTO DE EQUILIBRIO', 105, 18, { align: 'center' });
-            
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`${branchName.toString().toUpperCase()} - ${period}`, 105, 28, { align: 'center' });
-
-            doc.setTextColor(100, 116, 139);
-            doc.setFontSize(8);
-            doc.text(`Generado el: ${new Date().toLocaleString()}`, 10, 45);
-
-            let currentY = 50;
-
-            // --- INSERT CHART ---
-            if (chartDataUrl) {
-                console.log('Adding chart to PDF...');
-                doc.addImage(chartDataUrl, 'PNG', 10, 50, 190, 80);
-                currentY = 140;
-            } else {
-                doc.setTextColor(150, 150, 150);
-                doc.setFontSize(10);
-                doc.text('(Gráfica no disponible)', 105, 70, { align: 'center' });
-                currentY = 85;
-            }
-
-            console.log('Adding tables...');
-            // Table 1: Sales and Variable Costs
-            autoTable(doc, {
-                startY: currentY,
-                head: [['RESUMEN DE VENTAS Y COSTOS VARIABLES', 'VALOR']],
-                body: [
-                    ['Ventas Totales Proyectadas', formatCurrency(avgSalesAmount || 0)],
-                    ['Precio Ticket Promedio', formatCurrency(avgTicket || 0)],
-                    ['Volumen Mensual Tickets', (volume || 0).toString()],
-                    ['Materia Prima (Unitario)', formatCurrency(avgRawMaterial || 0)],
-                    ['Empaque (Unitario)', formatCurrency(avgPackaging || 0)],
-                    ['Suma Costos Variables', formatCurrency(sumVariableCosts || 0)],
-                    ['Margen de Contribución Unitario', formatCurrency(unitContributionMargin || 0)],
-                ],
-                theme: 'striped',
-                headStyles: { fillColor: [79, 70, 229] },
-                styles: { fontSize: 9 },
-                columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
-            });
-
-            currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 60;
-
-            // Table 2: Fixed Expenses
-            const fixedExpensesBody: any[][] = fixedExpenses.map(exp => [exp.ConceptoGasto || '-', formatCurrency(exp.Monto || 0)]);
-            fixedExpensesBody.push([{ content: 'TOTAL GASTOS FIJOS', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalFixedExpenses || 0), styles: { fontStyle: 'bold' } }]);
-
-            autoTable(doc, {
-                startY: currentY,
-                head: [['GASTOS FIJOS MENSUALES', 'MONTO']],
-                body: fixedExpensesBody,
-                theme: 'striped',
-                headStyles: { fillColor: [51, 65, 85] },
-                styles: { fontSize: 9 },
-                columnStyles: { 1: { halign: 'right' } }
-            });
-
-            currentY = (doc as any).lastAutoTable?.finalY + 10 || currentY + 40;
-
-            // Table 3: Break-Even Results
-            autoTable(doc, {
-                startY: currentY,
-                head: [['RESULTADO: PUNTO DE EQUILIBRIO', 'OBJETIVO']],
-                body: [
-                    ['Tickets Necesarios (Mensual)', Math.ceil(breakEvenUnits || 0).toLocaleString() + ' Unidades'],
-                    ['Venta Mensual Necesaria', formatCurrency(breakEvenDollars || 0)],
-                    ['Tickets Necesarios (Diario)', Math.ceil(dailyBreakEvenUnits || 0).toLocaleString() + ' Unidades'],
-                    ['Venta Diaria Necesaria', formatCurrency(dailyBreakEvenDollars || 0)],
-                ],
-                theme: 'grid',
-                headStyles: { fillColor: [16, 185, 129] },
-                styles: { fontSize: 10 },
-                columnStyles: { 1: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] } }
-            });
-
-            console.log('Saving PDF...');
-            doc.save(`Punto_Equilibrio_${branchName.toString().replace(/\s+/g, '_')}_${selectedMonth + 1}_${selectedYear}.pdf`);
-            console.log('PDF Export complete!');
-
         } catch (error) {
-            console.error('Detailed Error exporting PDF:', error);
-            alert('Error al generar el PDF: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+            console.error('Error saving break-even data:', error);
         } finally {
             setIsSaving(false);
         }
     };
 
+    const triggerAutoSave = () => {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(flushSave, 2000);
+    };
+
+    const handleImportPreviousMonth = async () => {
+        if (!selectedBranch || !project?.idProyecto) return;
+        
+        let prevMonth = selectedMonth; // Since selectedMonth is 0-indexed, if current is 0 (Jan), prev is -1.
+        let prevYear = selectedYear;
+        if (prevMonth === 0) {
+            prevMonth = 11; // Dec
+            prevYear -= 1;
+        } else {
+            prevMonth -= 1;
+        }
+
+        if (!confirm(`¿Deseas importar los datos del mes anterior? Esto reemplazará los datos actuales.`)) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/config/break-even?projectId=${project.idProyecto}&branchId=${selectedBranch}&month=${prevMonth + 1}&year=${prevYear}`);
+            const data = await response.json();
+            if (data.success && data.data) {
+                setPriceTicket(data.data.PrecioTicket || 0);
+                setVolumeTickets(data.data.VolumenTickets || 0);
+                setRepresentativeProducts(data.data.representativeProducts || []);
+                setFixedExpenses(data.data.fixedExpenses || []);
+                triggerAutoSave();
+            } else {
+                alert('No se encontraron datos en el mes anterior.');
+            }
+        } catch (error) {
+            console.error('Error importing previous month data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAddProduct = () => {
+        if (editingProductIndex !== null) {
+            const updated = [...representativeProducts];
+            updated[editingProductIndex] = newProduct;
+            setRepresentativeProducts(updated);
+        } else {
+            setRepresentativeProducts([...representativeProducts, newProduct]);
+        }
+        setIsProductModalOpen(false);
+        setNewProduct({ NombreProducto: '', CostoMateriaPrima: 0, Empaque: 0 });
+        setEditingProductIndex(null);
+        triggerAutoSave();
+    };
+
+    const handleAddExpense = () => {
+        if (editingExpenseIndex !== null) {
+            const updated = [...fixedExpenses];
+            updated[editingExpenseIndex] = newExpense;
+            setFixedExpenses(updated);
+        } else {
+            setFixedExpenses([...fixedExpenses, newExpense]);
+        }
+        setIsExpenseModalOpen(false);
+        setNewExpense({ ConceptoGasto: '', Monto: 0 });
+        setEditingExpenseIndex(null);
+        triggerAutoSave();
+    };
+
+    const removeProduct = (index: number) => {
+        const updated = representativeProducts.filter((_, i) => i !== index);
+        setRepresentativeProducts(updated);
+        triggerAutoSave();
+    };
+
+    const removeExpense = (index: number) => {
+        const updated = fixedExpenses.filter((_, i) => i !== index);
+        setFixedExpenses(updated);
+        triggerAutoSave();
+    };
+
+    const handleAddOcrProducts = (products: any[]) => {
+        // Map from modal format to API format
+        const mapped = products.map(p => ({
+            NombreProducto: p.name,
+            CostoMateriaPrima: p.rawMaterial,
+            Empaque: p.packaging
+        }));
+        setRepresentativeProducts(prev => [...prev, ...mapped]);
+        triggerAutoSave();
+    };
+
+    // Calculations
+    const avgVariableCostPercentage = representativeProducts.length > 0 
+        ? representativeProducts.reduce((acc, p) => acc + (p.CostoMateriaPrima + p.Empaque), 0) / representativeProducts.length
+        : 0;
+
+    const totalFixedExpenses = fixedExpenses.reduce((acc, e) => acc + e.Monto, 0);
+    const contributionMargin = 100 - avgVariableCostPercentage;
+    const breakEvenSales = contributionMargin > 0 ? (totalFixedExpenses / (contributionMargin / 100)) : 0;
+    const dailyBreakEven = breakEvenSales / 30;
+
+    const monthlySalesGoal = priceTicket * volumeTickets;
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text('Análisis de Punto de Equilibrio', 14, 22);
+        doc.setFontSize(10);
+        doc.text(`Período: ${selectedMonth + 1}/${selectedYear}`, 14, 30);
+
+        autoTable(doc, {
+            startY: 40,
+            head: [['Indicador', 'Valor']],
+            body: [
+                ['Venta Mensual de Equilibrio', `$${breakEvenSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+                ['Venta Diaria de Equilibrio', `$${dailyBreakEven.toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+                ['Margen de Contribución Promedio', `${contributionMargin.toFixed(2)}%`],
+                ['Venta Planeada (Precio x Volumen)', `$${monthlySalesGoal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`]
+            ],
+        });
+
+        doc.text('Productos Representativos', 14, (doc as any).lastAutoTable.finalY + 15);
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 20,
+            head: [['Producto', '% Materia Prima', '% Empaque', 'Total Variable']],
+            body: representativeProducts.map(p => [
+                p.NombreProducto, 
+                `${p.CostoMateriaPrima}%`, 
+                `${p.Empaque}%`, 
+                `${(p.CostoMateriaPrima + p.Empaque).toFixed(2)}%`
+            ]),
+        });
+
+        doc.text('Gastos Fijos Mensuales', 14, (doc as any).lastAutoTable.finalY + 15);
+        autoTable(doc, {
+            startY: (doc as any).lastAutoTable.finalY + 20,
+            head: [['Concepto', 'Monto']],
+            body: fixedExpenses.map(e => [e.ConceptoGasto, `$${e.Monto.toLocaleString()}`]),
+        });
+
+        doc.save(`Punto_Equilibrio_${selectedMonth + 1}_${selectedYear}.pdf`);
+    };
+
     return (
-        <div className="flex flex-col min-h-screen p-4 gap-4 bg-slate-50/50">
-            {/* Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-3 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-slate-100">
-                <div className="flex flex-col">
-                    <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">📈 {t('title')}</h1>
-                    <p className="text-[10px] text-slate-400 font-bold tracking-wider">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    {autoSaveStatus && (
-                        <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded flex items-center gap-2 ${
-                            autoSaveStatus === 'saving' ? 'bg-amber-50 text-amber-600' :
-                            autoSaveStatus === 'saved' ? 'bg-emerald-50 text-emerald-600' :
-                            'bg-rose-50 text-rose-600'
-                        }`}>
-                            <span className={autoSaveStatus === 'saving' ? 'animate-pulse' : ''}>
-                                {autoSaveStatus === 'saving' ? '🔄' : autoSaveStatus === 'saved' ? '✅' : '❌'}
-                            </span>
-                            {autoSaveStatus === 'saving' ? 'Guardando...' : autoSaveStatus === 'saved' ? 'Guardado' : 'Error'}
-                        </div>
-                    )}
-                    <div className="flex items-center gap-3 flex-wrap justify-center">
-                    {/* Selectors */}
-                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
-                        {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
-                    </select>
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
-                        {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tProd(`months.${i}`)}</option>)}
-                    </select>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                    <div className="flex items-center gap-2">
+        <div className="min-h-screen bg-slate-50 font-sans pb-20">
+            {/* STICKY HEADER */}
+            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 shadow-sm">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                            <span className="bg-orange-600 text-white p-1 rounded-lg">📊</span>
+                            {t('title')}
+                        </h1>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">Define tus metas financieras y analiza tu rentabilidad</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                        <BranchSelector selectedBranch={selectedBranch} onBranchChange={handleBranchChange} />
+                        <div className="h-6 w-px bg-slate-300 mx-1"></div>
+                        <MonthSelector selectedMonth={selectedMonth} onMonthChange={handleMonthChange} />
+                        <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+                        <div className="h-6 w-px bg-slate-300 mx-1"></div>
                         <Button 
-                            onClick={() => setIsChartModalOpen(true)} 
-                            className="h-9 px-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 border border-indigo-200"
+                            onClick={handleExportPDF}
+                            className="bg-white hover:bg-slate-50 text-slate-700 border-slate-200 text-xs px-4 py-2 rounded-xl shadow-sm font-bold h-10"
                         >
-                            📊 Ver Gráfica
-                        </Button>
-                        <Button onClick={handleExportPdf} className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2">
-
-                            <span>📄</span> Exportar
-                        </Button>
-                        <Button onClick={() => handleSave()} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
-                            {isSaving ? '⏳' : '💾'} {t('save')}
+                            PDF 📤
                         </Button>
                     </div>
                 </div>
             </div>
-        </div>
 
-            <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 pb-20">
-                
-                {/* CONFIG BLOCKS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-
-                    {/* BLOCK 1: VENTAS PROMEDIO */}
-                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
-                        <div className="px-5 py-3.5 bg-slate-50 border-b border-indigo-100 flex items-center gap-3">
-                            <span className="text-xl filter drop-shadow-sm">📊</span>
-                            <h2 className="text-[13px] font-black text-indigo-900 uppercase tracking-widest">{t('salesBlockTitle')}</h2>
-                        </div>
-                        <div className="p-5 space-y-4">
-                            <div className="flex items-center justify-between gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                                <span className="text-[11px] font-black text-slate-500 uppercase flex-1">{t('monthlySales')}</span>
-                                <div className="w-32 flex-shrink-0">
-                                    <PriceInput value={monthlySales} onChange={setMonthlySales} onBlur={flushSave} />
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-4 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                                <span className="text-[11px] font-black text-slate-500 uppercase flex-1 truncate">{t('ticketVolume')}</span>
-                                <div className="w-32 flex-shrink-0 flex items-center bg-slate-50 border-2 border-slate-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all shadow-sm">
-                                    <div className="pl-2.5 pr-1 py-1.5 flex items-center bg-slate-100/50 border-r border-slate-200">
-                                        <span className="text-slate-400 text-[10px] font-bold">#</span>
-                                    </div>
-                                    <input 
-                                        type="number" 
-                                        value={volume} 
-                                        onChange={e => setVolume(parseFloat(e.target.value) || 0)} 
-                                        onBlur={flushSave}
-                                        className="w-full px-2 py-1.5 outline-none text-[10px] font-black text-slate-800 text-right bg-transparent" 
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-4 p-3.5 bg-indigo-50 rounded-xl border border-indigo-100 mt-2">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-indigo-800 uppercase tracking-wider">{t('avgTicketPrice')}</span>
-                                    <span className="text-[7px] font-bold text-indigo-400 italic">Ventas / Clientes</span>
-                                </div>
-                                <span className="text-base font-black text-indigo-600">{formatCurrency(avgTicket)}</span>
-                            </div>
-                        </div>
+            <div className="max-w-7xl mx-auto p-6 space-y-6">
+                {/* AUTO-SAVE INDICATOR & QUICK ACTIONS */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        {isSaving ? (
+                            <span className="flex items-center gap-1.5 text-[10px] font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-100 animate-pulse">
+                                <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
+                                Guardando...
+                            </span>
+                        ) : lastSaved ? (
+                            <span className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                                ✅ Guardado: {lastSaved}
+                            </span>
+                        ) : null}
                     </div>
+                    <button 
+                        onClick={handleImportPreviousMonth}
+                        className="text-[10px] font-black uppercase tracking-widest text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-xl border border-orange-100 transition-all flex items-center gap-2"
+                    >
+                        <span>🔄</span> Importar datos del mes anterior
+                    </button>
+                </div>
 
-                    {/* BLOCK 2: COSTO VARIABLE */}
-                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all">
-                        <div className="px-5 py-3.5 bg-orange-50/50 border-b border-orange-100 flex items-center justify-between gap-3">
-                            <div className="flex flex-col">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* LEFT COLUMN: INPUTS */}
+                    <div className="lg:col-span-8 space-y-6">
+                        
+                        {/* BLOCK 1: SALES GOAL */}
+                        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xl filter drop-shadow-sm">📦</span>
-                                    <h2 className="text-[13px] font-black text-orange-900 uppercase tracking-widest">{t('variableCostBlockTitle')}</h2>
+                                    <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-sm">🎯</div>
+                                    <div>
+                                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">{t('salesGoal')}</h2>
+                                        <p className="text-[10px] text-slate-400 font-bold italic">Expectativa de ventas para este mes</p>
+                                    </div>
                                 </div>
-                                <p className="text-[10px] text-orange-600/70 font-bold ml-9 italic leading-none">{t('variableCostSuggestion')}</p>
                             </div>
-                            <button 
-                                onClick={() => setIsProductModalOpen(true)}
-                                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2"
-                            >
-                                <span className="text-sm">+</span> {t('addProduct')}
-                            </button>
+                            <div className="p-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">Precio Promedio de Ticket</label>
+                                        <div className="relative group">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl group-focus-within:text-indigo-500 transition-colors">$</span>
+                                            <input 
+                                                type="number"
+                                                value={priceTicket || ''}
+                                                onChange={(e) => {
+                                                    setPriceTicket(parseFloat(e.target.value) || 0);
+                                                    triggerAutoSave();
+                                                }}
+                                                placeholder="0.00"
+                                                className="w-full pl-10 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl font-black text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">Volumen de Tickets</label>
+                                        <div className="relative group">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl group-focus-within:text-indigo-500 transition-colors">#</span>
+                                            <input 
+                                                type="number"
+                                                value={volumeTickets || ''}
+                                                onChange={(e) => {
+                                                    setVolumeTickets(parseFloat(e.target.value) || 0);
+                                                    triggerAutoSave();
+                                                }}
+                                                placeholder="0"
+                                                className="w-full pl-10 pr-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl font-black text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all shadow-inner"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-6 pt-6 border-t border-slate-50 flex justify-between items-center">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Meta de Venta Calculada:</span>
+                                    <span className="text-2xl font-black text-indigo-600">${monthlySalesGoal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="p-5 space-y-2">
-                            {/* Representative Products List */}
-                            {representativeProducts.length > 0 && (
-                                <div className="mb-4 space-y-2 max-h-[120px] overflow-y-auto pr-1">
-                                    {representativeProducts.map((p, idx) => (
-                                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-orange-50/30 rounded-xl border border-orange-100/50 shadow-sm">
-                                            <div className="flex flex-col flex-1 truncate">
-                                                <span className="text-[10px] font-black text-slate-800 truncate">{p.NombreProducto}</span>
-                                                <div className="flex gap-2">
-                                                    <span className="text-[8px] font-bold text-slate-400">MP: {formatCurrency(p.CostoMateriaPrima)}</span>
-                                                    <span className="text-[8px] font-bold text-slate-400">E: {formatCurrency(p.Empaque)}</span>
+
+                        {/* BLOCK 2: VARIABLE COSTS */}
+                        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-xl shadow-sm">🧪</div>
+                                    <div>
+                                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">{t('variableCosts')}</h2>
+                                        <div className="flex items-center gap-2 ml-1">
+                                            <p className="text-[10px] text-orange-600/70 font-bold italic leading-none">{t('variableCostSuggestion')}</p>
+                                            {representativeProducts.length > 0 && (
+                                                <span className="text-[9px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full border border-orange-200">
+                                                    {representativeProducts.length} {representativeProducts.length === 1 ? 'PRODUCTO' : 'PRODUCTOS'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setIsFullProductsModalOpen(true)}
+                                        className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 transition-all active:scale-95 border border-slate-200"
+                                        title="Expandir"
+                                    >
+                                        ↖️
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsMassiveExcelModalOpen(true)}
+                                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-[10px] font-black uppercase text-emerald-600 border border-emerald-200 active:scale-95 transition-all flex items-center gap-2"
+                                        title="Carga Masiva Excel"
+                                    >
+                                        📊 Excel
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsOcrModalOpen(true)}
+                                        className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-[10px] font-black uppercase text-indigo-600 border border-indigo-200 active:scale-95 transition-all flex items-center gap-2"
+                                        title="Carga Masiva Imagen"
+                                    >
+                                        📸 Imagen
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setNewProduct({ NombreProducto: '', CostoMateriaPrima: 0, Empaque: 0 });
+                                            setEditingProductIndex(null);
+                                            setIsProductModalOpen(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2"
+                                    >
+                                        <span className="text-sm">+</span> {t('addProduct')}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-8">
+                                <div className="space-y-2">
+                                    {representativeProducts.length > 0 && (
+                                        <div className="mb-4 space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                                            {representativeProducts.map((p, idx) => (
+                                                <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-orange-50/30 rounded-xl border border-orange-100/50 shadow-sm">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[11px] font-black text-slate-800 truncate">{p.NombreProducto}</p>
+                                                        <div className="flex gap-2 mt-0.5">
+                                                            <span className="text-[9px] text-slate-400 font-bold">MP: {p.CostoMateriaPrima}%</span>
+                                                            <span className="text-[9px] text-slate-400 font-bold">EMP: {p.Empaque}%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[11px] font-black text-orange-600">{(p.CostoMateriaPrima + p.Empaque).toFixed(1)}%</span>
+                                                        <div className="flex gap-1">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setNewProduct(p);
+                                                                    setEditingProductIndex(idx);
+                                                                    setIsProductModalOpen(true);
+                                                                }}
+                                                                className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => removeProduct(idx)}
+                                                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 -mx-8 px-8 py-4 mt-4">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('avgVariableCostPercentage')}</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-2xl font-black text-orange-600">{avgVariableCostPercentage.toFixed(2)}</span>
+                                            <span className="text-sm font-black text-orange-600/50">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BLOCK 3: FIXED EXPENSES */}
+                        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl shadow-sm">🏠</div>
+                                    <div>
+                                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">{t('fixedExpenses')}</h2>
+                                        <div className="flex items-center gap-2 ml-1">
+                                            <p className="text-[10px] text-blue-600/70 font-bold italic leading-none">{t('fixedExpensesDesc')}</p>
+                                            {fixedExpenses.length > 0 && (
+                                                <span className="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full border border-blue-200">
+                                                    {fixedExpenses.length} {fixedExpenses.length === 1 ? 'GASTO' : 'GASTOS'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setIsFullExpensesModalOpen(true)}
+                                        className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 transition-all active:scale-95 border border-slate-200"
+                                        title="Expandir"
+                                    >
+                                        ↖️
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setNewExpense({ ConceptoGasto: '', Monto: 0 });
+                                            setEditingExpenseIndex(null);
+                                            setIsExpenseModalOpen(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2"
+                                    >
+                                        <span className="text-sm">+</span> {t('addExpense')}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-8">
+                                <div className="space-y-2">
+                                    {fixedExpenses.length > 0 && (
+                                        <div className="mb-4 space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                                            {fixedExpenses.map((e, idx) => (
+                                                <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-blue-50/30 rounded-xl border border-blue-100/50 shadow-sm">
+                                                    <span className="text-[11px] font-black text-slate-800 truncate">{e.ConceptoGasto}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[11px] font-black text-blue-600">${e.Monto.toLocaleString()}</span>
+                                                        <div className="flex gap-1">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setNewExpense(e);
+                                                                    setEditingExpenseIndex(idx);
+                                                                    setIsExpenseModalOpen(true);
+                                                                }}
+                                                                className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => removeExpense(idx)}
+                                                                className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 -mx-8 px-8 py-4 mt-4">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('totalFixedExpenses')}</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-sm font-black text-blue-600/50">$</span>
+                                            <span className="text-2xl font-black text-blue-600">{totalFixedExpenses.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* RIGHT COLUMN: RESULTS */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <div className="sticky top-28 space-y-6">
+                            
+                            {/* BLOCK: BREAK-EVEN SUMMARY */}
+                            <div className="bg-slate-900 rounded-[40px] shadow-2xl shadow-slate-300 p-8 text-white relative overflow-hidden group">
+                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-orange-600/20 rounded-full blur-3xl group-hover:bg-orange-600/30 transition-all duration-700"></div>
+                                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl group-hover:bg-indigo-600/20 transition-all duration-700"></div>
+                                
+                                <div className="relative z-10 space-y-8">
+                                    <div>
+                                        <h3 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-4">Análisis de Punto de Equilibrio</h3>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-4xl font-black tracking-tighter">
+                                                ${breakEvenSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Venta Mensual Requerida</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="h-px bg-white/10"></div>
+
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Venta Diaria</p>
+                                            <p className="text-lg font-black">${dailyBreakEven.toLocaleString(undefined, { minimumFractionDigits: 0 })}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Margen Prom.</p>
+                                            <p className="text-lg font-black text-orange-500">{contributionMargin.toFixed(1)}%</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* BLOCK: PROFIT GOAL SUMMARY */}
+                            <div className="bg-white rounded-[40px] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 relative overflow-hidden">
+                                <div className="relative z-10 space-y-8">
+                                    <div>
+                                        <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-4">Venta Proyectada (Plan)</h3>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-3xl font-black text-slate-800 tracking-tighter">
+                                                ${monthlySalesGoal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Basado en Precio x Volumen</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-2xl border border-slate-100 space-y-3">
+                                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                                                <span>COBERTURA DE PUNTO EQUILIBRIO</span>
+                                                <span>{breakEvenSales > 0 ? ((monthlySalesGoal / breakEvenSales) * 100).toFixed(1) : 0}%</span>
                                             </div>
-                                            <button onClick={() => handleDeleteProduct(idx)} className="p-1.5 text-rose-300 hover:text-rose-600 hover:bg-white rounded-lg transition-all">🗑️</button>
+                                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                <div 
+                                                    className={`h-full transition-all duration-1000 ${monthlySalesGoal >= breakEvenSales ? 'bg-emerald-500' : 'bg-orange-500'}`}
+                                                    style={{ width: `${Math.min(100, (monthlySalesGoal / (breakEvenSales || 1)) * 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            <p className="text-[9px] font-medium text-slate-400 italic">
+                                                {monthlySalesGoal >= breakEvenSales 
+                                                    ? '✨ Estás por encima del punto de equilibrio.' 
+                                                    : '⚠️ No alcanzas el punto de equilibrio con esta meta.'}
+                                            </p>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-
-                             {[
-                                { k: 'rawMaterialCost', v: avgRawMaterial, s: setRawMaterial, disabled: representativeProducts.length > 0 },
-                                { k: 'packagingCost', v: avgPackaging, s: setPackaging, disabled: representativeProducts.length > 0 }
-                            ].map(item => (
-                                <div key={item.k} className={`flex items-center justify-between gap-4 p-2 rounded-lg hover:bg-slate-50 transition-colors ${item.disabled ? 'opacity-80' : ''}`}>
-                                    <span className="text-[11px] font-black text-slate-500 uppercase flex-1">{t(item.k)}</span>
-                                    <div className="w-32 flex-shrink-0">
-                                        <PriceInput value={item.v} onChange={item.s} color="orange" disabled={item.disabled} />
                                     </div>
                                 </div>
-                            ))}
+                            </div>
 
-                            <div className="flex flex-col gap-2 mt-4">
-                                <div className="flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 shadow-sm">
-                                    <span className="text-[9px] font-black text-orange-500 uppercase tracking-wider">{t('sumVariableCosts')}</span>
-                                    <span className="text-sm font-black text-orange-700">{formatCurrency(sumVariableCosts)}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-2.5 bg-rose-50 rounded-xl border border-rose-100 shadow-sm">
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-wider">C. Variables * Volumen</span>
-                                        <span className="text-[7px] font-bold text-rose-400 italic">Suma C.V. * Volumen Mensual</span>
-                                    </div>
-                                    <span className="text-sm font-black text-rose-700">{formatCurrency(variableCostsTotal)}</span>
-                                </div>
-                                <div className="flex justify-between items-center p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 shadow-sm">
-                                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider">{t('unitContributionMargin')}</span>
-                                    <span className="text-sm font-black text-indigo-700">{formatCurrency(unitContributionMargin)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* BLOCK 3: GASTOS FIJOS */}
-                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden flex flex-col group hover:shadow-lg transition-all">
-                        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xl filter drop-shadow-sm">🏢</span>
-                                <h2 className="text-[13px] font-black text-slate-800 uppercase tracking-widest">{t('fixedExpensesBlockTitle')}</h2>
-                            </div>
-                            <button onClick={handleAddExpense} className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 rounded-xl text-[10px] font-black uppercase text-white shadow-sm active:scale-95 transition-all flex items-center gap-2 border border-slate-700">
-                                <span className="text-sm">+</span> {t('addExpense')}
-                            </button>
-                        </div>
-                        <div className="p-5 space-y-5">
-                            <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                                {fixedExpenses.map((exp, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50/50 rounded-xl border border-slate-100 group shadow-sm transition-all hover:bg-white hover:border-slate-200">
-                                        <input
-                                            ref={el => { expenseInputsRef.current[idx] = el }}
-                                            type="text"
-                                            value={exp.ConceptoGasto}
-                                            onChange={e => handleUpdateExpense(idx, 'ConceptoGasto', e.target.value)}
-                                            onBlur={flushSave}
-                                            placeholder="Concepto..."
-                                            className="flex-1 px-3 py-2 bg-white border-2 border-slate-100 rounded-xl text-[11px] font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-400/5 transition-all shadow-sm"
-                                        />
-                                        <div className="w-32 flex-shrink-0">
-                                            <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} onBlur={flushSave} color="indigo" />
-                                        </div>
-                                        <button onClick={() => handleDeleteExpense(idx)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm">🗑️</button>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-                                <div className="flex justify-between items-center px-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('totalFixedExpenses')}</span>
-                                    <span className="text-base font-black text-slate-700">{formatCurrency(totalFixedExpenses)}</span>
-                                </div>
-                                <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-indigo-600 to-indigo-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative">
-                                    <span className="text-[9px] font-black text-indigo-200 uppercase z-10 tracking-widest">{t('totalCostsPerPeriod')}</span>
-                                    <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(totalCostsPerPeriod)}</span>
-                                    <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* BLOCK 4: RESULTADO PUNTO DE EQUILIBRIO */}
-                    <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:shadow-lg transition-all animate-in fade-in slide-in-from-bottom-4">
-                        <div className="px-5 py-3.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3">
-                            <span className="text-xl filter drop-shadow-sm">🎯</span>
-                            <h2 className="text-[13px] font-black text-emerald-900 uppercase tracking-widest">Resultado Punto de Equilibrio</h2>
-                        </div>
-                        <div className="p-5 space-y-3">
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenUnits')}</span>
-                                    <span className="text-sm font-black text-slate-700">{Math.ceil(dailyBreakEvenUnits).toLocaleString()} <small className="text-[8px] text-slate-400 font-bold">Und</small></span>
-                                </div>
-                                <div className="flex flex-col p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                                    <span className="text-[9px] font-black text-emerald-800 uppercase tracking-wider leading-tight mb-1">{t('dailyBreakEvenDollars')}</span>
-                                    <span className="text-sm font-black text-emerald-600">{formatCurrency(dailyBreakEvenDollars)}</span>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-all">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Punto Equilibrio (Unidades)</span>
-                                    <span className="text-[8px] font-bold text-slate-400 italic">C. Fijos / Margen Cont. Unit.</span>
-                                </div>
-                                <span className="text-base font-black text-slate-800">{Math.ceil(breakEvenUnits).toLocaleString()} <small className="text-[10px] text-slate-400 font-bold uppercase">Und</small></span>
-                            </div>
-                            <div className="flex flex-col gap-1 items-end bg-gradient-to-br from-emerald-600 to-emerald-700 px-4 py-3 rounded-2xl text-white shadow-md overflow-hidden relative group-hover:scale-[1.02] transition-transform">
-                                <span className="text-[9px] font-black text-emerald-100 uppercase z-10 tracking-widest">Punto de Equilibrio ($)</span>
-                                <span className="text-xl font-black z-10 drop-shadow-sm">{formatCurrency(breakEvenDollars)}</span>
-                                <div className="absolute top-0 right-0 w-12 h-12 bg-white/5 rounded-full translate-x-4 -translate-y-4"></div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {isLoading && (
-                <div className="fixed inset-0 z-[100] bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-[10px] text-indigo-600 font-black animate-pulse uppercase tracking-[0.2em]">Cargando...</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Product Modal */}
+            {/* MODALS */}
+            
+            {/* ADD/EDIT PRODUCT MODAL */}
             {isProductModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300">
-                        <div className="px-6 py-4 bg-orange-50 border-b border-orange-100 flex justify-between items-center">
-                            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest">{t('addProduct')}</h3>
-                            <button onClick={() => setIsProductModalOpen(false)} className="text-orange-400 hover:text-orange-600 transition-colors font-black">✕</button>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8 border-b border-slate-50">
+                            <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">
+                                {editingProductIndex !== null ? 'Editar Producto' : 'Nuevo Producto'}
+                            </h3>
                         </div>
-                        <div className="p-6 space-y-4">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('productName')}</label>
+                        <div className="p-8 space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">Nombre del Producto</label>
                                 <input 
-                                    type="text" 
-                                    value={newProduct.name} 
-                                    onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                                    placeholder="Nombre del producto..."
-                                    className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-400/5 transition-all shadow-sm"
+                                    type="text"
+                                    value={newProduct.NombreProducto}
+                                    onChange={(e) => setNewProduct({ ...newProduct, NombreProducto: e.target.value })}
+                                    className="w-full px-5 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                    placeholder="Ej. Hamburguesa Doble"
                                 />
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('rawMaterialCost')}</label>
-                                <PriceInput value={newProduct.rawMaterial} onChange={(v: any) => setNewProduct({...newProduct, rawMaterial: v})} color="orange" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">% Materia Prima</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="number"
+                                            value={newProduct.CostoMateriaPrima || ''}
+                                            onChange={(e) => setNewProduct({ ...newProduct, CostoMateriaPrima: parseFloat(e.target.value) || 0 })}
+                                            className="w-full pl-5 pr-10 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="0"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-sm">%</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">% Empaque</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="number"
+                                            value={newProduct.Empaque || ''}
+                                            onChange={(e) => setNewProduct({ ...newProduct, Empaque: parseFloat(e.target.value) || 0 })}
+                                            className="w-full pl-5 pr-10 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="0"
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-sm">%</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('packagingCost')}</label>
-                                <PriceInput value={newProduct.packaging} onChange={(v: any) => setNewProduct({...newProduct, packaging: v})} color="orange" />
-                            </div>
+                        </div>
+                        <div className="p-8 bg-slate-50/50 flex gap-3">
+                            <Button 
+                                onClick={() => setIsProductModalOpen(false)}
+                                variant="secondary"
+                                className="flex-1 font-bold text-xs uppercase tracking-widest h-12"
+                            >
+                                Cancelar
+                            </Button>
                             <Button 
                                 onClick={handleAddProduct}
-                                className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-xs shadow-lg shadow-orange-600/20 active:scale-95 transition-all mt-2"
+                                className="flex-1 font-bold text-xs uppercase tracking-widest h-12 bg-indigo-600 text-white"
+                                disabled={!newProduct.NombreProducto}
                             >
-                                {t('saveProduct')}
+                                {editingProductIndex !== null ? 'Actualizar' : 'Agregar'}
                             </Button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Chart Modal */}
-            {isChartModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-5xl rounded-[32px] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-                        <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
-                            <div className="flex flex-col">
-                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">📉 Gráfica de Punto de Equilibrio</h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>
-                            </div>
-                            <button onClick={() => setIsChartModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-400 hover:text-slate-600 hover:shadow-md transition-all font-black text-xl">✕</button>
+            {/* ADD/EDIT EXPENSE MODAL */}
+            {isExpenseModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8 border-b border-slate-50">
+                            <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">
+                                {editingExpenseIndex !== null ? 'Editar Gasto' : 'Nuevo Gasto Fijo'}
+                            </h3>
                         </div>
-                        <div className="p-8 overflow-y-auto flex-1 bg-white">
-                            <div className="w-full h-[500px] flex items-center justify-center">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData} margin={{ top: 20, right: 40, left: 20, bottom: 40 }}>
-                                        <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
-                                        <XAxis 
-                                            dataKey="ventas" 
-                                            type="number"
-                                            domain={[0, 'auto']}
-                                            tickFormatter={(val) => `$${(val / 1000).toFixed(1)}k`}
-                                            label={{ value: 'Ventas Totales ($)', position: 'insideBottom', offset: -20, fontSize: 11, fontStyle: 'italic', fontWeight: 800, fill: '#64748b' }} 
-                                            fontSize={10} 
-                                            tick={{ fill: '#64748b', fontWeight: 600 }} 
-                                        />
-                                        <YAxis 
-                                            fontSize={10} 
-                                            tick={{ fill: '#64748b', fontWeight: 600 }} 
-                                            tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} 
-                                            label={{ value: 'Costos ($)', angle: -90, position: 'insideLeft', fontSize: 11, fontStyle: 'italic', fontWeight: 800, fill: '#64748b' }}
-                                        />
-                                        <Tooltip 
-                                            formatter={(value: number) => formatCurrency(value)}
-                                            labelFormatter={(label) => `Ventas: ${formatCurrency(label)}`}
-                                            contentStyle={{ fontSize: '12px', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
-                                            itemStyle={{ fontWeight: 900, padding: '4px 0' }}
-                                        />
-                                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '900', paddingBottom: '20px' }} />
-                                        
-                                        {/* Sales Line */}
-                                        <Line type="monotone" dataKey="ventas" name="Línea de Ventas" stroke="#10b981" strokeWidth={4} dot={{ r: 6, fill: '#10b981', strokeWidth: 4, stroke: '#fff' }} activeDot={{ r: 10, strokeWidth: 0 }} />
-                                        
-                                        {/* Total Costs Line */}
-                                        <Line type="monotone" dataKey="costos" name="Costos Totales" stroke="#6366f1" strokeWidth={4} dot={{ r: 6, fill: '#6366f1', strokeWidth: 4, stroke: '#fff' }} activeDot={{ r: 10, strokeWidth: 0 }} />
-                                        
-                                        {/* Fixed Costs Line (Horizontal) */}
-                                        <Line type="monotone" dataKey="fijos" name="Costos Fijos" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 6" dot={false} activeDot={false} />
-                                        
-                                        {/* Variable Costs Line (Slope) */}
-                                        <Line type="monotone" dataKey="variables" name="Costos Variables" stroke="#f97316" strokeWidth={2} strokeDasharray="4 4" dot={false} opacity={0.5} activeDot={false} />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                        <div className="p-8 space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">Concepto del Gasto</label>
+                                <input 
+                                    type="text"
+                                    value={newExpense.ConceptoGasto}
+                                    onChange={(e) => setNewExpense({ ...newExpense, ConceptoGasto: e.target.value })}
+                                    className="w-full px-5 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                    placeholder="Ej. Renta Local"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-2 ml-1">Monto Mensual</label>
+                                <div className="relative">
+                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 font-black text-sm">$</span>
+                                    <input 
+                                        type="number"
+                                        value={newExpense.Monto || ''}
+                                        onChange={(e) => setNewExpense({ ...newExpense, Monto: parseFloat(e.target.value) || 0 })}
+                                        className="w-full pl-10 pr-5 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                        placeholder="0.00"
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
-                             <Button onClick={() => setIsChartModalOpen(false)} className="px-6 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-xs hover:bg-slate-100 transition-all">Cerrar</Button>
-                             <Button onClick={handleExportPdf} className="px-6 h-10 bg-indigo-600 text-white rounded-xl font-black text-xs hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
-                                <span>📄</span> Exportar Reporte
-                             </Button>
+                        <div className="p-8 bg-slate-50/50 flex gap-3">
+                            <Button 
+                                onClick={() => setIsExpenseModalOpen(false)}
+                                variant="secondary"
+                                className="flex-1 font-bold text-xs uppercase tracking-widest h-12"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button 
+                                onClick={handleAddExpense}
+                                className="flex-1 font-bold text-xs uppercase tracking-widest h-12 bg-blue-600 text-white"
+                                disabled={!newExpense.ConceptoGasto}
+                            >
+                                {editingExpenseIndex !== null ? 'Actualizar' : 'Agregar'}
+                            </Button>
                         </div>
                     </div>
                 </div>
             )}
-            <div aria-hidden="true" style={{ position: 'absolute', top: '-10000px', left: '-10000px', width: '800px', height: '400px', overflow: 'hidden' }}>
-                <div ref={chartRef} style={{ width: '800px', height: '400px', backgroundColor: 'white' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="ventas" hide />
-                            <YAxis hide />
-                            <Line type="monotone" dataKey="ventas" name="Ventas" stroke="#10b981" strokeWidth={3} dot={false} />
-                            <Line type="monotone" dataKey="costos" name="Costos" stroke="#6366f1" strokeWidth={3} dot={false} />
-                        </LineChart>
-                    </ResponsiveContainer>
+
+            {/* FULL PRODUCTS MODAL */}
+            {isFullProductsModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-[40px] w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500">
+                        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl">🧪</div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest">Listado de Productos</h2>
+                                    <p className="text-xs text-slate-400 font-bold italic">Gestiona todos tus productos representativos</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    onClick={() => {
+                                        setNewProduct({ NombreProducto: '', CostoMateriaPrima: 0, Empaque: 0 });
+                                        setEditingProductIndex(null);
+                                        setIsProductModalOpen(true);
+                                    }}
+                                    className="bg-orange-600 text-white text-xs px-6 py-2.5 rounded-xl font-black uppercase tracking-widest"
+                                >
+                                    + Agregar Producto
+                                </Button>
+                                <button 
+                                    onClick={() => setIsFullProductsModalOpen(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {representativeProducts.map((p, idx) => (
+                                    <div key={idx} className="group p-5 bg-white border-2 border-slate-100 rounded-3xl hover:border-orange-500/30 hover:shadow-xl hover:shadow-orange-100/50 transition-all duration-300 relative">
+                                        <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => {
+                                                    setNewProduct(p);
+                                                    setEditingProductIndex(idx);
+                                                    setIsProductModalOpen(true);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-full text-xs shadow-sm hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button 
+                                                onClick={() => removeProduct(idx)}
+                                                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-full text-xs shadow-sm hover:bg-red-50 hover:text-red-500 transition-all"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                        <p className="text-sm font-black text-slate-800 mb-3 pr-10">{p.NombreProducto}</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-[10px] font-bold">
+                                                <span className="text-slate-400 uppercase tracking-tighter">Materia Prima</span>
+                                                <span className="text-slate-800">{p.CostoMateriaPrima}%</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-[10px] font-bold">
+                                                <span className="text-slate-400 uppercase tracking-tighter">Empaque</span>
+                                                <span className="text-slate-800">{p.Empaque}%</span>
+                                            </div>
+                                            <div className="pt-2 border-t border-slate-50 flex justify-between items-center">
+                                                <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Total Variable</span>
+                                                <span className="text-lg font-black text-orange-600">{(p.CostoMateriaPrima + p.Empaque).toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {representativeProducts.length === 0 && (
+                                <div className="h-64 flex flex-col items-center justify-center text-slate-300">
+                                    <span className="text-6xl mb-4">🔬</span>
+                                    <p className="text-sm font-black uppercase tracking-widest">No hay productos capturados</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* FULL EXPENSES MODAL */}
+            {isFullExpensesModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-[40px] w-full max-w-4xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500">
+                        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl">🏠</div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-widest">Gastos Fijos Detallados</h2>
+                                    <p className="text-xs text-slate-400 font-bold italic">Control mensual de costos operativos</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    onClick={() => {
+                                        setNewExpense({ ConceptoGasto: '', Monto: 0 });
+                                        setEditingExpenseIndex(null);
+                                        setIsExpenseModalOpen(true);
+                                    }}
+                                    className="bg-blue-600 text-white text-xs px-6 py-2.5 rounded-xl font-black uppercase tracking-widest"
+                                >
+                                    + Agregar Gasto
+                                </Button>
+                                <button 
+                                    onClick={() => setIsFullExpensesModalOpen(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {fixedExpenses.map((e, idx) => (
+                                    <div key={idx} className="group p-5 bg-white border-2 border-slate-100 rounded-3xl hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 relative">
+                                        <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={() => {
+                                                    setNewExpense(e);
+                                                    setEditingExpenseIndex(idx);
+                                                    setIsExpenseModalOpen(true);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-full text-xs shadow-sm hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button 
+                                                onClick={() => removeExpense(idx)}
+                                                className="w-8 h-8 flex items-center justify-center bg-white border border-slate-100 rounded-full text-xs shadow-sm hover:bg-red-50 hover:text-red-500 transition-all"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                        <p className="text-sm font-black text-slate-800 mb-6 pr-10">{e.ConceptoGasto}</p>
+                                        <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Monto Mensual</span>
+                                            <span className="text-xl font-black text-blue-600">${e.Monto.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {fixedExpenses.length === 0 && (
+                                <div className="h-64 flex flex-col items-center justify-center text-slate-300">
+                                    <span className="text-6xl mb-4">📋</span>
+                                    <p className="text-sm font-black uppercase tracking-widest">No hay gastos capturados</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MASSIVE EXCEL UPLOAD MODAL */}
+            {isMassiveExcelModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                📊 Carga Masiva de Productos (Excel)
+                            </h2>
+                            <button
+                                onClick={() => setIsMassiveExcelModalOpen(false)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            <MassiveProductUpload
+                                hideHeader={true}
+                                onSuccess={() => {
+                                    // Logic to add to break-even list could go here
+                                }}
+                            />
+                        </div>
+                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+                            <Button
+                                onClick={() => setIsMassiveExcelModalOpen(false)}
+                                variant="secondary"
+                                className="font-bold text-xs uppercase tracking-widest px-8"
+                            >
+                                Cerrar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <BreakEvenProductImageCaptureModal 
+                isOpen={isOcrModalOpen}
+                onClose={() => setIsOcrModalOpen(false)}
+                projectId={project?.idProyecto}
+                onAddProducts={handleAddOcrProducts}
+            />
         </div>
     );
 }
-
-

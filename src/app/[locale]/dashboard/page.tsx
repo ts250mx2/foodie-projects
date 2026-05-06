@@ -149,8 +149,8 @@ export default function DashboardPage() {
             setProject(JSON.parse(storedProject));
         }
 
-        const savedMonth = localStorage.getItem('dashboardSelectedMonth');
-        const savedYear = localStorage.getItem('dashboardSelectedYear');
+        const savedMonth = localStorage.getItem('lastSelectedMonth');
+        const savedYear = localStorage.getItem('lastSelectedYear');
         if (savedMonth) {
             setSelectedMonth(parseInt(savedMonth));
             // Sync payroll dates too
@@ -183,11 +183,11 @@ export default function DashboardPage() {
     }, [selectedBranch]);
 
     useEffect(() => {
-        localStorage.setItem('dashboardSelectedMonth', selectedMonth.toString());
+        localStorage.setItem('lastSelectedMonth', selectedMonth.toString());
     }, [selectedMonth]);
 
     useEffect(() => {
-        localStorage.setItem('dashboardSelectedYear', selectedYear.toString());
+        localStorage.setItem('lastSelectedYear', selectedYear.toString());
     }, [selectedYear]);
 
     const handleDrilldownClick = async (item: any, colorHex: string) => {

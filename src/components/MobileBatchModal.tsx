@@ -43,12 +43,13 @@ interface MobileBatchModalProps {
     isOpen: boolean;
     onClose: () => void;
     projectId: number;
-    onProcessAsExpense: (photos: BatchSelectedPhoto[]) => void;
-    onProcessAsPurchase: (photos: BatchSelectedPhoto[]) => void;
+    onProcessAsExpense?: (photos: BatchSelectedPhoto[]) => void;
+    onProcessAsPurchase?: (photos: BatchSelectedPhoto[]) => void;
+    onPhotosSelected?: (photos: BatchSelectedPhoto[]) => void;
 }
 
 export default function MobileBatchModal({
-    isOpen, onClose, projectId, onProcessAsExpense, onProcessAsPurchase
+    isOpen, onClose, projectId, onProcessAsExpense, onProcessAsPurchase, onPhotosSelected
 }: MobileBatchModalProps) {
     const params = useParams();
     const locale = params?.locale || 'es';
@@ -532,18 +533,33 @@ export default function MobileBatchModal({
                     {/* Footer Actions */}
                     {view === 'detail' && selectedIds.size > 0 && (
                         <div className="px-6 py-5 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row gap-3">
-                            <button
-                                onClick={handleProcessExpense}
-                                className="flex-1 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-red-100"
-                            >
-                                💸 Procesar como Gasto
-                            </button>
-                            <button
-                                onClick={handleProcessPurchase}
-                                className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-blue-100"
-                            >
-                                🛒 Procesar como Compra
-                            </button>
+                            {onPhotosSelected ? (
+                                <button
+                                    onClick={() => {
+                                        const selected = buildSelectedPhotos();
+                                        onPhotosSelected(selected);
+                                        onClose();
+                                    }}
+                                    className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-indigo-100"
+                                >
+                                    ✅ Seleccionar {selectedIds.size} foto{selectedIds.size !== 1 ? 's' : ''}
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={handleProcessExpense}
+                                        className="flex-1 py-4 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-red-100"
+                                    >
+                                        💸 Procesar como Gasto
+                                    </button>
+                                    <button
+                                        onClick={handleProcessPurchase}
+                                        className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-blue-100"
+                                    >
+                                        🛒 Procesar como Compra
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

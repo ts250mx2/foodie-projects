@@ -7,6 +7,7 @@ import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
 import MassiveProductUpload from '@/components/MassiveProductUpload';
+import ProductImageCaptureModal from '@/components/ProductImageCaptureModal';
 
 interface Product {
     IdProducto: number;
@@ -64,6 +65,7 @@ export default function ProductsPage() {
     const [isKitsModalOpen, setIsKitsModalOpen] = useState(false);
     const [isDeleteKitModalOpen, setIsDeleteKitModalOpen] = useState(false);
     const [isMassiveModalOpen, setIsMassiveModalOpen] = useState(false);
+    const [isProductImageCaptureModalOpen, setIsProductImageCaptureModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [kitItems, setKitItems] = useState<KitItem[]>([]);
@@ -345,17 +347,29 @@ export default function ProductsPage() {
         setSortConfig({ key, direction });
     };
 
+
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
                     <Button
-                        onClick={() => setIsMassiveModalOpen(true)}
+                        onClick={() => {
+                            setIsMassiveModalOpen(true);
+                        }}
                         variant="primary"
-                        className="bg-primary-600 hover:bg-primary-700"
+                        className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
                     >
-                        {t('massiveProductUpload')}
+                        📊 Excel
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setIsProductImageCaptureModalOpen(true);
+                        }}
+                        variant="primary"
+                        className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
+                    >
+                        📸 Imagen
                     </Button>
                     <Button
                         onClick={() => {
@@ -390,6 +404,7 @@ export default function ProductsPage() {
             </div>
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
+                {/* ... table content remains same ... */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
                         <ThemedGridHeaderCell
@@ -623,13 +638,13 @@ export default function ProductsPage() {
                 </div>
             )}
 
-            {/* Massive Upload Modal */}
+            {/* Massive Upload Modal (Excel only) */}
             {isMassiveModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                📊 {t('massiveProductUpload')}
+                                📊 Carga Masiva por Excel
                             </h2>
                             <button
                                 onClick={() => setIsMassiveModalOpen(false)}
@@ -641,9 +656,9 @@ export default function ProductsPage() {
                         <div className="flex-1 overflow-y-auto">
                             <MassiveProductUpload
                                 hideHeader={true}
+                                onlyExcel={true}
                                 onSuccess={() => {
                                     fetchProducts();
-                                    // Optional: Keep open or close? User usually wants to see success message in component first.
                                 }}
                             />
                         </div>
@@ -657,6 +672,16 @@ export default function ProductsPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Product Image Capture Modal */}
+            {isProductImageCaptureModalOpen && (
+                <ProductImageCaptureModal
+                    isOpen={isProductImageCaptureModalOpen}
+                    onClose={() => setIsProductImageCaptureModalOpen(false)}
+                    projectId={project?.idProyecto}
+                    onSuccess={() => fetchProducts()}
+                />
             )}
         </div>
     );
