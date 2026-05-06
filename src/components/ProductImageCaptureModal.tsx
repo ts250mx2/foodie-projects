@@ -532,7 +532,6 @@ export default function ProductImageCaptureModal({
                     </div>
                 </div>
             )}
-        </div>
 
             {/* Image Lightbox */}
             {maximizedImage && (
