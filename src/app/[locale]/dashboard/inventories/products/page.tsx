@@ -475,12 +475,15 @@ export default function ProductsPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
                         <ThemedGridHeaderCell className="w-10">
-                            <input 
-                                type="checkbox" 
-                                checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
-                                onChange={toggleSelectAll}
-                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
+                            <div className="flex items-center gap-2">
+                                <input 
+                                    type="checkbox" 
+                                    checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
+                                    onChange={toggleSelectAll}
+                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                    title="Seleccionar todo"
+                                />
+                            </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
                             className="cursor-pointer hover:opacity-80"
