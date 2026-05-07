@@ -367,7 +367,7 @@ export default function ProductImageCaptureModal({
                                             ✓
                                         </div>
                                         <img src={item.preview} className="w-full h-full object-cover" />
-                                        <div className="absolute bottom-2 left-2 flex gap-1 z-20">
+                                        <div className="absolute bottom-2 right-2 flex gap-1 z-20">
                                             <button 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
