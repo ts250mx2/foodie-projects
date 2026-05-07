@@ -452,21 +452,26 @@ export default function ProductImageCaptureModal({
                                                         </select>
                                                     </td>
                                                     <td className="px-6 py-3 text-center">
-                                                        <input 
-                                                            type="number"
-                                                            className="bg-transparent border-none text-center w-20 focus:ring-0" 
-                                                            value={p.precio}
-                                                            onChange={(e) => {
-                                                                const next = [...ocrResult];
-                                                                next[i].precio = parseFloat(e.target.value) || 0;
-                                                                setOcrResult(next);
-                                                            }}
-                                                        />
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <span className="text-slate-400 font-bold">$</span>
+                                                            <input 
+                                                                type="number"
+                                                                className="bg-transparent border-none text-center w-20 focus:ring-0 p-0 font-bold text-slate-700" 
+                                                                value={p.precio}
+                                                                onChange={(e) => {
+                                                                    const next = [...ocrResult];
+                                                                    next[i].precio = parseFloat(e.target.value) || 0;
+                                                                    setOcrResult(next);
+                                                                }}
+                                                            />
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         {p.isLinked ? (
                                                             <div className="flex flex-col gap-1">
-                                                                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">EXISTENTE</span>
+                                                                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">
+                                                                    EXISTENTE {p.suggestions?.[0] ? `(${Math.round(p.suggestions[0].similarity * 100)}%)` : ''}
+                                                                </span>
                                                                 {p.autoLinked && (
                                                                     <div className="flex flex-col gap-1">
                                                                         <span className="text-[9px] text-slate-400 font-medium italic">Auto: {p.systemName}</span>

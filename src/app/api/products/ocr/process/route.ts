@@ -250,7 +250,13 @@ export async function POST(request: NextRequest) {
                         systemId: codeRows[0].IdProducto,
                         systemName: codeRows[0].systemName,
                         systemCodigo: codeRows[0].systemCodigo,
-                        isLinked: true // Mark as linked since it exists by code
+                        isLinked: true,
+                        suggestions: [{
+                            id: codeRows[0].IdProducto,
+                            name: codeRows[0].systemName,
+                            code: codeRows[0].systemCodigo,
+                            similarity: 1.0
+                        }]
                     });
                     continue;
                 }
