@@ -165,3 +165,33 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.end();
     }
 }
+
+export async function DELETE(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, productIds } = body;
+
+        if (!projectId || !productIds || !Array.isArray(productIds)) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(projectId);
+
+        // Soft delete: Set Status = 2 for multiple IDs
+        const [result] = await connection.query(
+            'UPDATE tblProductos SET Status = 2, FechaAct = Now() WHERE IdProducto IN (?)',
+            [productIds]
+        );
+
+        return NextResponse.json({
+            success: true,
+            message: `${(result as any).affectedRows} products deleted successfully`
+        });
+    } catch (error) {
+        console.error('Error bulk deleting products:', error);
+        return NextResponse.json({ success: false, message: 'Error bulk deleting products' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
