@@ -77,7 +77,6 @@ export async function GET(request: NextRequest) {
                 LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
                 LEFT JOIN tblSeccionesMenu s ON p.IdSeccionMenu = s.IdSeccionMenu
                 WHERE p.Status = 0
-                ORDER BY p.FechaAct DESC, p.Producto ASC
             `;
 
             if (tipoProductoStr !== null) {
@@ -92,6 +91,8 @@ export async function GET(request: NextRequest) {
                     params.push(parseInt(tipoProductoStr));
                 }
             }
+
+            query += ' ORDER BY p.FechaAct DESC, p.Producto ASC';
         }
 
         const [rows] = await connection.query(query, params);
