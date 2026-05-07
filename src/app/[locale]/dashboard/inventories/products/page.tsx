@@ -97,6 +97,9 @@ export default function ProductsPage() {
     const [showRecentOnly, setShowRecentOnly] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+    const [isDeletingBulk, setIsDeletingBulk] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -277,6 +280,45 @@ export default function ProductsPage() {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setIsDeletingBulk(true);
+        try {
+            const response = await fetch('/api/products', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    productIds: selectedIds
+                })
+            });
+
+            if (response.ok) {
+                fetchProducts();
+                setSelectedIds([]);
+                setIsBulkDeleteModalOpen(false);
+            }
+        } catch (error) {
+            console.error('Error bulk deleting products:', error);
+        } finally {
+            setIsDeletingBulk(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === sortedAndFilteredProducts.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(sortedAndFilteredProducts.map(p => p.IdProducto));
+        }
+    };
+
+    const toggleSelectProduct = (id: number) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
     const handleProductUpdate = (updatedProduct?: any, shouldClose = true) => {
         fetchProducts();
         if (updatedProduct) {
@@ -363,6 +405,14 @@ export default function ProductsPage() {
                 <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
                 <div className="flex gap-2">
                     <Button
+                        onClick={() => setShowRecentOnly(!showRecentOnly)}
+                        variant={showRecentOnly ? 'primary' : 'secondary'}
+                        className={`${showRecentOnly ? 'bg-amber-500 hover:bg-amber-600 border-amber-600' : ''} flex items-center gap-2`}
+                        title="Mostrar productos cargados en la última hora"
+                    >
+                        {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
+                    </Button>
+                    <Button
                         onClick={() => {
                             setIsMassiveModalOpen(true);
                         }}
@@ -409,14 +459,15 @@ export default function ProductsPage() {
                     }}>
                         {t('addProduct')}
                     </Button>
-                    <Button
-                        onClick={() => setShowRecentOnly(!showRecentOnly)}
-                        variant={showRecentOnly ? 'primary' : 'secondary'}
-                        className={`${showRecentOnly ? 'bg-amber-500 hover:bg-amber-600 border-amber-600' : ''} flex items-center gap-2`}
-                        title="Mostrar productos cargados en la última hora"
-                    >
-                        {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
-                    </Button>
+                    {selectedIds.length > 0 && (
+                        <Button
+                            onClick={() => setIsBulkDeleteModalOpen(true)}
+                            variant="primary"
+                            className="bg-red-600 hover:bg-red-700 flex items-center gap-2 animate-in fade-in slide-in-from-right-2"
+                        >
+                            🗑️ Eliminar ({selectedIds.length})
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -424,6 +475,14 @@ export default function ProductsPage() {
                 {/* ... table content remains same ... */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
+                        <ThemedGridHeaderCell className="w-10">
+                            <input 
+                                type="checkbox" 
+                                checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
+                                onChange={toggleSelectAll}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                        </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
                             className="cursor-pointer hover:opacity-80"
                             onClick={() => handleSort('Producto')}
@@ -488,17 +547,6 @@ export default function ProductsPage() {
                             </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Presentacion')}
-                        >
-                            <div className="flex items-center gap-1">
-                                Unidad Medida Compra
-                                {sortConfig?.key === 'Presentacion' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
                             className="text-right cursor-pointer hover:opacity-80"
                             onClick={() => handleSort('Precio')}
                         >
@@ -510,23 +558,12 @@ export default function ProductsPage() {
                             </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('IVA')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                {t('iva')}
-                                {sortConfig?.key === 'IVA' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
                             className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Status')}
+                            onClick={() => handleSort('FechaAct')}
                         >
                             <div className="flex items-center gap-1">
-                                {t('active')}
-                                {sortConfig?.key === 'Status' && (
+                                Fecha Act
+                                {sortConfig?.key === 'FechaAct' && (
                                     <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                 )}
                             </div>
@@ -537,7 +574,15 @@ export default function ProductsPage() {
                     </ThemedGridHeader>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {sortedAndFilteredProducts.map((product) => (
-                            <tr key={product.IdProducto} className="hover:bg-gray-50">
+                            <tr key={product.IdProducto} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product.IdProducto) ? 'bg-indigo-50/30' : ''}`}>
+                                <td className="px-6 py-4">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedIds.includes(product.IdProducto)}
+                                        onChange={() => toggleSelectProduct(product.IdProducto)}
+                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <div className="flex items-center gap-3">
                                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
@@ -568,22 +613,14 @@ export default function ProductsPage() {
                                         ) : null}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {(product as any).UnidadMedidaCompra}
-                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                                     ${(product.Precio || 0).toFixed(2)}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    {product.IVA}%
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {product.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {product.FechaAct ? new Date(product.FechaAct).toLocaleString(undefined, {
+                                        year: 'numeric', month: '2-digit', day: '2-digit',
+                                        hour: '2-digit', minute: '2-digit'
+                                    }) : '---'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
@@ -676,6 +713,7 @@ export default function ProductsPage() {
                                 onlyExcel={true}
                                 onSuccess={() => {
                                     fetchProducts();
+                                    setShowRecentOnly(true);
                                 }}
                             />
                         </div>
@@ -697,8 +735,38 @@ export default function ProductsPage() {
                     isOpen={isProductImageCaptureModalOpen}
                     onClose={() => setIsProductImageCaptureModalOpen(false)}
                     projectId={project?.idProyecto}
-                    onSuccess={() => fetchProducts()}
+                    onSuccess={() => {
+                        fetchProducts();
+                        setShowRecentOnly(true);
+                    }}
                 />
+            )}
+
+            {/* Bulk Delete Confirmation Modal */}
+            {isBulkDeleteModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl animate-in zoom-in duration-300">
+                        <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 text-3xl mb-6 mx-auto">🗑️</div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">Eliminar Seleccionados</h3>
+                        <p className="text-gray-500 mb-8 text-center">¿Estás seguro de que deseas eliminar <strong>{selectedIds.length}</strong> productos? Esta acción no se puede deshacer.</p>
+                        <div className="flex flex-col gap-3">
+                            <Button
+                                onClick={handleBulkDelete}
+                                isLoading={isDeletingBulk}
+                                className="bg-red-600 hover:bg-red-700 w-full py-3"
+                            >
+                                Eliminar {selectedIds.length} Productos
+                            </Button>
+                            <Button
+                                onClick={() => setIsBulkDeleteModalOpen(false)}
+                                variant="secondary"
+                                className="w-full py-3"
+                            >
+                                {t('cancel')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
