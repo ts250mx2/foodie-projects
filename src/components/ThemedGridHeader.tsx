@@ -31,14 +31,15 @@ interface ThemedGridHeaderCellProps {
     children: ReactNode;
     className?: string;
     onClick?: () => void;
+    style?: React.CSSProperties;
 }
 
-export function ThemedGridHeaderCell({ children, className = '', onClick }: ThemedGridHeaderCellProps) {
+export function ThemedGridHeaderCell({ children, className = '', onClick, style }: ThemedGridHeaderCellProps) {
     const { colors } = useTheme();
 
     return (
         <th
-            style={{ color: colors.colorLetra }}
+            style={{ color: colors.colorLetra, ...style }}
             className={`px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider ${className}`}
             onClick={onClick}
         >
