@@ -53,6 +53,7 @@
     "Navigation": {
         "dashboard": "Dashboard",
         "project": "Project",
+        "initialLoad": "Initial Load",
         "logout": "Logout",
         "configuration": "Configuration",
         "branches": "Branches",
@@ -94,6 +95,19 @@
         "massiveProductUpload": "Massive Product Upload",
         "productionCapture": "Production Capture",
         "materialExplosion": "Material Explosion"
+    },
+    "InitialLoad": {
+        "title": "Project Initial Load",
+        "step1Title": "STEP 1",
+        "step1Desc": "Product, code, and price upload",
+        "step2Title": "STEP 2",
+        "step2Desc": "Category assignment",
+        "step3Title": "STEP 3",
+        "step3Desc": "Assignment of Purchase units, purchase quantity and Inventory Units",
+        "step4Title": "STEP 4",
+        "step4Desc": "Sub-recipe parameter assignment",
+        "step5Title": "STEP 5",
+        "step5Desc": "Inventory capture"
     },
     "BreakEven": {
         "title": "Break-even Analysis",
@@ -297,6 +311,7 @@
         "documentTypeName": "Document Type",
         "active": "Active",
         "actions": "Actions",
+        "ocrDocuments": "OCR Documents",
         "addDocumentType": "Add Document Type",
         "editDocumentType": "Edit",
         "deleteDocumentType": "Delete",

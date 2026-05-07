@@ -58,6 +58,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '⚙️',
             items: [
                 { key: 'project', href: '/dashboard/config/project', emoji: '📋' },
+                { key: 'initialLoad', href: '/dashboard/config/initial-load', emoji: '🚀' },
                 { key: 'branches', href: '/dashboard/settings/branches', emoji: '📍' },
                 { key: 'employees', href: '/dashboard/payroll/employees', emoji: '👥' },
                 { key: 'taxes', href: '/dashboard/config/taxes', emoji: '🧾' },

@@ -81,10 +81,9 @@ export async function POST(request: NextRequest) {
             await connection.query(
                 `UPDATE tblGastos 
                  SET IdProveedor = ?, IdConceptoGasto = ?, Total = ?, NumeroFactura = ?, 
-                     IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), 
-                     NombreArchivo = COALESCE(?, NombreArchivo), FechaAct = Now()
+                     IdCanalPago = ?, ArchivoDocumento = COALESCE(?, ArchivoDocumento), FechaAct = Now()
                  WHERE IdGasto = ?`,
-                [providerId, conceptId, amount, invoiceNumber, paymentChannelId || null, base64File, fileName, idGasto]
+                [providerId, conceptId, amount, invoiceNumber, paymentChannelId || null, base64File, idGasto]
             );
         } else {
             // Insert new expense

@@ -53,6 +53,7 @@
     "Navigation": {
         "dashboard": "Dashboard",
         "project": "Proyecto",
+        "initialLoad": "Carga Inicial",
         "logout": "Cerrar Sesión",
         "configuration": "Configuración",
         "branches": "Sucursales",
@@ -100,6 +101,19 @@
         "ocrProcessing": "Procesamiento OCR",
         "receiptCapture": "Captura de Recibos",
         "ocrDocuments": "Documentos OCR"
+    },
+    "InitialLoad": {
+        "title": "Carga Inicial de Proyecto",
+        "step1Title": "PASO 1",
+        "step1Desc": "Carga de productos, códigos y precios",
+        "step2Title": "PASO 2",
+        "step2Desc": "Asignación de categorías",
+        "step3Title": "PASO 3",
+        "step3Desc": "Asignación de Medidas de compra, cantidad de compra y Medidas de Inventario",
+        "step4Title": "PASO 4",
+        "step4Desc": "Asignación de parámetros de subrecetas",
+        "step5Title": "PASO 5",
+        "step5Desc": "Captura de inventario"
     },
     "BreakEven": {
         "title": "Análisis de Punto de Equilibrio",
