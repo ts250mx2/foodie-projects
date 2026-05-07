@@ -78,7 +78,7 @@ th {
 }
 
 /* Fix for input, select, and textarea on Apple devices */
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea,
 button {
