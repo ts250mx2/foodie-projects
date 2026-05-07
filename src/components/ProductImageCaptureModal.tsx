@@ -367,7 +367,7 @@ export default function ProductImageCaptureModal({
                                             ✓
                                         </div>
                                         <img src={item.preview} className="w-full h-full object-cover" />
-                                        <div className="absolute bottom-2 right-2 flex gap-1 z-20">
+                                        <div className="absolute bottom-2 left-2 flex gap-1 z-20">
                                             <button 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -472,15 +472,16 @@ export default function ProductImageCaptureModal({
                                                                 <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-black">
                                                                     EXISTENTE {p.suggestions?.[0] ? `(${Math.round(p.suggestions[0].similarity * 100)}%)` : ''}
                                                                 </span>
-                                                                {p.autoLinked && (
+                                                                {p.isLinked && (
                                                                     <div className="flex flex-col gap-1">
-                                                                        <span className="text-[9px] text-slate-400 font-medium italic">Auto: {p.systemName}</span>
+                                                                        {p.systemName && <span className="text-[9px] text-slate-400 font-medium italic">{p.autoLinked ? 'Auto: ' : 'Manual: '}{p.systemName}</span>}
                                                                         <button 
                                                                             onClick={() => {
                                                                                 const next = [...ocrResult];
                                                                                 next[i].isLinked = false;
                                                                                 next[i].autoLinked = false;
                                                                                 next[i].systemId = null;
+                                                                                next[i].systemName = null;
                                                                                 next[i].producto = p.description.toUpperCase();
                                                                                 setOcrResult(next);
                                                                             }}
@@ -505,7 +506,9 @@ export default function ProductImageCaptureModal({
                                                                                 producto: selected.name,
                                                                                 codigo: selected.code,
                                                                                 isLinked: true,
-                                                                                systemId: selected.id
+                                                                                autoLinked: false,
+                                                                                systemId: selected.id,
+                                                                                systemName: selected.name
                                                                             };
                                                                             // Move selected to first position so badge shows correct percentage
                                                                             const selectedIdx = next[i].suggestions.findIndex((s: any) => s.id.toString() === e.target.value);

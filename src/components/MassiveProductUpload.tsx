@@ -37,7 +37,7 @@ export default function MassiveProductUpload({
     const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'gpt-4o'>('claude-sonnet-4-6');
     const [ocrPreviews, setOcrPreviews] = useState<string[]>([]);
     const [ocrFiles, setOcrFiles] = useState<File[]>([]);
-    const [allCategories, setAllCategories] = useState<{ IdCategoria: number, Categoria: string }[]>([]);
+    const [allCategories, setAllCategories] = useState<{ IdCategoria: number, Categoria: string, ImagenCategoria?: string }[]>([]);
     const [uploadResults, setUploadResults] = useState<any[] | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -264,9 +264,11 @@ export default function MassiveProductUpload({
                     _systemId: p.systemId,
                     _systemName: p.systemName,
                     _systemCodigo: p.systemCodigo,
+                    Categoria: '', // Initialize Categoria field
                     suggestions: p.suggestions || []
                 }));
                 setUploadedData(formattedData);
+                setIsOcrMode(true);
                 await fetchExistingProducts();
             } else {
                 alert('Error en OCR: ' + data.message);
@@ -689,7 +691,9 @@ export default function MassiveProductUpload({
                                                 const val = row[key];
                                                 const isCodeIssue = (key === 'Codigo' || key === 'CodigoBarras') && hasDuplicateCode;
                                                 const isNameIssue = (key === 'Producto' || key === 'Descripción') && hasDuplicateName;
-                                                const isCatIssue = key === 'Categoria' && hasInvalidCategory;
+                                                const isCatColumn = key === 'Categoria' || key === 'Categoría';
+                                                const isPriceColumn = key.toLowerCase().includes('precio');
+                                                const isCatIssue = isCatColumn && hasInvalidCategory;
 
                                                 const isCritical = isCodeIssue || isNameIssue || isCatIssue;
 
@@ -715,18 +719,33 @@ export default function MassiveProductUpload({
                                                                         <div className="flex flex-col">
                                                                             <div className="flex items-center gap-1">
                                                                                 <span className="text-[8px] font-black text-indigo-500 bg-indigo-50/50 px-1 rounded uppercase tracking-tighter">
-                                                                                    LINKED
+                                                                                    EXISTENTE {row.suggestions?.[0] ? `(${Math.round(row.suggestions[0].similarity * 100)}%)` : ''}
                                                                                 </span>
                                                                                 <span className="text-[9px] font-medium text-slate-400 italic">
                                                                                     {systemName || "..."}
                                                                                 </span>
                                                                             </div>
+                                                                            <button 
+                                                                                onClick={() => {
+                                                                                    const next = [...uploadedData];
+                                                                                    next[idx] = {
+                                                                                        ...next[idx],
+                                                                                        _isLinked: false,
+                                                                                        _systemId: null,
+                                                                                        _systemName: null
+                                                                                    };
+                                                                                    setUploadedData(next);
+                                                                                }}
+                                                                                className="text-[8px] text-indigo-600 font-bold hover:underline text-left mt-0.5"
+                                                                            >
+                                                                                Desvincular
+                                                                            </button>
                                                                         </div>
                                                                     ) : row.suggestions?.length > 0 ? (
                                                                         <div className="flex flex-col gap-1">
                                                                             <span className="text-[8px] bg-amber-50 text-amber-600 px-1 rounded-full font-black w-fit uppercase tracking-tighter">Similar al {Math.round(row.suggestions[0].similarity * 100)}%</span>
                                                                             <select 
-                                                                                className="text-[8px] text-slate-500 bg-slate-50 rounded border-slate-100 focus:ring-0 py-0.5 mt-0.5"
+                                                                                className="text-[8px] text-slate-500 bg-slate-50 rounded border-slate-100 focus:ring-0 py-0.5 mt-0.5 font-bold"
                                                                                 onChange={(e) => {
                                                                                     const selected = row.suggestions.find((s: any) => s.id.toString() === e.target.value);
                                                                                     if (selected) {
@@ -751,15 +770,41 @@ export default function MassiveProductUpload({
                                                                                 ))}
                                                                             </select>
                                                                         </div>
-                                                                    ) : hasIssues ? (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <span className="text-[8px] text-amber-600 font-black bg-amber-50 px-1 rounded uppercase tracking-tighter">EXISTENTE</span>
-                                                                            <p className="text-[8px] text-amber-500 font-medium">Duplicado</p>
-                                                                        </div>
                                                                     ) : (
-                                                                        <span className="text-[8px] text-emerald-500 font-black bg-emerald-50 px-1 rounded uppercase tracking-tighter">NEW</span>
+                                                                        <span className="text-[8px] text-emerald-500 font-black bg-emerald-50 px-1 rounded uppercase tracking-tighter">NUEVO PRODUCTO</span>
                                                                     )}
                                                                 </div>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                }
+
+                                                if (isCatColumn) {
+                                                    return (
+                                                        <td key={vIdx} className="px-3 py-1.5 align-top">
+                                                            <div className="flex flex-col">
+                                                                {isCatIssue && (
+                                                                    <span className="text-[8px] font-black text-amber-500 uppercase tracking-tighter mb-0.5">⚠️ No Existe</span>
+                                                                )}
+                                                                <select 
+                                                                    className={`text-[11px] bg-transparent border-none focus:ring-0 p-0 font-bold ${isCatIssue ? 'text-amber-600' : 'text-slate-700'}`}
+                                                                    value={allCategories.find(c => c.Categoria === (val || '').toUpperCase())?.IdCategoria || ''}
+                                                                    onChange={(e) => {
+                                                                        const selectedCat = allCategories.find(c => c.IdCategoria.toString() === e.target.value);
+                                                                        if (selectedCat) {
+                                                                            const next = [...uploadedData];
+                                                                            next[idx][key] = selectedCat.Categoria;
+                                                                            setUploadedData(next);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <option value="">Seleccionar...</option>
+                                                                    {allCategories.map(c => (
+                                                                        <option key={c.IdCategoria} value={c.IdCategoria}>
+                                                                            {c.ImagenCategoria} {c.Categoria}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
                                                             </div>
                                                         </td>
                                                     );
@@ -770,8 +815,8 @@ export default function MassiveProductUpload({
                                                         <div className="relative group/cell">
                                                             <span className={`text-[11px] block truncate max-w-[200px] ${
                                                                 isCritical ? 'text-amber-600 font-black' : 'text-slate-500 font-medium'
-                                                            }`}>
-                                                                {val || '---'}
+                                                            } ${isPriceColumn ? 'text-indigo-600 font-black' : ''}`}>
+                                                                {isPriceColumn ? `$${parseFloat(val || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}` : (val || '---')}
                                                             </span>
                                                             {isCritical && (
                                                                 <div className="absolute left-0 -bottom-4 bg-slate-800 text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover/cell:opacity-100 transition-opacity z-10 whitespace-nowrap pointer-events-none">

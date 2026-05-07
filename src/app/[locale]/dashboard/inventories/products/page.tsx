@@ -32,6 +32,7 @@ interface Product {
     ImagenCategoria?: string;
     ArchivoImagen?: string;
     IdModuloRecetario?: number;
+    FechaAct?: string;
 }
 
 interface Category {
@@ -93,6 +94,8 @@ export default function ProductsPage() {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isCreatingPresentation, setIsCreatingPresentation] = useState(false);
     const [newPresentationName, setNewPresentationName] = useState('');
+    const [showRecentOnly, setShowRecentOnly] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -318,7 +321,15 @@ export default function ProductsPage() {
             const matchesSearch = productName.toLowerCase().includes(searchTermLower);
             const matchesCode = productCode.toLowerCase().includes(codeSearchLower);
 
-            return matchesCategory && matchesSearch && matchesCode;
+            let matchesRecent = true;
+            if (showRecentOnly && product.FechaAct) {
+                const productDate = new Date(product.FechaAct);
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
+                matchesRecent = productDate >= oneHourAgo;
+            }
+
+            return matchesCategory && matchesSearch && matchesCode && matchesRecent;
         })
         .sort((a, b) => {
             if (!sortConfig) return 0;
@@ -399,6 +410,14 @@ export default function ProductsPage() {
                         setIsModalOpen(true);
                     }}>
                         {t('addProduct')}
+                    </Button>
+                    <Button
+                        onClick={() => setShowRecentOnly(!showRecentOnly)}
+                        variant={showRecentOnly ? 'primary' : 'secondary'}
+                        className={`${showRecentOnly ? 'bg-amber-500 hover:bg-amber-600 border-amber-600' : ''} flex items-center gap-2`}
+                        title="Mostrar productos cargados en la última hora"
+                    >
+                        {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
                     </Button>
                 </div>
             </div>

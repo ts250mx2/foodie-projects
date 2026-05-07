@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
                 FROM vlProductos v
                 LEFT JOIN BDFoodieProjects.tblCategorias c ON v.IdCategoria = c.IdCategoria
                 WHERE v.Status = 0 
-                ORDER BY v.Producto
+                ORDER BY v.FechaAct DESC, v.Producto ASC
             `;
         } else if (tipoProductoStr === '2') {
             query = `
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
                 FROM vlProductos v
                 LEFT JOIN BDFoodieProjects.tblCategorias c ON v.IdCategoria = c.IdCategoria
                 WHERE v.Status = 0 AND v.IdTipoProducto = 2
+                ORDER BY v.FechaAct DESC, v.Producto ASC
             `;
         } else {
             query = `
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
                 LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
                 LEFT JOIN tblSeccionesMenu s ON p.IdSeccionMenu = s.IdSeccionMenu
                 WHERE p.Status = 0
+                ORDER BY p.FechaAct DESC, p.Producto ASC
             `;
 
             if (tipoProductoStr !== null) {
