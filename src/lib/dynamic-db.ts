@@ -39,6 +39,7 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             user: dbUser,
             password: dbPass,
             database: project.BaseDatos,
+            timezone: '-06:00'
         });
 
         return connection;

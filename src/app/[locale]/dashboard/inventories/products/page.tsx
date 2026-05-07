@@ -372,8 +372,7 @@ export default function ProductsPage() {
             return matchesCategory && matchesSearch && matchesCode && matchesRecent;
         })
         .sort((a, b) => {
-            if (!sortConfig) return 0;
-            const { key, direction } = sortConfig;
+            const { key, direction } = sortConfig || { key: 'FechaAct', direction: 'desc' };
 
             const aValue = key === 'Categoria' ? (a.Categoria ?? '') :
                 key === 'Presentacion' ? (a.Presentacion ?? '') :
