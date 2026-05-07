@@ -474,17 +474,19 @@ export default function ProductsPage() {
                 {/* ... table content remains same ... */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
-                        <ThemedGridHeaderCell className="w-10" style={{ minWidth: '40px' }}>
-                            <div className="flex items-center gap-2">
-                                <input 
-                                    type="checkbox" 
-                                    checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
-                                    onChange={toggleSelectAll}
-                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                    title="Seleccionar todo"
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
+                        {showRecentOnly && (
+                            <ThemedGridHeaderCell className="w-10" style={{ minWidth: '40px' }}>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
+                                        onChange={toggleSelectAll}
+                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        title="Seleccionar todo"
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                        )}
                         <ThemedGridHeaderCell
                             className="cursor-pointer hover:opacity-80"
                             onClick={() => handleSort('Producto')}
@@ -577,14 +579,16 @@ export default function ProductsPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {sortedAndFilteredProducts.map((product) => (
                             <tr key={product.IdProducto} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product.IdProducto) ? 'bg-indigo-50/30' : ''}`}>
-                                <td className="px-6 py-4">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedIds.includes(product.IdProducto)}
-                                        onChange={() => toggleSelectProduct(product.IdProducto)}
-                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    />
-                                </td>
+                                {showRecentOnly && (
+                                    <td className="px-6 py-4">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedIds.includes(product.IdProducto)}
+                                            onChange={() => toggleSelectProduct(product.IdProducto)}
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                    </td>
+                                )}
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     <div className="flex items-center gap-3">
                                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
