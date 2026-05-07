@@ -474,7 +474,7 @@ export default function ProductsPage() {
                 {/* ... table content remains same ... */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <ThemedGridHeader>
-                        <ThemedGridHeaderCell className="w-10">
+                        <ThemedGridHeaderCell className="w-10" style={{ minWidth: '40px' }}>
                             <div className="flex items-center gap-2">
                                 <input 
                                     type="checkbox" 
