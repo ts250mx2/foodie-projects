@@ -507,6 +507,12 @@ export default function ProductImageCaptureModal({
                                                                                 isLinked: true,
                                                                                 systemId: selected.id
                                                                             };
+                                                                            // Move selected to first position so badge shows correct percentage
+                                                                            const selectedIdx = next[i].suggestions.findIndex((s: any) => s.id.toString() === e.target.value);
+                                                                            if (selectedIdx > -1) {
+                                                                                const [item] = next[i].suggestions.splice(selectedIdx, 1);
+                                                                                next[i].suggestions.unshift(item);
+                                                                            }
                                                                             setOcrResult(next);
                                                                         }
                                                                     }}
