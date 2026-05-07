@@ -42,6 +42,8 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             timezone: '-06:00'
         });
 
+        await connection.query("SET time_zone = '-06:00'");
+
         return connection;
     } catch (error) {
         console.error('Error establishing project database connection:', error);
