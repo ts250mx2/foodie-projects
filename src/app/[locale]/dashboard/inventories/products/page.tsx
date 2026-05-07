@@ -96,6 +96,7 @@ export default function ProductsPage() {
     const [newPresentationName, setNewPresentationName] = useState('');
     const [showRecentOnly, setShowRecentOnly] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -298,9 +299,6 @@ export default function ProductsPage() {
         setEditingProduct(product);
         setIsDeleteModalOpen(true);
     };
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
 
     const filteredProducts = products.filter(p =>
         p.IdProducto !== selectedProduct?.IdProducto &&
