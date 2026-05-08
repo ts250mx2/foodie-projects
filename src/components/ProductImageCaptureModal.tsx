@@ -14,6 +14,8 @@ interface ProductImageCaptureModalProps {
     onClose: () => void;
     projectId: number;
     onSuccess?: () => void;
+    targetApi?: string;
+    singleBufferId?: number;
 }
 
 type Step = 'capture' | 'preview' | 'register';
@@ -22,7 +24,9 @@ export default function ProductImageCaptureModal({
     isOpen, 
     onClose, 
     projectId, 
-    onSuccess 
+    onSuccess,
+    targetApi = '/api/products/massive-upload/process',
+    singleBufferId
 }: ProductImageCaptureModalProps) {
     const tCommon = useTranslations('Common');
     const params = useParams();
@@ -225,6 +229,37 @@ export default function ProductImageCaptureModal({
     };
 
     const handleSaveProducts = async () => {
+        if (singleBufferId) {
+            // SINGLE PRODUCT IMAGE SAVE
+            if (ocrItems.length === 0) return;
+            const item = ocrItems[0];
+            setIsSaving(true);
+            try {
+                // We need to convert image to base64 or upload as file
+                const reader = new FileReader();
+                reader.readAsDataURL(item.file);
+                reader.onloadend = async () => {
+                    const base64data = reader.result;
+                    const response = await fetch('/api/config/initial-load/buffer-products', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            projectId,
+                            idBuffer: singleBufferId,
+                            ArchivoImagen: base64data
+                        })
+                    });
+                    if ((await response.json()).success) {
+                        onSuccess?.();
+                        onClose();
+                        resetModal();
+                    }
+                };
+            } catch (err) { alert('Error al guardar imagen'); }
+            finally { setIsSaving(false); }
+            return;
+        }
+
         const validProducts = ocrResult
             .filter(p => !p.isLinked) // Only new products or manually handle linked
             .map(p => ({
@@ -247,7 +282,7 @@ export default function ProductImageCaptureModal({
 
         setIsSaving(true);
         try {
-            const response = await fetch('/api/products/massive-upload/process', {
+            const response = await fetch(targetApi, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

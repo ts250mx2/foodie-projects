@@ -15,13 +15,15 @@ interface MassiveProductUploadProps {
     hideHeader?: boolean;
     initialTab?: 'excel' | 'ocr';
     onlyExcel?: boolean;
+    targetApi?: string;
 }
 
 export default function MassiveProductUpload({ 
     onSuccess, 
     hideHeader = false,
     initialTab = 'ocr',
-    onlyExcel = false
+    onlyExcel = false,
+    targetApi = '/api/products/massive-upload/process'
 }: MassiveProductUploadProps) {
     const t = useTranslations('Navigation');
     const params = useParams();
@@ -366,7 +368,7 @@ export default function MassiveProductUpload({
                         setIsProcessing(false);
                         return;
                     }
-                    const response = await fetch('/api/products/massive-upload/process', {
+                    const response = await fetch(targetApi, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -409,7 +411,7 @@ export default function MassiveProductUpload({
 
         setIsProcessing(true);
         try {
-            const response = await fetch('/api/products/massive-upload/process', {
+            const response = await fetch(targetApi, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
