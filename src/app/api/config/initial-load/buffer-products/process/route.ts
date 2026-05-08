@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
                 Precio DECIMAL(10,2),
                 Codigo VARCHAR(50),
                 IdCategoria INT DEFAULT 0,
+                UnidadMedidaCompra VARCHAR(50),
+                CantidadCompra DECIMAL(10,4) DEFAULT 1,
+                UnidadMedidaInventario VARCHAR(50),
+                UnidadMedidaRecetario VARCHAR(50),
+                ConversionSimple DECIMAL(10,4) DEFAULT 1,
+                ArchivoImagen LONGTEXT,
                 Status INT DEFAULT 0,
                 FechaAct DATETIME
             )

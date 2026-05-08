@@ -43,6 +43,57 @@ export async function GET(request: NextRequest) {
     }
 }
 
+export async function POST(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, producto, precio, codigo } = body;
+
+        if (!projectId) {
+            return NextResponse.json({ success: false, message: 'Project ID is required' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(parseInt(projectId));
+
+        // Ensure table exists
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS tblBufferProductos (
+                IdBuffer INT AUTO_INCREMENT PRIMARY KEY,
+                ProductoDocumento VARCHAR(255),
+                Producto VARCHAR(255),
+                Precio DECIMAL(10,2),
+                Codigo VARCHAR(50),
+                IdCategoria INT DEFAULT 0,
+                UnidadMedidaCompra VARCHAR(50),
+                CantidadCompra DECIMAL(10,4) DEFAULT 1,
+                UnidadMedidaInventario VARCHAR(50),
+                UnidadMedidaRecetario VARCHAR(50),
+                ConversionSimple DECIMAL(10,4) DEFAULT 1,
+                ArchivoImagen LONGTEXT,
+                Status INT DEFAULT 0,
+                FechaAct DATETIME
+            )
+        `);
+
+        const [result] = await connection.query(
+            `INSERT INTO tblBufferProductos (ProductoDocumento, Producto, Precio, Codigo, Status, FechaAct) 
+             VALUES (?, ?, ?, ?, 0, NOW())`,
+            [(producto || 'MANUAL').toUpperCase(), (producto || 'NUEVO PRODUCTO').toUpperCase(), precio || 0, (codigo || '').toUpperCase()]
+        ) as [ResultSetHeader, any];
+
+        return NextResponse.json({
+            success: true,
+            message: 'Producto agregado manualmente',
+            idBuffer: result.insertId
+        });
+    } catch (error) {
+        console.error('Error adding manual product:', error);
+        return NextResponse.json({ success: false, message: 'Error al agregar producto' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
 export async function PUT(request: NextRequest) {
     let connection;
     try {

@@ -63,6 +63,14 @@ export default function InitialLoadPage() {
         conversionSimple: 1
     });
 
+    // Manual Entry State
+    const [isAddingManual, setIsAddingManual] = useState(false);
+    const [newManualProduct, setNewManualProduct] = useState({
+        producto: '',
+        precio: 0,
+        codigo: ''
+    });
+
     const CONVERSION_FACTORS: Record<string, number> = {
         'kg': 1, 'kilo': 1, 'kilogramo': 1, 'kilos': 1,
         'g': 0.001, 'gramo': 0.001, 'gramos': 0.001,
@@ -229,6 +237,31 @@ export default function InitialLoadPage() {
         } catch (err) { console.error('Error updating buffer item:', err); }
     };
 
+    const handleAddManual = async () => {
+        if (!project?.idProyecto) return;
+        if (!newManualProduct.producto) {
+            alert('El nombre del producto es obligatorio.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/config/initial-load/buffer-products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    ...newManualProduct
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setIsAddingManual(false);
+                setNewManualProduct({ producto: '', precio: 0, codigo: '' });
+                fetchData();
+            }
+        } catch (err) { console.error('Error adding manual product:', err); }
+    };
+
     const handleSaveInventoryParams = async () => {
         if (!selectedBufferProduct || !project?.idProyecto) return;
         if (!inventoryParams.unidadMedidaCompra || !inventoryParams.unidadMedidaInventario || !inventoryParams.cantidadCompra) {
@@ -365,6 +398,7 @@ export default function InitialLoadPage() {
                             <div className="flex items-center gap-4">
                                 <Button onClick={() => setIsExcelModalOpen(true)} className="bg-emerald-600 text-xs h-auto py-2">EXCEL</Button>
                                 <Button onClick={() => setIsImageModalOpen(true)} className="bg-indigo-600 text-xs h-auto py-2">IMAGEN</Button>
+                                <Button onClick={() => setIsAddingManual(true)} className="bg-amber-600 text-xs h-auto py-2">MANUAL</Button>
                                 <button onClick={() => setIsStep1Open(false)} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">✕</button>
                             </div>
                         </div>
@@ -373,6 +407,18 @@ export default function InitialLoadPage() {
                                 <table className="w-full text-left border-collapse text-xs">
                                     <thead className="bg-slate-100/50 font-black text-slate-400 uppercase tracking-widest"><tr><th className="px-6 py-4">Documento</th><th className="px-6 py-4">Producto</th><th className="px-6 py-4">Precio</th><th className="px-6 py-4">Código</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead>
                                     <tbody className="divide-y divide-slate-100">
+                                        {isAddingManual && (
+                                            <tr className="bg-amber-50/50 animate-in slide-in-from-top duration-300">
+                                                <td className="px-6 py-3 text-amber-600 font-black italic">MANUAL</td>
+                                                <td className="px-6 py-3"><input autoFocus className="bg-white border-2 border-amber-200 rounded-xl px-4 py-2 font-bold text-slate-700 w-full focus:ring-2 focus:ring-amber-400 outline-none" placeholder="NOMBRE DEL PRODUCTO..." value={newManualProduct.producto} onChange={(e) => setNewManualProduct({...newManualProduct, producto: e.target.value.toUpperCase()})} /></td>
+                                                <td className="px-6 py-3"><input type="number" className="bg-white border-2 border-amber-200 rounded-xl px-4 py-2 w-24 focus:ring-2 focus:ring-amber-400 outline-none font-bold text-slate-700" placeholder="0.00" value={newManualProduct.precio || ''} onChange={(e) => setNewManualProduct({...newManualProduct, precio: parseFloat(e.target.value) || 0})} /></td>
+                                                <td className="px-6 py-3"><input className="bg-white border-2 border-amber-200 rounded-xl px-4 py-2 text-slate-500 w-full focus:ring-2 focus:ring-amber-400 outline-none" placeholder="CÓDIGO (OPCIONAL)..." value={newManualProduct.codigo} onChange={(e) => setNewManualProduct({...newManualProduct, codigo: e.target.value.toUpperCase()})} /></td>
+                                                <td className="px-6 py-3 text-center flex items-center justify-center gap-2">
+                                                    <button onClick={handleAddManual} className="p-2 bg-emerald-500 text-white rounded-xl shadow-lg hover:bg-emerald-600 transition-all text-lg">✓</button>
+                                                    <button onClick={() => setIsAddingManual(false)} className="p-2 bg-slate-200 text-slate-500 rounded-xl shadow-lg hover:bg-slate-300 transition-all text-lg">✕</button>
+                                                </td>
+                                            </tr>
+                                        )}
                                         {step1Products.map((p, index) => {
                                             const id = p.IdBuffer || p.idBuffer || index;
                                             return (
