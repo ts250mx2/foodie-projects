@@ -906,9 +906,6 @@ export default function PurchaseOrdersPage() {
                     </div>
                 </div>
             )}
-        </div>
-    );
-}
 
             {/* Category Selection / Capture Modal */}
             {isCategoryModalOpen && (
@@ -1065,3 +1062,6 @@ export default function PurchaseOrdersPage() {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
