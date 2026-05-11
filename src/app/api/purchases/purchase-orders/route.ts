@@ -1,0 +1,97 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getProjectConnection } from '@/lib/dynamic-db';
+import { ResultSetHeader } from 'mysql2';
+
+export async function GET(request: NextRequest) {
+    let connection;
+    try {
+        const { searchParams } = new URL(request.url);
+        const projectIdStr = searchParams.get('projectId');
+
+        if (!projectIdStr) {
+            return NextResponse.json({ success: false, message: 'Project ID is required' }, { status: 400 });
+        }
+
+        const projectId = parseInt(projectIdStr);
+        connection = await getProjectConnection(projectId);
+
+        const [rows] = await connection.query(`
+            SELECT 
+                oc.*, 
+                p.Proveedor,
+                s.Sucursal
+            FROM tblOrdenesCompra oc
+            JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
+            JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
+            ORDER BY oc.FechaOrden DESC
+        `);
+
+        return NextResponse.json({ success: true, data: rows });
+    } catch (error) {
+        console.error('Error fetching purchase orders:', error);
+        return NextResponse.json({ success: false, message: 'Error fetching purchase orders' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function POST(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, idProveedor, idSucursal, fechaEntrega, fechaProgramadaEntrega, notas, items, esInterna } = body;
+
+        if (!projectId || (!idProveedor && !esInterna) || !idSucursal || !items || !Array.isArray(items)) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(projectId);
+        await connection.beginTransaction();
+
+        let finalIdProveedor = idProveedor;
+
+        if (esInterna) {
+            // Find or create internal provider
+            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = "ORDEN DE COMPRA INTERNA"');
+            if ((provRows as any[]).length > 0) {
+                finalIdProveedor = (provRows as any[])[0].IdProveedor;
+            } else {
+                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES ("ORDEN DE COMPRA INTERNA", 0, Now())');
+                finalIdProveedor = (newProv as any).insertId;
+            }
+        }
+
+        // 1. Create Purchase Order (FechaOrden is Now())
+        const [result] = await connection.query(
+            'INSERT INTO tblOrdenesCompra (IdProveedor, IdSucursal, EsInterna, FechaOrden, FechaEntrega, FechaProgramadaEntrega, Status, Notas, FechaAct) VALUES (?, ?, ?, Now(), ?, ?, 0, ?, Now())',
+            [finalIdProveedor, idSucursal, esInterna ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, notas || null]
+        );
+
+        const idOrdenCompra = (result as ResultSetHeader).insertId;
+
+        // 2. Create Details and update Provider-Product relationship
+        for (const item of items) {
+            await connection.query(
+                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, FechaAct) VALUES (?, ?, ?, ?, ?, Now())',
+                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario]
+            );
+
+            // Update relationship using the resolved provider ID
+            await connection.query(`
+                INSERT INTO tblProveedoresProductos (IdProveedor, IdProducto, UltimoPrecio, FechaAct)
+                VALUES (?, ?, ?, Now())
+                ON DUPLICATE KEY UPDATE UltimoPrecio = ?, FechaAct = Now()
+            `, [finalIdProveedor || 0, item.idProducto, item.precioUnitario, item.precioUnitario]);
+        }
+
+        await connection.commit();
+
+        return NextResponse.json({ success: true, id: idOrdenCompra });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error('Error creating purchase order:', error);
+        return NextResponse.json({ success: false, message: 'Error creating purchase order' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}

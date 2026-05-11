@@ -90,6 +90,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '🛒',
             items: [
                 { key: 'suppliers', href: '/dashboard/purchases/suppliers', emoji: '🏢' },
+                { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', emoji: '📦' },
                 { key: 'purchasesCapture', href: '/dashboard/purchases/capture', emoji: '📄' }
             ]
         },
