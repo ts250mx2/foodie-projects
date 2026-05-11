@@ -437,26 +437,68 @@ export default function PurchaseOrdersPage() {
 
     const handlePrintCategoryCapture = () => {
         const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`Captura por Categoría: ${selectedCategory.Categoria}`, 105, 20, { align: 'center' });
         
-        const tableData = categoryProductsCapture.filter(p => p.cantidad > 0).map(p => [
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`HOJA DE PEDIDO: ${selectedCategory.Categoria.toUpperCase()}`, 105, 20, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Fecha de impresión: ${new Date().toLocaleString()}`, 20, 30);
+        doc.text('Instrucciones: Escriba la cantidad necesaria en el recuadro de "CANTIDAD".', 20, 35);
+
+        const tableData = categoryProductsCapture.map(p => [
             p.codigo,
             p.producto,
-            p.cantidad,
+            '', // Empty for manual entry
             formatCurrency(p.precioUnitario),
-            formatCurrency(p.total)
+            ''  // Empty for total if needed, but mainly for notes
         ]);
 
         autoTable(doc, {
-            startY: 30,
-            head: [['Código', 'Producto', 'Cant.', 'Precio', 'Total']],
+            startY: 45,
+            head: [['CÓDIGO', 'PRODUCTO', 'CANTIDAD', 'PRECIO UNIT.', 'NOTAS']],
             body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [0, 51, 153] }
+            theme: 'grid',
+            headStyles: { 
+                fillColor: [44, 62, 80], 
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: { cellWidth: 30, halign: 'center' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 30, minCellHeight: 12 }, // Box for writing
+                3: { cellWidth: 35, halign: 'right' },
+                4: { cellWidth: 30 }
+            },
+            styles: {
+                fontSize: 10,
+                cellPadding: 4,
+                valign: 'middle'
+            },
+            didDrawCell: (data) => {
+                // Draw a box in the Quantity column if it's a body cell
+                if (data.section === 'body' && data.column.index === 2) {
+                    doc.setDrawColor(200, 200, 200);
+                    // Just let the grid handle it, theme: 'grid' already puts borders.
+                }
+            }
         });
 
-        doc.save(`Captura_${selectedCategory.Categoria}.pdf`);
+        // Footer
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Página ${i} de ${pageCount}`, 190, 285, { align: 'right' });
+            doc.text('Foodie Guru - Gestión de Insumos', 105, 285, { align: 'center' });
+        }
+
+        doc.save(`Hoja_Pedido_${selectedCategory.Categoria}.pdf`);
     };
 
     const exportOrderToPDF = async (order: PurchaseOrder) => {
