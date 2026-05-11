@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
                 p.Proveedor,
                 s.Sucursal
             FROM tblOrdenesCompra oc
-            JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
-            JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
+            LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
+            LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
+            WHERE oc.Status != 2
             ORDER BY oc.FechaOrden DESC
         `);
 
@@ -91,6 +92,94 @@ export async function POST(request: NextRequest) {
         if (connection) await connection.rollback();
         console.error('Error creating purchase order:', error);
         return NextResponse.json({ success: false, message: 'Error creating purchase order' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function PUT(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, idOrdenCompra, idProveedor, idSucursal, esInterna, fechaEntrega, fechaProgramadaEntrega, notas, items } = body;
+
+        if (!projectId || !idOrdenCompra || (!idProveedor && !esInterna) || !idSucursal || !items || !Array.isArray(items)) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(projectId);
+        await connection.beginTransaction();
+
+        let finalIdProveedor = idProveedor;
+        if (esInterna) {
+            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = "ORDEN DE COMPRA INTERNA"');
+            if ((provRows as any[]).length > 0) {
+                finalIdProveedor = (provRows as any[])[0].IdProveedor;
+            } else {
+                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES ("ORDEN DE COMPRA INTERNA", 0, Now())');
+                finalIdProveedor = (newProv as any).insertId;
+            }
+        }
+
+        // 1. Update Header
+        await connection.query(
+            'UPDATE tblOrdenesCompra SET IdProveedor = ?, IdSucursal = ?, EsInterna = ?, FechaEntrega = ?, FechaProgramadaEntrega = ?, Notas = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+            [finalIdProveedor || 0, idSucursal, esInterna ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, notas || null, idOrdenCompra]
+        );
+
+        // 2. Delete existing items
+        await connection.query('DELETE FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = ?', [idOrdenCompra]);
+
+        // 3. Insert new items
+        for (const item of items) {
+            await connection.query(
+                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, FechaAct) VALUES (?, ?, ?, ?, ?, Now())',
+                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario]
+            );
+
+            // Update relationship
+            await connection.query(`
+                INSERT INTO tblProveedoresProductos (IdProveedor, IdProducto, UltimoPrecio, FechaAct)
+                VALUES (?, ?, ?, Now())
+                ON DUPLICATE KEY UPDATE UltimoPrecio = ?, FechaAct = Now()
+            `, [finalIdProveedor || 0, item.idProducto, item.precioUnitario, item.precioUnitario]);
+        }
+
+        await connection.commit();
+        return NextResponse.json({ success: true, message: 'Purchase order updated successfully' });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error('Error updating purchase order:', error);
+        return NextResponse.json({ success: false, message: 'Error updating purchase order' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    let connection;
+    try {
+        const { searchParams } = new URL(request.url);
+        const projectIdStr = searchParams.get('projectId');
+        const idOrdenCompra = searchParams.get('id');
+
+        if (!projectIdStr || !idOrdenCompra) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        const projectId = parseInt(projectIdStr);
+        connection = await getProjectConnection(projectId);
+
+        // Soft delete: Set Status = 2
+        await connection.query(
+            'UPDATE tblOrdenesCompra SET Status = 2, FechaAct = Now() WHERE IdOrdenCompra = ?',
+            [idOrdenCompra]
+        );
+
+        return NextResponse.json({ success: true, message: 'Purchase order deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting purchase order:', error);
+        return NextResponse.json({ success: false, message: 'Error deleting purchase order' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }

@@ -60,6 +60,7 @@ export default function PurchaseOrdersPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
 
     // Form state
     const [selectedProvider, setSelectedProvider] = useState<number | ''>('');
@@ -232,11 +233,15 @@ export default function PurchaseOrdersPage() {
         }
 
         try {
-            const res = await fetch('/api/purchases/purchase-orders', {
-                method: 'POST',
+            const url = '/api/purchases/purchase-orders';
+            const method = editingOrder ? 'PUT' : 'POST';
+            
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId,
+                    idOrdenCompra: editingOrder?.IdOrdenCompra,
                     idProveedor: esInterna ? null : selectedProvider,
                     idSucursal: selectedBranch,
                     esInterna,
@@ -249,24 +254,80 @@ export default function PurchaseOrdersPage() {
 
             const data = await res.json();
             if (data.success) {
-                alert(t('successAdd'));
-                setIsModalOpen(false);
-                setOrderItems([]);
-                setSelectedProvider('');
-                setProviderSearch('');
-                setEsInterna(false);
-                setNotas('');
+                alert(editingOrder ? 'Orden actualizada con éxito' : t('successAdd'));
+                closeModal();
                 fetchOrders();
-                // If only one branch, keep it selected, otherwise reset
-                if (branches.length !== 1) {
-                    setSelectedBranch('');
-                }
             } else {
                 alert(t('errorAdd'));
             }
         } catch (error) {
-            console.error('Error creating order:', error);
+            console.error('Error saving order:', error);
             alert(t('errorAdd'));
+        }
+    };
+
+    const handleEdit = async (order: PurchaseOrder) => {
+        try {
+            setIsLoading(true);
+            const res = await fetch(`/api/purchases/purchase-orders/${order.IdOrdenCompra}?projectId=${projectId}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                const { header, items } = data.data;
+                setEditingOrder(order);
+                setEsInterna(header.EsInterna === 1);
+                setSelectedProvider(header.IdProveedor);
+                setProviderSearch(header.Proveedor);
+                setSelectedBranch(header.IdSucursal);
+                setFechaProgramada(header.FechaProgramadaEntrega ? header.FechaProgramadaEntrega.split('T')[0] : '');
+                setNotas(header.Notas || '');
+                setOrderItems(items.map((it: any) => ({
+                    idProducto: it.IdProducto,
+                    producto: it.Producto,
+                    cantidad: it.Cantidad,
+                    precioUnitario: it.PrecioUnitario,
+                    total: it.Total
+                })));
+                setIsModalOpen(true);
+            } else {
+                alert('Error al cargar detalles de la orden');
+            }
+        } catch (error) {
+            console.error('Error fetching details for edit:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDelete = async (order: PurchaseOrder) => {
+        if (!confirm('¿Estás seguro de que deseas borrar esta orden de compra?')) return;
+        
+        try {
+            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}&id=${order.IdOrdenCompra}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                fetchOrders();
+            } else {
+                alert('Error al borrar la orden');
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+        }
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingOrder(null);
+        setOrderItems([]);
+        setSelectedProvider('');
+        setProviderSearch('');
+        setEsInterna(false);
+        setNotas('');
+        setFechaProgramada('');
+        if (branches.length !== 1) {
+            setSelectedBranch('');
         }
     };
 
@@ -443,12 +504,29 @@ export default function PurchaseOrdersPage() {
                                         {getStatusLabel(order.Status)}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-right">
-                                        <button 
-                                            onClick={() => exportOrderToPDF(order)}
-                                            className="text-blue-600 hover:text-blue-800 font-bold flex items-center justify-end gap-1 ml-auto"
-                                        >
-                                            <span>🖨️</span> {t('actions')}
-                                        </button>
+                                        <div className="flex items-center justify-end gap-3">
+                                            <button 
+                                                onClick={() => exportOrderToPDF(order)}
+                                                className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                                                title="Imprimir PDF"
+                                            >
+                                                🖨️
+                                            </button>
+                                            <button 
+                                                onClick={() => handleEdit(order)}
+                                                className="text-amber-600 hover:text-amber-800 transition-colors p-1"
+                                                title="Editar"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(order)}
+                                                className="text-red-600 hover:text-red-800 transition-colors p-1"
+                                                title="Borrar"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -468,13 +546,15 @@ export default function PurchaseOrdersPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-10 relative border border-white/20">
                         <button 
-                            onClick={() => setIsModalOpen(false)}
+                            onClick={closeModal}
                             className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors text-2xl p-2"
                         >
                             ✕
                         </button>
                         
-                        <h2 className="text-3xl font-black mb-10 text-black border-b pb-4 inline-block">{t('addOrder')}</h2>
+                        <h2 className="text-3xl font-black mb-10 text-black border-b pb-4 inline-block">
+                            {editingOrder ? 'Editar Orden de Compra' : t('addOrder')}
+                        </h2>
                         
                         <div className="flex items-center gap-3 mb-10 bg-blue-50/50 p-6 rounded-3xl border border-blue-100 w-fit">
                             <input 
@@ -671,7 +751,7 @@ export default function PurchaseOrdersPage() {
 
                         <div className="flex flex-col md:flex-row justify-end gap-6 pt-4 border-t border-gray-100">
                             <button 
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={closeModal}
                                 className="px-10 py-4 rounded-2xl border-2 border-gray-200 font-black hover:bg-gray-50 transition-all text-gray-400 uppercase tracking-widest text-sm"
                             >
                                 {t('cancel')}
@@ -680,7 +760,7 @@ export default function PurchaseOrdersPage() {
                                 onClick={handleSubmit}
                                 className="px-12 py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0 uppercase tracking-widest text-sm"
                             >
-                                {t('save')}
+                                {editingOrder ? 'Actualizar Orden' : t('save')}
                             </button>
                         </div>
                     </div>
