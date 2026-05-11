@@ -475,8 +475,8 @@ export default function PurchaseOrdersPage() {
                 4: { cellWidth: 30 }
             },
             styles: {
-                fontSize: 10,
-                cellPadding: 4,
+                fontSize: 8.5,
+                cellPadding: 3,
                 valign: 'middle'
             },
             didDrawCell: (data) => {
