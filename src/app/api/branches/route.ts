@@ -15,6 +15,13 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
 
+        // Migration: Ensure ImpuestoDefault exists
+        try {
+            await connection.query("ALTER TABLE tblSucursales ADD COLUMN ImpuestoDefault INT DEFAULT NULL");
+        } catch (e) {
+            // Column likely already exists
+        }
+
         // Fetch active branches (Status = 0) with all fields
         const [rows] = await connection.query(
             `SELECT s.*, e.Empleado as GerenteNombre 
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, branch, phone, email, address, managerId, tipoNomina, diaInicio } = body;
+        const { projectId, branch, phone, email, address, managerId, tipoNomina, diaInicio, impuestoDefault } = body;
 
         if (!projectId || !branch) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -46,9 +53,9 @@ export async function POST(request: NextRequest) {
         connection = await getProjectConnection(projectId);
 
         const [result] = await connection.query(
-            `INSERT INTO tblSucursales (Sucursal, Telefonos, CorreoElectronico, Calle, IdEmpleadoGerente, TipoNomina, DiaInicio, Status, FechaAct) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, Now())`,
-            [branch, phone || null, email || null, address || null, managerId || null, tipoNomina ?? 0, diaInicio || 1]
+            `INSERT INTO tblSucursales (Sucursal, Telefonos, CorreoElectronico, Calle, IdEmpleadoGerente, TipoNomina, DiaInicio, ImpuestoDefault, Status, FechaAct) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
+            [branch, phone || null, email || null, address || null, managerId || null, tipoNomina ?? 0, diaInicio || 1, impuestoDefault || null]
         );
 
         return NextResponse.json({

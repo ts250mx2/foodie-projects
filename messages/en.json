@@ -93,8 +93,10 @@
         "subRecipes": "Sub-recipes",
         "menuSections": "Menu Sections",
         "massiveProductUpload": "Massive Product Upload",
-        "productionCapture": "Production Capture",
-        "materialExplosion": "Material Explosion"
+        "ocrProcessing": "OCR Processing",
+        "receiptCapture": "Receipt Capture",
+        "ocrDocuments": "OCR Documents",
+        "appPriceCalculator": "App Price Calculator"
     },
     "InitialLoad": {
         "title": "Project Initial Load",
@@ -505,7 +507,8 @@
         "confirmDelete": "Are you sure you want to delete this branch?",
         "successAdd": "Branch created successfully",
         "successUpdate": "Branch updated successfully",
-        "successDelete": "Branch deleted successfully"
+        "successDelete": "Branch deleted successfully",
+        "defaultTax": "Default Sales Tax"
     },
     "PayrollCapture": {
         "title": "Payroll Capture",
@@ -971,7 +974,10 @@
         "branch": "Branch",
         "category": "Category",
         "noChanges": "No changes to save",
-        "Action": "Action"
+        "Action": "Action",
+        "confirmImportLast": "Are you sure you want to import the last inventory? This will overwrite current quantities.",
+        "successImport": "Inventory imported successfully!",
+        "errorImport": "Error importing inventory"
     },
     "BranchMinMax": {
         "title": "Min & Max",
@@ -988,5 +994,27 @@
         "confirmDelete": "Are you sure you want to delete this record?",
         "loading": "Loading...",
         "exportExcel": "Export Excel"
+    },
+    "AppPriceCalculator": {
+        "title": "App Price and Profit Calculator Foodie Gurú",
+        "inputs": "Inputs (edit only blank cells)",
+        "menuPrice": "Menu Price (incl. VAT)",
+        "cost": "Product Cost + Packaging",
+        "platformCommission": "Platform Commission (%)",
+        "iva": "VAT (%)",
+        "retencionIva": "App VAT Retention (%)",
+        "retencionIsr": "App ISR Retention (%)",
+        "calculations": "Calculations",
+        "summary": "Quick Summary",
+        "priceWithoutIva": "Price without VAT",
+        "ivaTransfered": "VAT transferred to customer",
+        "commissionAmount": "Commission (on price without VAT)",
+        "ivaCommission": "VAT on commission",
+        "totalCommission": "Total Commission (commission + VAT)",
+        "ivaRetained": "App VAT retained",
+        "isrRetained": "App ISR retained",
+        "netIncome": "Net income before costs",
+        "finalProfit": "Final Profit",
+        "netMargin": "Net margin on price"
     }
 }

@@ -917,7 +917,14 @@ export default function InitialLoadPage() {
                     </div>
                 </div>
             )}
-            <ProductImageCaptureModal isOpen={isImageModalOpen} onClose={() => setIsImageModalOpen(false)} projectId={project?.idProyecto} singleBufferId={selectedBufferProduct?.IdBuffer || selectedBufferProduct?.idBuffer} onSuccess={() => { setIsImageModalOpen(false); fetchData(); }} />
+            <ProductImageCaptureModal 
+                isOpen={isImageModalOpen} 
+                onClose={() => setIsImageModalOpen(false)} 
+                projectId={project?.idProyecto} 
+                singleBufferId={selectedBufferProduct?.IdBuffer || selectedBufferProduct?.idBuffer} 
+                onSuccess={() => { setIsImageModalOpen(false); fetchData(); }} 
+                targetApi="/api/config/initial-load/buffer-products/process"
+            />
             <InitialLoadImageCapture 
                 isOpen={isSingleImageCaptureOpen} 
                 onClose={() => setIsSingleImageCaptureOpen(false)}

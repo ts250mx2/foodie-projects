@@ -268,7 +268,8 @@ export default function ProductImageCaptureModal({
                 IdCategoria: p.idCategoria,
                 CantidadCompra: 1,
                 Precio: p.precio || 0,
-                IdTipoProducto: 0
+                IdTipoProducto: 0,
+                ProductoDocumento: p.description // Added for buffer table
             }));
 
         if (validProducts.length === 0) {

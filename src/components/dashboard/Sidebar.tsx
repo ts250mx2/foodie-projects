@@ -71,6 +71,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             emoji: '💰',
             items: [
                 { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', emoji: '🏪' },
+                { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', emoji: '🧮' },
                 // { key: 'tipsCapture', href: '/dashboard/sales/tips-capture', emoji: '💸' }
             ]
         },

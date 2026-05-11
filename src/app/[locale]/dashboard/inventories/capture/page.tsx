@@ -473,8 +473,6 @@ export default function InventoryCapturePage() {
     };
 
     // Calendar logic
-
-    // Calendar logic
     const getDaysInMonth = (month: number, year: number) => {
         const date = new Date(year, month, 1);
         const days = [];
@@ -494,6 +492,40 @@ export default function InventoryCapturePage() {
 
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
     const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    const handleImportLast = async () => {
+        if (!selectedDate || !project || !selectedBranch) return;
+        if (!confirm(tCommon('confirmImportLast') || '¿Estás seguro de que deseas importar el último inventario? Esto sobrescribirá las cantidades actuales.')) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/inventories/import-last', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    branchId: parseInt(selectedBranch),
+                    day: selectedDate.getDate(),
+                    month: selectedDate.getMonth(),
+                    year: selectedDate.getFullYear(),
+                    inventoryDate: `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(tCommon('successImport') || '¡Inventario importado con éxito!');
+                await fetchInventoryEntries(selectedDate);
+            } else {
+                alert(`${tCommon('errorImport') || 'Error al importar'}: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error importing last inventory:', error);
+            alert(tCommon('errorImport') || 'Error al importar');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-screen p-6 gap-4">
@@ -669,6 +701,14 @@ export default function InventoryCapturePage() {
                                 />
                             </div>
                             <div className="flex gap-2 justify-end">
+                                <Button
+                                    onClick={handleImportLast}
+                                    variant="secondary"
+                                    className="flex items-center gap-2 border-orange-200 hover:bg-orange-50 text-orange-700"
+                                    disabled={isLoading}
+                                >
+                                    📥 Importar último inventario
+                                </Button>
                                 <Button
                                     onClick={() => setIsComparisonModalOpen(true)}
                                     variant="secondary"

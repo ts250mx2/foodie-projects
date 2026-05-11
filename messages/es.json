@@ -100,7 +100,8 @@
         "wasteCapture": "Captura de Mermas",
         "ocrProcessing": "Procesamiento OCR",
         "receiptCapture": "Captura de Recibos",
-        "ocrDocuments": "Documentos OCR"
+        "ocrDocuments": "Documentos OCR",
+        "appPriceCalculator": "Calculadora precios de aplicaciones"
     },
     "InitialLoad": {
         "title": "Carga Inicial de Proyecto",
@@ -537,7 +538,8 @@
         "confirmDelete": "¿Está seguro de eliminar esta sucursal?",
         "successAdd": "Sucursal creada exitosamente",
         "successUpdate": "Sucursal actualizada exitosamente",
-        "successDelete": "Sucursal eliminada exitosamente"
+        "successDelete": "Sucursal eliminada exitosamente",
+        "defaultTax": "Impuesto Default Ventas"
     },
     "PayrollCapture": {
         "title": "Captura de Nómina",
@@ -1161,7 +1163,10 @@
         "noChanges": "No hay cambios para guardar",
         "download": "Descargar",
         "close": "Cerrar",
-        "Action": "Acción"
+        "Action": "Acción",
+        "confirmImportLast": "¿Estás seguro de que deseas importar el último inventario? Esto sobrescribirá las cantidades actuales.",
+        "successImport": "¡Inventario importado con éxito!",
+        "errorImport": "Error al importar"
     },
     "BranchMinMax": {
         "title": "Mínimos y Máximos",
@@ -1178,5 +1183,27 @@
         "confirmDelete": "¿Estás seguro de que deseas eliminar este registro?",
         "loading": "Cargando...",
         "exportExcel": "Exportar Excel"
+    },
+    "AppPriceCalculator": {
+        "title": "Calculadora de precio y utilidad en Apps Foodie Gurú",
+        "inputs": "Entradas (edita solo las celdas en blanco)",
+        "menuPrice": "Precio de menú (con IVA)",
+        "cost": "Costo del producto + empaque",
+        "platformCommission": "Comisión plataforma (%)",
+        "iva": "IVA (%)",
+        "retencionIva": "Retención IVA apps (%)",
+        "retencionIsr": "Retención ISR apps (%)",
+        "calculations": "Cálculos",
+        "summary": "Resumen rápido",
+        "priceWithoutIva": "Precio sin IVA",
+        "ivaTransfered": "IVA trasladado al cliente",
+        "commissionAmount": "Comisión (sobre precio sin IVA)",
+        "ivaCommission": "IVA de la comisión",
+        "totalCommission": "Total comisión (comisión + IVA)",
+        "ivaRetained": "IVA retenido apps",
+        "isrRetained": "ISR retenido apps",
+        "netIncome": "Ingreso neto antes de costos",
+        "finalProfit": "Utilidad final",
+        "netMargin": "Margen neto sobre precio"
     }
 }

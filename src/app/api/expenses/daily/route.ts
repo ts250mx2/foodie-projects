@@ -23,7 +23,14 @@ export async function GET(request: NextRequest) {
 
         // Get daily expenses with concept names, payment channel names, and provider names
         const [rows] = await connection.query(
-            `SELECT g.*, c.ConceptoGasto, cp.CanalPago, p.Proveedor
+            `SELECT g.*, 
+                    CASE WHEN g.IdConceptoGasto = 0 THEN g.ConceptoGasto ELSE c.ConceptoGasto END as ConceptoGasto,
+                    cp.CanalPago, 
+                    CASE 
+                        WHEN g.IdProveedor = -1 THEN 'COMISIONES BANCARIAS(AUTO)' 
+                        WHEN g.IdProveedor = -2 THEN 'IMPUESTOS/COMISIONES CANALES(AUTO)'
+                        ELSE p.Proveedor 
+                    END as Proveedor
              FROM tblGastos g
              LEFT JOIN tblConceptosGastos c ON g.IdConceptoGasto = c.IdConceptoGasto
              LEFT JOIN tblCanalesPago cp ON g.IdCanalPago = cp.IdCanalPago

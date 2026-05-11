@@ -33,7 +33,7 @@ export default function BranchEditModal({
     onUpdate
 }: BranchEditModalProps) {
     const { colors } = useTheme();
-    const t = useTranslations('Dashboard.branches');
+    const t = useTranslations('Branches');
     const [activeTab, setActiveTab] = useState(initialTab);
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
@@ -43,15 +43,18 @@ export default function BranchEditModal({
         email: branch?.CorreoElectronico || '',
         managerId: branch?.IdEmpleadoGerente || '',
         tipoNomina: branch?.TipoNomina || 0,
-        diaInicio: branch?.DiaInicio || 1
+        diaInicio: branch?.DiaInicio || 1,
+        impuestoDefault: branch?.ImpuestoDefault || ''
     });
     const [initialTipoNomina, setInitialTipoNomina] = useState(branch?.TipoNomina || 0);
     const [initialDiaInicio, setInitialDiaInicio] = useState(branch?.DiaInicio || 1);
     const [employees, setEmployees] = useState<any[]>([]);
+    const [taxes, setTaxes] = useState<any[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             fetchEmployees();
+            fetchTaxes();
             if (activeTab === 'general') {
                 setFormData({
                     name: branch?.Sucursal || '',
@@ -60,7 +63,8 @@ export default function BranchEditModal({
                     email: branch?.CorreoElectronico || '',
                     managerId: branch?.IdEmpleadoGerente || '',
                     tipoNomina: branch?.TipoNomina || 0,
-                    diaInicio: branch?.DiaInicio || 1
+                    diaInicio: branch?.DiaInicio || 1,
+                    impuestoDefault: branch?.ImpuestoDefault || ''
                 });
                 setInitialTipoNomina(branch?.TipoNomina || 0);
                 setInitialDiaInicio(branch?.DiaInicio || 1);
@@ -77,6 +81,18 @@ export default function BranchEditModal({
             }
         } catch (error) {
             console.error('Error fetching employees:', error);
+        }
+    };
+
+    const fetchTaxes = async () => {
+        try {
+            const response = await fetch(`/api/taxes?projectId=${projectId}`);
+            const data = await response.json();
+            if (data.success) {
+                setTaxes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching taxes:', error);
         }
     };
 
@@ -101,7 +117,8 @@ export default function BranchEditModal({
                     address: formData.address,
                     managerId: formData.managerId || null,
                     tipoNomina: formData.tipoNomina,
-                    diaInicio: formData.diaInicio
+                    diaInicio: formData.diaInicio,
+                    impuestoDefault: formData.impuestoDefault || null
                 })
             });
             if (response.ok) {
@@ -134,7 +151,8 @@ export default function BranchEditModal({
                     address: formData.address,
                     managerId: formData.managerId || null,
                     tipoNomina: formData.tipoNomina,
-                    diaInicio: formData.diaInicio
+                    diaInicio: formData.diaInicio,
+                    impuestoDefault: formData.impuestoDefault || null
                 })
             });
             if (response.ok) {
@@ -252,6 +270,23 @@ export default function BranchEditModal({
                                             {employees.map(emp => (
                                                 <option key={emp.IdEmpleado} value={emp.IdEmpleado}>
                                                     {emp.Empleado}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('defaultTax') || 'Impuesto Default Ventas'}
+                                        </label>
+                                        <select
+                                            value={formData.impuestoDefault}
+                                            onChange={(e) => setFormData({ ...formData, impuestoDefault: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                                        >
+                                            <option value="">-- Sin Impuesto --</option>
+                                            {taxes.map(tax => (
+                                                <option key={tax.IdImpuesto} value={tax.IdImpuesto}>
+                                                    {tax.Descripcion} ({tax.Impuesto}%)
                                                 </option>
                                             ))}
                                         </select>
