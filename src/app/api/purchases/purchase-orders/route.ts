@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
             SELECT 
                 oc.*, 
                 p.Proveedor,
-                s.Sucursal
+                s.Sucursal,
+                (SELECT SUM(Total) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Total
             FROM tblOrdenesCompra oc
             LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
             LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
@@ -52,12 +53,12 @@ export async function POST(request: NextRequest) {
         let finalIdProveedor = idProveedor;
 
         if (esInterna) {
-            // Find or create internal provider
-            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = "ORDEN DE COMPRA INTERNA"');
+            const internalName = body.providerName || "ORDEN DE COMPRA INTERNA";
+            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = ?', [internalName]);
             if ((provRows as any[]).length > 0) {
                 finalIdProveedor = (provRows as any[])[0].IdProveedor;
             } else {
-                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES ("ORDEN DE COMPRA INTERNA", 0, Now())');
+                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES (?, 0, Now())', [internalName]);
                 finalIdProveedor = (newProv as any).insertId;
             }
         }

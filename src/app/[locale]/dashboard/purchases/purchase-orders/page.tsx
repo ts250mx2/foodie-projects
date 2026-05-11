@@ -45,6 +45,8 @@ type PurchaseOrder = {
     FechaEntrega: string | null;
     FechaProgramadaEntrega: string | null;
     Status: number;
+    EsInterna: number;
+    Total?: number;
     Notas?: string;
 };
 
@@ -61,6 +63,12 @@ export default function PurchaseOrdersPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+    const [categorySearch, setCategorySearch] = useState('');
+    const [categoryProductSearch, setCategoryProductSearch] = useState('');
+    const [categoryProductsCapture, setCategoryProductsCapture] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
 
     // Form state
     const [selectedProvider, setSelectedProvider] = useState<number | ''>('');
@@ -135,6 +143,17 @@ export default function PurchaseOrdersPage() {
         }
     }, [projectId]);
 
+    const fetchCategories = useCallback(async () => {
+        if (!projectId) return;
+        try {
+            const res = await fetch(`/api/categories?projectId=${projectId}`);
+            const data = await res.json();
+            if (data.success) setCategories(data.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    }, [projectId]);
+
     const fetchProducts = useCallback(async () => {
         if (!projectId) return;
         try {
@@ -150,11 +169,11 @@ export default function PurchaseOrdersPage() {
     useEffect(() => {
         const init = async () => {
             setIsLoading(true);
-            await Promise.all([fetchOrders(), fetchProviders(), fetchBranches(), fetchProducts(), fetchProjectData()]);
+            await Promise.all([fetchOrders(), fetchProviders(), fetchBranches(), fetchProducts(), fetchProjectData(), fetchCategories()]);
             setIsLoading(false);
         };
         init();
-    }, [fetchOrders, fetchProviders, fetchBranches, fetchProducts, fetchProjectData]);
+    }, [fetchOrders, fetchProviders, fetchBranches, fetchProducts, fetchProjectData, fetchCategories]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -173,6 +192,11 @@ export default function PurchaseOrdersPage() {
         setSelectedProvider(provider.IdProveedor);
         setProviderSearch(provider.Proveedor);
         setIsProviderListOpen(false);
+    };
+
+    const formatCurrency = (value?: number | string) => {
+        if (value === undefined || value === null) return '$0.00';
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value));
     };
 
     const getCategoryEmoji = (category?: string) => {
@@ -331,6 +355,110 @@ export default function PurchaseOrdersPage() {
         }
     };
 
+    const handleSelectCategory = async (category: any) => {
+        setSelectedCategory(category);
+        try {
+            setIsLoading(true);
+            const res = await fetch(`/api/products?projectId=${projectId}&tipoProducto=0`);
+            const data = await res.json();
+            if (data.success) {
+                // Filter products of this category
+                const filtered = data.data
+                    .filter((p: any) => p.IdCategoria === category.IdCategoria)
+                    .map((p: any) => ({
+                        idProducto: p.IdProducto,
+                        producto: p.Producto,
+                        codigo: p.Codigo,
+                        cantidad: 0,
+                        precioUnitario: p.Costo || 0,
+                        total: 0
+                    }));
+                setCategoryProductsCapture(filtered);
+            }
+        } catch (error) {
+            console.error('Error fetching category products:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdateCategoryProduct = (index: number, field: string, value: number) => {
+        const next = [...categoryProductsCapture];
+        next[index] = { ...next[index], [field]: value };
+        next[index].total = next[index].cantidad * next[index].precioUnitario;
+        setCategoryProductsCapture(next);
+    };
+
+    const handleSaveCategoryOrder = async () => {
+        const itemsToOrder = categoryProductsCapture.filter(p => p.cantidad > 0);
+        if (itemsToOrder.length === 0) {
+            alert('Por favor captura al menos una cantidad mayor a cero.');
+            return;
+        }
+
+        if (!selectedBranch) {
+            alert('Por favor selecciona una sucursal.');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/purchases/purchase-orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    idProveedor: null,
+                    idSucursal: selectedBranch,
+                    esInterna: true,
+                    providerName: `OC Interna ${selectedCategory.Categoria}`,
+                    notas: `Pedido por Categoría: ${selectedCategory.Categoria}`,
+                    items: itemsToOrder.map(it => ({
+                        idProducto: it.idProducto,
+                        cantidad: it.cantidad,
+                        precioUnitario: it.precioUnitario
+                    }))
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert('Orden generada con éxito');
+                setIsCategoryModalOpen(false);
+                setSelectedCategory(null);
+                setCategoryProductsCapture([]);
+                fetchOrders();
+            } else {
+                alert('Error al generar la orden');
+            }
+        } catch (error) {
+            console.error('Error saving category order:', error);
+        }
+    };
+
+    const handlePrintCategoryCapture = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.text(`Captura por Categoría: ${selectedCategory.Categoria}`, 105, 20, { align: 'center' });
+        
+        const tableData = categoryProductsCapture.filter(p => p.cantidad > 0).map(p => [
+            p.codigo,
+            p.producto,
+            p.cantidad,
+            formatCurrency(p.precioUnitario),
+            formatCurrency(p.total)
+        ]);
+
+        autoTable(doc, {
+            startY: 30,
+            head: [['Código', 'Producto', 'Cant.', 'Precio', 'Total']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [0, 51, 153] }
+        });
+
+        doc.save(`Captura_${selectedCategory.Categoria}.pdf`);
+    };
+
     const exportOrderToPDF = async (order: PurchaseOrder) => {
         try {
             const res = await fetch(`/api/purchases/purchase-orders/${order.IdOrdenCompra}?projectId=${projectId}`);
@@ -469,12 +597,20 @@ export default function PurchaseOrdersPage() {
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <h1 className="text-3xl font-bold text-black">{t('title')}</h1>
-                <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
-                >
-                    + {t('addOrder')}
-                </button>
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                        <span>📂</span> Categorías
+                    </button>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+                    >
+                        + {t('addOrder')}
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
@@ -486,6 +622,7 @@ export default function PurchaseOrdersPage() {
                                 <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('provider')}</th>
                                 <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('branch')}</th>
                                 <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('status')}</th>
+                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total</th>
                                 <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">{t('actions')}</th>
                             </tr>
                         </thead>
@@ -502,6 +639,9 @@ export default function PurchaseOrdersPage() {
                                     <td className="px-6 py-4 text-sm font-medium text-gray-700">{order.Sucursal}</td>
                                     <td className="px-6 py-4 text-sm">
                                         {getStatusLabel(order.Status)}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-right font-black text-gray-900">
+                                        {formatCurrency(order.Total)}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-right">
                                         <div className="flex items-center justify-end gap-3">
@@ -673,7 +813,7 @@ export default function PurchaseOrdersPage() {
                                                     </div>
                                                 </div>
                                                 <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg font-bold text-sm">
-                                                    ${product.Costo?.toFixed(2) || '0.00'}
+                                                    {formatCurrency(product.Costo)}
                                                 </span>
                                             </button>
                                         ))}
@@ -714,7 +854,7 @@ export default function PurchaseOrdersPage() {
                                                 />
                                             </td>
                                             <td className="px-6 py-5 text-right text-lg font-black text-blue-700">
-                                                ${item.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                {formatCurrency(item.total)}
                                             </td>
                                             <td className="px-6 py-5 text-center">
                                                 <button 
@@ -730,7 +870,7 @@ export default function PurchaseOrdersPage() {
                                         <tr className="bg-blue-50/50">
                                             <td colSpan={3} className="px-6 py-6 text-right font-black text-gray-500 text-xl uppercase tracking-widest">Total:</td>
                                             <td className="px-6 py-6 text-right font-black text-blue-900 text-2xl">
-                                                ${orderItems.reduce((acc, item) => acc + item.total, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                {formatCurrency(orderItems.reduce((acc, item) => acc + item.total, 0))}
                                             </td>
                                             <td></td>
                                         </tr>
@@ -769,3 +909,159 @@ export default function PurchaseOrdersPage() {
         </div>
     );
 }
+
+            {/* Category Selection / Capture Modal */}
+            {isCategoryModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[3rem] w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl relative border border-white/20 flex flex-col">
+                        <button 
+                            onClick={() => {
+                                setIsCategoryModalOpen(false);
+                                setSelectedCategory(null);
+                            }}
+                            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors text-2xl p-2 z-10"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="p-10 flex-1 overflow-y-auto">
+                            {!selectedCategory ? (
+                                <>
+                                    <h2 className="text-4xl font-black mb-8 text-black border-b pb-4 inline-block">Seleccionar Categoría</h2>
+                                    <div className="mb-10 relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Buscar categoría..."
+                                            value={categorySearch}
+                                            onChange={(e) => setCategorySearch(e.target.value)}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-8 py-5 pl-16 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-xl transition-all"
+                                        />
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl">📂</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {categories
+                                            .filter(c => c.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
+                                            .map(cat => (
+                                                <button
+                                                    key={cat.IdCategoria}
+                                                    onClick={() => handleSelectCategory(cat)}
+                                                    className="bg-gray-50 hover:bg-blue-600 hover:text-white p-8 rounded-[2rem] border border-gray-100 shadow-sm transition-all transform hover:-translate-y-2 group text-center"
+                                                >
+                                                    <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                                                        {getCategoryEmoji(cat.Categoria)}
+                                                    </div>
+                                                    <div className="font-black uppercase tracking-wider text-sm opacity-80 group-hover:opacity-100">
+                                                        {cat.Categoria}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="animate-in slide-in-from-right duration-300">
+                                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <button 
+                                                onClick={() => setSelectedCategory(null)}
+                                                className="bg-gray-100 hover:bg-gray-200 p-4 rounded-2xl text-gray-600 transition-all"
+                                            >
+                                                ⬅️
+                                            </button>
+                                            <h2 className="text-4xl font-black text-black">
+                                                {getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}
+                                            </h2>
+                                        </div>
+                                        <div className="flex gap-4">
+                                            <button 
+                                                onClick={handlePrintCategoryCapture}
+                                                className="bg-white border-2 border-red-600 text-red-600 hover:bg-red-50 px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2"
+                                            >
+                                                <span>🖨️</span> PDF
+                                            </button>
+                                            <button 
+                                                onClick={handleSaveCategoryOrder}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-blue-500/20 transition-all uppercase tracking-widest text-sm"
+                                            >
+                                                Generar OC
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-8 relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder={`Buscar en ${selectedCategory.Categoria}...`}
+                                            value={categoryProductSearch}
+                                            onChange={(e) => setCategoryProductSearch(e.target.value)}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-8 py-4 pl-14 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
+                                        />
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl">🔍</span>
+                                    </div>
+
+                                    <div className="border border-gray-100 rounded-[2rem] overflow-hidden shadow-inner">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-gray-100/80 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider">Producto</th>
+                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-32 text-center">Cantidad</th>
+                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">Costo</th>
+                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 bg-white">
+                                                {categoryProductsCapture
+                                                    .filter(p => p.producto.toLowerCase().includes(categoryProductSearch.toLowerCase()))
+                                                    .map((item, index) => {
+                                                        const realIndex = categoryProductsCapture.findIndex(p => p.idProducto === item.idProducto);
+                                                        return (
+                                                            <tr key={item.idProducto} className="hover:bg-blue-50/20 transition-colors">
+                                                                <td className="px-6 py-4">
+                                                                    <div className="font-bold text-black">{item.producto}</div>
+                                                                    <div className="text-xs text-gray-400">{item.codigo}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        value={item.cantidad}
+                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', Number(e.target.value))}
+                                                                        className="w-full text-center bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 outline-none text-black font-black text-lg transition-all"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        value={item.precioUnitario}
+                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'precioUnitario', Number(e.target.value))}
+                                                                        className="w-full text-right bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 px-3 outline-none text-black font-black text-lg transition-all"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right font-black text-blue-700 text-lg">
+                                                                    {formatCurrency(item.total)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div className="mt-8 bg-blue-900 text-white p-8 rounded-[2.5rem] flex justify-between items-center shadow-2xl shadow-blue-900/20">
+                                        <div>
+                                            <div className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-1">Total del Pedido</div>
+                                            <div className="text-4xl font-black">
+                                                {formatCurrency(categoryProductsCapture.reduce((sum, p) => sum + p.total, 0))}
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-1">Ítems con Cantidad</div>
+                                            <div className="text-4xl font-black">
+                                                {categoryProductsCapture.filter(p => p.cantidad > 0).length}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
