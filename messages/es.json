@@ -1215,6 +1215,8 @@
     },
     "PurchaseOrders": {
         "title": "Gestión de Ordenes de Compra",
+        "subtitle": "Control y seguimiento de suministros",
+        "newOrder": "Nueva Orden",
         "addOrder": "Nueva Orden de Compra",
         "internalOrder": "Orden de Compra Interna",
         "provider": "Proveedor",

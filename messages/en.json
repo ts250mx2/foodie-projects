@@ -1026,6 +1026,8 @@
     },
     "PurchaseOrders": {
         "title": "Purchase Orders Management",
+        "subtitle": "Supply control and tracking",
+        "newOrder": "New Order",
         "addOrder": "New Purchase Order",
         "internalOrder": "Internal Purchase Order",
         "provider": "Provider",

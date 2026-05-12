@@ -39,7 +39,9 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             user: dbUser,
             password: dbPass,
             database: project.BaseDatos,
-            timezone: '-06:00'
+            timezone: '-06:00',
+            enableKeepAlive: true,
+            keepAliveInitialDelay: 10000
         });
 
         await connection.query("SET time_zone = '-06:00'");

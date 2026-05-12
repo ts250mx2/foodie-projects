@@ -15,6 +15,9 @@ type Product = {
     Costo?: number;
     IVA?: number;
     Categoria?: string;
+    IdCategoria?: number;
+    UnidadMedidaCompra?: string;
+    UnidadMedidaInventario?: string;
 };
 
 type Provider = {
@@ -33,6 +36,9 @@ type OrderItem = {
     cantidad: number;
     precioUnitario: number;
     total: number;
+    unidadMedida: string;
+    categoria?: string;
+    idCategoria?: number;
 };
 
 type PurchaseOrder = {
@@ -70,6 +76,15 @@ export default function PurchaseOrdersPage() {
     const [categoryProductSearch, setCategoryProductSearch] = useState('');
     const [categoryProductsCapture, setCategoryProductsCapture] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+    });
 
     // Form state
     const [selectedProvider, setSelectedProvider] = useState<number | ''>('');
@@ -95,13 +110,13 @@ export default function PurchaseOrdersPage() {
     const fetchOrders = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}`);
+            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}&startDate=${startDate}&endDate=${endDate}`);
             const data = await res.json();
             if (data.success) setOrders(data.data);
         } catch (error) {
             console.error('Error fetching orders:', error);
         }
-    }, [projectId]);
+    }, [projectId, startDate, endDate]);
 
     const fetchProjectData = useCallback(async () => {
         if (!projectId) return;
@@ -217,6 +232,9 @@ export default function PurchaseOrdersPage() {
     };
 
     const handleAddProduct = (product: Product) => {
+        const defaultUnit = esInterna
+            ? (product.UnidadMedidaInventario || '')
+            : (product.UnidadMedidaCompra || '');
         const existing = orderItems.find(item => item.idProducto === product.IdProducto);
         if (existing) {
             setOrderItems(orderItems.map(item => 
@@ -230,7 +248,10 @@ export default function PurchaseOrdersPage() {
                 producto: product.Producto,
                 cantidad: 1,
                 precioUnitario: product.Costo || 0,
-                total: product.Costo || 0
+                total: product.Costo || 0,
+                unidadMedida: defaultUnit,
+                categoria: product.Categoria || '',
+                idCategoria: product.IdCategoria,
             }]);
         }
         setIsProductListOpen(false);
@@ -239,9 +260,13 @@ export default function PurchaseOrdersPage() {
 
     const handleUpdateItem = (index: number, field: keyof OrderItem, value: any) => {
         const newItems = [...orderItems];
-        const item = { ...newItems[index], [field]: value };
+        let val = value;
         if (field === 'cantidad' || field === 'precioUnitario') {
-            item.total = item.cantidad * item.precioUnitario;
+            val = isNaN(Number(value)) ? 0 : Number(value);
+        }
+        const item = { ...newItems[index], [field]: val };
+        if (field === 'cantidad' || field === 'precioUnitario') {
+            item.total = (item.cantidad || 0) * (item.precioUnitario || 0);
         }
         newItems[index] = item;
         setOrderItems(newItems);
@@ -254,6 +279,12 @@ export default function PurchaseOrdersPage() {
     const handleSubmit = async () => {
         if ((!selectedProvider && !esInterna) || !selectedBranch || orderItems.length === 0) {
             alert('Por favor selecciona un proveedor (o marca como interna), una sucursal y agrega al menos un producto.');
+            return;
+        }
+
+        const missingUnit = orderItems.find(item => !item.unidadMedida);
+        if (missingUnit) {
+            alert(`El producto "${missingUnit.producto}" no tiene unidad de medida. Por favor selecciónala antes de guardar.`);
             return;
         }
 
@@ -306,13 +337,25 @@ export default function PurchaseOrdersPage() {
                 setSelectedBranch(header.IdSucursal);
                 setFechaProgramada(header.FechaProgramadaEntrega ? header.FechaProgramadaEntrega.split('T')[0] : '');
                 setNotas(header.Notas || '');
-                setOrderItems(items.map((it: any) => ({
-                    idProducto: it.IdProducto,
-                    producto: it.Producto,
-                    cantidad: it.Cantidad,
-                    precioUnitario: it.PrecioUnitario,
-                    total: it.Total
-                })));
+                setOrderItems(items.map((it: any) => {
+                    const prod = products.find((p: Product) => p.IdProducto === it.IdProducto);
+                    const isInt = header.EsInterna === 1;
+                    // Priority: saved DB value (UnidadMedidaPedido) → product default → empty
+                    const defaultUnit = it.UnidadMedidaPedido ||
+                        (isInt
+                            ? (prod?.UnidadMedidaInventario || '')
+                            : (prod?.UnidadMedidaCompra || ''));
+                    return {
+                        idProducto: it.IdProducto,
+                        producto: it.Producto,
+                        cantidad: it.Cantidad,
+                        precioUnitario: it.PrecioUnitario,
+                        total: it.Total,
+                        unidadMedida: defaultUnit,
+                        categoria: it.Categoria || prod?.Categoria || '',
+                        idCategoria: prod?.IdCategoria,
+                    };
+                }));
                 setIsModalOpen(true);
             } else {
                 alert('Error al cargar detalles de la orden');
@@ -383,10 +426,11 @@ export default function PurchaseOrdersPage() {
         }
     };
 
-    const handleUpdateCategoryProduct = (index: number, field: string, value: number) => {
+    const handleUpdateCategoryProduct = (index: number, field: string, value: any) => {
         const next = [...categoryProductsCapture];
-        next[index] = { ...next[index], [field]: value };
-        next[index].total = next[index].cantidad * next[index].precioUnitario;
+        const val = isNaN(Number(value)) ? 0 : Number(value);
+        next[index] = { ...next[index], [field]: val };
+        next[index].total = (next[index].cantidad || 0) * (next[index].precioUnitario || 0);
         setCategoryProductsCapture(next);
     };
 
@@ -473,27 +517,23 @@ export default function PurchaseOrdersPage() {
                 
                 const catProducts = allProductsData.data.filter((p: any) => p.IdCategoria === catId);
                 const tableData = catProducts.map((p: any) => [
-                    p.Codigo,
                     p.Producto,
                     '',
-                    formatCurrency(p.Costo),
                     ''
                 ]);
 
                 autoTable(doc, {
                     startY: currentY + 10,
-                    head: [['CÓDIGO', 'PRODUCTO', 'CANTIDAD', 'PRECIO UNIT.', 'NOTAS']],
+                    head: [['PRODUCTO', 'CANTIDAD', 'NOTAS']],
                     body: tableData,
                     theme: 'grid',
                     headStyles: { fillColor: [44, 62, 80], halign: 'center' },
                     columnStyles: {
-                        0: { cellWidth: 30, halign: 'center' },
-                        1: { cellWidth: 'auto' },
-                        2: { cellWidth: 30, minCellHeight: 12 },
-                        3: { cellWidth: 35, halign: 'right' },
-                        4: { cellWidth: 30 }
+                        0: { cellWidth: 'auto' },
+                        1: { cellWidth: 28, halign: 'center', minCellHeight: 10 },
+                        2: { cellWidth: 35 }
                     },
-                    styles: { fontSize: 8.5, cellPadding: 3, valign: 'middle' }
+                    styles: { fontSize: 8, cellPadding: 1.5, valign: 'middle' }
                 });
 
                 currentY = (doc as any).lastAutoTable.finalY + 20;
@@ -530,16 +570,14 @@ export default function PurchaseOrdersPage() {
         doc.text('Instrucciones: Escriba la cantidad necesaria en el recuadro de "CANTIDAD".', 20, 35);
 
         const tableData = categoryProductsCapture.map(p => [
-            p.codigo,
             p.producto,
-            '', // Empty for manual entry
-            formatCurrency(p.precioUnitario),
-            ''  // Empty for total if needed, but mainly for notes
+            '',
+            ''
         ]);
 
         autoTable(doc, {
             startY: 45,
-            head: [['CÓDIGO', 'PRODUCTO', 'CANTIDAD', 'PRECIO UNIT.', 'NOTAS']],
+            head: [['PRODUCTO', 'CANTIDAD', 'NOTAS']],
             body: tableData,
             theme: 'grid',
             headStyles: { 
@@ -549,15 +587,13 @@ export default function PurchaseOrdersPage() {
                 halign: 'center'
             },
             columnStyles: {
-                0: { cellWidth: 30, halign: 'center' },
-                1: { cellWidth: 'auto' },
-                2: { cellWidth: 30, minCellHeight: 12 }, // Box for writing
-                3: { cellWidth: 35, halign: 'right' },
-                4: { cellWidth: 30 }
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 28, halign: 'center', minCellHeight: 10 },
+                2: { cellWidth: 35 }
             },
             styles: {
-                fontSize: 8.5,
-                cellPadding: 3,
+                fontSize: 8,
+                cellPadding: 1.5,
                 valign: 'middle'
             }
         });
@@ -623,58 +659,66 @@ export default function PurchaseOrdersPage() {
             doc.text(`Sucursal: ${header.Sucursal}`, 115, 63);
             doc.text(`Programada: ${header.FechaProgramadaEntrega ? new Date(header.FechaProgramadaEntrega).toLocaleDateString() : 'N/A'}`, 115, 68);
 
-            // Grouping logic if internal
-            let tableData = [];
+            // Build table data based on order type
+            let tableData: any[] = [];
+            let tableHead: string[][];
+
             if (header.EsInterna) {
+                // INTERNAL ORDER: group by category, show Categoria + Producto + Cantidad + Unidad. No cost/total.
+                tableHead = [['Categoría', 'Producto', 'Cantidad', 'Unidad']];
                 const groups: { [key: string]: any[] } = {};
                 items.forEach((item: any) => {
                     const cat = item.Categoria || 'Sin Categoría';
                     if (!groups[cat]) groups[cat] = [];
                     groups[cat].push(item);
                 });
-
                 Object.keys(groups).sort().forEach(cat => {
-                    tableData.push([{ content: cat, colSpan: 5, styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } }]);
+                    tableData.push([{
+                        content: cat,
+                        colSpan: 4,
+                        styles: { fillColor: [240, 245, 255], fontStyle: 'bold', textColor: [30, 64, 175] }
+                    }]);
                     groups[cat].forEach((item: any) => {
-                        tableData.push([
-                            item.Codigo,
-                            item.Producto,
-                            item.Cantidad,
-                            `$${Number(item.PrecioUnitario).toFixed(2)}`,
-                            `$${Number(item.Total).toFixed(2)}`
-                        ]);
+                        const unit = item.UnidadMedidaInventario || '—';
+                        tableData.push(['', item.Producto, item.Cantidad, unit]);
                     });
                 });
             } else {
-                tableData = items.map((item: any) => [
-                    item.Codigo,
-                    item.Producto,
-                    item.Cantidad,
-                    `$${Number(item.PrecioUnitario).toFixed(2)}`,
-                    `$${Number(item.Total).toFixed(2)}`
-                ]);
+                // EXTERNAL ORDER: Producto + Cantidad + Unidad + Precio + Total. No category.
+                tableHead = [['Producto', 'Cantidad', 'Unidad', 'Precio Unit.', 'Total']];
+                tableData = items.map((item: any) => {
+                    const unit = item.UnidadMedidaCompra || '—';
+                    return [
+                        item.Producto,
+                        item.Cantidad,
+                        unit,
+                        `$${Number(item.PrecioUnitario).toFixed(2)}`,
+                        `$${Number(item.Total).toFixed(2)}`
+                    ];
+                });
             }
 
             // Items Table
             autoTable(doc, {
                 startY: 80,
-                head: [['Código', 'Producto', 'Cantidad', 'Precio Unit.', 'Total']],
+                head: tableHead,
                 body: tableData,
                 theme: 'striped',
-                headStyles: { fillColor: [0, 51, 153] },
-                columnStyles: {
-                    2: { halign: 'center' },
-                    3: { halign: 'right' },
-                    4: { halign: 'right', fontStyle: 'bold' }
-                }
+                headStyles: { fillColor: header.EsInterna ? [30, 64, 175] : [0, 51, 153] },
+                columnStyles: header.EsInterna
+                    ? { 2: { halign: 'center' }, 3: { halign: 'center' } }
+                    : { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } }
             });
 
             const finalY = (doc as any).lastAutoTable.finalY || 150;
 
-            // Totals
-            const total = items.reduce((acc: number, item: any) => acc + Number(item.Total), 0);
-            doc.setFontSize(12);
-            doc.text(`TOTAL: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, finalY + 10, { align: 'right' });
+            // Total (only for external orders)
+            if (!header.EsInterna) {
+                const total = items.reduce((acc: number, item: any) => acc + Number(item.Total), 0);
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`TOTAL: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, finalY + 10, { align: 'right' });
+            }
 
             // Notes
             if (header.Notas) {
@@ -699,325 +743,596 @@ export default function PurchaseOrdersPage() {
 
     const getStatusLabel = (status: number) => {
         switch (status) {
-            case 0: return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">Borrador</span>;
-            case 1: return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">Pendiente</span>;
-            case 2: return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Entregado</span>;
-            case 3: return <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">Cancelado</span>;
+            case 0:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        En Tránsito
+                    </span>
+                );
+            case 1:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Surtido
+                    </span>
+                );
+            case 3:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                        Cancelado
+                    </span>
+                );
             default: return null;
         }
     };
 
-    if (isLoading) return <div className="p-8 text-center text-black font-medium">Cargando...</div>;
+    const handleStatusChange = async (order: PurchaseOrder, newStatus: number) => {
+        if (!projectId) return;
+        try {
+            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idOrdenCompra: order.IdOrdenCompra, status: newStatus, projectId }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setOrders(prev => prev.map(o =>
+                    o.IdOrdenCompra === order.IdOrdenCompra ? { ...o, Status: newStatus } : o
+                ));
+            } else {
+                alert('Error al actualizar el estado');
+            }
+        } catch {
+            alert('Error al actualizar el estado');
+        }
+    };
+
+    const filteredOrders = orders.filter(order => 
+        order.Proveedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.Sucursal.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `OC-${order.IdOrdenCompra}`.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (isLoading) return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+            <p className="text-gray-500 font-bold text-xl animate-pulse">Cargando órdenes...</p>
+        </div>
+    );
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                <h1 className="text-3xl font-bold text-black">{t('title')}</h1>
-                <div className="flex gap-4">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 space-y-6 relative">
+
+            {/* Page Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{t('title')}</h1>
+                    <p className="text-slate-400 text-xs font-semibold mt-1 uppercase tracking-widest">{t('subtitle')}</p>
+                </div>
+                <div className="flex gap-2">
                     <button 
                         onClick={() => setIsCategoryModalOpen(true)}
-                        className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-sm"
                     >
-                        <span>📂</span> Categorías
+                        <span>📂</span> Pedido por Categorías
                     </button>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+                        onClick={() => {
+                            setEditingOrder(null);
+                            setSelectedProvider('');
+                            setProviderSearch('');
+                            setSelectedBranch('');
+                            setEsInterna(false);
+                            setFechaEntrega('');
+                            setFechaProgramada('');
+                            setNotas('');
+                            setOrderItems([]);
+                            setIsModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
                     >
-                        + {t('addOrder')}
+                        <span className="text-base leading-none">+</span> {t('newOrder')}
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('orderDate')}</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('provider')}</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('branch')}</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('status')}</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total</th>
-                                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">{t('actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {orders.map((order) => (
-                                <tr key={order.IdOrdenCompra} className="hover:bg-blue-50/30 transition-colors group">
-                                    <td className="px-6 py-4 text-sm text-gray-600">
-                                        {new Date(order.FechaOrden).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm font-bold text-gray-900">{order.Proveedor}</div>
-                                        <div className="text-xs text-gray-400">OC-{order.IdOrdenCompra}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-700">{order.Sucursal}</td>
-                                    <td className="px-6 py-4 text-sm">
-                                        {getStatusLabel(order.Status)}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-right font-black text-gray-900">
-                                        {formatCurrency(order.Total)}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-right">
-                                        <div className="flex items-center justify-end gap-3">
-                                            <button 
-                                                onClick={() => exportOrderToPDF(order)}
-                                                className="text-blue-600 hover:text-blue-800 transition-colors p-1"
-                                                title="Imprimir PDF"
-                                            >
-                                                🖨️
-                                            </button>
-                                            <button 
-                                                onClick={() => handleEdit(order)}
-                                                className="text-amber-600 hover:text-amber-800 transition-colors p-1"
-                                                title="Editar"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(order)}
-                                                className="text-red-600 hover:text-red-800 transition-colors p-1"
-                                                title="Borrar"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {/* Stats + Search Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {/* Stats */}
+                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">📦</div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Órdenes</p>
+                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{filteredOrders.length}</p>
+                    </div>
                 </div>
-                {orders.length === 0 && (
-                    <div className="p-20 text-center">
-                        <div className="text-4xl mb-4">📦</div>
-                        <div className="text-gray-500 italic font-medium">No hay ordenes de compra registradas</div>
+                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-lg flex-shrink-0">💰</div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inversión Total</p>
+                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (isNaN(Number(o.Total)) ? 0 : Number(o.Total) || 0), 0))}</p>
+                    </div>
+                </div>
+                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">🏢</div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Proveedores</p>
+                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{new Set(filteredOrders.map(o => o.IdProveedor)).size}</p>
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                    <input 
+                        type="text" 
+                        placeholder="Buscar proveedor, sucursal, folio..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full h-full bg-white border border-slate-200 rounded-2xl px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none text-slate-800 font-medium text-xs transition-all shadow-sm"
+                    />
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🔍</span>
+                    {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors text-xs">✕</button>
+                    )}
+                </div>
+            </div>
+
+            {/* Period Filter */}
+            <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Periodo:</span>
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                        className="bg-transparent outline-none text-xs font-semibold text-slate-700" />
+                    <span className="text-slate-300 text-xs">→</span>
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                        className="bg-transparent outline-none text-xs font-semibold text-slate-700" />
+                </div>
+                <span className="text-[10px] text-slate-400 font-semibold">{filteredOrders.length} resultado{filteredOrders.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Data Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Table Header */}
+                <div className="grid grid-cols-[90px_1fr_120px_135px_160px_110px_90px] px-4 py-3 bg-slate-50 border-b border-slate-100">
+                    {['Fecha', 'Proveedor', 'Sucursal', 'Estado', 'Notas', 'Total', ''].map((h, i) => (
+                        <div key={i} className={`text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] ${i === 5 ? 'text-right' : ''}`}>
+                            {h}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Rows */}
+                <div className="divide-y divide-slate-50">
+                    {filteredOrders.map((order) => (
+                        <div
+                            key={order.IdOrdenCompra}
+                            onClick={() => handleEdit(order)}
+                            className="grid grid-cols-[90px_1fr_120px_135px_160px_110px_90px] px-4 py-3 items-center hover:bg-blue-50/20 transition-colors group cursor-pointer"
+                        >
+                            {/* Fecha */}
+                            <div className="text-xs font-semibold text-slate-700">
+                                {new Date(order.FechaOrden).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })}
+                            </div>
+
+                            {/* Proveedor */}
+                            <div className="min-w-0 pr-3">
+                                <div className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                                    {order.Proveedor}
+                                </div>
+                                <div className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                    # {String(order.IdOrdenCompra).padStart(4, '0')}
+                                </div>
+                            </div>
+
+                            {/* Sucursal */}
+                            <div>
+                                <span className="inline-block bg-slate-100 text-slate-500 text-[9px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wide truncate max-w-full">
+                                    {order.Sucursal}
+                                </span>
+                            </div>
+
+                            {/* Estado — clickable toggle */}
+                            <div
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (order.Status === 0) handleStatusChange(order, 1);
+                                    else if (order.Status === 1) handleStatusChange(order, 0);
+                                }}
+                                className={`cursor-pointer transition-opacity ${order.Status === 0 || order.Status === 1 ? 'hover:opacity-70' : ''}`}
+                                title={order.Status === 0 ? 'Clic para marcar como Surtido' : order.Status === 1 ? 'Clic para regresar a En Tránsito' : ''}
+                            >
+                                {getStatusLabel(order.Status)}
+                            </div>
+
+                            {/* Notas */}
+                            <div className="min-w-0 pr-2">
+                                {order.Notas ? (
+                                    <span className="text-[10px] text-slate-400 truncate block" title={order.Notas}>{order.Notas}</span>
+                                ) : (
+                                    <span className="text-[9px] text-slate-200">—</span>
+                                )}
+                            </div>
+
+                            {/* Total */}
+                            <div className="text-right">
+                                <span className="text-xs font-bold text-slate-800">
+                                    {order.EsInterna ? <span className="text-slate-300 text-[9px]">Interna</span> : formatCurrency(order.Total)}
+                                </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    onClick={() => exportOrderToPDF(order)}
+                                    className="w-7 h-7 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center text-xs"
+                                    title="PDF"
+                                >🖨️</button>
+                                <button
+                                    onClick={() => handleDelete(order)}
+                                    className="w-7 h-7 rounded-lg text-slate-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs"
+                                    title="Eliminar"
+                                >🗑️</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {filteredOrders.length === 0 && (
+                    <div className="py-20 text-center">
+                        <div className="text-4xl mb-3 grayscale opacity-20">📦</div>
+                        <p className="text-xs font-semibold text-slate-300 uppercase tracking-widest">Sin resultados para el periodo seleccionado</p>
+                    </div>
+                )}
+
+                {filteredOrders.length > 0 && (
+                    <div className="flex justify-between items-center px-6 py-3 bg-slate-50 border-t border-slate-100">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            {filteredOrders.length} {filteredOrders.length === 1 ? 'orden' : 'órdenes'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total período:</span>
+                            <span className="text-sm font-black text-slate-800">
+                                {formatCurrency(filteredOrders.reduce((s, o) => s + (isNaN(Number(o.Total)) ? 0 : Number(o.Total || 0)), 0))}
+                            </span>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Modal for new Order */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-10 relative border border-white/20">
-                        <button 
-                            onClick={closeModal}
-                            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors text-2xl p-2"
-                        >
-                            ✕
-                        </button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[3rem] w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl relative border border-white/20 flex flex-col">
                         
-                        <h2 className="text-3xl font-black mb-10 text-black border-b pb-4 inline-block">
-                            {editingOrder ? 'Editar Orden de Compra' : t('addOrder')}
-                        </h2>
-                        
-                        <div className="flex items-center gap-3 mb-10 bg-blue-50/50 p-6 rounded-3xl border border-blue-100 w-fit">
-                            <input 
-                                type="checkbox" 
-                                id="esInterna"
-                                checked={esInterna}
-                                onChange={(e) => {
-                                    setEsInterna(e.target.checked);
-                                    if (e.target.checked) {
-                                        setSelectedProvider('');
-                                        setProviderSearch('ORDEN DE COMPRA INTERNA');
-                                    } else {
-                                        setProviderSearch('');
-                                    }
-                                }}
-                                className="w-6 h-6 rounded-lg text-blue-600 focus:ring-blue-500 border-gray-300"
-                            />
-                            <label htmlFor="esInterna" className="text-lg font-bold text-blue-900 cursor-pointer select-none">
-                                {t('internalOrder')}
-                            </label>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
-                            <div className={`relative ${esInterna ? 'opacity-50 pointer-events-none' : ''}`} ref={providerListRef}>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t('provider')}</label>
-                                <div className="relative">
-                                    <input 
-                                        type="text" 
-                                        value={providerSearch}
-                                        onChange={(e) => {
-                                            setProviderSearch(e.target.value);
-                                            setIsProviderListOpen(true);
-                                            setSelectedProvider(''); // Reset selection if typing
-                                        }}
-                                        onFocus={() => setIsProviderListOpen(true)}
-                                        placeholder="Buscar proveedor..."
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-semibold transition-all"
-                                    />
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🏢</span>
-                                </div>
-                                {isProviderListOpen && (
-                                    <div className="absolute z-[70] w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
-                                        {providers
-                                            .filter(p => p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()))
-                                            .map(p => (
-                                                <button
-                                                    key={p.IdProveedor}
-                                                    onClick={() => handleSelectProvider(p)}
-                                                    className="w-full text-left px-6 py-4 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none font-bold text-black"
-                                                >
-                                                    {p.Proveedor}
-                                                </button>
-                                            ))}
-                                    </div>
-                                )}
-                            </div>
+                        {/* Modal Header */}
+                        <div className="px-10 py-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t('branch')}</label>
-                                <select 
-                                    value={selectedBranch}
-                                    onChange={(e) => setSelectedBranch(Number(e.target.value))}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-semibold transition-all"
-                                >
-                                    <option value="">Selecciona una sucursal...</option>
-                                    {branches.map(b => (
-                                        <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t('scheduledDeliveryDate')}</label>
-                                <input 
-                                    type="date" 
-                                    value={fechaProgramada}
-                                    onChange={(e) => setFechaProgramada(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-semibold transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Product Search */}
-                        <div className="mb-10 relative" ref={productListRef}>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t('addProduct')}</label>
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    value={productSearch}
-                                    onChange={(e) => {
-                                        setProductSearch(e.target.value);
-                                        setIsProductListOpen(true);
-                                    }}
-                                    onFocus={() => setIsProductListOpen(true)}
-                                    placeholder="Buscar producto / insumo..."
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 pl-12 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold transition-all text-lg"
-                                />
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl">🔍</span>
-                            </div>
-
-                            {isProductListOpen && (
-                                <div className="absolute z-[60] w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-72 overflow-y-auto backdrop-blur-xl">
-                                    {products
-                                        .filter(p => p.Producto.toLowerCase().includes(productSearch.toLowerCase()))
-                                        .map(product => (
-                                            <button
-                                                key={product.IdProducto}
-                                                onClick={() => handleAddProduct(product)}
-                                                className="w-full text-left px-6 py-4 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none flex justify-between items-center group"
-                                            >
-                                                <div>
-                                                    <div className="font-bold text-black group-hover:text-blue-700">{product.Producto}</div>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-xs text-gray-400 font-medium">{product.Codigo}</span>
-                                                        <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                            {getCategoryEmoji(product.Categoria)} {product.Categoria || 'S/C'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg font-bold text-sm">
-                                                    {formatCurrency(product.Costo)}
-                                                </span>
-                                            </button>
-                                        ))}
+                                <h2 className="text-3xl font-black text-black tracking-tight leading-none mb-2">
+                                    {editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
+                                </h2>
+                                <div className="flex items-center gap-3">
+                                    <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest">
+                                        {editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'En Tránsito'}
+                                    </span>
+                                    <span className="text-gray-300 text-xs">|</span>
+                                    <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Configuración de Suministros</p>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Items Table */}
-                        <div className="border border-gray-100 rounded-[1.5rem] overflow-hidden mb-10 shadow-inner bg-gray-50/50">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-100/50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider">{t('product')}</th>
-                                        <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider w-32 text-center">{t('quantity')}</th>
-                                        <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">{t('price')}</th>
-                                        <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">{t('total')}</th>
-                                        <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider w-16"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {orderItems.map((item, index) => (
-                                        <tr key={index} className="bg-white/40">
-                                            <td className="px-6 py-5 text-sm text-black font-bold">{item.producto}</td>
-                                            <td className="px-6 py-5">
-                                                <input 
-                                                    type="number" 
-                                                    value={item.cantidad}
-                                                    onChange={(e) => handleUpdateItem(index, 'cantidad', Number(e.target.value))}
-                                                    className="w-full text-center bg-transparent border-b-2 border-transparent focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
-                                                />
-                                            </td>
-                                            <td className="px-6 py-5 text-right">
-                                                <input 
-                                                    type="number" 
-                                                    value={item.precioUnitario}
-                                                    onChange={(e) => handleUpdateItem(index, 'precioUnitario', Number(e.target.value))}
-                                                    className="w-full text-right bg-transparent border-b-2 border-transparent focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
-                                                />
-                                            </td>
-                                            <td className="px-6 py-5 text-right text-lg font-black text-blue-700">
-                                                {formatCurrency(item.total)}
-                                            </td>
-                                            <td className="px-6 py-5 text-center">
-                                                <button 
-                                                    onClick={() => handleRemoveItem(index)}
-                                                    className="text-red-400 hover:text-red-600 transition-colors text-xl p-2 hover:bg-red-50 rounded-full"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {orderItems.length > 0 && (
-                                        <tr className="bg-blue-50/50">
-                                            <td colSpan={3} className="px-6 py-6 text-right font-black text-gray-500 text-xl uppercase tracking-widest">Total:</td>
-                                            <td className="px-6 py-6 text-right font-black text-blue-900 text-2xl">
-                                                {formatCurrency(orderItems.reduce((acc, item) => acc + item.total, 0))}
-                                            </td>
-                                            <td></td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="mb-10">
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t('notes')}</label>
-                            <textarea 
-                                value={notas}
-                                onChange={(e) => setNotas(e.target.value)}
-                                placeholder="Escribe aquí cualquier observación o nota especial para esta orden..."
-                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-medium transition-all min-h-[100px]"
-                            />
-                        </div>
-
-                        <div className="flex flex-col md:flex-row justify-end gap-6 pt-4 border-t border-gray-100">
+                            </div>
                             <button 
                                 onClick={closeModal}
-                                className="px-10 py-4 rounded-2xl border-2 border-gray-200 font-black hover:bg-gray-50 transition-all text-gray-400 uppercase tracking-widest text-sm"
+                                className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all shadow-sm hover:shadow-md"
+                            >
+                                <span className="text-xl leading-none">✕</span>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+
+                            {/* Header Fields - top row */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-6 border-b border-gray-100">
+
+                                {/* Internal Order toggle */}
+                                <div className="md:col-span-4 flex items-center gap-3">
+                                    <input 
+                                        type="checkbox" 
+                                        id="esInterna"
+                                        checked={esInterna}
+                                        onChange={(e) => {
+                                            setEsInterna(e.target.checked);
+                                            if (e.target.checked) {
+                                                setSelectedProvider('');
+                                                setProviderSearch('ORDEN DE COMPRA INTERNA');
+                                            } else {
+                                                setProviderSearch('');
+                                            }
+                                        }}
+                                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
+                                    />
+                                    <label htmlFor="esInterna" className="text-xs font-bold text-blue-800 cursor-pointer select-none">
+                                        {t('internalOrder')} <span className="text-blue-400 font-medium">— Uso administrativo interno</span>
+                                    </label>
+                                </div>
+
+                                {/* Provider */}
+                                <div className={`relative ${esInterna ? 'opacity-40 pointer-events-none' : ''}`} ref={providerListRef}>
+                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('provider')}</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            value={providerSearch}
+                                            onChange={(e) => {
+                                                setProviderSearch(e.target.value);
+                                                setIsProviderListOpen(true);
+                                                setSelectedProvider('');
+                                            }}
+                                            onFocus={() => setIsProviderListOpen(true)}
+                                            placeholder="Buscar proveedor..."
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 pl-9 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
+                                        />
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">🏢</span>
+                                    </div>
+                                    {isProviderListOpen && providers.length > 0 && (
+                                        <div className="absolute z-[70] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                                            {providers
+                                                .filter(p => p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()))
+                                                .map(p => (
+                                                    <button
+                                                        key={p.IdProveedor}
+                                                        onClick={() => handleSelectProvider(p)}
+                                                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none font-semibold text-slate-800 text-xs"
+                                                    >
+                                                        {p.Proveedor}
+                                                    </button>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Branch */}
+                                <div>
+                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('branch')}</label>
+                                    <select 
+                                        value={selectedBranch}
+                                        onChange={(e) => setSelectedBranch(Number(e.target.value))}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
+                                    >
+                                        <option value="">Sucursal...</option>
+                                        {branches.map(b => (
+                                            <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Scheduled Date */}
+                                <div>
+                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('scheduledDeliveryDate')}</label>
+                                    <input 
+                                        type="date" 
+                                        value={fechaProgramada}
+                                        onChange={(e) => setFechaProgramada(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
+                                    />
+                                </div>
+
+                                {/* Notes */}
+                                <div>
+                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('notes')}</label>
+                                    <input 
+                                        type="text"
+                                        value={notas}
+                                        onChange={(e) => setNotas(e.target.value)}
+                                        placeholder="Notas internas..."
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Items Section */}
+                            <div className="space-y-4">
+                                <div className="relative" ref={productListRef}>
+                                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                                            <span className="text-xl">🔍</span>
+                                        </div>
+                                        <input 
+                                            type="text" 
+                                            value={productSearch}
+                                            onChange={(e) => {
+                                                setProductSearch(e.target.value);
+                                                setIsProductListOpen(true);
+                                            }}
+                                            onFocus={() => setIsProductListOpen(true)}
+                                            placeholder="Añadir producto a la orden..."
+                                            className="w-full bg-white border-2 border-blue-50 rounded-2xl px-6 py-5 pl-14 focus:border-blue-400 outline-none text-black font-black text-lg shadow-sm focus:shadow-md transition-all placeholder:text-gray-300 placeholder:font-bold"
+                                        />
+
+                                        {isProductListOpen && products.length > 0 && (
+                                            <div className="absolute z-[60] w-full mt-2 bg-white border border-gray-100 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] max-h-80 overflow-y-auto animate-in slide-in-from-top-4 duration-300">
+                                                {products
+                                                    .filter(p => p.Producto.toLowerCase().includes(productSearch.toLowerCase()))
+                                                    .map(product => (
+                                                        <button
+                                                            key={product.IdProducto}
+                                                            onClick={() => handleAddProduct(product)}
+                                                            className="w-full text-left px-8 py-5 hover:bg-blue-50/50 transition-all border-b border-gray-50 last:border-none flex justify-between items-center group"
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                                                                    {getCategoryEmoji(product.Categoria)}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-black text-black text-sm group-hover:text-blue-700">{product.Producto}</div>
+                                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{product.Codigo}</span>
+                                                                        <span className="text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-md font-black uppercase">
+                                                                            {product.Categoria || 'General'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-blue-600 font-black text-base">{formatCurrency(product.Costo)}</span>
+                                                                <div className="text-[9px] text-gray-300 font-bold uppercase">Costo Base</div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b border-slate-100">
+                                                    <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('product')}</th>
+                                                    {esInterna && (
+                                                        <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-36">Categoría</th>
+                                                    )}
+                                                    <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-center">{t('quantity')}</th>
+                                                    <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-center">Unidad</th>
+                                                    {!esInterna && (
+                                                        <>
+                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-right">{t('price')}</th>
+                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-right">{t('total')}</th>
+                                                        </>
+                                                    )}
+                                                    <th className="px-3 py-3 w-10"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                {orderItems.map((item, index) => (
+                                                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
+                                                        {/* Product name */}
+                                                        <td className="px-5 py-2.5">
+                                                            <input 
+                                                                type="text" 
+                                                                value={item.producto}
+                                                                onChange={(e) => handleUpdateItem(index, 'producto', e.target.value)}
+                                                                className="w-full bg-transparent border-b border-transparent focus:border-blue-400 outline-none text-slate-800 font-semibold text-xs transition-all"
+                                                            />
+                                                        </td>
+                                                        {/* Categoria (only internal) */}
+                                                        {esInterna && (
+                                                            <td className="px-4 py-2.5">
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md">
+                                                                    {getCategoryEmoji(item.categoria)} {item.categoria || '—'}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {/* Quantity */}
+                                                        <td className="px-4 py-2.5">
+                                                            <input 
+                                                                type="number" 
+                                                                value={item.cantidad}
+                                                                onChange={(e) => handleUpdateItem(index, 'cantidad', e.target.value)}
+                                                                className="w-full text-center bg-slate-50 border border-slate-100 focus:border-blue-400 focus:bg-white rounded-lg py-1 outline-none text-slate-800 font-bold text-xs transition-all"
+                                                            />
+                                                        </td>
+                                                        {/* Unit of measure — required */}
+                                                        <td className="px-4 py-2.5">
+                                                            <select
+                                                                value={item.unidadMedida || ''}
+                                                                onChange={(e) => handleUpdateItem(index, 'unidadMedida', e.target.value)}
+                                                                className={`w-full text-center border rounded-lg py-1 outline-none font-semibold text-xs transition-all ${
+                                                                    !item.unidadMedida
+                                                                        ? 'bg-red-50 border-red-300 text-red-500 focus:border-red-500'
+                                                                        : 'bg-slate-50 border-slate-100 focus:border-blue-400 focus:bg-white text-slate-700'
+                                                                }`}
+                                                            >
+                                                                <option value="">⚠ Requerida</option>
+                                                                {['KG','G','MG','L','ML','PZA','CAJA','BOLSA','PAQUETE','LATA','BOTELLA','COSTAL','TARRO','BOTE','LITRO','ONZA','LIBRA','TON','M','CM','DOCENA','UNIDAD'].map(u => (
+                                                                    <option key={u} value={u}>{u}</option>
+                                                                ))}
+                                                            </select>
+                                                        </td>
+                                                        {/* Price + Total (only external) */}
+                                                        {!esInterna && (
+                                                            <>
+                                                                <td className="px-4 py-2.5 text-right">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        value={item.precioUnitario}
+                                                                        onChange={(e) => handleUpdateItem(index, 'precioUnitario', e.target.value)}
+                                                                        className="w-full text-right bg-slate-50 border border-slate-100 focus:border-blue-400 focus:bg-white rounded-lg py-1 px-2 outline-none text-slate-800 font-bold text-xs transition-all"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-4 py-2.5 text-right text-xs font-bold text-blue-600">
+                                                                    {formatCurrency(item.total)}
+                                                                </td>
+                                                            </>
+                                                        )}
+                                                        <td className="px-3 py-2.5 text-center">
+                                                            <button 
+                                                                onClick={() => handleRemoveItem(index)}
+                                                                className="text-slate-200 hover:text-red-400 transition-colors"
+                                                            >🗑️</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {orderItems.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={esInterna ? 5 : 6} className="px-5 py-12 text-center">
+                                                            <p className="text-slate-300 font-semibold text-xs uppercase tracking-widest">Agrega productos usando el buscador</p>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                            {orderItems.length > 0 && (
+                                                <tfoot>
+                                                    <tr className="bg-slate-50 border-t border-slate-100">
+                                                        <td className="px-5 py-3" colSpan={esInterna ? 3 : 3}>
+                                                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                                                                {orderItems.length} {orderItems.length === 1 ? 'producto' : 'productos'}
+                                                            </span>
+                                                        </td>
+                                                        {!esInterna && (
+                                                            <>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total</span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <span className="text-sm font-black text-slate-800">
+                                                                        {formatCurrency(orderItems.reduce((acc, item) => acc + (isNaN(Number(item.total)) ? 0 : Number(item.total)), 0))}
+                                                                    </span>
+                                                                </td>
+                                                            </>
+                                                        )}
+                                                        <td className="px-3 py-3"></td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center gap-4">
+                            <div>
+                                {editingOrder && (
+                                    <button 
+                                        onClick={() => exportOrderToPDF(editingOrder)}
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 font-semibold text-xs transition-all shadow-sm"
+                                    >
+                                        🖨️ Imprimir PDF
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex gap-3">
+                            <button 
+                                onClick={closeModal}
+                                className="px-6 py-2.5 rounded-xl border border-gray-200 font-semibold hover:bg-white hover:shadow-sm transition-all text-gray-400 text-xs"
                             >
                                 {t('cancel')}
                             </button>
                             <button 
                                 onClick={handleSubmit}
-                                className="px-12 py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0 uppercase tracking-widest text-sm"
+                                className="px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
                             >
-                                {editingOrder ? 'Actualizar Orden' : t('save')}
+                                {editingOrder ? 'Actualizar Orden' : 'Confirmar y Guardar'}
                             </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1041,7 +1356,7 @@ export default function PurchaseOrdersPage() {
                             {!selectedCategory ? (
                                 <>
                                     <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                                        <h2 className="text-4xl font-black text-black border-b pb-4 inline-block">Seleccionar Categorías</h2>
+                                        <h2 className="text-2xl font-black text-black border-b pb-3 inline-block">Seleccionar Categorías</h2>
                                         <div className="flex gap-4">
                                             {multiSelectedIds.length > 0 && (
                                                 <button 
@@ -1059,41 +1374,37 @@ export default function PurchaseOrdersPage() {
                                             placeholder="Buscar categoría..."
                                             value={categorySearch}
                                             onChange={(e) => setCategorySearch(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-8 py-5 pl-16 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-xl transition-all"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 pl-14 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
                                         />
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-3xl">📂</span>
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl">📂</span>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                         {categories
-                                            .filter(c => c.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
-                                            .map(cat => {
-                                                const isSelected = multiSelectedIds.includes(cat.IdCategoria);
-                                                return (
-                                                    <div key={cat.IdCategoria} className="relative group">
-                                                        <button
-                                                            onClick={() => handleToggleCategorySelection(cat.IdCategoria)}
-                                                            className={`absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                                                                isSelected ? 'bg-blue-600 border-blue-600 text-white scale-110' : 'bg-white border-gray-300 text-transparent hover:border-blue-400'
-                                                            }`}
-                                                        >
-                                                            ✓
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleSelectCategory(cat)}
-                                                            className={`w-full bg-gray-50 hover:bg-blue-600 hover:text-white p-8 rounded-[2rem] border shadow-sm transition-all transform hover:-translate-y-2 text-center flex flex-col items-center ${
-                                                                isSelected ? 'border-blue-600 ring-4 ring-blue-500/10' : 'border-gray-100'
-                                                            }`}
-                                                        >
-                                                            <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
-                                                                {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
-                                                            </div>
-                                                            <div className="font-black uppercase tracking-wider text-sm opacity-80 group-hover:opacity-100">
-                                                                {cat.Categoria}
-                                                            </div>
-                                                        </button>
+                                            .filter(cat => cat.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
+                                            .map(cat => (
+                                                <button
+                                                    key={cat.IdCategoria}
+                                                    onClick={() => handleSelectCategory(cat)}
+                                                    className={`group relative p-8 rounded-[2rem] border transition-all duration-300 text-left overflow-hidden ${
+                                                        multiSelectedIds.includes(cat.IdCategoria)
+                                                            ? 'bg-blue-600 border-blue-400 shadow-xl shadow-blue-500/30'
+                                                            : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'
+                                                    }`}
+                                                >
+                                                    <div className={`text-4xl mb-4 group-hover:scale-110 transition-transform ${multiSelectedIds.includes(cat.IdCategoria) ? '' : 'grayscale-[0.5]'}`}>
+                                                        {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
                                                     </div>
-                                                );
-                                            })}
+                                                    <div className={`text-sm font-black tracking-tight ${multiSelectedIds.includes(cat.IdCategoria) ? 'text-white' : 'text-slate-900'}`}>
+                                                        {cat.Categoria}
+                                                    </div>
+                                                    <button
+                                                        className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white/10 border-white/20 text-white"
+                                                        onClick={(e) => { e.stopPropagation(); handleToggleCategorySelection(cat.IdCategoria); }}
+                                                    >
+                                                        {multiSelectedIds.includes(cat.IdCategoria) ? '✓' : ''}
+                                                    </button>
+                                                </button>
+                                            ))}
                                     </div>
                                 </>
                             ) : (
@@ -1106,7 +1417,7 @@ export default function PurchaseOrdersPage() {
                                             >
                                                 ⬅️
                                             </button>
-                                            <h2 className="text-4xl font-black text-black">
+                                            <h2 className="text-2xl font-black text-black">
                                                 {selectedCategory.ImagenCategoria || getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}
                                             </h2>
                                         </div>
@@ -1162,7 +1473,7 @@ export default function PurchaseOrdersPage() {
                                                                     <input 
                                                                         type="number" 
                                                                         value={item.cantidad}
-                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', Number(e.target.value))}
+                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', e.target.value)}
                                                                         className="w-full text-center bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 outline-none text-black font-black text-lg transition-all"
                                                                     />
                                                                 </td>
@@ -1170,7 +1481,7 @@ export default function PurchaseOrdersPage() {
                                                                     <input 
                                                                         type="number" 
                                                                         value={item.precioUnitario}
-                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'precioUnitario', Number(e.target.value))}
+                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'precioUnitario', e.target.value)}
                                                                         className="w-full text-right bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 px-3 outline-none text-black font-black text-lg transition-all"
                                                                     />
                                                                 </td>
@@ -1184,16 +1495,16 @@ export default function PurchaseOrdersPage() {
                                         </table>
                                     </div>
                                     
-                                    <div className="mt-8 bg-blue-900 text-white p-8 rounded-[2.5rem] flex justify-between items-center shadow-2xl shadow-blue-900/20">
+                                    <div className="mt-6 bg-blue-900 text-white p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-blue-900/20">
                                         <div>
-                                            <div className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-1">Total del Pedido</div>
-                                            <div className="text-4xl font-black">
+                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Total del Pedido</div>
+                                            <div className="text-2xl font-black">
                                                 {formatCurrency(categoryProductsCapture.reduce((sum, p) => sum + p.total, 0))}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-1">Ítems con Cantidad</div>
-                                            <div className="text-4xl font-black">
+                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Ítems con Cantidad</div>
+                                            <div className="text-2xl font-black">
                                                 {categoryProductsCapture.filter(p => p.cantidad > 0).length}
                                             </div>
                                         </div>

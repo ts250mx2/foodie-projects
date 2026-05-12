@@ -26,8 +26,8 @@ export async function GET(
                 p.Proveedor,
                 s.Sucursal
             FROM tblOrdenesCompra oc
-            JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
-            JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
+            LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
+            LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
             WHERE oc.IdOrdenCompra = ?
         `, [idOrdenCompra]);
 
@@ -35,12 +35,20 @@ export async function GET(
             return NextResponse.json({ success: false, message: 'Order not found' }, { status: 404 });
         }
 
+        // Ensure UnidadMedidaPedido column exists before querying
+        await connection.query(`
+            ALTER TABLE tblOrdenesCompraDetalle 
+            ADD COLUMN IF NOT EXISTS UnidadMedidaPedido VARCHAR(30) NULL DEFAULT NULL
+        `).catch(() => {});
+
         // 2. Fetch Details
         const [detailRows] = await connection.query(`
             SELECT 
                 ocd.*,
                 p.Producto,
                 p.Codigo,
+                COALESCE(ocd.UnidadMedidaPedido, p.UnidadMedidaCompra) AS UnidadMedidaCompra,
+                p.UnidadMedidaInventario,
                 c.Categoria
             FROM tblOrdenesCompraDetalle ocd
             JOIN tblProductos p ON ocd.IdProducto = p.IdProducto

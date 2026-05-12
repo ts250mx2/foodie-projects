@@ -13,9 +13,12 @@ export async function GET(request: NextRequest) {
         }
 
         const projectId = parseInt(projectIdStr);
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        
         connection = await getProjectConnection(projectId);
 
-        const [rows] = await connection.query(`
+        let query = `
             SELECT 
                 oc.*, 
                 p.Proveedor,
@@ -25,13 +28,52 @@ export async function GET(request: NextRequest) {
             LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
             LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
             WHERE oc.Status != 2
-            ORDER BY oc.FechaOrden DESC
-        `);
+        `;
+
+        const queryParams: any[] = [];
+
+        if (startDate) {
+            query += ' AND oc.FechaOrden >= ?';
+            queryParams.push(`${startDate} 00:00:00`);
+        }
+        if (endDate) {
+            query += ' AND oc.FechaOrden <= ?';
+            queryParams.push(`${endDate} 23:59:59`);
+        }
+
+        query += ' ORDER BY oc.FechaOrden DESC';
+
+        const [rows] = await connection.query(query, queryParams);
 
         return NextResponse.json({ success: true, data: rows });
     } catch (error) {
         console.error('Error fetching purchase orders:', error);
         return NextResponse.json({ success: false, message: 'Error fetching purchase orders' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+export async function PATCH(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, idOrdenCompra, status } = body;
+
+        if (!projectId || !idOrdenCompra || status === undefined) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        connection = await getProjectConnection(parseInt(projectId));
+        await connection.query(
+            'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+            [status, idOrdenCompra]
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        return NextResponse.json({ success: false, message: 'Error updating status' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }
@@ -49,6 +91,12 @@ export async function POST(request: NextRequest) {
 
         connection = await getProjectConnection(projectId);
         await connection.beginTransaction();
+
+        // Ensure UnidadMedidaPedido column exists
+        await connection.query(`
+            ALTER TABLE tblOrdenesCompraDetalle 
+            ADD COLUMN IF NOT EXISTS UnidadMedidaPedido VARCHAR(30) NULL DEFAULT NULL
+        `).catch(() => {});
 
         let finalIdProveedor = idProveedor;
 
@@ -74,8 +122,8 @@ export async function POST(request: NextRequest) {
         // 2. Create Details and update Provider-Product relationship
         for (const item of items) {
             await connection.query(
-                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, FechaAct) VALUES (?, ?, ?, ?, ?, Now())',
-                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario]
+                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, UnidadMedidaPedido, FechaAct) VALUES (?, ?, ?, ?, ?, ?, Now())',
+                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario, item.unidadMedida || null]
             );
 
             // Update relationship using the resolved provider ID
@@ -84,6 +132,12 @@ export async function POST(request: NextRequest) {
                 VALUES (?, ?, ?, Now())
                 ON DUPLICATE KEY UPDATE UltimoPrecio = ?, FechaAct = Now()
             `, [finalIdProveedor || 0, item.idProducto, item.precioUnitario, item.precioUnitario]);
+
+            // Update tblProductos with new name and cost
+            await connection.query(
+                'UPDATE tblProductos SET Producto = ?, Precio = ?, FechaAct = Now() WHERE IdProducto = ?',
+                [item.producto, item.precioUnitario, item.idProducto]
+            );
         }
 
         await connection.commit();
@@ -122,6 +176,12 @@ export async function PUT(request: NextRequest) {
             }
         }
 
+        // Ensure UnidadMedidaPedido column exists
+        await connection.query(`
+            ALTER TABLE tblOrdenesCompraDetalle 
+            ADD COLUMN IF NOT EXISTS UnidadMedidaPedido VARCHAR(30) NULL DEFAULT NULL
+        `).catch(() => {});
+
         // 1. Update Header
         await connection.query(
             'UPDATE tblOrdenesCompra SET IdProveedor = ?, IdSucursal = ?, EsInterna = ?, FechaEntrega = ?, FechaProgramadaEntrega = ?, Notas = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
@@ -134,8 +194,8 @@ export async function PUT(request: NextRequest) {
         // 3. Insert new items
         for (const item of items) {
             await connection.query(
-                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, FechaAct) VALUES (?, ?, ?, ?, ?, Now())',
-                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario]
+                'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, UnidadMedidaPedido, FechaAct) VALUES (?, ?, ?, ?, ?, ?, Now())',
+                [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario, item.unidadMedida || null]
             );
 
             // Update relationship
@@ -144,6 +204,12 @@ export async function PUT(request: NextRequest) {
                 VALUES (?, ?, ?, Now())
                 ON DUPLICATE KEY UPDATE UltimoPrecio = ?, FechaAct = Now()
             `, [finalIdProveedor || 0, item.idProducto, item.precioUnitario, item.precioUnitario]);
+
+            // Update tblProductos with new name and cost
+            await connection.query(
+                'UPDATE tblProductos SET Producto = ?, Precio = ?, FechaAct = Now() WHERE IdProducto = ?',
+                [item.producto, item.precioUnitario, item.idProducto]
+            );
         }
 
         await connection.commit();
