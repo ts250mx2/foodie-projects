@@ -399,36 +399,44 @@ export default function PurchaseOrdersPage() {
         }
     };
 
-    const handleSelectCategory = async (category: any) => {
-        setSelectedCategory(category);
+    const handleOpenCategoryModal = async () => {
+        setIsCategoryModalOpen(true);
+        setSelectedCategory(null);
+        // Load ALL products across all categories
         try {
-            setIsLoading(true);
             const res = await fetch(`/api/products?projectId=${projectId}&tipoProducto=0`);
             const data = await res.json();
             if (data.success) {
-                // Filter products of this category
-                const filtered = data.data
-                    .filter((p: any) => p.IdCategoria === category.IdCategoria)
+                const allItems = data.data
                     .map((p: any) => ({
                         idProducto: p.IdProducto,
-                        producto: p.Producto,
-                        codigo: p.Codigo,
+                        idCategoria: p.IdCategoria,
+                        producto: p.Producto || '',
+                        codigo: p.Codigo || '',
                         cantidad: 0,
                         precioUnitario: p.Costo || 0,
+                        unidadMedida: p.UnidadMedidaInventario || '',
                         total: 0
-                    }));
-                setCategoryProductsCapture(filtered);
+                    }))
+                    .sort((a: any, b: any) => (a.producto || '').localeCompare((b.producto || ''), 'es', { sensitivity: 'base' }));
+                setCategoryProductsCapture(allItems);
             }
         } catch (error) {
-            console.error('Error fetching category products:', error);
-        } finally {
-            setIsLoading(false);
+            console.error('Error fetching all category products:', error);
         }
+    };
+
+    const handleSelectCategory = (category: any) => {
+        // Just navigate — quantities are already in global state
+        setSelectedCategory(category);
     };
 
     const handleUpdateCategoryProduct = (index: number, field: string, value: any) => {
         const next = [...categoryProductsCapture];
-        const val = isNaN(Number(value)) ? 0 : Number(value);
+        const numericFields = ['cantidad', 'precioUnitario', 'total'];
+        const val = numericFields.includes(field)
+            ? (isNaN(Number(value)) ? 0 : Number(value))
+            : value;
         next[index] = { ...next[index], [field]: val };
         next[index].total = (next[index].cantidad || 0) * (next[index].precioUnitario || 0);
         setCategoryProductsCapture(next);
@@ -437,14 +445,23 @@ export default function PurchaseOrdersPage() {
     const handleSaveCategoryOrder = async () => {
         const itemsToOrder = categoryProductsCapture.filter(p => p.cantidad > 0);
         if (itemsToOrder.length === 0) {
-            alert('Por favor captura al menos una cantidad mayor a cero.');
+            alert('Por favor captura al menos una cantidad mayor a cero en alguna categoría.');
             return;
         }
 
-        if (!selectedBranch) {
+        const effectiveBranch = selectedBranch || (branches.length === 1 ? branches[0].IdSucursal : null);
+        if (!effectiveBranch) {
             alert('Por favor selecciona una sucursal.');
             return;
         }
+
+        // Build a description of which categories are included
+        const catNames = [...new Set(
+            itemsToOrder.map(it => {
+                const cat = categories.find((c: any) => c.IdCategoria === it.idCategoria);
+                return cat ? cat.Categoria : 'General';
+            })
+        )].join(', ');
 
         try {
             const res = await fetch('/api/purchases/purchase-orders', {
@@ -453,21 +470,24 @@ export default function PurchaseOrdersPage() {
                 body: JSON.stringify({
                     projectId,
                     idProveedor: null,
-                    idSucursal: selectedBranch,
+                    idSucursal: effectiveBranch,
                     esInterna: true,
-                    providerName: `OC Interna ${selectedCategory.Categoria}`,
-                    notas: `Pedido por Categoría: ${selectedCategory.Categoria}`,
+                    providerName: 'OC Interna',
+                    notas: `Pedido Interno: ${catNames}`,
+                    fechaProgramadaEntrega: new Date().toISOString().split('T')[0],
                     items: itemsToOrder.map(it => ({
                         idProducto: it.idProducto,
+                        producto: it.producto,
                         cantidad: it.cantidad,
-                        precioUnitario: it.precioUnitario
+                        precioUnitario: it.precioUnitario,
+                        unidadMedida: it.unidadMedida || null
                     }))
                 })
             });
 
             const data = await res.json();
             if (data.success) {
-                alert('Orden generada con éxito');
+                alert(`Orden generada con éxito — ${itemsToOrder.length} producto(s) de ${catNames}`);
                 setIsCategoryModalOpen(false);
                 setSelectedCategory(null);
                 setCategoryProductsCapture([]);
@@ -569,15 +589,17 @@ export default function PurchaseOrdersPage() {
         doc.text(`Fecha de impresión: ${new Date().toLocaleString()}`, 20, 30);
         doc.text('Instrucciones: Escriba la cantidad necesaria en el recuadro de "CANTIDAD".', 20, 35);
 
-        const tableData = categoryProductsCapture.map(p => [
+        const catProducts = categoryProductsCapture.filter(p => p.idCategoria === selectedCategory.IdCategoria);
+        const tableData = catProducts.map(p => [
             p.producto,
+            p.unidadMedida || '',
             '',
             ''
         ]);
 
         autoTable(doc, {
             startY: 45,
-            head: [['PRODUCTO', 'CANTIDAD', 'NOTAS']],
+            head: [['PRODUCTO', 'UNIDAD', 'CANTIDAD', 'NOTAS']],
             body: tableData,
             theme: 'grid',
             headStyles: { 
@@ -588,8 +610,9 @@ export default function PurchaseOrdersPage() {
             },
             columnStyles: {
                 0: { cellWidth: 'auto' },
-                1: { cellWidth: 28, halign: 'center', minCellHeight: 10 },
-                2: { cellWidth: 35 }
+                1: { cellWidth: 22, halign: 'center' },
+                2: { cellWidth: 25, halign: 'center', minCellHeight: 10 },
+                3: { cellWidth: 30 }
             },
             styles: {
                 fontSize: 8,
@@ -813,20 +836,21 @@ export default function PurchaseOrdersPage() {
                 </div>
                 <div className="flex gap-2">
                     <button 
-                        onClick={() => setIsCategoryModalOpen(true)}
+                        onClick={handleOpenCategoryModal}
                         className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-sm"
                     >
                         <span>📂</span> Pedido por Categorías
                     </button>
                     <button 
                         onClick={() => {
+                            const today = new Date().toISOString().split('T')[0];
                             setEditingOrder(null);
                             setSelectedProvider('');
                             setProviderSearch('');
-                            setSelectedBranch('');
+                            setSelectedBranch(branches.length === 1 ? branches[0].IdSucursal : '');
                             setEsInterna(false);
                             setFechaEntrega('');
-                            setFechaProgramada('');
+                            setFechaProgramada(today);
                             setNotas('');
                             setOrderItems([]);
                             setIsModalOpen(true);
@@ -895,9 +919,9 @@ export default function PurchaseOrdersPage() {
             {/* Data Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 {/* Table Header */}
-                <div className="grid grid-cols-[90px_1fr_120px_135px_160px_110px_90px] px-4 py-3 bg-slate-50 border-b border-slate-100">
-                    {['Fecha', 'Proveedor', 'Sucursal', 'Estado', 'Notas', 'Total', ''].map((h, i) => (
-                        <div key={i} className={`text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] ${i === 5 ? 'text-right' : ''}`}>
+                <div className="grid grid-cols-[90px_1fr_110px_135px_120px_100px_100px_80px] px-4 py-3 bg-slate-50 border-b border-slate-100">
+                    {['Fecha', 'Proveedor', 'Sucursal', 'Estado', 'Entrega Prog.', 'Notas', 'Total', ''].map((h, i) => (
+                        <div key={i} className={`text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] ${i === 6 ? 'text-right' : ''}`}>
                             {h}
                         </div>
                     ))}
@@ -909,7 +933,7 @@ export default function PurchaseOrdersPage() {
                         <div
                             key={order.IdOrdenCompra}
                             onClick={() => handleEdit(order)}
-                            className="grid grid-cols-[90px_1fr_120px_135px_160px_110px_90px] px-4 py-3 items-center hover:bg-blue-50/20 transition-colors group cursor-pointer"
+                            className="grid grid-cols-[90px_1fr_110px_135px_120px_100px_100px_80px] px-4 py-3 items-center hover:bg-blue-50/20 transition-colors group cursor-pointer"
                         >
                             {/* Fecha */}
                             <div className="text-xs font-semibold text-slate-700">
@@ -944,6 +968,34 @@ export default function PurchaseOrdersPage() {
                                 title={order.Status === 0 ? 'Clic para marcar como Surtido' : order.Status === 1 ? 'Clic para regresar a En Tránsito' : ''}
                             >
                                 {getStatusLabel(order.Status)}
+                            </div>
+
+                            {/* Entrega Programada + días en tránsito */}
+                            <div className="min-w-0">
+                                {order.FechaProgramadaEntrega ? (
+                                    <div>
+                                        <span className="text-[10px] font-semibold text-slate-600">
+                                            {new Date(order.FechaProgramadaEntrega).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                                        </span>
+                                        {order.Status === 0 && (() => {
+                                            const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
+                                            return days > 0 ? (
+                                                <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black">
+                                                    {days}d
+                                                </span>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                ) : (
+                                    order.Status === 0 ? (() => {
+                                        const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
+                                        return days > 0 ? (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black">
+                                                {days}d en tránsito
+                                            </span>
+                                        ) : <span className="text-[9px] text-slate-200">—</span>;
+                                    })() : <span className="text-[9px] text-slate-200">—</span>
+                                )}
                             </div>
 
                             {/* Notas */}
@@ -1040,10 +1092,13 @@ export default function PurchaseOrdersPage() {
                                         id="esInterna"
                                         checked={esInterna}
                                         onChange={(e) => {
-                                            setEsInterna(e.target.checked);
-                                            if (e.target.checked) {
+                                            const checked = e.target.checked;
+                                            setEsInterna(checked);
+                                            if (checked) {
                                                 setSelectedProvider('');
                                                 setProviderSearch('ORDEN DE COMPRA INTERNA');
+                                                // Auto-set today as scheduled delivery for internal orders
+                                                setFechaProgramada(new Date().toISOString().split('T')[0]);
                                             } else {
                                                 setProviderSearch('');
                                             }
@@ -1356,8 +1411,24 @@ export default function PurchaseOrdersPage() {
                             {!selectedCategory ? (
                                 <>
                                     <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                                        <h2 className="text-2xl font-black text-black border-b pb-3 inline-block">Seleccionar Categorías</h2>
+                                        <h2 className="text-2xl font-black text-black border-b pb-3 inline-block">Pedido por Categorías</h2>
                                         <div className="flex gap-4">
+                                            {(() => {
+                                                const count = categoryProductsCapture.filter(p => p.cantidad > 0).length;
+                                                return (
+                                                    <button
+                                                        onClick={handleSaveCategoryOrder}
+                                                        disabled={count === 0}
+                                                        className={`px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center gap-2 transition-all ${
+                                                            count > 0
+                                                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20'
+                                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        ✓ Generar OC{count > 0 ? ` (${count} productos)` : ''}
+                                                    </button>
+                                                );
+                                            })()}
                                             {multiSelectedIds.length > 0 && (
                                                 <button 
                                                     onClick={handlePrintMultiCategories}
@@ -1381,30 +1452,42 @@ export default function PurchaseOrdersPage() {
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                         {categories
                                             .filter(cat => cat.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
-                                            .map(cat => (
-                                                <button
-                                                    key={cat.IdCategoria}
-                                                    onClick={() => handleSelectCategory(cat)}
-                                                    className={`group relative p-8 rounded-[2rem] border transition-all duration-300 text-left overflow-hidden ${
-                                                        multiSelectedIds.includes(cat.IdCategoria)
-                                                            ? 'bg-blue-600 border-blue-400 shadow-xl shadow-blue-500/30'
-                                                            : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'
-                                                    }`}
-                                                >
-                                                    <div className={`text-4xl mb-4 group-hover:scale-110 transition-transform ${multiSelectedIds.includes(cat.IdCategoria) ? '' : 'grayscale-[0.5]'}`}>
-                                                        {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
-                                                    </div>
-                                                    <div className={`text-sm font-black tracking-tight ${multiSelectedIds.includes(cat.IdCategoria) ? 'text-white' : 'text-slate-900'}`}>
-                                                        {cat.Categoria}
-                                                    </div>
+                                            .map(cat => {
+                                                const catCount = categoryProductsCapture.filter(p => p.idCategoria === cat.IdCategoria && p.cantidad > 0).length;
+                                                return (
                                                     <button
-                                                        className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white/10 border-white/20 text-white"
-                                                        onClick={(e) => { e.stopPropagation(); handleToggleCategorySelection(cat.IdCategoria); }}
+                                                        key={cat.IdCategoria}
+                                                        onClick={() => handleSelectCategory(cat)}
+                                                        className={`group relative p-8 rounded-[2rem] border transition-all duration-300 text-left overflow-hidden ${
+                                                            multiSelectedIds.includes(cat.IdCategoria)
+                                                                ? 'bg-blue-600 border-blue-400 shadow-xl shadow-blue-500/30'
+                                                                : catCount > 0
+                                                                    ? 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-lg'
+                                                                    : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'
+                                                        }`}
                                                     >
-                                                        {multiSelectedIds.includes(cat.IdCategoria) ? '✓' : ''}
+                                                        <div className={`text-4xl mb-4 group-hover:scale-110 transition-transform ${multiSelectedIds.includes(cat.IdCategoria) ? '' : 'grayscale-[0.5]'}`}>
+                                                            {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
+                                                        </div>
+                                                        <div className={`text-sm font-black tracking-tight ${multiSelectedIds.includes(cat.IdCategoria) ? 'text-white' : 'text-slate-900'}`}>
+                                                            {cat.Categoria}
+                                                        </div>
+                                                        {catCount > 0 && (
+                                                            <div className="mt-2">
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-600 text-white text-[10px] font-black">
+                                                                    ✓ {catCount} producto{catCount !== 1 ? 's' : ''}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white/10 border-white/20 text-white"
+                                                            onClick={(e) => { e.stopPropagation(); handleToggleCategorySelection(cat.IdCategoria); }}
+                                                        >
+                                                            {multiSelectedIds.includes(cat.IdCategoria) ? '✓' : ''}
+                                                        </button>
                                                     </button>
-                                                </button>
-                                            ))}
+                                                );
+                                            })}
                                     </div>
                                 </>
                             ) : (
@@ -1428,12 +1511,6 @@ export default function PurchaseOrdersPage() {
                                             >
                                                 <span>🖨️</span> PDF
                                             </button>
-                                            <button 
-                                                onClick={handleSaveCategoryOrder}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-blue-500/20 transition-all uppercase tracking-widest text-sm"
-                                            >
-                                                Generar OC
-                                            </button>
                                         </div>
                                     </div>
 
@@ -1454,58 +1531,77 @@ export default function PurchaseOrdersPage() {
                                                 <tr>
                                                     <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider">Producto</th>
                                                     <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-32 text-center">Cantidad</th>
-                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">Costo</th>
-                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-right">Total</th>
+                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-center">Unidad</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 bg-white">
-                                                {categoryProductsCapture
-                                                    .filter(p => p.producto.toLowerCase().includes(categoryProductSearch.toLowerCase()))
-                                                    .map((item, index) => {
+                                                {(() => {
+                                                    const filteredCatItems = categoryProductsCapture
+                                                        .filter(p => p.idCategoria === selectedCategory.IdCategoria && (p.producto || '').toLowerCase().includes(categoryProductSearch.toLowerCase()));
+                                                    return filteredCatItems.map((item, filteredIndex) => {
                                                         const realIndex = categoryProductsCapture.findIndex(p => p.idProducto === item.idProducto);
+                                                        const cantidadId = `cat-qty-${item.idProducto}`;
+                                                        const uomId = `cat-uom-${item.idProducto}`;
+                                                        const nextItem = filteredCatItems[filteredIndex + 1];
                                                         return (
                                                             <tr key={item.idProducto} className="hover:bg-blue-50/20 transition-colors">
-                                                                <td className="px-6 py-4">
-                                                                    <div className="font-bold text-black">{item.producto}</div>
-                                                                    <div className="text-xs text-gray-400">{item.codigo}</div>
+                                                                <td className="px-6 py-3">
+                                                                    <div className="font-bold text-black text-sm">{item.producto}</div>
+                                                                    {item.codigo && <div className="text-xs text-gray-400">{item.codigo}</div>}
                                                                 </td>
-                                                                <td className="px-6 py-4">
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.cantidad}
+                                                                <td className="px-4 py-3">
+                                                                    <input
+                                                                        id={cantidadId}
+                                                                        type="number"
+                                                                        value={item.cantidad || ''}
                                                                         onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                e.preventDefault();
+                                                                                const nextEl = document.getElementById(nextItem ? `cat-qty-${nextItem.idProducto}` : cantidadId);
+                                                                                nextEl?.focus();
+                                                                            }
+                                                                        }}
+                                                                        placeholder="0"
                                                                         className="w-full text-center bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 outline-none text-black font-black text-lg transition-all"
                                                                     />
                                                                 </td>
-                                                                <td className="px-6 py-4">
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.precioUnitario}
-                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'precioUnitario', e.target.value)}
-                                                                        className="w-full text-right bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 px-3 outline-none text-black font-black text-lg transition-all"
-                                                                    />
-                                                                </td>
-                                                                <td className="px-6 py-4 text-right font-black text-blue-700 text-lg">
-                                                                    {formatCurrency(item.total)}
+                                                                <td className="px-4 py-3">
+                                                                    <select
+                                                                        id={uomId}
+                                                                        value={item.unidadMedida || ''}
+                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'unidadMedida', e.target.value)}
+                                                                        className={`w-full text-center border rounded-xl py-2 outline-none font-semibold text-sm transition-all ${
+                                                                            !item.unidadMedida
+                                                                                ? 'bg-red-50 border-red-200 text-red-400'
+                                                                                : 'bg-gray-50 border-transparent focus:border-blue-500 focus:bg-white text-black'
+                                                                        }`}
+                                                                    >
+                                                                        <option value="">⚠ Unidad</option>
+                                                                        {['KG','G','MG','L','ML','PZA','CAJA','BOLSA','PAQUETE','LATA','BOTELLA','COSTAL','TARRO','BOTE','LITRO','ONZA','LIBRA','TON','M','CM','DOCENA','UNIDAD'].map(u => (
+                                                                            <option key={u} value={u}>{u}</option>
+                                                                        ))}
+                                                                    </select>
                                                                 </td>
                                                             </tr>
                                                         );
-                                                    })}
+                                                    });
+                                                })()}
                                             </tbody>
                                         </table>
                                     </div>
                                     
                                     <div className="mt-6 bg-blue-900 text-white p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-blue-900/20">
                                         <div>
-                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Total del Pedido</div>
+                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Productos en Pedido</div>
                                             <div className="text-2xl font-black">
-                                                {formatCurrency(categoryProductsCapture.reduce((sum, p) => sum + p.total, 0))}
+                                                {categoryProductsCapture.filter(p => p.cantidad > 0).length} / {categoryProductsCapture.length}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Ítems con Cantidad</div>
-                                            <div className="text-2xl font-black">
-                                                {categoryProductsCapture.filter(p => p.cantidad > 0).length}
+                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Sin Unidad</div>
+                                            <div className={`text-2xl font-black ${categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length > 0 ? 'text-red-300' : 'text-green-300'}`}>
+                                                {categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length === 0 ? '✓ OK' : categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length}
                                             </div>
                                         </div>
                                     </div>

@@ -133,11 +133,27 @@ export async function POST(request: NextRequest) {
                 ON DUPLICATE KEY UPDATE UltimoPrecio = ?, FechaAct = Now()
             `, [finalIdProveedor || 0, item.idProducto, item.precioUnitario, item.precioUnitario]);
 
-            // Update tblProductos with new name and cost
-            await connection.query(
-                'UPDATE tblProductos SET Producto = ?, Precio = ?, FechaAct = Now() WHERE IdProducto = ?',
-                [item.producto, item.precioUnitario, item.idProducto]
-            );
+            // Update tblProductos — only update name if provided, always update price
+            if (item.producto) {
+                await connection.query(
+                    'UPDATE tblProductos SET Producto = ?, Precio = ?, FechaAct = Now() WHERE IdProducto = ?',
+                    [item.producto, item.precioUnitario, item.idProducto]
+                );
+            } else {
+                await connection.query(
+                    'UPDATE tblProductos SET Precio = ?, FechaAct = Now() WHERE IdProducto = ?',
+                    [item.precioUnitario, item.idProducto]
+                );
+            }
+
+            // If the product has no UnidadMedidaInventario and we have one, update it
+            if (item.unidadMedida) {
+                await connection.query(`
+                    UPDATE tblProductos 
+                    SET UnidadMedidaInventario = ?, FechaAct = Now() 
+                    WHERE IdProducto = ? AND (UnidadMedidaInventario IS NULL OR UnidadMedidaInventario = '')
+                `, [item.unidadMedida, item.idProducto]);
+            }
         }
 
         await connection.commit();
