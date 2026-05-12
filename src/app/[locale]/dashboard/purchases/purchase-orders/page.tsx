@@ -65,6 +65,7 @@ export default function PurchaseOrdersPage() {
     const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+    const [multiSelectedIds, setMultiSelectedIds] = useState<number[]>([]);
     const [categorySearch, setCategorySearch] = useState('');
     const [categoryProductSearch, setCategoryProductSearch] = useState('');
     const [categoryProductsCapture, setCategoryProductsCapture] = useState<any[]>([]);
@@ -146,7 +147,7 @@ export default function PurchaseOrdersPage() {
     const fetchCategories = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await fetch(`/api/categories?projectId=${projectId}`);
+            const res = await fetch(`/api/categories?projectId=${projectId}`, { cache: 'no-store' });
             const data = await res.json();
             if (data.success) setCategories(data.data);
         } catch (error) {
@@ -435,6 +436,86 @@ export default function PurchaseOrdersPage() {
         }
     };
 
+    const handleToggleCategorySelection = (id: number) => {
+        setMultiSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handlePrintMultiCategories = async () => {
+        if (multiSelectedIds.length === 0) return;
+
+        const doc = new jsPDF();
+        let currentY = 20;
+
+        setIsLoading(true);
+        try {
+            // Fetch all products once to filter locally
+            const res = await fetch(`/api/products?projectId=${projectId}&tipoProducto=0`);
+            const allProductsData = await res.json();
+            
+            if (!allProductsData.success) throw new Error('Error fetching products');
+
+            for (let i = 0; i < multiSelectedIds.length; i++) {
+                const catId = multiSelectedIds[i];
+                const category = categories.find(c => c.IdCategoria === catId);
+                if (!category) continue;
+
+                if (i > 0) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                // Header for each category
+                doc.setFontSize(20);
+                doc.setTextColor(44, 62, 80);
+                doc.text(`HOJA DE PEDIDO: ${category.Categoria.toUpperCase()}`, 105, currentY, { align: 'center' });
+                
+                const catProducts = allProductsData.data.filter((p: any) => p.IdCategoria === catId);
+                const tableData = catProducts.map((p: any) => [
+                    p.Codigo,
+                    p.Producto,
+                    '',
+                    formatCurrency(p.Costo),
+                    ''
+                ]);
+
+                autoTable(doc, {
+                    startY: currentY + 10,
+                    head: [['CÓDIGO', 'PRODUCTO', 'CANTIDAD', 'PRECIO UNIT.', 'NOTAS']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [44, 62, 80], halign: 'center' },
+                    columnStyles: {
+                        0: { cellWidth: 30, halign: 'center' },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 30, minCellHeight: 12 },
+                        3: { cellWidth: 35, halign: 'right' },
+                        4: { cellWidth: 30 }
+                    },
+                    styles: { fontSize: 8.5, cellPadding: 3, valign: 'middle' }
+                });
+
+                currentY = (doc as any).lastAutoTable.finalY + 20;
+            }
+
+            // Footer (Total Pages)
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`Página ${i} de ${pageCount}`, 190, 285, { align: 'right' });
+            }
+
+            doc.save(`Pedido_Multi_Categorias.pdf`);
+        } catch (error) {
+            console.error('Error printing multi-categories:', error);
+            alert('Error al generar el PDF');
+        } finally {
+            setIsLoading(false);
+        }
+    };
     const handlePrintCategoryCapture = () => {
         const doc = new jsPDF();
         
@@ -478,13 +559,6 @@ export default function PurchaseOrdersPage() {
                 fontSize: 8.5,
                 cellPadding: 3,
                 valign: 'middle'
-            },
-            didDrawCell: (data) => {
-                // Draw a box in the Quantity column if it's a body cell
-                if (data.section === 'body' && data.column.index === 2) {
-                    doc.setDrawColor(200, 200, 200);
-                    // Just let the grid handle it, theme: 'grid' already puts borders.
-                }
             }
         });
 
@@ -966,7 +1040,19 @@ export default function PurchaseOrdersPage() {
                         <div className="p-10 flex-1 overflow-y-auto">
                             {!selectedCategory ? (
                                 <>
-                                    <h2 className="text-4xl font-black mb-8 text-black border-b pb-4 inline-block">Seleccionar Categoría</h2>
+                                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+                                        <h2 className="text-4xl font-black text-black border-b pb-4 inline-block">Seleccionar Categorías</h2>
+                                        <div className="flex gap-4">
+                                            {multiSelectedIds.length > 0 && (
+                                                <button 
+                                                    onClick={handlePrintMultiCategories}
+                                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-red-500/20 transition-all uppercase tracking-widest text-sm flex items-center gap-2 animate-in zoom-in duration-200"
+                                                >
+                                                    <span>🖨️</span> Imprimir {multiSelectedIds.length} Seleccionadas
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="mb-10 relative">
                                         <input 
                                             type="text" 
@@ -980,20 +1066,34 @@ export default function PurchaseOrdersPage() {
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                         {categories
                                             .filter(c => c.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
-                                            .map(cat => (
-                                                <button
-                                                    key={cat.IdCategoria}
-                                                    onClick={() => handleSelectCategory(cat)}
-                                                    className="bg-gray-50 hover:bg-blue-600 hover:text-white p-8 rounded-[2rem] border border-gray-100 shadow-sm transition-all transform hover:-translate-y-2 group text-center"
-                                                >
-                                                    <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
-                                                        {getCategoryEmoji(cat.Categoria)}
+                                            .map(cat => {
+                                                const isSelected = multiSelectedIds.includes(cat.IdCategoria);
+                                                return (
+                                                    <div key={cat.IdCategoria} className="relative group">
+                                                        <button
+                                                            onClick={() => handleToggleCategorySelection(cat.IdCategoria)}
+                                                            className={`absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                                isSelected ? 'bg-blue-600 border-blue-600 text-white scale-110' : 'bg-white border-gray-300 text-transparent hover:border-blue-400'
+                                                            }`}
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSelectCategory(cat)}
+                                                            className={`w-full bg-gray-50 hover:bg-blue-600 hover:text-white p-8 rounded-[2rem] border shadow-sm transition-all transform hover:-translate-y-2 text-center flex flex-col items-center ${
+                                                                isSelected ? 'border-blue-600 ring-4 ring-blue-500/10' : 'border-gray-100'
+                                                            }`}
+                                                        >
+                                                            <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                                                                {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
+                                                            </div>
+                                                            <div className="font-black uppercase tracking-wider text-sm opacity-80 group-hover:opacity-100">
+                                                                {cat.Categoria}
+                                                            </div>
+                                                        </button>
                                                     </div>
-                                                    <div className="font-black uppercase tracking-wider text-sm opacity-80 group-hover:opacity-100">
-                                                        {cat.Categoria}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                                );
+                                            })}
                                     </div>
                                 </>
                             ) : (
@@ -1007,7 +1107,7 @@ export default function PurchaseOrdersPage() {
                                                 ⬅️
                                             </button>
                                             <h2 className="text-4xl font-black text-black">
-                                                {getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}
+                                                {selectedCategory.ImagenCategoria || getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}
                                             </h2>
                                         </div>
                                         <div className="flex gap-4">
