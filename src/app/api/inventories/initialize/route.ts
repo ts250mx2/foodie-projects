@@ -45,8 +45,10 @@ export async function POST(request: NextRequest) {
                     `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
                      SELECT i.IdProducto, ?, ?, ?, ?, ?, 0, COALESCE(v.CostoInventario, i.Precio), NOW()
                      FROM tblInventarios i
+                     INNER JOIN tblProductos p ON i.IdProducto = p.IdProducto
                      LEFT JOIN vlProductos v ON i.IdProducto = v.IdProducto
-                     WHERE i.Dia = ? AND i.Mes = ? AND i.Anio = ? AND i.IdSucursal = ?`,
+                     WHERE i.Dia = ? AND i.Mes = ? AND i.Anio = ? AND i.IdSucursal = ?
+                     AND p.Status != 2`,
                     [day, monthNum, year, inventoryDate, branchId, previousDay[0].Dia, previousDay[0].Mes, previousDay[0].Anio, branchId]
                 );
             } else {

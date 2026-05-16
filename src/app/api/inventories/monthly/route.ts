@@ -31,13 +31,15 @@ export async function GET(request: NextRequest) {
                 COALESCE(I.total, 0) as total,
                 COALESCE(I.productCount, 0) as productCount,
                 1 as isMarkedInventoryDay
-             FROM (
-                SELECT Dia, Mes, Anio, 
-                       SUM(Precio * Cantidad) as total,
-                       COUNT(IdProducto) as productCount
-                FROM tblInventarios
-                WHERE IdSucursal = ? AND Mes = ? AND Anio = ?
-                GROUP BY Dia, Mes, Anio
+              FROM (
+                SELECT I.Dia, I.Mes, I.Anio, 
+                       SUM(I.Precio * I.Cantidad) as total,
+                       COUNT(I.IdProducto) as productCount
+                FROM tblInventarios I
+                INNER JOIN tblProductos P ON I.IdProducto = P.IdProducto
+                WHERE I.IdSucursal = ? AND I.Mes = ? AND I.Anio = ?
+                  AND P.Status != 2
+                GROUP BY I.Dia, I.Mes, I.Anio
              ) I
              RIGHT JOIN tblSucursalesInventarios SI 
                 ON I.Dia = DAY(SI.FechaInventario) AND I.Mes = MONTH(SI.FechaInventario) AND I.Anio = YEAR(SI.FechaInventario)
@@ -50,12 +52,14 @@ export async function GET(request: NextRequest) {
                     COUNT(I.IdProducto) as productCount,
                     CASE WHEN SI.IdSucursal IS NOT NULL THEN 1 ELSE 0 END as isMarkedInventoryDay
              FROM tblInventarios I
+             INNER JOIN tblProductos P ON I.IdProducto = P.IdProducto
              LEFT JOIN tblSucursalesInventarios SI 
                 ON I.IdSucursal = SI.IdSucursal 
                 AND I.Dia = DAY(SI.FechaInventario) 
                 AND I.Mes = MONTH(SI.FechaInventario) 
                 AND I.Anio = YEAR(SI.FechaInventario)
              WHERE I.IdSucursal = ? AND I.Mes = ? AND I.Anio = ?
+                AND P.Status != 2
                 AND NOT EXISTS (
                     SELECT 1 FROM tblSucursalesInventarios SI2
                     WHERE SI2.IdSucursal = I.IdSucursal 

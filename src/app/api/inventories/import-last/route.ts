@@ -39,8 +39,10 @@ export async function POST(request: NextRequest) {
             `INSERT INTO tblInventarios (IdProducto, Dia, Mes, Anio, FechaInventario, IdSucursal, Cantidad, Precio, FechaAct)
              SELECT i.IdProducto, ?, ?, ?, ?, ?, i.Cantidad, COALESCE(v.CostoInventario, i.Precio), NOW()
              FROM tblInventarios i
+             INNER JOIN tblProductos p ON i.IdProducto = p.IdProducto
              LEFT JOIN vlProductos v ON i.IdProducto = v.IdProducto
              WHERE i.Dia = ? AND i.Mes = ? AND i.Anio = ? AND i.IdSucursal = ?
+             AND p.Status != 2
              ON DUPLICATE KEY UPDATE 
                 Cantidad = VALUES(Cantidad),
                 Precio = VALUES(Precio),

@@ -38,8 +38,10 @@ export async function GET(request: NextRequest) {
                     v.ArchivoImagen AS ArchivoImagen,
                     (I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) as Total
              FROM tblInventarios I
+             INNER JOIN tblProductos p ON I.IdProducto = p.IdProducto
              LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
              WHERE I.IdSucursal = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ?
+             AND p.Status != 2
              ORDER BY v.Categoria, v.Producto`,
             [branchId, day, month, year]
         );

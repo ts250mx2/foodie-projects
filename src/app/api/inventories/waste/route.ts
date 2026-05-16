@@ -24,8 +24,10 @@ export async function GET(request: NextRequest) {
         const [rows] = await connection.query(
             `SELECT m.*, v.Producto, v.UnidadMedidaInventario
              FROM tblMermas m
+             INNER JOIN tblProductos p ON m.IdProducto = p.IdProducto
              LEFT JOIN vlProductos v ON m.IdProducto = v.IdProducto
              WHERE m.Mes = ? AND m.Anio = ? AND m.IdSucursal = ?
+             AND p.Status != 2
              ORDER BY m.Dia, v.Producto`,
             [monthNum, year, branchId]
         );

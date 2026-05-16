@@ -552,6 +552,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     }, [unMedidaInventario, unMedidaRecetario]);
 
+    // Enforce CantidadCompra = 1 if purchase and inventory units are identical
+    useEffect(() => {
+        if (isInitialLoad.current) return;
+        if (unMedidaCompra && unMedidaInventario && unMedidaCompra === unMedidaInventario) {
+            setCantidadCompra(1);
+        }
+    }, [unMedidaCompra, unMedidaInventario]);
+
     const fetchCategories = async () => {
         try {
             const response = await fetch(`/api/categories?projectId=${projectId}`);
@@ -1863,7 +1871,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         step="0.01"
                                                         value={cantidadCompra}
                                                         onChange={(e) => setCantidadCompra(parseFloat(e.target.value))}
-                                                        disabled={!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0}
+                                                        disabled={!unMedidaCompra || !UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)] || UNIT_HIERARCHY[getBaseUnit(unMedidaCompra)].length === 0 || unMedidaCompra === unMedidaInventario}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-md h-[38px] disabled:bg-gray-100"
                                                     />
                                                     <p
