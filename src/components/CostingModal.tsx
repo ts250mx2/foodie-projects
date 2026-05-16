@@ -2212,7 +2212,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '') || '0');
                                                                 const yieldPrice = (precio / (cantidadCompra || 1)) / pesoFinal;
                                                                 const conversion = simpleConversion || 1;
-                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(yieldPrice / conversion);
                                                             })()}
                                                         </span>
                                                     </div>
@@ -2568,7 +2568,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                 const precio = parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0;
                                                                 const yieldPrice = (precio / (cantidadCompra || 1)) * pesoFinal;
                                                                 const conversion = simpleConversion || 1;
-                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(yieldPrice / conversion);
+                                                                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(yieldPrice / conversion);
                                                             })()}
                                                         </span>
                                                     </div>
