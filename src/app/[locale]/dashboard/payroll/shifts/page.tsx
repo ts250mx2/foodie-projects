@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Clock } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Clock } from 'lucide-react';
 
 interface Shift {
     IdTurno: number;
@@ -172,11 +172,17 @@ export default function ShiftsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Clock} actions={<Button onClick={() => {
-                    setEditingShift(null);
-                    setFormData({ shift: '', branchId: '', startTime: '', endTime: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Clock} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingShift(null);
+                        setFormData({ shift: '', branchId: '', startTime: '', endTime: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addShift')}
                 </Button>}>
 

@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Tag } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Tag } from 'lucide-react';
 
 interface RecipeCategory {
     IdCategoriaRecetario: number;
@@ -135,11 +135,17 @@ export default function RecipeCategoriesPage() {
     };
 
     return (
-        <PageShell title="Módulos de Recetario" icon={Tag} actions={<Button onClick={() => {
-                    setEditingCategory(null);
-                    setFormData({ category: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title="Módulos de Recetario" icon={Tag} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingCategory(null);
+                        setFormData({ category: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addRecipeCategory')}
                 </Button>}>
 
