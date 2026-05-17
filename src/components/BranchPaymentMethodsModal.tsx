@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Pencil, Trash2 } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface BranchPaymentMethodsModalProps {
     branchId: number;
@@ -150,53 +152,52 @@ export default function BranchPaymentMethodsModal({ branchId, projectId, isTabMo
                 </form>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('terminalName')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('commission')}</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-10 text-center text-gray-500">
-                                    Cargando...
-                                </td>
-                            </tr>
-                        ) : methods.length === 0 ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-10 text-center text-gray-500">
-                                    No hay formas de pago registradas.
-                                </td>
-                            </tr>
-                        ) : (
-                            methods.map((method) => (
-                                <tr key={method.IdTerminal} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{method.Terminal}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{method.Comision}%</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="w-full border-collapse">
+                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                        <ThemedGridHeaderCell>
+                            {t('terminalName')}
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell>
+                            {t('commission')}
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell align="right">
+                            {t('actions')}
+                        </ThemedGridHeaderCell>
+                    </ThemedGridHeader>
+                    <TableBody
+                        loading={isLoading}
+                        empty={methods.length === 0}
+                        emptyMessage="No hay formas de pago registradas."
+                        colSpan={3}
+                    >
+                        {methods.map((method) => (
+                            <TableRow key={method.IdTerminal}>
+                                <TableCell>
+                                    <span className="font-medium text-gray-900">{method.Terminal}</span>
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-gray-600">{method.Comision}%</span>
+                                </TableCell>
+                                <TableCell align="right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <RowActionButton
+                                            icon={Pencil}
+                                            label={t('editTerminal')}
+                                            variant="edit"
                                             onClick={() => handleEdit(method)}
-                                            className="text-lg mr-4 hover:scale-125 transition-transform"
-                                            title={t('editTerminal')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
+                                        />
+                                        <RowActionButton
+                                            icon={Trash2}
+                                            label={t('deleteTerminal')}
+                                            variant="delete"
                                             onClick={() => handleDelete(method.IdTerminal)}
-                                            className="text-lg hover:scale-125 transition-transform"
-                                            title={t('deleteTerminal')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
                 </table>
             </div>
         </div>

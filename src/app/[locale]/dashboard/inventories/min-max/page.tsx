@@ -7,7 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import * as XLSX from 'xlsx';
 import PageShell from '@/components/PageShell';
-import { BarChart2, Search, Image as ImageIcon, FolderOpen, ChevronDown } from 'lucide-react';
+import { Scale, Search, Image as ImageIcon, ChevronDown, BarChart2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -199,28 +199,43 @@ export default function MinMaxPage() {
         }));
     };
 
+    const recordsWithValues = entries.filter(entry => {
+        const values = editedValues[entry.IdProducto];
+        return values && (values.min > 0 || values.max > 0);
+    }).length;
+
     return (
         <PageShell
             title={t('title')}
-            icon={BarChart2}
+            subtitle={`${filteredEntries.length} ${filteredEntries.length === 1 ? 'producto' : 'productos'} • ${recordsWithValues} con valor`}
+            icon={Scale}
             actions={
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                            {tCommon('branch') || 'Sucursal'}
-                        </label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm font-bold bg-gray-50/50"
-                        >
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                        <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none text-gray-400"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Buscar producto..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none transition-all placeholder:text-gray-400 text-gray-700"
+                        />
                     </div>
+
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
 
                     <Button onClick={handleExport} variant="secondary" size="md" leftIcon={BarChart2} iconBox>
                         {t('exportExcel') || 'Exportar Excel'}
@@ -233,22 +248,6 @@ export default function MinMaxPage() {
         >
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div className="p-4 bg-gray-50 border-b flex items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg">
-                        <Search size={18} className="text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder={t('searchProduct')}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
-                        />
-                    </div>
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                        {filteredEntries.length} Productos
-                    </div>
-                </div>
-
                 <div className="flex-1 overflow-auto p-4 space-y-4" style={{ maxHeight: 'calc(100vh - 290px)' }}>
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -264,17 +263,17 @@ export default function MinMaxPage() {
                             <div key={categoria} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                                 <div
                                     onClick={() => toggleCategory(categoria)}
-                                    className="px-4 py-3 font-bold flex justify-between items-center cursor-pointer hover:bg-opacity-90 transition-all"
+                                    className="px-4 py-2 flex justify-between items-center cursor-pointer hover:bg-opacity-90 transition-all"
                                     style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
                                 >
                                     <div className="flex items-center gap-2">
                                         <ChevronDown size={16} className={`transition-transform ${expandedCategories[categoria] ? 'rotate-0' : '-rotate-90'}`} />
-                                        <span className="text-sm uppercase tracking-wide">
+                                        <span className="text-[13px] font-semibold uppercase tracking-wide">
                                             {entries[0]?.ImagenCategoria ? `${entries[0].ImagenCategoria} ` : ''}
                                             {categoria}
                                         </span>
                                     </div>
-                                    <div className="bg-white/20 px-3 py-1 rounded-full border border-white/20 text-[10px] font-black uppercase">
+                                    <div className="text-xs font-medium">
                                         {entries.length} Items
                                     </div>
                                 </div>
@@ -282,20 +281,20 @@ export default function MinMaxPage() {
                                 {expandedCategories[categoria] && (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-gray-50 border-b border-gray-200">
-                                                    <th className="px-4 py-2 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-16">Foto</th>
-                                                    <th className="px-4 py-2 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Código</th>
-                                                    <th className="px-4 py-2 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Producto</th>
-                                                    <th className="px-4 py-2 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Presentación</th>
-                                                    <th className="px-4 py-2 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-32">{t('max')}</th>
-                                                    <th className="px-4 py-2 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-32">{t('min')}</th>
+                                            <thead className="bg-gray-50 sticky top-0 z-10">
+                                                <tr className="border-b border-gray-200">
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-16">Foto</th>
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Código</th>
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Producto</th>
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Presentación</th>
+                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-32">{t('max')}</th>
+                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-32">{t('min')}</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-100">
+                                            <tbody className="divide-y divide-gray-50">
                                                 {entries.map((entry) => (
-                                                    <tr key={entry.IdProducto} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="px-4 py-2">
+                                                    <tr key={entry.IdProducto} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
+                                                        <td className="px-5 py-3">
                                                             {entry.ArchivoImagen ? (
                                                                 <img src={entry.ArchivoImagen} alt={entry.Producto} className="w-8 h-8 object-cover rounded shadow-sm border" />
                                                             ) : (
@@ -304,25 +303,25 @@ export default function MinMaxPage() {
                                                                 </div>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-2 text-xs font-bold text-gray-500">{entry.Codigo}</td>
-                                                        <td className="px-4 py-2 text-sm font-bold text-gray-800">{entry.Producto}</td>
-                                                        <td className="px-4 py-2 text-xs text-gray-500 font-medium">{entry.Presentacion || '-'}</td>
-                                                        <td className="px-4 py-2">
+                                                        <td className="px-5 py-3 text-sm text-gray-600">{entry.Codigo}</td>
+                                                        <td className="px-5 py-3 text-sm font-medium text-gray-900">{entry.Producto}</td>
+                                                        <td className="px-5 py-3 text-sm text-gray-600">{entry.Presentacion || '-'}</td>
+                                                        <td className="px-5 py-3">
                                                             <input
                                                                 type="number"
                                                                 step="0.01"
                                                                 value={editedValues[entry.IdProducto]?.max ?? 0}
                                                                 onChange={(e) => handleValueChange(entry.IdProducto, 'max', e.target.value)}
-                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none"
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-primary-500/30 outline-none"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-2">
+                                                        <td className="px-5 py-3">
                                                             <input
                                                                 type="number"
                                                                 step="0.01"
                                                                 value={editedValues[entry.IdProducto]?.min ?? 0}
                                                                 onChange={(e) => handleValueChange(entry.IdProducto, 'min', e.target.value)}
-                                                                className="w-full px-2 py-1.5 border border-gray-200 rounded text-center text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none"
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-primary-500/30 outline-none"
                                                             />
                                                         </td>
                                                     </tr>

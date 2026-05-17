@@ -170,7 +170,7 @@ export default function SalesChannelsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Store} actions={<Button
+        <PageShell title={t('title')} subtitle={`${channels.length} canales registrados`} icon={Store} actions={<Button
                     variant="solid"
                     leftIcon={Plus}
                     iconBox
@@ -254,6 +254,15 @@ export default function SalesChannelsPage() {
                         )}
                     </tbody>
                 </table>
+
+                {/* Footer con conteo */}
+                {!isLoading && channels.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {channels.length} canales de venta
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Edit/Create Modal */}

@@ -141,6 +141,7 @@ export default function TaxesPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${taxes.length} impuestos registrados`}
             icon={Receipt}
             actions={
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -235,6 +236,15 @@ export default function TaxesPage() {
                         </TableBody>
                     </table>
                 </div>
+
+                {/* Footer con conteo */}
+                {!isLoading && sortedAndFilteredTaxes.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {sortedAndFilteredTaxes.length} de {taxes.length} impuestos
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Edit/Create Modal */}

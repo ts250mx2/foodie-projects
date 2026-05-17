@@ -6,7 +6,8 @@ import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridH
 import { useTheme } from '@/contexts/ThemeContext';
 import PurchaseImageCaptureModal from '@/components/PurchaseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Camera, X, Save, Plus, FileText, Search, ShoppingCart } from 'lucide-react';
+import Button from '@/components/Button';
 
 
 interface Branch {
@@ -776,94 +777,75 @@ export default function PurchasesCapturePage() {
         .reduce((sum, p) => sum + (p.Total || 0), 0);
 
     return (
-        <PageShell title="Captura de Compras" icon={ShoppingBag}>
-            {/* Standardized Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
-                <div className="flex items-center gap-4">
-                    {/* OCR Capture Button */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-transparent mb-1">.</label>
-                        <button
-                            onClick={() => setIsOcrModalOpen(true)}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-bold shadow-md shadow-indigo-100 flex items-center gap-2 text-sm"
-                            title="Captura por Imagen (OCR)"
-                        >
-                            📸 Captura por Imagen
-                        </button>
-                    </div>
+        <PageShell title="Captura de Compras" icon={ShoppingBag} actions={<div className="flex items-center gap-3 flex-wrap">
+                    <Button
+                        onClick={() => setIsOcrModalOpen(true)}
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={Camera}
+                    >
+                        Captura por Imagen
+                    </Button>
 
-                    {/* Branch Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            {branches.length === 0 && <option>{t('noBranches')}</option>}
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {branches.length === 0 && <option>{t('noBranches')}</option>}
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
 
-                    {/* Month Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{t(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{t(`months.${i}`)}</option>
+                        ))}
+                    </select>
 
-                    {/* Year Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                </div>}>
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
-                {/* Continuous Header */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Header sticky */}
                 <div
-                    className="grid grid-cols-7"
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
                         backgroundColor: colors.colorFondo1,
-                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
                     {weekDays.map(day => (
                         <div
                             key={day}
-                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                            className="text-center font-bold text-sm uppercase tracking-wider"
                         >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="p-4 bg-gray-50/30">
+                {/* Calendario expandido */}
+                <div className="p-4 bg-white">
                     <div className="grid grid-cols-7 gap-3">
                         {calendarDays.map((date, index) => {
                             if (!date) {
-                                return <div key={`empty-${index}`} className="aspect-square" />;
+                                return <div key={`empty-${index}`} />;
                             }
 
                             const dayNum = date.getDate();
@@ -876,22 +858,24 @@ export default function PurchasesCapturePage() {
                                     key={index}
                                     onClick={() => handleDayClick(date)}
                                     className={`
-                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-200
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-blue-400 shadow-blue-100'
-                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                            ? 'bg-blue-50 border-2 border-blue-400 shadow-md hover:shadow-lg'
+                                            : hasPurchases
+                                            ? 'bg-blue-50 border-2 border-blue-300 shadow-sm hover:shadow-md'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
                                         }
-                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                    hover:scale-105 hover:-translate-y-1
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-blue-600' : hasPurchases ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-blue-600' : hasPurchases ? 'text-blue-700' : 'text-gray-400'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
-                                                {t('today') || 'HOY'}
+                                            <span className="text-[7px] font-bold bg-blue-500 text-white px-1 py-0.5 rounded-full animate-pulse">
+                                                HOY
                                             </span>
                                         )}
                                     </div>
@@ -919,65 +903,95 @@ export default function PurchasesCapturePage() {
 
             {/* Main Day Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                        onClick={() => setIsModalOpen(false)}
+                    />
+
+                    {/* Panel */}
+                    <div
+                        className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl animate-in zoom-in-95 fade-in duration-200"
+                        style={{ maxHeight: '90vh' }}
+                    >
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            Compra
-                                        </span>
-                                        <span className="bg-blue-400 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {selectedDate.toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-0 leading-tight">
-                                        {tModal('title')}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h2
+                                    className="text-[15px] font-semibold leading-tight"
+                                    style={{ color: colors.colorLetra }}
                                 >
-                                    ✕
-                                </button>
+                                    {tModal('title')}
+                                </h2>
+                                <p
+                                    className="text-[12px] leading-tight"
+                                    style={{ color: colors.colorLetra, opacity: 0.8 }}
+                                >
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
                             </div>
-                            {/* Decorative spacer to match dashboard tabs height if needed, but here we just need spacing */}
-                            <div className="h-4"></div>
+
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                aria-label="Cerrar"
+                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                                style={{ color: colors.colorLetra }}
+                            >
+                                <X size={16} strokeWidth={2} />
+                            </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Compras Totales</label>
-                                    <div className="text-xl font-black text-blue-600">
+                        {/* Summary Cards */}
+                        <div className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Total Compras */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <ShoppingCart size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Compras Totales</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-blue-600">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPurchases)}
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">📄 Facturas Registradas</label>
-                                    <div className="text-xl font-black text-gray-800">
+
+                                {/* Facturas Registradas */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <FileText size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Facturas Registradas</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">
                                         {dailyPurchases.length}
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {!isFormOpen && (
-                                <button
+                        {/* New Purchase Button */}
+                        {!isFormOpen && (
+                            <div className="shrink-0 px-6 py-3 bg-gray-50/50 border-b border-gray-100">
+                                <Button
                                     onClick={handleNewPurchase}
-                                    className="bg-blue-500 text-white px-6 py-2.5 rounded-lg hover:bg-blue-600 font-bold transition-all shadow-md active:scale-95 self-start flex items-center gap-2"
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={Plus}
+                                    iconBox
                                 >
-                                    📄 {tModal('new')}
-                                </button>
-                            )}
+                                    {tModal('new')}
+                                </Button>
+                            </div>
+                        )}
 
+                        {/* Content: Form + Table */}
+                        <div className="flex-1 overflow-y-auto">
                             {/* Purchase Form */}
                             {isFormOpen && (
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-blue-50 p-6 rounded-xl border border-blue-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                                <form onSubmit={handleSubmit} className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                                     <div className="flex flex-col relative">
                                         <label className="text-xs font-bold text-blue-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('provider')} *</label>
                                         <input
@@ -1104,41 +1118,47 @@ export default function PurchasesCapturePage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
-                                        <button 
-                                            type="submit" 
-                                            disabled={isSubmitting}
-                                            className={`flex-1 ${isSubmitting ? 'bg-blue-300' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2.5 rounded-lg font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2`}
-                                        >
-                                            {isSubmitting ? <span className="animate-spin text-lg">⏳</span> : '💾'} {tModal('save')}
-                                        </button>
-                                        <button
+                                    <div className="lg:col-span-4 flex gap-2 justify-end">
+                                        <Button
                                             type="button"
                                             onClick={() => {
                                                 setIsFormOpen(false);
                                                 setEditingPurchase(null);
                                             }}
-                                            className="px-4 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 font-bold transition-all"
+                                            variant="secondary"
+                                            size="sm"
                                         >
                                             {tCommon('cancel')}
-                                        </button>
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            variant="solid"
+                                            size="sm"
+                                            leftIcon={Save}
+                                            iconBox
+                                            isLoading={isSubmitting}
+                                        >
+                                            {tModal('save')}
+                                        </Button>
                                     </div>
                                 </form>
                             )}
 
                             {/* Purchase Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
-                                <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-200">
-                                    <table className="min-w-full divide-y divide-gray-100">
-                                        <ThemedGridHeader>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">ID</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">{tModal('provider')}</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">{tModal('invoiceNumber')}</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Canal</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">{tModal('total')}</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Archivo</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
-                                        </ThemedGridHeader>
+                            <div className="px-6 py-5">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID</th>
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
+                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
+                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Archivo</th>
+                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
+                                        </tr>
+                                    </thead>
                                         <tbody className="bg-white divide-y divide-gray-50">
                                             {dailyPurchases.length === 0 ? (
                                                 <tr>
@@ -1148,16 +1168,16 @@ export default function PurchasesCapturePage() {
                                                 dailyPurchases.map((purchase) => (
                                                     <tr
                                                         key={purchase.IdCompra}
-                                                        className={`hover:bg-blue-50/30 transition-colors group ${purchase.Status === 2 ? 'bg-red-50 opacity-40 grayscale' : ''}`}
+                                                        className={`border-t border-gray-50 hover:bg-gray-50/60 transition-colors group ${purchase.Status === 2 ? 'bg-red-50 opacity-40 grayscale' : ''}`}
                                                     >
-                                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono">#{purchase.IdCompra}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{purchase.Proveedor}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">{purchase.NumeroFactura}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{purchase.CanalPago}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-black">
+                                                        <td className="px-5 py-3 whitespace-nowrap text-xs text-gray-400 font-mono">#{purchase.IdCompra}</td>
+                                                        <td className="px-5 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">{purchase.Proveedor}</td>
+                                                        <td className="px-5 py-3 whitespace-nowrap text-sm font-bold text-gray-500">{purchase.NumeroFactura}</td>
+                                                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-500">{purchase.CanalPago}</td>
+                                                        <td className="px-5 py-3 whitespace-nowrap text-sm text-blue-600 text-right font-black">
                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchase.Total)}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                        <td className="px-5 py-3 whitespace-nowrap text-center text-sm">
                                                             {purchase.ArchivoDocumento ? (
                                                                 <div className="flex items-center justify-center gap-2">
                                                                      <button
@@ -1205,7 +1225,7 @@ export default function PurchasesCapturePage() {
                                                                 </button>
                                                             )}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <td className="px-5 py-3 whitespace-nowrap text-center">
                                                             <div className="flex items-center justify-center gap-2">
                                                                 {purchase.Status === 0 && (
                                                                     <button
@@ -1244,15 +1264,27 @@ export default function PurchasesCapturePage() {
                                             )}
                                         </tbody>
                                     </table>
-                                </div>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
+                        <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2.5">
+                            <Button
+                                onClick={() => setIsModalOpen(false)}
+                                variant="secondary"
+                                size="md"
+                                leftIcon={X}
+                            >
                                 {tModal('close')}
-                            </button>
+                            </Button>
+                            <Button
+                                variant="solid"
+                                size="md"
+                                leftIcon={Save}
+                                iconBox
+                            >
+                                {tModal('save')}
+                            </Button>
                         </div>
                     </div>
                 </div>

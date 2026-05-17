@@ -184,28 +184,21 @@ export default function BranchEditModal({
         <div className={`fixed inset-0 flex items-center justify-center bg-black/50 ${isOpen ? '' : 'hidden'} z-50 p-4`}>
             <div className="bg-white w-full max-w-6xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                <div className="px-5 py-3" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-0">
-                                <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                    Sucursal
-                                </span>
-                                {isNewBranch && (
-                                    <span className="bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                        NUEVA
-                                    </span>
-                                )}
-                            </div>
-                            <h1 className="text-3xl font-black mb-0 leading-tight">
+                            <h1 className="text-[15px] font-semibold leading-tight">
                                 {isNewBranch ? 'Nueva Sucursal' : branch?.Sucursal}
                             </h1>
+                            <p className="text-[12px] leading-tight opacity-80 mt-0.5">
+                                {isNewBranch ? 'Completa la información de la nueva sucursal' : `Editando: ${branch?.Sucursal}`}
+                            </p>
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                            className="text-white hover:bg-white/20 rounded-lg p-1 flex-shrink-0"
                         >
-                            <X size={24} />
+                            <X size={16} strokeWidth={2} />
                         </button>
                     </div>
                 </div>

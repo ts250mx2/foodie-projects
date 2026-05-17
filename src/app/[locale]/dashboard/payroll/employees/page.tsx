@@ -10,7 +10,7 @@ import EmployeeAccessModal from '@/components/EmployeeAccessModal';
 import DocumentTypesModal from '@/components/DocumentTypesModal';
 import MassiveEmployeeUpload from '@/components/MassiveEmployeeUpload';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableRow, TableCell, TableBody, RowActionButton } from '@/components/ThemedGridHeader';
-import { Search, Pencil, Trash2, User, Plus, Upload, FileText } from 'lucide-react';
+import { Search, Pencil, Trash2, User, Plus, Upload, FileText, X, UserCircle, Lock, FileCheck } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Employee {
@@ -374,6 +374,7 @@ export default function EmployeesPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${employees.length} empleados registrados`}
             actions={
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative">
@@ -535,69 +536,72 @@ export default function EmployeesPage() {
                         </TableBody>
                     </table>
                 </div>
+
+                {/* Footer con conteo */}
+                {!isLoading && sortedAndFilteredEmployees.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {sortedAndFilteredEmployees.length} de {employees.length} empleados
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Edit/Create Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
-                        {/* Header with Tabs */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            Empleado
-                                        </span>
-                                        {!editingEmployee && (
-                                            <span className="bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                NUEVO
-                                            </span>
-                                        )}
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-0 leading-tight">
-                                        {editingEmployee ? editingEmployee.Empleado : t('addEmployee')}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setIsModalOpen(false);
-                                        stopWebcam();
-                                    }}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
+                    <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-gray-200">
+                        {/* Header */}
+                        <div className="px-5 py-3 flex justify-between items-start gap-4" style={{ backgroundColor: colors?.colorFondo1 || '#000', color: colors?.colorLetra || '#fff' }}>
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-[15px] font-semibold leading-tight truncate">{editingEmployee ? editingEmployee.Empleado : t('addEmployee')}</h2>
+                                <p className="text-[12px] leading-tight mt-1" style={{ opacity: 0.8 }}>
+                                    {editingEmployee ? 'Editar información del empleado' : 'Crear nuevo empleado'}
+                                </p>
                             </div>
+                            <button
+                                onClick={() => {
+                                    setIsModalOpen(false);
+                                    stopWebcam();
+                                }}
+                                className="shrink-0 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                style={{ color: colors?.colorLetra || '#fff' }}
+                            >
+                                <X size={16} strokeWidth={2} />
+                            </button>
+                        </div>
 
-                            {/* Tabs Navigation */}
-                            <div className="flex gap-1 mt-6 overflow-x-auto relative px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                        {/* Tabs Navigation */}
+                        <div className="bg-gray-50 border-b border-gray-200 px-3">
+                            <div className="flex gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 {[
-                                    { id: 'general', label: 'Datos Generales', icon: '👤' },
-                                    { id: 'access', label: 'Datos Acceso', icon: '🔑' },
-                                    { id: 'documents', label: 'Documentos', icon: '📄', show: !!editingEmployee }
-                                ].filter(tab => tab.show !== false).map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id as any)}
-                                        className={`px-4 py-2.5 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
-                                            ? 'bg-white text-gray-900 text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
-                                            : 'bg-white/10 text-xs font-normal hover:bg-white/20 hover:-translate-y-0.5'
-                                            }`}
-                                        style={activeTab === tab.id ? {} : { color: colors.colorLetra }}
-                                    >
-                                        <span className="mr-2">{tab.icon}</span>
-                                        {tab.label}
-                                        {activeTab === tab.id && (
-                                            <div className="absolute -bottom-[2px] left-0 right-0 h-[4px] bg-white z-40"></div>
-                                        )}
-                                    </button>
-                                ))}
+                                    { id: 'general', label: 'Datos Generales', icon: UserCircle, show: true },
+                                    { id: 'access', label: 'Datos Acceso', icon: Lock, show: true },
+                                    { id: 'documents', label: 'Documentos', icon: FileCheck, show: !!editingEmployee }
+                                ].filter(tab => tab.show).map((tab) => {
+                                    const isActive = activeTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id as any)}
+                                            className={`relative px-4 py-2.5 flex items-center gap-2 text-sm transition-all whitespace-nowrap rounded-t-lg ${isActive
+                                                ? 'bg-white text-gray-900 font-semibold shadow-[0_-2px_8px_rgba(0,0,0,0.06)] -mb-px border border-b-0 border-gray-200'
+                                                : 'text-gray-500 hover:text-gray-800 hover:bg-white/60 font-medium'
+                                                }`}
+                                            style={isActive ? {
+                                                borderBottom: `3px solid ${colors?.colorFondo1 || '#000'}`,
+                                            } : {}}
+                                        >
+                                            <tab.icon size={16} style={isActive ? { color: colors?.colorFondo1 || '#000' } : {}} />
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
                         {/* Modal Content */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-white border-t border-gray-200">
+                        <div className="flex-1 overflow-y-auto p-6 bg-white">
                             <form onSubmit={handleSubmit} className="h-full flex flex-col">
                                 {activeTab === 'general' && (
                                     <div className="space-y-4 max-w-4xl mx-auto w-full">
@@ -617,7 +621,7 @@ export default function EmployeesPage() {
                                                         <select
                                                             value={formData.positionId}
                                                             onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
                                                         >
                                                             <option value="">{t('selectPosition')}</option>
                                                             {positions.map(pos => {
@@ -647,7 +651,7 @@ export default function EmployeesPage() {
                                                         <select
                                                             value={formData.branchId}
                                                             onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
                                                         >
                                                             <option value="">{t('selectBranch')}</option>
                                                             {branches.map(branch => (
@@ -691,9 +695,9 @@ export default function EmployeesPage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setFormData({ ...formData, photo: null })}
-                                                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-600 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                                             >
-                                                                ✕
+                                                                <X size={16} />
                                                             </button>
                                                         </>
                                                     ) : isWebcamActive ? (
@@ -704,20 +708,24 @@ export default function EmployeesPage() {
                                                     <canvas ref={canvasRef} className="hidden" width={400} height={400} />
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    <button
+                                                    <Button
                                                         type="button"
                                                         onClick={isWebcamActive ? takeSnapshot : startWebcam}
-                                                        className="flex-1 py-2 bg-gray-800 text-white rounded text-xs hover:bg-gray-700 transition-colors"
+                                                        variant={isWebcamActive ? "solid" : "secondary"}
+                                                        size="sm"
+                                                        className="flex-1"
                                                     >
                                                         {isWebcamActive ? 'Capturar' : 'Cámara'}
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
                                                         type="button"
                                                         onClick={() => fileInputRef.current?.click()}
-                                                        className="flex-1 py-2 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 transition-colors"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="flex-1"
                                                     >
                                                         Subir
-                                                    </button>
+                                                    </Button>
                                                     <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
                                                 </div>
                                             </div>
@@ -730,7 +738,7 @@ export default function EmployeesPage() {
                                             <textarea
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                                                 rows={3}
                                             />
                                         </div>
@@ -741,9 +749,7 @@ export default function EmployeesPage() {
                                     <div className="space-y-6 max-w-4xl mx-auto w-full py-4">
                                         <div className="grid grid-cols-2 gap-6">
                                             <div className="space-y-4">
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
-                                                    <span>🔑</span> Credenciales
-                                                </h3>
+                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Credenciales</h3>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                                         Usuario
@@ -780,9 +786,7 @@ export default function EmployeesPage() {
                                             </div>
 
                                             <div className="space-y-4">
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2 flex items-center gap-2">
-                                                    <span>🛡️</span> Seguridad
-                                                </h3>
+                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Seguridad</h3>
                                                 <Input
                                                     label="Contraseña"
                                                     type="password"
@@ -800,7 +804,7 @@ export default function EmployeesPage() {
                                                     className="text-sm"
                                                 />
                                                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded text-[11px] text-yellow-700 leading-relaxed">
-                                                    <strong>⚠️ Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
+                                                    <strong>Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
                                                 </div>
                                             </div>
                                         </div>
@@ -821,18 +825,19 @@ export default function EmployeesPage() {
                                 )}
 
                                 {activeTab !== 'documents' && (
-                                    <div className="mt-auto pt-6 border-t border-gray-100 flex justify-end gap-3">
-                                        <button
+                                    <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-2">
+                                        <Button
                                             type="button"
                                             onClick={() => {
                                                 setIsModalOpen(false);
                                                 stopWebcam();
                                             }}
-                                            className="px-6 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+                                            variant="secondary"
+                                            size="sm"
                                         >
                                             {t('cancel')}
-                                        </button>
-                                        <Button type="submit" className="px-8 py-2.5">
+                                        </Button>
+                                        <Button type="submit" size="sm">
                                             {t('save')}
                                         </Button>
                                     </div>
@@ -845,25 +850,30 @@ export default function EmployeesPage() {
 
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h2 className="text-xl font-bold mb-4">{t('deleteEmployee')}</h2>
-                        <p className="text-gray-600 mb-6 font-medium">
-                            {t('confirmDelete')} <span className="text-red-600 font-bold">{editingEmployee?.Empleado}</span>?
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-sm border border-gray-200 shadow-lg">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                            <Trash2 size={24} className="text-red-600" />
+                        </div>
+                        <h2 className="text-lg font-bold text-center text-gray-900 mb-2">{t('deleteEmployee')}</h2>
+                        <p className="text-gray-600 text-center text-sm mb-6">
+                            ¿Seguro que deseas eliminar a <span className="font-bold">{editingEmployee?.Empleado}</span>? Esta acción no se puede deshacer.
                         </p>
                         <div className="flex justify-end gap-2">
-                            <button
+                            <Button
                                 onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                                variant="secondary"
+                                size="sm"
                             >
                                 {t('cancel')}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                                size="sm"
+                                className="bg-red-600 hover:bg-red-700"
                             >
                                 {t('confirm')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -891,14 +901,17 @@ export default function EmployeesPage() {
             {/* Massive Upload Modal */}
             {isMassiveUploadOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h2 className="text-xl font-bold text-gray-800">Carga Masiva de Empleados</h2>
+                    <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200">
+                        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">Carga Masiva de Empleados</h2>
+                                <p className="text-xs text-gray-500 mt-1">Importa múltiples empleados desde un archivo Excel</p>
+                            </div>
                             <button
                                 onClick={() => setIsMassiveUploadOpen(false)}
-                                className="text-gray-500 hover:text-gray-700 p-2"
+                                className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500"
                             >
-                                ✕
+                                <X size={18} />
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto">

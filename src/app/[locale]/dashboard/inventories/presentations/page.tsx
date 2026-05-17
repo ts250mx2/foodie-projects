@@ -134,7 +134,7 @@ export default function PresentationsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Package} actions={
+        <PageShell title={t('title')} subtitle={`${presentations.length} presentaciones registradas`} icon={Package} actions={
             <div className="flex gap-2 items-center flex-wrap">
                 <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg flex-1 min-w-[200px] max-w-xs">
                     <Search size={18} className="text-gray-400" />
@@ -216,6 +216,15 @@ export default function PresentationsPage() {
                             ))}
                         </TableBody>
                     </table>
+
+                    {/* Footer con conteo */}
+                    {!isLoading && sortedAndFilteredPresentations.length > 0 && (
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-600 font-medium">
+                                {sortedAndFilteredPresentations.length} de {presentations.length} presentaciones
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

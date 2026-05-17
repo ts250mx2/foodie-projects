@@ -11,7 +11,18 @@
       "Bash(find src/app/[locale]/dashboard -name \"*.tsx\" -type f)",
       "Bash(xargs grep -l \"fixed inset-0 bg-black\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(powershell -Command \"Start-Process 'http://localhost:3006/es/dashboard/payroll/employees'\")",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs kill -9)",
+      "PowerShell(netstat -ano | findstr :3006 | ForEach-Object { $parts = $_ -split '\\\\s+'; $pid = $parts[-1]; if \\($pid -and $pid -match '^\\\\d+$'\\) { taskkill /PID $pid /F -ErrorAction SilentlyContinue } })",
+      "Bash(curl -s \"http://localhost:3006/es/dashboard/payroll/employees\")",
+      "Bash(curl -s http://localhost:3006/es/dashboard/inventories/capture)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3006)",
+      "Bash(start \"http://localhost:3006\")",
+      "Bash(git diff *)"
     ]
   }
 }

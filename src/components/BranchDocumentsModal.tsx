@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Trash2, Download, Upload, RefreshCw } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface Document {
     IdSucursalDocumento: number;
@@ -214,67 +216,86 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
                     ) : documents.length === 0 ? (
                         <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg">No hay documentos registrados.</div>
                     ) : (
-                        <div className="bg-white rounded border border-gray-100 overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Documento</th>
-                                        <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Comentarios</th>
-                                        <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Archivo</th>
-                                        <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <table className="w-full border-collapse">
+                                <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                    <ThemedGridHeaderCell>
+                                        Documento
+                                    </ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell>
+                                        Comentarios
+                                    </ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="center">
+                                        Archivo
+                                    </ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="right">
+                                        Acciones
+                                    </ThemedGridHeaderCell>
+                                </ThemedGridHeader>
+                                <TableBody
+                                    loading={isLoading}
+                                    empty={documents.length === 0}
+                                    emptyMessage="No hay documentos registrados."
+                                    colSpan={4}
+                                >
                                     {documents.map((doc) => (
-                                        <tr key={doc.IdSucursalDocumento} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-xs font-semibold text-gray-900 truncate max-w-[150px]" title={doc.Documento}>
-                                                {doc.Documento}
-                                            </td>
-                                            <td className="px-4 py-3 text-[11px] text-gray-600 truncate max-w-[150px]" title={doc.Comentarios || ''}>
-                                                {doc.Comentarios || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
+                                        <TableRow key={doc.IdSucursalDocumento}>
+                                            <TableCell>
+                                                <span className="font-medium text-gray-900 truncate max-w-[150px] block" title={doc.Documento}>
+                                                    {doc.Documento}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-gray-600 truncate max-w-[150px] block" title={doc.Comentarios || ''}>
+                                                    {doc.Comentarios || '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell align="center">
                                                 {(doc.ArchivoDocumento || doc.RutaArchivo) ? (
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
                                                             onClick={() => handleDownload(doc)}
-                                                            className="text-blue-600 hover:underline text-[10px] flex items-center gap-1"
+                                                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                                                            title="Descargar"
                                                         >
-                                                            📎 Ver
+                                                            <Download size={16} />
                                                         </button>
                                                         <button
                                                             onClick={() => handleFileSelect(doc.IdSucursalDocumento)}
-                                                            className="text-gray-400 hover:text-blue-600 text-[10px] border rounded px-1"
+                                                            className="text-gray-600 hover:text-blue-600 p-1 rounded hover:bg-gray-100 transition-colors"
                                                             disabled={isUploading}
+                                                            title="Reemplazar"
                                                         >
-                                                            🔄
+                                                            <RefreshCw size={16} />
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleFileSelect(doc.IdSucursalDocumento)}
-                                                        className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1"
+                                                        className="text-green-600 hover:text-green-800 p-1.5 rounded border border-green-300 bg-green-50 hover:bg-green-100 transition-colors"
                                                         disabled={isUploading}
+                                                        title="Subir"
                                                     >
-                                                        📤 Subir
+                                                        <Upload size={16} />
                                                     </button>
                                                 )}
                                                 {isUploading && uploadingDocId === doc.IdSucursalDocumento && (
-                                                    <span className="text-[10px] text-blue-500 animate-pulse block">Subiendo...</span>
+                                                    <span className="text-xs text-blue-500 animate-pulse block mt-1">Subiendo...</span>
                                                 )}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <button
-                                                    onClick={() => handleDelete(doc.IdSucursalDocumento)}
-                                                    className="text-lg hover:scale-125 transition-transform text-red-500"
-                                                    title="Eliminar"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <RowActionButton
+                                                        icon={Trash2}
+                                                        label="Eliminar"
+                                                        variant="delete"
+                                                        onClick={() => handleDelete(doc.IdSucursalDocumento)}
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
+                                </TableBody>
                             </table>
                         </div>
                     )}

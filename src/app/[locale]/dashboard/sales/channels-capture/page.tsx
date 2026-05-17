@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import POSInsertModal from '@/components/POSInsertModal';
 import PageShell from '@/components/PageShell';
-import { Store } from 'lucide-react';
+import { Store, X, Save, Plus, CreditCard, FileText, DollarSign, ShoppingCart, Smartphone, Send, Trash2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -629,12 +629,11 @@ export default function SalesChannelsCapturePage() {
     }, [shifts, selectedBranch]);
 
     return (
-        <PageShell title={t('title')} icon={Store} actions={<div className="flex items-center gap-4 flex-wrap">
-                    {/* Branch Selector */}
+        <PageShell title={t('title')} icon={Store} actions={<div className="flex items-center gap-3 flex-wrap">
                     <select
                         value={selectedBranch}
                         onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {branches.length === 0 && <option>{t('noBranches')}</option>}
                         {branches.map(branch => (
@@ -644,22 +643,20 @@ export default function SalesChannelsCapturePage() {
                         ))}
                     </select>
 
-                    {/* Month Selector */}
                     <select
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {Array.from({ length: 12 }, (_, i) => (
                             <option key={i} value={i}>{t(`months.${i}`)}</option>
                         ))}
                     </select>
 
-                    {/* Year Selector */}
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {years.map(year => (
                             <option key={year} value={year}>{year}</option>
@@ -667,69 +664,68 @@ export default function SalesChannelsCapturePage() {
                     </select>
                 </div>}>
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
-                {/* Continuous Header */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Header fijo sticky */}
                 <div
-                    className="grid grid-cols-7"
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
                         backgroundColor: colors.colorFondo1,
-                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
                     {weekDays.map(day => (
                         <div
                             key={day}
-                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                            className="text-center font-bold text-sm uppercase tracking-wider"
                         >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="p-4 bg-gray-50/30">
+                {/* Calendario expandido */}
+                <div className="p-4 bg-white">
                     <div className="grid grid-cols-7 gap-3">
                         {calendarDays.map((date, index) => {
                             if (!date) {
-                                return <div key={`empty-${index}`} className="aspect-square" />;
+                                return <div key={`empty-${index}`} />;
                             }
 
                             const dayNum = date.getDate();
                             const details = monthlySalesDetails[dayNum];
                             const hasSales = details && details.length > 0;
                             const isToday = new Date().toDateString() === date.toDateString();
+                            const isInventory = inventoryDaysDetails[dayNum]?.isMarkedInventoryDay;
 
                             return (
                                 <div
                                     key={index}
                                     onClick={() => handleDayClick(date)}
                                     className={`
-                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-200
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-primary-400 shadow-primary-100'
-                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                            ? 'bg-red-50 border-2 border-red-400 shadow-md hover:shadow-lg'
+                                            : isInventory
+                                            ? 'bg-green-50 border-2 border-green-400 shadow-md hover:shadow-lg'
+                                            : hasSales
+                                            ? 'bg-blue-50 border-2 border-blue-300 shadow-sm hover:shadow-md'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
                                         }
-                                    ${inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay ? 'bg-emerald-50/30 ring-2 ring-emerald-500/40 ring-inset shadow-emerald-50' : ''}
-                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                    hover:scale-105 hover:-translate-y-1
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-primary-600' : hasSales ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black
+                                            ${isToday ? 'text-red-600' : isInventory ? 'text-green-700' : hasSales ? 'text-blue-700' : 'text-gray-400'}
+                                        `}>
                                             {dayNum}
                                         </span>
-                                        <div className="flex flex-col items-end gap-1">
-                                            {isToday && (
-                                                <span className="text-[9px] font-extrabold bg-primary-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
-                                                    {t('today') || 'HOY'}
-                                                </span>
-                                            )}
-                                            {inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay && (
-                                                <span className="text-[8px] font-black bg-emerald-600 text-white px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 animate-bounce border border-white/20 uppercase">
-                                                    💳 <span>Captura de Ventas POS</span>
-                                                </span>
-                                            )}
-                                        </div>
+                                        {isToday && (
+                                            <span className="text-[7px] font-bold bg-red-500 text-white px-1 py-0.5 rounded-full animate-pulse">
+                                                HOY
+                                            </span>
+                                        )}
                                     </div>
                                     {(hasSales || monthlyDailyTotals[dayNum] || monthlyPaymentDetails[dayNum]) && (() => {
                                         const reported = monthlyDailyTotals[dayNum] || 0;
@@ -741,71 +737,42 @@ export default function SalesChannelsCapturePage() {
                                         return (
                                             <div className="space-y-1 z-10">
                                                 {monthlyDailyTotals[dayNum] !== undefined && (
-                                                    <div className="flex flex-col mb-1">
-                                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Reportado</div>
-                                                        <div className="text-[13px] font-black text-slate-800 leading-tight">
-                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(reported)}
+                                                    <div>
+                                                        <div className="text-[8px] font-bold text-gray-500 uppercase">Reportado</div>
+                                                        <div className="text-xs font-black text-gray-800">
+                                                            ${Math.round(reported)}
                                                         </div>
                                                     </div>
                                                 )}
                                                 {(hasSales || reported > 0) && (
-                                                    <div className="flex flex-col border-t border-gray-100/50 pt-1">
-                                                        <div className="flex justify-between items-baseline gap-1">
-                                                            <div 
-                                                                className="text-[10px] font-bold uppercase tracking-tighter transition-colors truncate"
-                                                                style={{ color: Math.abs(diffChannels) < 0.01 ? '#94a3b8' : diffChannels > 0 ? '#9333ea' : '#dc2626' }}
-                                                            >
-                                                                Canales
+                                                    <div className="border-t border-gray-200/50 pt-1">
+                                                        <div className="text-[8px] font-bold text-green-600 uppercase">Canales</div>
+                                                        <div className="text-xs font-black text-green-700">
+                                                            ${Math.round(channelsTotal)}
+                                                        </div>
+                                                        {Math.abs(diffChannels) >= 0.01 && (
+                                                            <div className="text-[10px] font-bold" style={{ color: diffChannels > 0 ? '#a855f7' : '#dc2626' }}>
+                                                                {diffChannels > 0 ? '+' : ''}{Math.round(diffChannels)}
                                                             </div>
-                                                        </div>
-                                                        <div className="text-[13px] font-black leading-tight flex flex-wrap items-baseline gap-1">
-                                                            <span className="text-green-600">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(channelsTotal)}
-                                                            </span>
-                                                            {Math.abs(diffChannels) >= 0.01 && (
-                                                                <span 
-                                                                    className="text-[10px] font-bold"
-                                                                    style={{ color: diffChannels > 0 ? '#9333ea' : '#dc2626' }}
-                                                                >
-                                                                    ({diffChannels > 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(diffChannels)})
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 )}
                                                 {(monthlyPaymentDetails[dayNum] !== undefined || reported > 0) && (
-                                                    <div className="flex flex-col border-t border-gray-100/50 pt-1">
-                                                        <div className="flex justify-between items-baseline gap-1">
-                                                            <div 
-                                                                className="text-[10px] font-bold uppercase tracking-tighter transition-colors truncate"
-                                                                style={{ color: Math.abs(diffPayments) < 0.01 ? '#94a3b8' : diffPayments > 0 ? '#9333ea' : '#dc2626' }}
-                                                            >
-                                                                Pagos
+                                                    <div className="border-t border-gray-200/50 pt-1">
+                                                        <div className="text-[8px] font-bold text-blue-600 uppercase">Pagos</div>
+                                                        <div className="text-xs font-black text-blue-700">
+                                                            ${Math.round(paymentsTotal)}
+                                                        </div>
+                                                        {Math.abs(diffPayments) >= 0.01 && (
+                                                            <div className="text-[10px] font-bold" style={{ color: diffPayments > 0 ? '#a855f7' : '#dc2626' }}>
+                                                                {diffPayments > 0 ? '+' : ''}{Math.round(diffPayments)}
                                                             </div>
-                                                        </div>
-                                                        <div className="text-[13px] font-black leading-tight flex flex-wrap items-baseline gap-1">
-                                                            <span className="text-blue-600">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(paymentsTotal)}
-                                                            </span>
-                                                            {Math.abs(diffPayments) >= 0.01 && (
-                                                                <span 
-                                                                    className="text-[10px] font-bold"
-                                                                    style={{ color: diffPayments > 0 ? '#9333ea' : '#dc2626' }}
-                                                                >
-                                                                    ({diffPayments > 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(diffPayments)})
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
                                         );
                                     })()}
-                                    {/* Decorative background element for hover */}
-                                    <div className={`
-                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-primary-600' : 'bg-blue-600'}
-                                `} />
                                 </div>
                             );
                         })}
@@ -815,35 +782,61 @@ export default function SalesChannelsCapturePage() {
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                        onClick={() => setIsModalOpen(false)}
+                    />
+
+                    {/* Panel */}
+                    <div
+                        className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl animate-in zoom-in-95 fade-in duration-200"
+                        style={{ maxHeight: '90vh' }}
+                    >
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <div>
-                                <h2 className="text-2xl font-black">{t('title')}</h2>
-                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h2
+                                    className="text-[15px] font-semibold leading-tight"
+                                    style={{ color: colors.colorLetra }}
+                                >
+                                    {t('title')}
+                                </h2>
+                                <p
+                                    className="text-[12px] leading-tight"
+                                    style={{ color: colors.colorLetra, opacity: 0.8 }}
+                                >
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
                             </div>
+
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                                aria-label="Cerrar"
+                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                                style={{ color: colors.colorLetra }}
                             >
-                                ✕
+                                <X size={16} strokeWidth={2} />
                             </button>
                         </div>
 
                         {/* Summary Cards */}
-                        <div className="p-6 bg-gray-50/50 border-b border-gray-100">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                 {/* 1. Venta Total Reportada (Editable) */}
-                                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm relative group flex flex-col justify-center">
-                                    <div className="flex items-center gap-1 mb-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">💰 Venta Total Reportada</label>
-                                        <span className="text-xs opacity-40 group-hover:opacity-100 transition-opacity">✏️</span>
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative group flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <DollarSign size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Venta Total Reportada</label>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 items-center">
                                         <input
                                             type="text"
-                                            className="bg-transparent text-2xl font-black text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-primary-200 rounded p-1"
+                                            className="bg-transparent text-xl font-bold text-gray-800 w-full focus:outline-none focus:ring-2 focus:ring-primary-500/30 rounded px-1 py-0.5"
                                             value={dailyTotalSale}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -860,167 +853,165 @@ export default function SalesChannelsCapturePage() {
                                             }}
                                             placeholder="$0.00"
                                         />
-                                        <button
+                                        <Button
+                                            type="button"
                                             onClick={handleSaveDailyTotal}
                                             disabled={isSavingDailyTotal}
-                                            className="bg-primary-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-primary-600 transition-colors shadow-sm active:scale-95"
+                                            variant="solid"
+                                            size="sm"
+                                            leftIcon={Save}
+                                            iconBox
+                                            isLoading={isSavingDailyTotal}
+                                            title="Guardar"
                                         >
-                                            {isSavingDailyTotal ? '...' : '💾'}
-                                        </button>
+                                            Guardar
+                                        </Button>
                                     </div>
                                 </div>
 
                                 {/* Insertar Ventas POS Button (Visible only on inventory days) */}
                                 {inventoryDaysDetails[selectedDate.getDate()]?.isMarkedInventoryDay && (
-                                    <div className="bg-emerald-600 p-5 rounded-xl border border-emerald-500 shadow-lg relative group flex flex-col justify-center text-white overflow-hidden">
-                                        <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-500" />
-                                        <div className="flex items-center gap-1 mb-1">
-                                            <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest">💳 Punto de Venta Detalle</label>
+                                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm relative group flex flex-col justify-center">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Smartphone size={14} className="text-emerald-600" />
+                                            <label className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">Punto de Venta Detalle</label>
                                         </div>
-                                        <div className="flex flex-col gap-2 relative z-10">
-                                            <div className="text-xl font-black">
+                                        <div className="flex flex-col gap-3">
+                                            <div className="text-lg font-bold text-emerald-700">
                                                 {posItems.length > 0 ? (
                                                     <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(posItems.reduce((s, i) => s + (parseFloat(i.Total) || 0), 0))}</span>
                                                 ) : (
-                                                    <span className="opacity-70 text-sm font-bold italic">Sin captura POS</span>
+                                                    <span className="text-sm font-semibold text-gray-500">Sin captura POS</span>
                                                 )}
                                             </div>
-                                            <button
+                                            <Button
                                                 onClick={() => setIsPOSModalOpen(true)}
-                                                className="w-full bg-white text-emerald-700 px-3 py-2 rounded-xl text-xs font-black hover:bg-emerald-50 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                                                variant="solid"
+                                                size="sm"
+                                                leftIcon={Plus}
+                                                iconBox
+                                                className="w-full"
                                             >
-                                                <span>🚀 {posItems.length > 0 ? 'Actualizar Detalle POS' : 'Insertar Ventas POS'}</span>
-                                            </button>
+                                                {posItems.length > 0 ? 'Actualizar POS' : 'Insertar POS'}
+                                            </Button>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* 2. Capturada (Canales) con Diferencia */}
-                                {(() => {
-                                    const reportedVal = parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0;
-                                    const diffVal = totalSales - reportedVal;
-                                    const isMatch = Math.abs(diffVal) < 0.01;
-                                    
-                                    return (
-                                        <div 
-                                            className="bg-white p-5 rounded-xl border shadow-sm relative overflow-hidden transition-all duration-300"
-                                            style={{ borderColor: isMatch ? '#f0fdf4' : diffVal > 0 ? '#f3e8ff' : '#fee2e2' }}
-                                        >
-                                            <label 
-                                                className="text-[10px] font-bold uppercase mb-1 block tracking-widest"
-                                                style={{ color: isMatch ? '#9ca3af' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
+                                {/* Capturada - Canales + Pagos lado a lado */}
+                                <div className="flex flex-col gap-2">
+                                    {(() => {
+                                        const reportedVal = parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0;
+                                        const diffVal = totalSales - reportedVal;
+                                        const isMatch = Math.abs(diffVal) < 0.01;
+
+                                        return (
+                                            <div
+                                                className="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden transition-all duration-300 flex-1"
+                                                style={{ borderColor: isMatch ? '#dcfce7' : diffVal > 0 ? '#fce7f3' : '#fee2e2' }}
                                             >
-                                                📦 Capturada (Canales)
-                                            </label>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="text-2xl font-black text-green-600 line-height-none">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <ShoppingCart size={14} className="text-green-600" />
+                                                    <label
+                                                        className="text-[11px] font-semibold uppercase tracking-wider"
+                                                        style={{ color: isMatch ? '#16a34a' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
+                                                    >
+                                                        Canales
+                                                    </label>
+                                                </div>
+                                                <div className="text-lg font-bold text-green-600">
                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales)}
                                                 </div>
-                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                                                    <span 
-                                                        className="text-[10px] font-bold uppercase tracking-tighter"
-                                                        style={{ color: isMatch ? '#9ca3af' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                                    >
-                                                        Dif:
-                                                    </span>
-                                                    <span 
-                                                        className="text-sm font-black"
+                                                {Math.abs(diffVal) >= 0.01 && (
+                                                    <div className="text-xs font-semibold mt-1" style={{ color: diffVal > 0 ? '#9333ea' : '#dc2626' }}>
+                                                        Dif: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diffVal)}
+                                                    </div>
+                                                )}
+                                                <div
+                                                    className="absolute top-0 right-0 w-1 h-full"
+                                                    style={{ backgroundColor: isMatch ? '#22c55e' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {(() => {
+                                        const reportedVal = parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0;
+                                        const paymentTotal = paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0);
+                                        const diffVal = paymentTotal - reportedVal;
+                                        const isMatch = Math.abs(diffVal) < 0.01;
+
+                                        return (
+                                            <div
+                                                className="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden transition-all duration-300 flex-1"
+                                                style={{ borderColor: isMatch ? '#dcfce7' : diffVal > 0 ? '#fce7f3' : '#fee2e2' }}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <CreditCard size={14} className="text-blue-600" />
+                                                    <label
+                                                        className="text-[11px] font-semibold uppercase tracking-wider"
                                                         style={{ color: isMatch ? '#16a34a' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
                                                     >
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diffVal)}
-                                                    </span>
+                                                        Pagos
+                                                    </label>
                                                 </div>
-                                            </div>
-                                            {/* Small background indicator */}
-                                            <div 
-                                                className="absolute top-0 right-0 w-1.5 h-full" 
-                                                style={{ backgroundColor: isMatch ? '#22c55e' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                            />
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* 3. Capturada (Forma Pago) con Diferencia */}
-                                {(() => {
-                                    const reportedVal = parseFloat(dailyTotalSale.replace(/[^0-9.]/g, '')) || 0;
-                                    const paymentTotal = paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0);
-                                    const diffVal = paymentTotal - reportedVal;
-                                    const isMatch = Math.abs(diffVal) < 0.01;
-
-                                    return (
-                                        <div 
-                                            className="bg-white p-5 rounded-xl border shadow-sm relative overflow-hidden transition-all duration-300"
-                                            style={{ borderColor: isMatch ? '#f0fdf4' : diffVal > 0 ? '#f3e8ff' : '#fee2e2' }}
-                                        >
-                                            <label 
-                                                className="text-[10px] font-bold uppercase mb-1 block tracking-widest"
-                                                style={{ color: isMatch ? '#9ca3af' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                            >
-                                                💳 Capturada (Forma Pago)
-                                            </label>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="text-2xl font-black text-blue-600 line-height-none">
+                                                <div className="text-lg font-bold text-blue-600">
                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentTotal)}
                                                 </div>
-                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                                                    <span 
-                                                        className="text-[10px] font-bold uppercase tracking-tighter"
-                                                        style={{ color: isMatch ? '#9ca3af' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                                    >
-                                                        Dif:
-                                                    </span>
-                                                    <span 
-                                                        className="text-sm font-black"
-                                                        style={{ color: isMatch ? '#16a34a' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                                    >
-                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diffVal)}
-                                                    </span>
-                                                </div>
+                                                {Math.abs(diffVal) >= 0.01 && (
+                                                    <div className="text-xs font-semibold mt-1" style={{ color: diffVal > 0 ? '#9333ea' : '#dc2626' }}>
+                                                        Dif: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(diffVal)}
+                                                    </div>
+                                                )}
+                                                <div
+                                                    className="absolute top-0 right-0 w-1 h-full"
+                                                    style={{ backgroundColor: isMatch ? '#22c55e' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
+                                                />
                                             </div>
-                                            {/* Small background indicator */}
-                                            <div 
-                                                className="absolute top-0 right-0 w-1.5 h-full" 
-                                                style={{ backgroundColor: isMatch ? '#22c55e' : diffVal > 0 ? '#9333ea' : '#dc2626' }}
-                                            />
-                                        </div>
-                                    );
-                                })()}
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
 
                         {/* Tab Switcher */}
-                        <div className="flex gap-2 mt-0 overflow-x-auto relative px-6 bg-gray-50/50 border-b border-gray-100" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div className="shrink-0 flex border-b border-gray-200 px-6 py-0 bg-gray-50/50" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {[
-                                { id: 'channels', label: '📦 Canales de Venta' },
-                                { id: 'payments', label: '💳 Formas de Pago' },
-                                { id: 'notes', label: `📝 ${tNotes('title')}` }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={`px-6 py-3 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
-                                        ? 'bg-white text-gray-900 text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
-                                        : 'text-xs font-normal text-gray-400 hover:text-gray-600 hover:-translate-y-0.5'
-                                    }`}
-                                >
-                                    {tab.label}
-                                    {activeTab === tab.id && (
-                                        <div className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-white z-40"></div>
-                                    )}
-                                </button>
-                            ))}
+                                { id: 'channels', label: 'Canales de Venta', icon: Store },
+                                { id: 'payments', label: 'Formas de Pago', icon: CreditCard },
+                                { id: 'notes', label: tNotes('title'), icon: FileText }
+                            ].map(tab => {
+                                const TabIcon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`px-6 py-4 border-b-2 flex items-center gap-2 whitespace-nowrap transition-all duration-200 font-medium ${activeTab === tab.id
+                                            ? `text-[13px]`
+                                            : 'text-[13px] text-gray-500 hover:text-gray-700 border-b-2 border-transparent'
+                                        }`}
+                                        style={activeTab === tab.id ? {
+                                            color: colors.colorFondo1,
+                                            borderBottomColor: colors.colorFondo1
+                                        } : {}}
+                                    >
+                                        <TabIcon size={16} />
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto flex flex-col gap-6">
+                        <div className="flex-1 overflow-y-auto flex flex-col">
                             {(activeTab === 'channels' || activeTab === 'payments') && (
                                 <>
                                     {/* Form */}
-                                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 items-end shadow-sm mx-6 mt-6">
+                                    <form onSubmit={handleSubmit} className="shrink-0 grid grid-cols-1 sm:grid-cols-5 gap-4 bg-gray-50/50 border border-gray-100 rounded-xl p-5 mx-6 mt-5 items-end">
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('shift')}</label>
+                                            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{tModal('shift')}</label>
                                             <select
-                                                className="w-full p-2.5 bg-white border border-primary-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                                className="w-full h-9 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400"
                                                 value={formData.shiftId}
                                                 onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })}
                                                 required
@@ -1031,10 +1022,10 @@ export default function SalesChannelsCapturePage() {
                                         </div>
 
                                         {activeTab === 'channels' ? (
-                                            <div className="flex flex-col md:col-span-2">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Canal</label>
+                                            <div className="flex flex-col sm:col-span-2">
+                                                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Canal</label>
                                                 <select
-                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                                    className="w-full h-9 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400"
                                                     value={formData.channelId}
                                                     onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
                                                     required={activeTab === 'channels'}
@@ -1044,10 +1035,10 @@ export default function SalesChannelsCapturePage() {
                                                 </select>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col md:col-span-2">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Forma de Pago</label>
+                                            <div className="flex flex-col sm:col-span-2">
+                                                <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Forma de Pago</label>
                                                 <select
-                                                    className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                                    className="w-full h-9 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400"
                                                     value={formData.terminalId}
                                                     onChange={(e) => setFormData({ ...formData, terminalId: e.target.value })}
                                                     required={activeTab === 'payments'}
@@ -1059,10 +1050,10 @@ export default function SalesChannelsCapturePage() {
                                         )}
 
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tModal('amount')}</label>
+                                            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{tModal('amount')}</label>
                                             <input
                                                 type="text"
-                                                className="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                                className="w-full h-9 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 text-right font-semibold"
                                                 value={formData.amount}
                                                 onChange={(e) => {
                                                     const val = e.target.value.replace(/[^0-9.]/g, '');
@@ -1081,49 +1072,50 @@ export default function SalesChannelsCapturePage() {
                                                 placeholder="0.00"
                                             />
                                         </div>
-                                        <Button type="submit" className="w-full">
+                                        <Button type="submit" variant="solid" size="md" leftIcon={Plus} iconBox className="w-full mt-[22px]">
                                             {tModal('add')}
                                         </Button>
                                     </form>
 
                                     {/* Table */}
-                                    <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col mx-6 mb-6">
-                                        <div className="overflow-y-auto max-h-[400px]">
+                                    <div className="shrink-0 border border-gray-100 rounded-xl overflow-hidden mx-6 mb-5">
+                                        <div className="overflow-y-auto max-h-[350px]">
                                             {activeTab === 'channels' ? (
-                                                <table className="min-w-full divide-y divide-gray-100">
-                                                    <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                                        <tr>
-                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
-                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Canal</th>
-                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
-                                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                <table className="min-w-full">
+                                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                                        <tr className="border-b border-gray-100">
+                                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
+                                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
+                                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Comisión</th>
+                                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-50">
+                                                    <tbody>
                                                         {dailySales.length === 0 ? (
                                                             <tr>
-                                                                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                                <td colSpan={5} className="px-5 py-12 text-center text-sm text-gray-400">Sin registros</td>
                                                             </tr>
                                                         ) : (
                                                             dailySales.map((sale, idx) => {
                                                                 const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
                                                                 return (
-                                                                    <tr key={idx} className="hover:bg-primary-50/30 transition-colors group">
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.CanalVenta}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                                    <tr key={idx} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
+                                                                        <td className="px-5 py-3 text-sm text-gray-700 font-semibold">{sale.Turno}</td>
+                                                                        <td className="px-5 py-3 text-sm text-gray-700">{sale.CanalVenta}</td>
+                                                                        <td className="px-5 py-3 text-sm text-gray-900 text-right font-semibold tabular-nums">
                                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
                                                                         </td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
+                                                                        <td className="px-5 py-3 text-sm text-blue-600 text-right font-semibold tabular-nums">
                                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
                                                                         </td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                                        <td className="px-5 py-3 text-center">
                                                                             <button
                                                                                 onClick={() => handleDelete(sale.IdTurno, sale.IdCanalVenta)}
-                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1"
+                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50"
+                                                                                title="Eliminar"
                                                                             >
-                                                                                🗑️
+                                                                                <Trash2 size={14} />
                                                                             </button>
                                                                         </td>
                                                                     </tr>
@@ -1131,54 +1123,57 @@ export default function SalesChannelsCapturePage() {
                                                             })
                                                         )}
                                                     </tbody>
-                                                    <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
-                                                        <tr className="divide-x divide-gray-100">
-                                                            <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
-                                                            <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
-                                                            </td>
-                                                            <td className="bg-gray-50/50"></td>
-                                                        </tr>
-                                                    </tfoot>
+                                                    {dailySales.length > 0 && (
+                                                        <tfoot className="bg-gray-50/80 border-t border-gray-100">
+                                                            <tr>
+                                                                <td colSpan={2} className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</td>
+                                                                <td className="px-5 py-3 text-right text-sm font-bold text-green-600 tabular-nums">
+                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
+                                                                </td>
+                                                                <td className="px-5 py-3 text-right text-sm font-bold text-blue-600 tabular-nums">
+                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
+                                                                </td>
+                                                                <td></td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    )}
                                                 </table>
                                             ) : (
-                                                <table className="min-w-full divide-y divide-gray-100">
-                                                    <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                                        <tr>
-                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
-                                                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Forma de Pago</th>
-                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                            <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Comisión</th>
-                                                            <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                <table className="min-w-full">
+                                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                                        <tr className="border-b border-gray-100">
+                                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('shift')}</th>
+                                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Forma de Pago</th>
+                                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
+                                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Comisión</th>
+                                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-50">
+                                                    <tbody>
                                                         {paymentDailySales.length === 0 ? (
                                                             <tr>
-                                                                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros</td>
+                                                                <td colSpan={5} className="px-5 py-12 text-center text-sm text-gray-400">Sin registros</td>
                                                             </tr>
                                                         ) : (
                                                             paymentDailySales.map((sale, idx) => {
                                                                 const commissionAmount = parseFloat(sale.Venta) * ((sale.Comision || 0) / 100);
                                                                 return (
-                                                                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{sale.Turno}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sale.Terminal}</td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-black">
+                                                                    <tr key={idx} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
+                                                                        <td className="px-5 py-3 text-sm text-gray-700 font-semibold">{sale.Turno}</td>
+                                                                        <td className="px-5 py-3 text-sm text-gray-700">{sale.Terminal}</td>
+                                                                        <td className="px-5 py-3 text-sm text-gray-900 text-right font-semibold tabular-nums">
                                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(sale.Venta))}
                                                                         </td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 text-right font-bold">
+                                                                        <td className="px-5 py-3 text-sm text-blue-600 text-right font-semibold tabular-nums">
                                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionAmount)}
                                                                         </td>
-                                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                                        <td className="px-5 py-3 text-center">
                                                                             <button
                                                                                 onClick={() => handleDelete(sale.IdTurno, sale.IdTerminal)}
-                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1"
+                                                                                className="text-gray-300 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50"
+                                                                                title="Eliminar"
                                                                             >
-                                                                                🗑️
+                                                                                <Trash2 size={14} />
                                                                             </button>
                                                                         </td>
                                                                     </tr>
@@ -1186,18 +1181,20 @@ export default function SalesChannelsCapturePage() {
                                                             })
                                                         )}
                                                     </tbody>
-                                                    <tfoot className="bg-gray-50 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]">
-                                                        <tr className="divide-x divide-gray-100">
-                                                            <td colSpan={2} className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Capturado</td>
-                                                            <td className="px-6 py-4 text-right text-base font-black text-green-600 leading-none">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right text-base font-black text-blue-600 leading-none">
-                                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
-                                                            </td>
-                                                            <td className="bg-gray-50/50"></td>
-                                                        </tr>
-                                                    </tfoot>
+                                                    {paymentDailySales.length > 0 && (
+                                                        <tfoot className="bg-gray-50/80 border-t border-gray-100">
+                                                            <tr>
+                                                                <td colSpan={2} className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</td>
+                                                                <td className="px-5 py-3 text-right text-sm font-bold text-green-600 tabular-nums">
+                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) || 0), 0))}
+                                                                </td>
+                                                                <td className="px-5 py-3 text-right text-sm font-bold text-blue-600 tabular-nums">
+                                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(paymentDailySales.reduce((sum, s) => sum + (parseFloat(s.Venta) * ((s.Comision || 0) / 100)), 0))}
+                                                                </td>
+                                                                <td></td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    )}
                                                 </table>
                                             )}
                                         </div>
@@ -1206,114 +1203,113 @@ export default function SalesChannelsCapturePage() {
                             )}
 
                             {activeTab === 'notes' && (
-                                <div className="p-6 flex flex-col gap-6">
-                                    <form onSubmit={handleNoteSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex-1 flex flex-col gap-5 px-6 py-5 overflow-y-auto">
+                                    <form onSubmit={handleNoteSubmit} className="shrink-0 flex flex-col gap-4 bg-gray-50/50 border border-gray-100 rounded-xl p-5">
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">{tNotes('label')}</label>
+                                            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">{tNotes('label')}</label>
                                             <textarea
-                                                className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all min-h-[100px]"
+                                                className="w-full min-h-[90px] text-sm border border-gray-200 rounded-lg px-3 py-2.5 resize-none focus:ring-2 focus:ring-primary-500/30 focus:outline-none"
                                                 value={noteFormData.note}
                                                 onChange={(e) => setNoteFormData(prev => ({ ...prev, note: e.target.value }))}
                                                 placeholder={tNotes('placeholder')}
                                                 required
                                             />
                                         </div>
-                                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                                        <div className="flex flex-col md:flex-row gap-3 items-end">
                                             <div className="flex flex-col flex-1">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">{tNotes('file')}</label>
+                                                <div className="flex justify-between items-center mb-1.5">
+                                                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{tNotes('file')}</label>
                                                     {noteFormData.file && (
-                                                        <button 
-                                                            type="button" 
+                                                        <button
+                                                            type="button"
                                                             onClick={() => setNoteFormData(prev => ({ ...prev, file: null }))}
-                                                            className="text-[10px] text-red-500 font-bold hover:underline"
+                                                            className="text-[10px] text-red-600 font-semibold hover:underline"
                                                         >
-                                                            {tCommon('cancel')}
+                                                            Limpiar
                                                         </button>
                                                     )}
                                                 </div>
                                                 <input
                                                     type="file"
                                                     onChange={handleFileChange}
-                                                    className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 w-full"
+                                                    className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 w-full"
                                                 />
                                             </div>
                                             <div className="flex gap-2">
                                                 {editingNote && (
-                                                    <button
+                                                    <Button
                                                         type="button"
                                                         onClick={() => {
                                                             setEditingNote(null);
                                                             setNoteFormData({ note: '', file: null });
                                                         }}
-                                                        className="px-6 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600 hover:bg-gray-300 transition-all"
+                                                        variant="secondary"
+                                                        size="sm"
                                                     >
                                                         {tCommon('cancel')}
-                                                    </button>
+                                                    </Button>
                                                 )}
-                                                <button
+                                                <Button
                                                     type="submit"
-                                                    className="px-6 py-2 rounded-lg text-sm font-bold bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-100 transition-all active:scale-95"
+                                                    variant="solid"
+                                                    size="sm"
+                                                    leftIcon={Send}
+                                                    iconBox
                                                 >
                                                     {editingNote ? tCommon('save') : tNotes('save')}
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </form>
 
-                                    <div className="flex flex-col gap-4">
-                                        <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                                            📋 {tNotes('history')}
-                                        </h3>
-                                        <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="flex flex-col gap-3">
+                                        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Historial de Notas</h3>
+                                        <div className="grid gap-3 max-h-[350px] overflow-y-auto">
                                             {isLoadingNotes ? (
-                                                <div className="text-center py-8 text-gray-400 italic">{tCommon('loading')}</div>
+                                                <div className="text-center py-8 text-gray-400 text-sm">{tCommon('loading')}</div>
                                             ) : notes.length === 0 ? (
-                                                <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 italic">
+                                                <div className="text-center py-8 bg-gray-50/50 rounded-xl border border-gray-100 text-gray-400 text-sm">
                                                     {tNotes('noNotes')}
                                                 </div>
                                             ) : (
                                                 notes.map((note: any) => (
-                                                    <div key={note.IdNota} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-gray-400">{new Date(note.FechaAct).toLocaleString()}</span>
+                                                    <div key={note.IdNota} className="bg-white border border-gray-100 rounded-xl p-4 group">
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <div className="flex flex-col flex-1 min-w-0">
+                                                                <span className="text-[10px] font-semibold text-gray-400 uppercase">{new Date(note.FechaAct).toLocaleString()}</span>
                                                                 <p className="text-sm text-gray-700 whitespace-pre-wrap mt-1">{note.Nota}</p>
                                                             </div>
-                                                            <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <button
                                                                     onClick={() => {
                                                                         setEditingNote(note);
                                                                         setNoteFormData({ note: note.Nota, file: note.archivnota });
                                                                     }}
-                                                                    className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors"
+                                                                    className="p-1 hover:bg-blue-50 text-blue-600 hover:text-blue-700 rounded transition-colors"
                                                                     title="Editar"
                                                                 >
-                                                                    ✏️
+                                                                    <Trash2 size={14} />
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         handleDeleteNote(note.IdNota);
                                                                     }}
-                                                                    className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                                                                    className="p-1 hover:bg-red-50 text-red-600 hover:text-red-700 rounded transition-colors"
                                                                     title="Eliminar"
                                                                 >
-                                                                    🗑️
+                                                                    <Trash2 size={14} />
                                                                 </button>
                                                             </div>
                                                         </div>
                                                         {note.archivnota && (
-                                                            <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
-                                                                <span className="text-[10px] font-bold text-blue-500 flex items-center gap-1">
-                                                                    📎 {tNotes('attachment')}
-                                                                </span>
-                                                                <a 
-                                                                    href={note.archivnota} 
+                                                            <div className="mt-3 pt-3 border-t border-gray-100">
+                                                                <a
+                                                                    href={note.archivnota}
                                                                     download={`nota_${note.IdNota}`}
-                                                                    className="text-[10px] font-black text-white bg-blue-500 px-3 py-1 rounded-full hover:bg-blue-600 transition-colors"
+                                                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
                                                                 >
-                                                                    {tCommon('download')}
+                                                                    ↓ Descargar adjunto
                                                                 </a>
                                                             </div>
                                                         )}
@@ -1327,8 +1323,8 @@ export default function SalesChannelsCapturePage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                            <Button onClick={() => setIsModalOpen(false)}>
+                        <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end">
+                            <Button variant="secondary" size="md" leftIcon={X} onClick={() => setIsModalOpen(false)}>
                                 {tModal('close')}
                             </Button>
                         </div>

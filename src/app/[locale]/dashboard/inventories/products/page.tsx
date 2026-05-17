@@ -416,6 +416,7 @@ export default function ProductsPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${products.length} productos registrados`}
             actions={
                 <div className="flex gap-2 flex-wrap items-center">
                     <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg flex-1 min-w-[200px] max-w-xs">
@@ -634,6 +635,15 @@ export default function ProductsPage() {
                         </TableBody>
                     </table>
                 </div>
+
+                {/* Footer con conteo */}
+                {!isLoading && sortedAndFilteredProducts.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {sortedAndFilteredProducts.length} de {products.length} productos
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Costing Modal for Create/Edit and Kits */}

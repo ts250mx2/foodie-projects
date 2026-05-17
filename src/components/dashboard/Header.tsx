@@ -211,20 +211,20 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 </div>
 
                 {/* Right: usuario + logout */}
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                     <div
-                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200/50 text-slate-700"
+                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-sm"
                     >
-                        <User size={14} className="opacity-70 text-slate-500" />
-                        <span className="text-sm font-medium">{userName || 'Usuario'}</span>
+                        <User size={14} className="text-gray-400" />
+                        <span className="font-medium">{userName || 'Usuario'}</span>
                     </div>
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200/50 text-slate-700 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
                         title={t('logout')}
                     >
-                        <LogOut size={15} className="text-slate-500" />
+                        <LogOut size={15} className="text-gray-400" />
                         <span className="hidden sm:inline">{t('logout')}</span>
                     </button>
                 </div>

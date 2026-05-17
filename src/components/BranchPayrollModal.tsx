@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface PayrollPeriod {
     IdPeriodoNomina: number;
@@ -213,42 +215,50 @@ export default function BranchPayrollModal({
                     {/* Periods Grid Section */}
                     <div className="flex flex-col overflow-hidden">
                         <h3 className="font-semibold mb-4">Periodos de Nómina</h3>
-                        <div className="flex-1 overflow-y-auto border rounded-lg min-h-[300px]">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50 sticky top-0">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inicio</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fin</th>
-                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {isLoading ? (
-                                        <tr><td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
-                                    ) : periods.length === 0 ? (
-                                        <tr><td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-500">No hay registros</td></tr>
-                                    ) : (
-                                        periods.map((item) => (
-                                            <tr key={item.IdPeriodoNomina} className="hover:bg-gray-50 text-xs">
-                                                <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
+                        <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm min-h-[300px]">
+                            <table className="w-full border-collapse">
+                                <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                    <ThemedGridHeaderCell>
+                                        Inicio
+                                    </ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell>
+                                        Fin
+                                    </ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="right">
+                                        Acciones
+                                    </ThemedGridHeaderCell>
+                                </ThemedGridHeader>
+                                <TableBody
+                                    loading={isLoading}
+                                    empty={periods.length === 0}
+                                    emptyMessage="No hay registros"
+                                    colSpan={3}
+                                >
+                                    {periods.map((item) => (
+                                        <TableRow key={item.IdPeriodoNomina}>
+                                            <TableCell>
+                                                <span className="font-medium text-gray-900">
                                                     {item.FechaInicio}
-                                                </td>
-                                                <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="font-medium text-gray-900">
                                                     {item.FechaFin}
-                                                </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-right">
-                                                    <button
+                                                </span>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <RowActionButton
+                                                        icon={Trash2}
+                                                        label="Eliminar"
+                                                        variant="delete"
                                                         onClick={() => handleDeletePeriod(item.IdPeriodoNomina)}
-                                                        className="text-red-600 hover:text-red-900 ml-2"
-                                                        title="Eliminar"
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
                             </table>
                         </div>
                     </div>

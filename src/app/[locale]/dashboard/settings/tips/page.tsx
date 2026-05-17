@@ -132,6 +132,7 @@ export default function TipsProfilesPage() {
     return (
         <PageShell
             title="Administración de Perfiles de Propinas"
+            subtitle={`${profiles.length} perfiles registrados`}
             icon={DollarSign}
             actions={
                 <Button onClick={() => {
@@ -206,6 +207,15 @@ export default function TipsProfilesPage() {
                         ))}
                     </TableBody>
                 </table>
+
+                {/* Footer con conteo */}
+                {!isLoading && profiles.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {profiles.length} perfiles
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Edit/Create Modal */}

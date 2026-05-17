@@ -136,6 +136,7 @@ export default function DocumentTypesPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${documentTypes.length} tipos de documento registrados`}
             icon={FileText}
             actions={
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -227,6 +228,15 @@ export default function DocumentTypesPage() {
                             ))}
                         </TableBody>
                     </table>
+
+                    {/* Footer con conteo */}
+                    {!isLoading && sortedAndFilteredDocumentTypes.length > 0 && (
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-600 font-medium">
+                                {sortedAndFilteredDocumentTypes.length} de {documentTypes.length} tipos de documento
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

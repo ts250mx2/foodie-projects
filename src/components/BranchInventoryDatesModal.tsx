@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface InventoryDate {
     Dia: number;
@@ -137,38 +139,42 @@ export default function BranchInventoryDatesModal({ isOpen, onClose, branchId, b
                 {/* History Section */}
                 <div className="flex flex-col overflow-hidden">
                     <h3 className="font-semibold mb-4">Historial</h3>
-                    <div className="flex-1 overflow-y-auto border rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {isLoading ? (
-                                    <tr><td colSpan={2} className="px-3 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
-                                ) : inventories.length === 0 ? (
-                                    <tr><td colSpan={2} className="px-3 py-4 text-center text-sm text-gray-500">No hay registros</td></tr>
-                                ) : (
-                                    inventories.map((item, idx) => (
-                                        <tr key={`${item.Anio}-${item.Mes}-${item.Dia}`} className={`hover:bg-gray-50 text-xs ${getDegradationClass(item.FechaInventario)}`}>
-                                            <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
+                    <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <table className="w-full border-collapse">
+                            <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                <ThemedGridHeaderCell>
+                                    Fecha
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    Acciones
+                                </ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+                            <TableBody
+                                loading={isLoading}
+                                empty={inventories.length === 0}
+                                emptyMessage="No hay registros"
+                                colSpan={2}
+                            >
+                                {inventories.map((item) => (
+                                    <TableRow key={`${item.Anio}-${item.Mes}-${item.Dia}`} className={getDegradationClass(item.FechaInventario)}>
+                                        <TableCell>
+                                            <span className="font-medium text-gray-900">
                                                 {formatDate(item.FechaInventario)}
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right">
-                                                <button
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label="Eliminar"
+                                                    variant="delete"
                                                     onClick={() => handleDelete(item)}
-                                                    className="text-red-600 hover:text-red-900 ml-2"
-                                                    title="Eliminar"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
+                                                />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
                         </table>
                     </div>
                 </div>

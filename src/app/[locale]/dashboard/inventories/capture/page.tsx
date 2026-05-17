@@ -9,7 +9,7 @@ import Input from '@/components/Input';
 import CostingModal from '@/components/CostingModal';
 import InventoryMaxMinComparisonModal from '@/components/InventoryMaxMinComparisonModal';
 import PageShell from '@/components/PageShell';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, X, Save, Search, Download, BarChart2, Printer, FileSpreadsheet, Pencil } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -530,12 +530,11 @@ export default function InventoryCapturePage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={ClipboardList} actions={<div className="flex items-center gap-4 flex-wrap">
-                    {/* Branch Selector */}
+        <PageShell title={t('title')} icon={ClipboardList} actions={<div className="flex items-center gap-3 flex-wrap">
                     <select
                         value={selectedBranch}
                         onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {branches.length === 0 && <option>{t('noBranches')}</option>}
                         {branches.map(branch => (
@@ -545,22 +544,20 @@ export default function InventoryCapturePage() {
                         ))}
                     </select>
 
-                    {/* Month Selector */}
                     <select
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {Array.from({ length: 12 }, (_, i) => (
                             <option key={i} value={i}>{t(`months.${i}`)}</option>
                         ))}
                     </select>
 
-                    {/* Year Selector */}
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         {years.map(year => (
                             <option key={year} value={year}>{year}</option>
@@ -568,27 +565,26 @@ export default function InventoryCapturePage() {
                     </select>
                 </div>}>
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
-                {/* Continuous Header */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Sticky Header */}
                 <div
-                    className="grid grid-cols-7"
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
                         backgroundColor: colors.colorFondo1,
-                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
                     {weekDays.map(day => (
                         <div
                             key={day}
-                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                            className="text-center font-bold text-sm uppercase tracking-wider"
                         >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="p-4 bg-gray-50/30">
+                <div className="p-4 bg-white">
                     <div className="grid grid-cols-7 gap-3">
                         {calendarDays.map((date, index) => {
                             if (!date) {
@@ -648,103 +644,100 @@ export default function InventoryCapturePage() {
 
             {/* Excel-like Inventory Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+                    <div className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl" style={{ maxHeight: '90vh' }}>
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0 text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {tModal('title')}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-4 leading-tight">
-                                        📅 {selectedDate.toLocaleDateString()}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                    disabled={isLoading}
-                                >
-                                    ✕
-                                </button>
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col min-w-0">
+                                <h2 className="text-[15px] font-semibold" style={{ color: colors.colorLetra }}>
+                                    {tModal('title')}
+                                </h2>
+                                <p className="text-[12px] opacity-80 mt-1" style={{ color: colors.colorLetra }}>
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
                             </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="flex-shrink-0 rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                                disabled={isLoading}
+                                style={{ color: colors.colorLetra }}
+                            >
+                                <X size={16} />
+                            </button>
                         </div>
 
                         {/* Search and Actions */}
-                        <div className="flex flex-col p-6 border-b gap-4 bg-gray-50/50">
-                            <div className="relative">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                    🔍
-                                </span>
+                        <div className="shrink-0 px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+                            <div className="relative flex-1 min-w-[200px]">
+                                <Search size={14} className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
                                 <input
                                     type="text"
                                     placeholder="Buscar producto..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
                                 />
                             </div>
-                            <div className="flex gap-2 justify-end">
-                                <Button
-                                    onClick={handleImportLast}
-                                    variant="secondary"
-                                    className="flex items-center gap-2 border-orange-200 hover:bg-orange-50 text-orange-700"
-                                    disabled={isLoading}
-                                >
-                                    📥 Importar último inventario
-                                </Button>
-                                <Button
-                                    onClick={() => setIsComparisonModalOpen(true)}
-                                    variant="secondary"
-                                    className="flex items-center gap-2"
-                                    disabled={isLoading}
-                                >
-                                    ⚖️ {tModal('reabastecimiento')}
-                                </Button>
-                                <Button
-                                    onClick={handlePrint}
-                                    variant="secondary"
-                                    className="flex items-center gap-2"
-                                    disabled={isLoading}
-                                >
-                                    🖨️ Imprimir
-                                </Button>
-                                <Button
-                                    onClick={handleExport}
-                                    variant="secondary"
-                                    className="flex items-center gap-2"
-                                    disabled={isLoading}
-                                >
-                                    📊 Exportar Excel
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={handleImportLast}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={Download}
+                                disabled={isLoading}
+                            >
+                                Importar
+                            </Button>
+                            <Button
+                                onClick={() => setIsComparisonModalOpen(true)}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={BarChart2}
+                                disabled={isLoading}
+                            >
+                                {tModal('reabastecimiento')}
+                            </Button>
+                            <Button
+                                onClick={handlePrint}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={Printer}
+                                disabled={isLoading}
+                            >
+                                Imprimir
+                            </Button>
+                            <Button
+                                onClick={handleExport}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={FileSpreadsheet}
+                                disabled={isLoading}
+                            >
+                                Exportar
+                            </Button>
                         </div>
 
                         {/* Excel Grid */}
-                        <div id="inventory-grid-container" className="flex-1 overflow-auto p-6">
+                        <div id="inventory-grid-container" className="flex-1 overflow-y-auto p-6">
                             {Object.entries(groupedInventory).map(([categoria, entries]) => (
                                 <div key={categoria} className="mb-6">
                                     {/* Category Header */}
                                     <div
                                         onClick={() => toggleCategory(categoria)}
-                                        className="px-4 py-2 font-bold rounded-t-lg flex justify-between items-center cursor-pointer transition-all duration-300 transform hover:scale-[1.005] hover:shadow-sm"
+                                        className="px-4 py-2 flex justify-between items-center cursor-pointer transition-all duration-300 rounded-t-lg"
                                         style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm">{collapsedCategories[categoria] ? '▶' : '▼'}</span>
-                                            <span className="text-sm uppercase tracking-wide">
-                                                {entries[0]?.ImagenCategoria ? `${entries[0].ImagenCategoria} ` : '📁 '}
+                                            <span className="text-[13px] font-semibold uppercase tracking-wide">
+                                                {entries[0]?.ImagenCategoria ? `${entries[0].ImagenCategoria} ` : ''}
                                                 {categoria}
                                             </span>
                                         </div>
-                                        <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-                                            <span className="text-xs font-medium opacity-90">Subtotal:</span>
-                                            <span className="ml-2 text-sm font-bold">
-                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}
-                                            </span>
+                                        <div className="text-xs font-medium">
+                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCategoryTotal(entries))}
                                         </div>
                                     </div>
 
@@ -752,31 +745,31 @@ export default function InventoryCapturePage() {
                                     {!collapsedCategories[categoria] && (
                                         <div className="border border-gray-200 rounded-b-lg overflow-hidden">
                                             <table className="min-w-full table-fixed">
-                                                <thead className="bg-gray-50">
+                                                <thead className="bg-gray-50 sticky top-0 z-10">
                                                     <tr>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[5%]">Foto</th>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[10%]">Código</th>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[25%]">Producto</th>
-                                                        <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-[15%]">Presentación</th>
-                                                        <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[15%]">Cantidad</th>
-                                                        <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 w-[10%]">Precio</th>
-                                                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-[10%]">Total</th>
-                                                        <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-[10%]">Acciones</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[5%]">Foto</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[10%]">Código</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[25%]">Producto</th>
+                                                        <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[15%]">Presentación</th>
+                                                        <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[15%]">Cantidad</th>
+                                                        <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[10%]">Precio</th>
+                                                        <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[10%]">Total</th>
+                                                        <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[10%]">Acciones</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                <tbody className="bg-white divide-y divide-gray-50">
                                                     {entries.map((entry) => {
                                                         const quantityStr = editedQuantities[entry.IdProducto];
                                                         const quantity = quantityStr !== undefined ? (parseFloat(quantityStr) || 0) : entry.Cantidad;
                                                         const total = quantity * entry.Precio;
 
                                                         return (
-                                                            <tr key={entry.IdProducto} className="hover:bg-gray-50">
-                                                                <td className="px-4 py-2 text-center">
+                                                            <tr key={entry.IdProducto} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
+                                                                <td className="px-5 py-3 text-center">
                                                                     {entry.ArchivoImagen ? (
-                                                                        <img 
-                                                                            src={entry.ArchivoImagen} 
-                                                                            alt={entry.Producto} 
+                                                                        <img
+                                                                            src={entry.ArchivoImagen}
+                                                                            alt={entry.Producto}
                                                                             className="w-8 h-8 object-cover rounded shadow-sm border mx-auto"
                                                                         />
                                                                     ) : (
@@ -785,10 +778,10 @@ export default function InventoryCapturePage() {
                                                                         </div>
                                                                     )}
                                                                 </td>
-                                                                <td className="px-4 py-2 text-sm text-gray-900 truncate">{entry.Codigo}</td>
-                                                                <td className="px-4 py-2 text-sm font-medium text-gray-900 truncate">{entry.Producto}</td>
-                                                                <td className="px-4 py-2 text-sm text-gray-600 truncate">{entry.UnidadMedidaInventario || entry.Presentacion || '-'}</td>
-                                                                <td className="px-4 py-2 text-center">
+                                                                <td className="px-5 py-3 text-sm text-gray-900 truncate">{entry.Codigo}</td>
+                                                                <td className="px-5 py-3 text-sm font-medium text-gray-900 truncate">{entry.Producto}</td>
+                                                                <td className="px-5 py-3 text-sm text-gray-600 truncate">{entry.UnidadMedidaInventario || entry.Presentacion || '-'}</td>
+                                                                <td className="px-5 py-3 text-center">
                                                                     <input
                                                                         type="number"
                                                                         step="any"
@@ -796,22 +789,22 @@ export default function InventoryCapturePage() {
                                                                         value={editedQuantities[entry.IdProducto] ?? (entry.Cantidad === 0 ? '' : entry.Cantidad.toString())}
                                                                         onChange={(e) => handleQuantityChange(entry.IdProducto, e.target.value)}
                                                                         onKeyDown={handleKeyDown}
-                                                                        className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                                        className="w-24 h-8 text-center text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30"
                                                                         disabled={isLoading}
                                                                     />
 
                                                                 </td>
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
-                                                                <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                                                                <td className="px-5 py-3 text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
+                                                                <td className="px-5 py-3 text-sm font-medium text-gray-900 text-right">
                                                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
                                                                 </td>
-                                                                <td className="px-4 py-2 text-center">
+                                                                <td className="px-5 py-3 text-center">
                                                                     <button
                                                                         onClick={() => handleEditProduct(entry.IdProducto)}
-                                                                        className="text-primary-600 hover:text-primary-800 p-1 rounded hover:bg-primary-50 transition-colors"
+                                                                        className="p-1 hover:bg-blue-50 text-blue-600 rounded transition-colors"
                                                                         title="Editar Producto"
                                                                     >
-                                                                        ✏️
+                                                                        <Pencil size={14} />
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -825,28 +818,33 @@ export default function InventoryCapturePage() {
                             ))}
 
                             {/* Grand Total */}
-                            <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 mt-6">
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-6">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-lg font-bold text-gray-700">TOTAL GENERAL:</span>
+                                    <span className="text-sm font-semibold text-gray-700">TOTAL GENERAL:</span>
                                     <span className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                        <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2.5">
                             <Button
                                 onClick={() => setIsModalOpen(false)}
                                 variant="secondary"
+                                size="md"
+                                leftIcon={X}
                                 disabled={isLoading}
                             >
                                 {tModal('close')}
                             </Button>
                             <Button
                                 onClick={handleSaveAll}
+                                variant="solid"
+                                size="md"
+                                leftIcon={Save}
                                 isLoading={isLoading}
                             >
-                                💾 {tCommon('save')}
+                                {tCommon('save')}
                             </Button>
                         </div>
                     </div>

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface BranchCost {
     Mes: number;
@@ -291,54 +293,74 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                 {/* History Section */}
                 <div className="flex flex-col overflow-hidden">
                     <h3 className="font-semibold mb-4">Historial</h3>
-                    <div className="flex-1 overflow-y-auto border rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Año/Mes</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Objetivo</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mat. Prima</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nómina</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">G. Operativo</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {isLoading ? (
-                                    <tr><td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-500">Cargando...</td></tr>
-                                ) : costs.length === 0 ? (
-                                    <tr><td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-500">No hay registros</td></tr>
-                                ) : (
-                                    costs.map((cost, idx) => (
-                                        <tr key={`${cost.Anio}-${cost.Mes}`} className="hover:bg-gray-50 text-xs">
-                                            <td className="px-3 py-2 whitespace-nowrap font-medium text-gray-900">
+                    <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <table className="w-full border-collapse">
+                            <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                <ThemedGridHeaderCell>
+                                    Año/Mes
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    Objetivo
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    Mat. Prima
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    Nómina
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    G. Operativo
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    Acciones
+                                </ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+                            <TableBody
+                                loading={isLoading}
+                                empty={costs.length === 0}
+                                emptyMessage="No hay registros"
+                                colSpan={6}
+                            >
+                                {costs.map((cost) => (
+                                    <TableRow key={`${cost.Anio}-${cost.Mes}`}>
+                                        <TableCell>
+                                            <span className="font-medium text-gray-900">
                                                 {cost.Anio} - {months[cost.Mes - 1]}
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <span className="text-gray-600">
                                                 $ {cost.ObjetivoVentas?.toLocaleString() || '0'}
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <span className="text-gray-600">
                                                 {cost.CostoMateriaPrima?.toFixed(2) || '0.00'} %
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <span className="text-gray-600">
                                                 {cost.CostoNomina?.toFixed(2) || '0.00'} %
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right text-gray-600">
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <span className="text-gray-600">
                                                 {cost.GastoOperativo?.toFixed(2) || '0.00'} %
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-right">
-                                                <button
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label="Eliminar"
+                                                    variant="delete"
                                                     onClick={() => handleDelete(cost.Mes, cost.Anio)}
-                                                    className="text-red-600 hover:text-red-800 text-lg"
-                                                    title="Eliminar"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
+                                                />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
                         </table>
                     </div>
                 </div>

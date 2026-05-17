@@ -140,7 +140,7 @@ export default function PositionsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Briefcase} actions={<Button
+        <PageShell title={t('title')} subtitle={`${positions.length} puestos registrados`} icon={Briefcase} actions={<Button
                     onClick={() => {
                         setEditingPosition(null);
                         setFormData({ position: '', hasTips: false });
@@ -226,6 +226,15 @@ export default function PositionsPage() {
                             ))}
                         </TableBody>
                     </table>
+
+                    {/* Footer con conteo */}
+                    {!isLoading && sortedAndFilteredPositions.length > 0 && (
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-600 font-medium">
+                                {sortedAndFilteredPositions.length} de {positions.length} puestos
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

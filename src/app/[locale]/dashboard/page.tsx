@@ -553,62 +553,70 @@ export default function DashboardPage() {
             icon={LayoutDashboard}
             actions={
                 <div className="flex items-center gap-3 flex-wrap">
-                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium">
                         {branches.length === 0 && <option value="">{tPurchases('noBranches')}</option>}
                         {branches.map(branch => <option key={branch.IdSucursal} value={branch.IdSucursal}>{branch.Sucursal}</option>)}
                     </select>
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium">
                         {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tPurchases(`months.${i}`)}</option>)}
                     </select>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium">
                         {years.map(year => <option key={year} value={year}>{year}</option>)}
                     </select>
-                    <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors" title={isFullscreen ? 'Restaurar' : 'Maximizar'}>
-                        {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                    <button onClick={toggleFullscreen} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors" title={isFullscreen ? 'Restaurar' : 'Maximizar'}>
+                        {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                     </button>
                 </div>
             }
         >
             <AiAgent dashboardData={dashboardDataContext} />
             {/* KPI Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 mt-4">
                 {/* Sales KPI Card */}
-                <div 
+                <div
                     onClick={() => setSelectedKpi(selectedKpi === 'sales' ? null : 'sales')}
-                    className={`py-2 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'sales' ? 'bg-gradient-to-b from-emerald-50/80 to-white border-emerald-300 ring-4 ring-emerald-500/10 shadow-xl shadow-emerald-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${selectedKpi === 'sales' ? 'border-emerald-400 shadow-lg shadow-emerald-500/20 bg-gradient-to-br from-emerald-50 to-emerald-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-emerald-300'}`}
                 >
-                    <div className="absolute -right-4 -top-4 p-3 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                        <svg className="w-16 h-16 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-0.5">Ventas Totales</span>
-                            {isLoadingKpi ? (
-                                <div className="h-5 w-24 bg-slate-200 animate-pulse rounded"></div>
-                            ) : (
-                                <h2 className={`${getKpiFontSize(formatCurrency(totalSales))} font-black tracking-tight text-slate-800 leading-none`}>
-                                    {formatCurrency(totalSales)}
-                                </h2>
-                            )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none">Ventas</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
                         </div>
 
+                        {isLoadingKpi ? (
+                            <div className="h-5 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
+                        ) : (
+                            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                                {formatCurrency(totalSales)}
+                            </h2>
+                        )}
+
                         {!isLoadingKpi && (
-                            <div className="flex flex-col gap-0.5 border-t border-slate-50 pt-1 mt-1">
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">Meta</span>
-                                    <span className="text-slate-700">{formatCurrency(salesObjective)}</span>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[8px]">
+                                    <span className="text-gray-500 font-medium">Progreso</span>
+                                    <span className="font-bold text-emerald-600">
+                                        {salesObjective > 0 ? `${((totalSales / salesObjective) * 100).toFixed(0)}%` : 'S/P'}
+                                    </span>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">Alcance</span>
-                                    {salesObjective > 0 ? (
-                                        <span className={`px-1.5 py-0 rounded-sm ${totalSales >= salesObjective ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                                            {((totalSales / salesObjective) * 100).toFixed(1)}%
-                                        </span>
-                                    ) : (
-                                        <span className="text-slate-400 px-1.5 py-0 bg-slate-50 rounded-sm">S/P</span>
-                                    )}
+                                <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${totalSales >= salesObjective ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' : 'bg-gradient-to-r from-amber-500 to-amber-400'}`}
+                                        style={{ width: `${Math.min((totalSales / (salesObjective || totalSales)) * 100, 100)}%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between items-center text-[8px] text-gray-600">
+                                    <span>Meta:</span>
+                                    <span className="font-semibold text-gray-700">{formatCurrency(salesObjective)}</span>
                                 </div>
                             </div>
                         )}
@@ -616,44 +624,50 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Payroll KPI Card */}
-                <div 
+                <div
                     onClick={() => setSelectedKpi(selectedKpi === 'payroll' ? null : 'payroll')}
-                    className={`py-2 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'payroll' ? 'bg-gradient-to-b from-indigo-50/80 to-white border-indigo-300 ring-4 ring-indigo-500/10 shadow-xl shadow-indigo-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${selectedKpi === 'payroll' ? 'border-indigo-400 shadow-lg shadow-indigo-500/20 bg-gradient-to-br from-indigo-50 to-indigo-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-indigo-300'}`}
                 >
-                    <div className="absolute -right-4 -top-4 p-3 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                        <svg className="w-16 h-16 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className={`text-[8px] font-black uppercase tracking-widest block leading-none mb-0.5 ${selectedKpi === 'payroll' ? 'text-indigo-500' : 'text-slate-400'}`}>Costo Nómina</span>
-                            {isLoadingKpi || isPayrollLoading ? (
-                                <div className="h-5 w-24 bg-slate-200 animate-pulse rounded"></div>
-                            ) : (
-                                <div className="flex flex-col">
-                                    <h2 className={`${getKpiFontSize(formatCurrency(totalPayroll))} font-black tracking-tight text-slate-800 leading-none`}>
-                                        {formatCurrency(totalPayroll)}
-                                    </h2>
-                                    <span className="text-[6.5px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
-                                        Rango: {payrollStartDate.split('-').reverse().slice(0, 2).join('/')} al {payrollEndDate.split('-').reverse().slice(0, 2).join('/')}
-                                    </span>
-                                </div>
-                            )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest leading-none">Nómina</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
                         </div>
 
+                        {isLoadingKpi || isPayrollLoading ? (
+                            <div className="h-5 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
+                        ) : (
+                            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                                {formatCurrency(totalPayroll)}
+                            </h2>
+                        )}
 
                         {!isLoadingKpi && (
-                            <div className="flex flex-col gap-0.5 border-t border-slate-50 pt-1 mt-1">
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">% Real</span>
-                                    <span className={`px-1.5 py-0 rounded-sm ${totalSales > 0 ? (((totalPayroll / totalSales) * 100) <= payrollObjective || payrollObjective === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500') : 'bg-slate-50 text-slate-700'}`}>
-                                        {totalSales > 0 ? `${((totalPayroll / totalSales) * 100).toFixed(1)}%` : '0.0%'}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[8px]">
+                                    <span className="text-gray-500 font-medium">% de ventas</span>
+                                    <span className="font-bold text-indigo-600">
+                                        {totalSales > 0 ? `${((totalPayroll / totalSales) * 100).toFixed(1)}%` : '0%'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">Meta</span>
-                                    <span className="text-slate-700">{payrollObjective > 0 ? `${payrollObjective}%` : 'S/P'}</span>
+                                <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${((totalPayroll / totalSales) * 100) <= payrollObjective || payrollObjective === 0 ? 'bg-gradient-to-r from-indigo-500 to-indigo-400' : 'bg-gradient-to-r from-amber-500 to-amber-400'}`}
+                                        style={{ width: `${Math.min(((totalPayroll / totalSales) * 100) / (payrollObjective || 25), 1) * 100}%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between items-center text-[8px] text-gray-600">
+                                    <span>Meta:</span>
+                                    <span className="font-semibold text-gray-700">{payrollObjective > 0 ? `${payrollObjective}%` : 'S/P'}</span>
                                 </div>
                             </div>
                         )}
@@ -661,39 +675,52 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Operating Expense KPI Card */}
-                <div 
+                <div
                     onClick={() => setSelectedKpi(selectedKpi === 'expenses' ? null : 'expenses')}
-                    className={`py-2 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'expenses' ? 'bg-gradient-to-b from-rose-50/80 to-white border-rose-300 ring-4 ring-rose-500/10 shadow-xl shadow-rose-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${selectedKpi === 'expenses' ? 'border-rose-400 shadow-lg shadow-rose-500/20 bg-gradient-to-br from-rose-50 to-rose-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-rose-300'}`}
                 >
-                    <div className="absolute -right-4 -top-4 p-3 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                        <svg className="w-16 h-16 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className={`text-[8px] font-black uppercase tracking-widest block leading-none mb-0.5 ${selectedKpi === 'expenses' ? 'text-rose-500' : 'text-slate-400'}`}>Gasto Operativo</span>
-                            {isLoadingKpi ? (
-                                <div className="h-5 w-24 bg-slate-200 animate-pulse rounded"></div>
-                            ) : (
-                                <h2 className={`${getKpiFontSize(formatCurrency(totalOperatingExpense))} font-black tracking-tight text-slate-800 leading-none`}>
-                                    {formatCurrency(totalOperatingExpense)}
-                                </h2>
-                            )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-rose-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Gastos</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </div>
                         </div>
 
+                        {isLoadingKpi ? (
+                            <div className="h-7 w-32 bg-gray-200 animate-pulse rounded-lg"></div>
+                        ) : (
+                            <h2 className={`${getKpiFontSize(formatCurrency(totalOperatingExpense))} font-bold text-gray-900 leading-tight`}>
+                                {formatCurrency(totalOperatingExpense)}
+                            </h2>
+                        )}
 
                         {!isLoadingKpi && (
-                            <div className="flex flex-col gap-0.5 border-t border-slate-50 pt-1 mt-1">
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">% Real</span>
-                                    <span className={`px-1.5 py-0 rounded-sm ${totalSales > 0 ? (((totalOperatingExpense / totalSales) * 100) <= operatingExpenseObjective || operatingExpenseObjective === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500') : 'bg-slate-50 text-slate-700'}`}>
-                                        {totalSales > 0 ? `${((totalOperatingExpense / totalSales) * 100).toFixed(1)}%` : '0.0%'}
-                                    </span>
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-[9px]">
+                                        <span className="text-gray-600 font-medium">% del total de ventas</span>
+                                        <span className="font-bold text-rose-600">
+                                            {totalSales > 0 ? `${((totalOperatingExpense / totalSales) * 100).toFixed(1)}%` : '0%'}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${((totalOperatingExpense / totalSales) * 100) <= operatingExpenseObjective || operatingExpenseObjective === 0 ? 'bg-gradient-to-r from-rose-500 to-rose-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
+                                            style={{ width: `${Math.min(((totalOperatingExpense / totalSales) * 100) / (operatingExpenseObjective || 20), 1) * 100}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">Meta</span>
-                                    <span className="text-slate-700">{operatingExpenseObjective > 0 ? `${operatingExpenseObjective}%` : 'S/P'}</span>
+                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg">
+                                    <span className="text-gray-600">Meta</span>
+                                    <span className="font-semibold text-gray-800">{operatingExpenseObjective > 0 ? `${operatingExpenseObjective}%` : 'S/P'}</span>
                                 </div>
                             </div>
                         )}
@@ -701,38 +728,52 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Raw Material KPI Card */}
-                <div 
+                <div
                     onClick={() => setSelectedKpi(selectedKpi === 'purchases' ? null : 'purchases')}
-                    className={`py-2 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${selectedKpi === 'purchases' ? 'bg-gradient-to-b from-amber-50/80 to-white border-amber-300 ring-4 ring-amber-500/10 shadow-xl shadow-amber-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${selectedKpi === 'purchases' ? 'border-amber-400 shadow-lg shadow-amber-500/20 bg-gradient-to-br from-amber-50 to-amber-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-amber-300'}`}
                 >
-                    <div className="absolute -right-4 -top-4 p-3 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                        <svg className="w-16 h-16 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className={`text-[8px] font-black uppercase tracking-widest block leading-none mb-0.5 ${selectedKpi === 'purchases' ? 'text-amber-500' : 'text-slate-400'}`}>Materia Prima</span>
-                            {isLoadingKpi ? (
-                                <div className="h-5 w-24 bg-slate-200 animate-pulse rounded"></div>
-                            ) : (
-                                <h2 className={`${getKpiFontSize(formatCurrency(totalRawMaterial))} font-black tracking-tight text-slate-800 leading-none`}>
-                                    {formatCurrency(totalRawMaterial)}
-                                </h2>
-                            )}
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Materia Prima</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
                         </div>
 
+                        {isLoadingKpi ? (
+                            <div className="h-7 w-32 bg-gray-200 animate-pulse rounded-lg"></div>
+                        ) : (
+                            <h2 className={`${getKpiFontSize(formatCurrency(totalRawMaterial))} font-bold text-gray-900 leading-tight`}>
+                                {formatCurrency(totalRawMaterial)}
+                            </h2>
+                        )}
+
                         {!isLoadingKpi && (
-                            <div className="flex flex-col gap-0.5 border-t border-slate-50 pt-1 mt-1">
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">% Real</span>
-                                    <span className={`px-1.5 py-0 rounded-sm ${totalSales > 0 ? (((totalRawMaterial / totalSales) * 100) <= rawMaterialObjective || rawMaterialObjective === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500') : 'bg-slate-50 text-slate-700'}`}>
-                                        {totalSales > 0 ? `${((totalRawMaterial / totalSales) * 100).toFixed(1)}%` : '0.0%'}
-                                    </span>
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-[9px]">
+                                        <span className="text-gray-600 font-medium">% del total de ventas</span>
+                                        <span className="font-bold text-amber-600">
+                                            {totalSales > 0 ? `${((totalRawMaterial / totalSales) * 100).toFixed(1)}%` : '0%'}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${((totalRawMaterial / totalSales) * 100) <= rawMaterialObjective || rawMaterialObjective === 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
+                                            style={{ width: `${Math.min(((totalRawMaterial / totalSales) * 100) / (rawMaterialObjective || 30), 1) * 100}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] font-bold">
-                                    <span className="text-slate-500">Meta</span>
-                                    <span className="text-slate-700">{rawMaterialObjective > 0 ? `${rawMaterialObjective}%` : 'S/P'}</span>
+                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg">
+                                    <span className="text-gray-600">Meta</span>
+                                    <span className="font-semibold text-gray-800">{rawMaterialObjective > 0 ? `${rawMaterialObjective}%` : 'S/P'}</span>
                                 </div>
                             </div>
                         )}
@@ -740,61 +781,69 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Stacked Inventory and Waste Column */}
-                <div className="flex flex-col gap-2 lg:col-span-1">
+                <div className="flex flex-col gap-5 lg:col-span-1">
                     {/* Inventory KPI Card */}
-                    <div 
+                    <div
                         onClick={() => setSelectedKpi((selectedKpi as string) === 'inventory' ? null : 'inventory')}
-                        className={`flex-1 py-1 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${(selectedKpi as string) === 'inventory' ? 'bg-gradient-to-b from-blue-50/80 to-white border-blue-300 ring-4 ring-blue-500/10 shadow-xl shadow-blue-500/10 z-10' : 'bg-white border-slate-100/80 shadow-sm hover:shadow-md hover:border-slate-200'}`}
+                        className={`flex-1 group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${(selectedKpi as string) === 'inventory' ? 'border-blue-400 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-50 to-blue-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-blue-300'}`}
                     >
-                        <div className="absolute -right-3 -top-3 p-2 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                            <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                        </div>
-                        <div className="flex flex-col h-full justify-between relative z-10">
-                            <div>
-                                <span className="text-[7.5px] font-black text-blue-400 uppercase tracking-widest block leading-none">ULTIMO COSTO INVENTARIO</span>
-                                {isLoadingKpi ? (
-                                    <div className="h-4 w-20 bg-slate-200 animate-pulse rounded"></div>
-                                ) : (
-                                    <h2 className={`${getKpiFontSize(formatCurrency(lastInventoryCost))} font-black tracking-tight text-slate-800 leading-none`}>
-                                        {formatCurrency(lastInventoryCost)}
-                                    </h2>
-                                )}
-                            </div>
-                            {!isLoadingKpi && lastInventoryDate && (
-                                <div className="border-t border-slate-50 pt-0.5 mt-auto">
-                                    <p className="text-[7px] font-bold text-slate-400 uppercase italic">📅 {new Date(lastInventoryDate).toLocaleDateString()}</p>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                        <div className="relative p-3 flex flex-col h-full gap-2.5">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Inventario</span>
                                 </div>
+                                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {isLoadingKpi ? (
+                                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
+                            ) : (
+                                <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                                    {formatCurrency(lastInventoryCost)}
+                                </h2>
                             )}
                         </div>
                     </div>
 
                     {/* Waste KPI Card */}
-                    <div 
+                    <div
                         onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
-                        className={`flex-1 py-1 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 ${(selectedKpi as string) === 'waste' ? 'bg-gradient-to-b from-pink-50/80 to-white border-pink-300 ring-4 ring-pink-500/10 shadow-xl shadow-pink-500/10 z-10' : 'bg-white border-slate-100 shadow-sm hover:shadow-md'}`}
+                        className={`flex-1 group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${(selectedKpi as string) === 'waste' ? 'border-pink-400 shadow-lg shadow-pink-500/20 bg-gradient-to-br from-pink-50 to-pink-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-pink-300'}`}
                     >
-                        <div className="absolute -right-3 -top-3 p-2 opacity-[0.03] group-hover:opacity-10 group-hover:rotate-12 group-hover:scale-125 transition-all duration-500 ease-out">
-                            <svg className="w-12 h-12 text-rose-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </div>
-                        <div className="flex flex-col h-full justify-between relative z-10">
-                            <div>
-                                <span className="text-[8px] font-black text-rose-400 uppercase tracking-widest block leading-none">Mermas</span>
-                                {isLoadingKpi ? (
-                                    <div className="h-4 w-20 bg-slate-200 animate-pulse rounded"></div>
-                                ) : (
-                                    <h2 className={`${getKpiFontSize(formatCurrency(totalWaste))} font-black tracking-tight text-slate-800 leading-none`}>
-                                        {formatCurrency(totalWaste)}
-                                    </h2>
-                                )}
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-pink-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+
+                        <div className="relative p-3 flex flex-col h-full gap-2.5">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <span className="text-[10px] font-bold text-pink-600 uppercase tracking-widest">Mermas</span>
+                                </div>
+                                <div className="w-7 h-7 rounded-lg bg-pink-100 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
                             </div>
+
+                            {isLoadingKpi ? (
+                                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
+                            ) : (
+                                <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                                    {formatCurrency(totalWaste)}
+                                </h2>
+                            )}
+
                             {!isLoadingKpi && (
-                                <div className="border-t border-slate-50 pt-0.5 mt-auto flex justify-between items-center text-[8px] font-bold">
-                                    <span className="text-slate-400 uppercase tracking-tighter">% Inc.</span>
-                                    <span className={`px-1 py-0 rounded-sm ${totalSales > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-700'}`}>
+                                <div className="text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg flex justify-between">
+                                    <span className="text-gray-600">% de ventas</span>
+                                    <span className={`font-bold ${totalSales > 0 ? 'text-pink-600' : 'text-gray-600'}`}>
                                         {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
                                     </span>
                                 </div>
@@ -804,27 +853,47 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Total Cost vs Budget Card */}
-                <div 
+                <div
                     onClick={() => setIsTotalCostModalOpen(true)}
-                    className={`py-2 px-3 rounded-lg border transition-all duration-300 relative overflow-hidden group text-left cursor-pointer hover:-translate-y-1 bg-gradient-to-b from-indigo-50/80 to-white border-indigo-100 shadow-sm hover:shadow-md`}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${totalActualPercent <= totalBudgetPercent ? 'border-purple-400 shadow-lg shadow-purple-500/20 bg-gradient-to-br from-purple-50 to-purple-50/50' : 'border-orange-400 shadow-lg shadow-orange-500/20 bg-gradient-to-br from-orange-50 to-orange-50/50'}`}
                 >
-                    <div className="flex flex-col h-full justify-between relative z-10">
-                        <div>
-                            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block leading-none">Global</span>
-                            <h2 className="text-xl font-black tracking-tight text-slate-800 leading-none">
-                                {totalActualPercent.toFixed(1)}%
-                            </h2>
-                        </div>
-                        <div className="flex flex-col gap-0.5 border-t border-slate-50 pt-1 mt-1">
-                            <div className="flex justify-between items-center text-[8px] font-bold">
-                                <span className="text-slate-500">Meta</span>
-                                <span className="text-slate-700">{totalBudgetPercent.toFixed(1)}%</span>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${totalActualPercent <= totalBudgetPercent ? 'from-purple-500/5' : 'from-orange-500/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                    <div className={`absolute -right-8 -top-8 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500 ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-500/10' : 'bg-orange-500/10'}`}></div>
+
+                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>Análisis Global</span>
                             </div>
-                            <div className="flex justify-between items-center text-[8px] font-bold">
-                                <span className="text-slate-500">Estado</span>
-                                <span className={`px-1 py-0 rounded-sm font-black ${totalActualPercent <= totalBudgetPercent ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                                    {totalActualPercent <= totalBudgetPercent ? 'OK' : 'EXC'}
-                                </span>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-100' : 'bg-orange-100'}`}>
+                                <svg className={`w-4 h-4 ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                            {totalActualPercent.toFixed(1)}%
+                        </h2>
+
+                        <div className="space-y-3">
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[9px]">
+                                    <span className="text-gray-600 font-medium">Progreso vs meta</span>
+                                    <span className={`font-bold ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>
+                                        {totalActualPercent.toFixed(1)}% / {totalBudgetPercent.toFixed(1)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${totalActualPercent <= totalBudgetPercent ? 'bg-gradient-to-r from-purple-500 to-purple-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
+                                        style={{ width: `${Math.min((totalActualPercent / (totalBudgetPercent || 50)), 1) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                            <div className={`flex justify-between items-center text-[9px] font-semibold px-3 py-2 rounded-lg ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
+                                <span>{totalActualPercent <= totalBudgetPercent ? '✓ ÓPTIMO' : '⚠ EXCEDIDO'}</span>
+                                <span>{Math.abs(diffPercent).toFixed(1)}% {totalActualPercent > totalBudgetPercent ? 'sobre' : 'bajo'} meta</span>
                             </div>
                         </div>
                     </div>

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Trash2 } from 'lucide-react';
 import Button from './Button';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface BranchEmployeesModalProps {
     isOpen: boolean;
@@ -189,32 +191,46 @@ export default function BranchEmployeesModal({ isOpen, onClose, branchId, branch
                                 {t('noEmployees')}
                             </div>
                         ) : (
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('employee')}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('position')}</th>
-                                            <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <table className="w-full border-collapse">
+                                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                        <ThemedGridHeaderCell>
+                                            {t('employee')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            {t('position')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            Acciones
+                                        </ThemedGridHeaderCell>
+                                    </ThemedGridHeader>
+                                    <TableBody
+                                        loading={false}
+                                        empty={branchEmployees.length === 0}
+                                        emptyMessage="No hay empleados asignados."
+                                        colSpan={3}
+                                    >
                                         {branchEmployees.map((emp) => (
-                                            <tr key={emp.IdEmpleado} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{emp.Empleado}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-600">{emp.Puesto}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        onClick={() => handleDelete(emp.IdEmpleado)}
-                                                        className="text-lg hover:scale-125 transition-transform"
-                                                        title="Eliminar"
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                            <TableRow key={emp.IdEmpleado}>
+                                                <TableCell>
+                                                    <span className="font-medium text-gray-900">{emp.Empleado}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-gray-600">{emp.Puesto}</span>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <RowActionButton
+                                                            icon={Trash2}
+                                                            label="Eliminar"
+                                                            variant="delete"
+                                                            onClick={() => handleDelete(emp.IdEmpleado)}
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
+                                    </TableBody>
                                 </table>
                             </div>
                         )}

@@ -8,7 +8,7 @@ import Input from '@/components/Input';
 import QRCode from 'react-qr-code';
 import ExpenseImageCaptureModal from '@/components/ExpenseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Camera, X, Save, Plus, DollarSign, FileText } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -581,92 +581,75 @@ export default function ExpensesCapturePage() {
     const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (exp.Gasto || 0), 0);
 
     return (
-        <PageShell title="Captura de Gastos" icon={CreditCard}>
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
-                <div className="flex items-center gap-4">
-                    {/* OCR Capture Button */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-transparent mb-1">.</label>
-                        <button
-                            onClick={() => setIsOcrModalOpen(true)}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all font-bold shadow-md shadow-indigo-100 flex items-center gap-2 text-sm"
-                            title={t('captureByImage')}
-                        >
-                            📸 {t('captureByImage')}
-                        </button>
-                    </div>
-                    {/* Branch Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                        >
-                            {branches.length === 0 && <option>{t('noBranches')}</option>}
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+        <PageShell title="Captura de Gastos" icon={CreditCard} actions={<div className="flex items-center gap-3 flex-wrap">
+                    <Button
+                        onClick={() => setIsOcrModalOpen(true)}
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={Camera}
+                    >
+                        {t('captureByImage')}
+                    </Button>
 
-                    {/* Month Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{t(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                        {branches.length === 0 && <option>{t('noBranches')}</option>}
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
 
-                    {/* Year Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{t(`months.${i}`)}</option>
+                        ))}
+                    </select>
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
-                {/* Continuous Header */}
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                        {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                </div>}>
+
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Header sticky */}
                 <div
-                    className="grid grid-cols-7"
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
                         backgroundColor: colors.colorFondo1,
-                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
                     {weekDays.map(day => (
                         <div
                             key={day}
-                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                            className="text-center font-bold text-sm uppercase tracking-wider"
                         >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="p-4 bg-gray-50/30">
+                {/* Calendario expandido */}
+                <div className="p-4 bg-white">
                     <div className="grid grid-cols-7 gap-3">
                         {calendarDays.map((date, index) => {
                             if (!date) {
-                                return <div key={`empty-${index}`} className="aspect-square" />;
+                                return <div key={`empty-${index}`} />;
                             }
 
                             const dayNum = date.getDate();
@@ -679,40 +662,37 @@ export default function ExpensesCapturePage() {
                                     key={index}
                                     onClick={() => handleDayClick(date)}
                                     className={`
-                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-200
                                     flex flex-col justify-between group relative overflow-hidden
                                     ${isToday
-                                            ? 'bg-white border-2 border-red-400 shadow-red-100'
-                                            : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
+                                            ? 'bg-red-50 border-2 border-red-400 shadow-md hover:shadow-lg'
+                                            : hasExpenses
+                                            ? 'bg-red-50 border-2 border-red-300 shadow-sm hover:shadow-md'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
                                         }
-                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                    hover:scale-105 hover:-translate-y-1
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-red-600' : hasExpenses ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-red-600' : hasExpenses ? 'text-red-700' : 'text-gray-400'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-red-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
-                                                {t('today') || 'HOY'}
+                                            <span className="text-[7px] font-bold bg-red-500 text-white px-1 py-0.5 rounded-full animate-pulse">
+                                                HOY
                                             </span>
                                         )}
                                     </div>
                                     {hasExpenses && (
-                                        <div className="space-y-0.5 z-10">
-                                            <div className="text-sm font-black text-red-600 leading-tight">
+                                        <div className="flex flex-col gap-1 text-right">
+                                            <div className="text-sm font-black text-red-600">
                                                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, d) => sum + d.total, 0))}
                                             </div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                            <div className="text-[10px] text-gray-400 font-bold uppercase">
                                                 {details.length} {details.length === 1 ? 'Concepto' : 'Conceptos'}
                                             </div>
                                         </div>
                                     )}
-                                    {/* Decorative background element for hover */}
-                                    <div className={`
-                                    absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-red-600' : 'bg-blue-600'}
-                                `} />
                                 </div>
                             );
                         })}
@@ -722,52 +702,96 @@ export default function ExpensesCapturePage() {
 
             {/* Main Modal: Daily Expenses Header */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                        onClick={() => setIsModalOpen(false)}
+                    />
+
+                    {/* Panel */}
+                    <div
+                        className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl animate-in zoom-in-95 fade-in duration-200"
+                        style={{ maxHeight: '90vh' }}
+                    >
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <div>
-                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
-                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h2
+                                    className="text-[15px] font-semibold leading-tight"
+                                    style={{ color: colors.colorLetra }}
+                                >
+                                    {tModal('title')}
+                                </h2>
+                                <p
+                                    className="text-[12px] leading-tight"
+                                    style={{ color: colors.colorLetra, opacity: 0.8 }}
+                                >
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
                             </div>
+
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                                aria-label="Cerrar"
+                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                                style={{ color: colors.colorLetra }}
                             >
-                                ✕
+                                <X size={16} strokeWidth={2} />
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Gastos Totales</label>
-                                    <div className="text-xl font-black text-red-600">
+                        {/* Summary Cards */}
+                        <div className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Gastos Totales */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <DollarSign size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Gastos Totales</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-red-600">
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalExpenses)}
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">📄 Registros</label>
-                                    <div className="text-xl font-black text-gray-800">
+
+                                {/* Registros */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <FileText size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Registros</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">
                                         {dailyExpenses.length}
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {!isFormOpen && (
-                                <button
+                        {/* New Expense Button */}
+                        {!isFormOpen && (
+                            <div className="shrink-0 px-6 py-3 bg-gray-50/50 border-b border-gray-100">
+                                <Button
                                     onClick={handleNewExpense}
-                                    className="bg-red-500 text-white px-6 py-2.5 rounded-lg hover:bg-red-600 font-bold transition-all shadow-md active:scale-95 self-start flex items-center gap-2"
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={Plus}
+                                    iconBox
                                 >
-                                    📄 {tModal('new') || "Nuevo"}
-                                </button>
-                            )}
+                                    {tModal('new') || "Nuevo"}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Content: Form + Table */}
+                        <div className="flex-1 overflow-y-auto">
 
                             {/* Form */}
                             {isFormOpen && (
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-6 rounded-xl border border-red-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                                <form onSubmit={handleSubmit} className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                                 {/* Provider */}
                                 <div className="flex flex-col relative text-gray-800">
                                     <label className="text-xs font-bold text-red-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('provider')}</label>

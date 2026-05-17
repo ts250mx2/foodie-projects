@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useContext } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -405,106 +405,118 @@ export default function SalesCapturePage() {
             title={t('title')}
             icon={ShoppingCart}
             actions={
-                <>
-                    <select
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none"
-                    >
-                        {branches.length === 0 && <option>{t('noBranches')}</option>}
-                        {branches.map(branch => (
-                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                {branch.Sucursal}
-                            </option>
-                        ))}
-                    </select>
-                    <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none"
-                    >
-                        {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i} value={i}>{t(`months.${i}`)}</option>
-                        ))}
-                    </select>
-                    <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none"
-                    >
-                        {years.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                        ))}
-                    </select>
-                </>
+                <div className="flex gap-3 flex-wrap">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Sucursal</label>
+                        <select
+                            value={selectedBranch}
+                            onChange={(e) => setSelectedBranch(e.target.value)}
+                            className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            {branches.length === 0 && <option>{t('noBranches')}</option>}
+                            {branches.map(branch => (
+                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                    {branch.Sucursal}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Mes</label>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                            className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            {Array.from({ length: 12 }, (_, i) => (
+                                <option key={i} value={i}>{t(`months.${i}`)}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Año</label>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            {years.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             }
         >
             <div className="flex flex-col gap-4">
 
             {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col">
-                <div className="grid grid-cols-7 bg-primary-500 border-b border-primary-600">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                {/* Header */}
+                <div className="grid grid-cols-7 gap-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
+                        <div key={day} className="py-4 px-2 text-center text-xs font-bold uppercase tracking-wider">
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) {
-                            return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-300" />;
-                        }
+                {/* Calendar Grid */}
+                <div className="p-4 bg-gray-50">
+                    <div className="grid grid-cols-7 gap-2">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} className="aspect-square" />;
+                            }
 
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                            const dayNum = date.getDate();
+                            const details = monthlySalesDetails[dayNum];
+                            const hasSales = details && details.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
+                            const isInventoryDay = inventoryDaysDetails[dayNum]?.isMarkedInventoryDay;
 
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`
-                                    relative border-b border-r border-gray-300 p-2 transition-all hover:bg-primary-50 cursor-pointer group min-h-[120px] flex flex-col
-                                    ${isToday ? 'bg-primary-50/30' : ''}
-                                    ${inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay ? 'bg-emerald-50/20 ring-2 ring-emerald-500/30 ring-inset' : ''}
-                                `}
-                            >
-                                <div className="flex justify-between items-start">
-                                    <span className={`
-                                        text-sm font-medium
-                                        ${isToday ? 'bg-primary-500 text-white px-2 py-1 rounded-full' : isWeekend ? 'text-gray-400' : 'text-gray-700'}
-                                    `}>
-                                        {date.getDate()}
-                                    </span>
-                                </div>
-                                {inventoryDaysDetails[Number(date.getDate())]?.isMarkedInventoryDay && (
-                                    <div className="absolute top-2 right-2 z-50">
-                                        <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-1 rounded-full shadow-lg flex items-center gap-1 animate-bounce border border-white/30">
-                                            💳 <span>Captura de Ventas POS</span>
+                            return (
+                                <div
+                                    key={date.toISOString()}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`aspect-square rounded-lg p-2 cursor-pointer transition-all duration-200 flex flex-col justify-between
+                                        ${isToday ? 'bg-red-50 border-2 border-red-400 shadow-md' :
+                                          isInventoryDay ? 'bg-green-50 border-2 border-green-400 shadow-sm' :
+                                          hasSales ? 'bg-blue-50 border-2 border-blue-300 shadow-sm' :
+                                          'bg-white border-2 border-gray-200 shadow-sm'}
+                                        hover:shadow-lg hover:scale-105
+                                    `}
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <span className={`text-lg font-black
+                                            ${isToday ? 'text-red-600' :
+                                              isInventoryDay ? 'text-green-700' :
+                                              hasSales ? 'text-blue-700' :
+                                              'text-gray-400'}
+                                        `}>
+                                            {dayNum}
                                         </span>
+                                        {isToday && (
+                                            <span className="text-[8px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">HOY</span>
+                                        )}
+                                        {isInventoryDay && !isToday && (
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                        )}
                                     </div>
-                                )}
-                                {monthlySalesDetails[date.getDate()] && (
-                                    <>
-                                        <div className="mt-6 space-y-1 flex-1">
-                                            {monthlySalesDetails[date.getDate()].map((shift, idx) => (
-                                                <div key={idx} className="text-xs">
-                                                    <div className="font-medium text-gray-700">{shift.shiftName}</div>
-                                                    <div className="font-semibold text-green-600">${shift.total.toFixed(2)}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                            <div className="text-xs font-bold text-blue-700">
-                                                Total: ${monthlySalesDetails[date.getDate()].reduce((sum, shift) => sum + shift.total, 0).toFixed(2)}
+                                    {hasSales && (
+                                        <div className="space-y-0.5">
+                                            <div className="text-xs font-black text-green-700">
+                                                ${Math.round(details.reduce((sum, s) => sum + s.total, 0))}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase">
+                                                {details.length} turno{details.length !== 1 ? 's' : ''}
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 

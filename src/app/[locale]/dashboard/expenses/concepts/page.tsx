@@ -184,6 +184,7 @@ export default function ExpenseConceptsPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${concepts.length} conceptos registrados`}
             actions={
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <div className="relative w-full sm:w-64">
@@ -280,6 +281,15 @@ export default function ExpenseConceptsPage() {
                         </TableBody>
                     </table>
                 </div>
+
+                {/* Footer con conteo */}
+                {!isLoading && sortedAndFilteredConcepts.length > 0 && (
+                    <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-600 font-medium">
+                            {sortedAndFilteredConcepts.length} de {concepts.length} conceptos
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Edit/Create Modal */}

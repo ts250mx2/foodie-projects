@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Trash2, Plus, Clock } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface Shift {
     IdTurno: number;
@@ -106,7 +108,7 @@ export default function BranchShiftsModal({ isOpen, onClose, branchId, branchNam
                 {/* Form to add new shift */}
                 <form onSubmit={handleAddShift} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
                     <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        ➕ {t('addNew')}
+                        <Plus size={16} /> {t('addNew')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input
@@ -139,44 +141,52 @@ export default function BranchShiftsModal({ isOpen, onClose, branchId, branchNam
                 {/* Shifts List */}
                 <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        ⏰ {t('currentShifts')}
+                        <Clock size={16} /> {t('currentShifts')}
                     </h3>
-                    {isLoading ? (
-                        <div className="text-center py-4 text-gray-500 text-sm">{t('loading')}</div>
-                    ) : shifts.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500 text-sm italic">{t('noShifts')}</div>
-                    ) : (
-                        <div className="border border-gray-200 rounded-xl overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-4 py-3">{t('shift')}</th>
-                                        <th className="px-4 py-3">{t('hours')}</th>
-                                        <th className="px-4 py-3 text-right">{t('actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 text-gray-700">
-                                    {shifts.map((s) => (
-                                        <tr key={s.IdTurno} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 font-medium uppercase">{s.Turno}</td>
-                                            <td className="px-4 py-3 text-gray-500">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <table className="w-full border-collapse">
+                            <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                <ThemedGridHeaderCell>
+                                    {t('shift')}
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>
+                                    {t('hours')}
+                                </ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">
+                                    {t('actions')}
+                                </ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+                            <TableBody
+                                loading={isLoading}
+                                empty={shifts.length === 0}
+                                emptyMessage={t('noShifts') || 'No hay turnos registrados.'}
+                                colSpan={3}
+                            >
+                                {shifts.map((s) => (
+                                    <TableRow key={s.IdTurno}>
+                                        <TableCell>
+                                            <span className="font-medium text-gray-900 uppercase">{s.Turno}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-gray-600">
                                                 {s.HoraInicio?.substring(0, 5) || '--:--'} - {s.HoraFin?.substring(0, 5) || '--:--'}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <button
+                                            </span>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label={t('delete')}
+                                                    variant="delete"
                                                     onClick={() => handleDeleteShift(s.IdTurno)}
-                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-lg"
-                                                    title={t('delete')}
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                                />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </table>
+                    </div>
                 </div>
 
                 {!isTabMode && (

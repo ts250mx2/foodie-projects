@@ -136,6 +136,7 @@ export default function PaymentChannelsPage() {
     return (
         <PageShell
             title={t('title')}
+            subtitle={`${channels.length} canales de pago registrados`}
             icon={CreditCard}
             actions={
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -227,6 +228,15 @@ export default function PaymentChannelsPage() {
                             ))}
                         </TableBody>
                     </table>
+
+                    {/* Footer con conteo */}
+                    {!isLoading && sortedAndFilteredChannels.length > 0 && (
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-600 font-medium">
+                                {sortedAndFilteredChannels.length} de {channels.length} canales de pago
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

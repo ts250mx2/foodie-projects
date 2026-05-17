@@ -148,6 +148,7 @@ export default function DishesPage() {
     return (
         <PageShell
             title="Platillos Menu"
+            subtitle={`${dishes.length} platillos registrados`}
             actions={
                 <div className="flex gap-2 items-center flex-wrap">
                     <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg flex-1 min-w-[200px] max-w-xs">
@@ -355,6 +356,15 @@ export default function DishesPage() {
                             ))}
                         </tbody>
                     </table>
+
+                    {/* Footer con conteo */}
+                    {!isLoading && sortedAndFilteredDishes.length > 0 && (
+                        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-600 font-medium">
+                                {sortedAndFilteredDishes.length} de {dishes.length} platos
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

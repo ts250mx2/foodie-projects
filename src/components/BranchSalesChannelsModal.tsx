@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Pencil, Trash2 } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface BranchSalesChannelsModalProps {
     branchId: number;
@@ -153,53 +155,52 @@ export default function BranchSalesChannelsModal({ branchId, projectId, isTabMod
                 </form>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('channelName')}</th>
-                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">{t('commission')}</th>
-                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">{t('actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-10 text-center text-gray-500">
-                                    Cargando...
-                                </td>
-                            </tr>
-                        ) : channels.length === 0 ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-10 text-center text-gray-500">
-                                    No hay canales de venta registrados.
-                                </td>
-                            </tr>
-                        ) : (
-                            channels.map((channel) => (
-                                <tr key={channel.IdCanalVenta} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{channel.CanalVenta}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{channel.Comision}%</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="w-full border-collapse">
+                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                        <ThemedGridHeaderCell>
+                            {t('channelName')}
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell>
+                            {t('commission')}
+                        </ThemedGridHeaderCell>
+                        <ThemedGridHeaderCell align="right">
+                            {t('actions')}
+                        </ThemedGridHeaderCell>
+                    </ThemedGridHeader>
+                    <TableBody
+                        loading={isLoading}
+                        empty={channels.length === 0}
+                        emptyMessage="No hay canales de venta registrados."
+                        colSpan={3}
+                    >
+                        {channels.map((channel) => (
+                            <TableRow key={channel.IdCanalVenta}>
+                                <TableCell>
+                                    <span className="font-medium text-gray-900">{channel.CanalVenta}</span>
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-gray-600">{channel.Comision}%</span>
+                                </TableCell>
+                                <TableCell align="right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <RowActionButton
+                                            icon={Pencil}
+                                            label={t('editChannel')}
+                                            variant="edit"
                                             onClick={() => handleEdit(channel)}
-                                            className="text-lg mr-4 hover:scale-125 transition-transform"
-                                            title={t('editChannel')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
+                                        />
+                                        <RowActionButton
+                                            icon={Trash2}
+                                            label={t('deleteChannel')}
+                                            variant="delete"
                                             onClick={() => handleDelete(channel.IdCanalVenta)}
-                                            className="text-lg hover:scale-125 transition-transform"
-                                            title={t('deleteChannel')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
                 </table>
             </div>
         </div>

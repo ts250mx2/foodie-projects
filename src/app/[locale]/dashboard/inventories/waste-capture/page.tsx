@@ -7,7 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Trash2 } from 'lucide-react';
+import { Trash2, X, Save, Search, Download } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -253,238 +253,256 @@ export default function WasteCapturePage() {
     const selectedProduct = products.find(p => p.IdProducto === parseInt(selectedProductId));
 
     return (
-        <PageShell title={t('title')} icon={Trash2}>
-            {/* Header / Selectors */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none"
-                            style={{ '--tw-ring-color': colors.colorFondo1 } as any}
-                        >
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>{branch.Sucursal}</option>
-                            ))}
-                        </select>
-                    </div>
+        <PageShell title={t('title')} icon={Trash2} actions={<div className="flex items-center gap-3 flex-wrap">
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>{branch.Sucursal}</option>
+                        ))}
+                    </select>
 
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none"
-                            style={{ '--tw-ring-color': colors.colorFondo1 } as any}
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{t(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{t(`months.${i}`)}</option>
+                        ))}
+                    </select>
 
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 outline-none"
-                            style={{ '--tw-ring-color': colors.colorFondo1 } as any}
-                        >
-                            {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                </div>}>
 
             {/* Calendar */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col overflow-hidden">
-                <div className="grid grid-cols-7 border-b border-gray-200" style={{ backgroundColor: colors.colorFondo1 }}>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Header sticky */}
+                <div
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
+                    style={{
+                        backgroundColor: colors.colorFondo1,
+                        color: colors.colorLetra
+                    }}
+                >
                     {weekDays.map(day => (
-                        <div key={day} className="py-3 text-center text-xs font-bold text-white uppercase tracking-wider">
+                        <div
+                            key={day}
+                            className="text-center font-bold text-sm uppercase tracking-wider"
+                        >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 flex-1 auto-rows-[1fr]">
-                    {calendarDays.map((date, index) => {
-                        if (!date) return <div key={`empty-${index}`} className="bg-gray-50/50 border-b border-r border-gray-200" />;
+                {/* Calendario expandido */}
+                <div className="p-4 bg-white">
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((date, index) => {
+                            if (!date) {
+                                return <div key={`empty-${index}`} />;
+                            }
 
-                        const isToday = new Date().toDateString() === date.toDateString();
-                        const dayRecords = monthlyWasteSummary[date.getDate()] || [];
-                        const dayTotal = dayRecords.reduce((sum, rec) => sum + (rec.Cantidad * rec.Precio), 0);
+                            const dayNum = date.getDate();
+                            const dayRecords = monthlyWasteSummary[dayNum] || [];
+                            const hasWaste = dayRecords.length > 0;
+                            const isToday = new Date().toDateString() === date.toDateString();
+                            const dayTotal = dayRecords.reduce((sum, rec) => sum + (rec.Cantidad * rec.Precio), 0);
 
-                        return (
-                            <div
-                                key={date.toISOString()}
-                                onClick={() => handleDayClick(date)}
-                                className={`
-                                    relative border-b border-r border-gray-200 p-2 transition-all hover:bg-gray-50 cursor-pointer group min-h-[100px] flex flex-col
-                                    ${isToday ? 'bg-primary-50/20' : ''}
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleDayClick(date)}
+                                    className={`
+                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-200
+                                    flex flex-col justify-between group relative overflow-hidden
+                                    ${isToday
+                                            ? 'bg-red-50 border-2 border-red-400 shadow-md hover:shadow-lg'
+                                            : hasWaste
+                                            ? 'bg-orange-50 border-2 border-orange-300 shadow-sm hover:shadow-md'
+                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
+                                        }
+                                    hover:scale-105 hover:-translate-y-1
                                 `}
-                            >
-                                <span className={`
-                                    text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full
-                                    ${isToday ? 'bg-primary-500 text-white' : 'text-gray-700'}
-                                `}>
-                                    {date.getDate()}
-                                </span>
-                                
-                                {dayRecords.length > 0 && (
-                                    <div className="mt-2 flex flex-col gap-1">
-                                        <div className="text-[10px] text-gray-400 font-bold uppercase truncate">
-                                            {dayRecords.length} {t('items')}
-                                        </div>
-                                        <div className="text-xs font-black text-red-600">
-                                            ${dayTotal.toFixed(2)}
-                                        </div>
+                                >
+                                    <div className="flex justify-between items-start z-10">
+                                        <span className={`text-xl font-black
+                                            ${isToday ? 'text-red-600' : hasWaste ? 'text-orange-700' : 'text-gray-400'}
+                                        `}>
+                                            {dayNum}
+                                        </span>
+                                        {isToday && (
+                                            <span className="text-[7px] font-bold bg-red-500 text-white px-1 py-0.5 rounded-full animate-pulse">
+                                                HOY
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
+
+                                    {hasWaste && (
+                                        <div className="flex flex-col gap-1 text-right">
+                                            <div className="text-[10px] text-gray-400 font-bold uppercase">
+                                                {dayRecords.length} items
+                                            </div>
+                                            <div className="text-sm font-black text-orange-600">
+                                                ${dayTotal.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+                    <div className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl" style={{ maxHeight: '90vh' }}>
                         {/* Modal Header */}
-                        <div className="px-6 pt-4 pb-0 text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {t('modalTitle')}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-4 leading-tight">
-                                        📅 {selectedDate.toLocaleDateString()}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col min-w-0">
+                                <h2 className="text-[15px] font-semibold" style={{ color: colors.colorLetra }}>
+                                    {t('modalTitle')}
+                                </h2>
+                                <p className="text-[12px] opacity-80 mt-1" style={{ color: colors.colorLetra }}>
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="flex-shrink-0 rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                                style={{ color: colors.colorLetra }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Sub-header with search and actions */}
+                        <div className="shrink-0 px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+                            <div className="relative flex-1 min-w-[200px]">
+                                <Search size={14} className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+                                <input
+                                    type="text"
+                                    placeholder={t('searchProduct')}
+                                    className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
+                                    value={selectedProduct ? selectedProduct.Producto : searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        if (selectedProduct) setSelectedProductId('');
+                                    }}
+                                />
                             </div>
                         </div>
 
                         {/* Modal Content */}
-                        <div className="p-6 flex flex-col gap-6 overflow-hidden flex-1">
+                        <div className="flex-1 overflow-y-auto flex flex-col p-6 gap-6">
                             {/* Capture Form */}
-                            <form onSubmit={saveWaste} className="flex flex-col md:flex-row gap-4 bg-gray-50 p-6 rounded-2xl items-end border border-gray-100">
-                                <div className="flex-1 space-y-2 relative">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('product')}</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder={t('searchProduct')}
-                                            className="w-full p-3 border rounded-xl text-sm font-bold focus:ring-2 outline-none transition-all placeholder:font-medium"
-                                            value={selectedProduct ? selectedProduct.Producto : searchTerm}
-                                            onChange={(e) => {
-                                                setSearchTerm(e.target.value);
-                                                if (selectedProduct) setSelectedProductId('');
-                                            }}
-                                            style={{ '--tw-ring-color': colors.colorFondo1 } as any}
-                                        />
-                                        {!selectedProductId && searchTerm && filteredProducts.length > 0 && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden divide-y divide-gray-50">
-                                                {filteredProducts.map(p => (
-                                                    <div
-                                                        key={p.IdProducto}
-                                                        onClick={() => {
-                                                            setSelectedProductId(p.IdProducto.toString());
-                                                            setSearchTerm('');
-                                                        }}
-                                                        className="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 transition-colors group"
-                                                    >
-                                                        {p.ArchivoImagen ? (
-                                                            <img src={p.ArchivoImagen} alt={p.Producto} className="w-10 h-10 rounded-lg object-cover shadow-sm flex-shrink-0" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-base flex-shrink-0">📦</div>
-                                                        )}
-                                                        <div className="flex-1 overflow-hidden">
-                                                            <div className="text-sm font-black text-gray-700 group-hover:text-red-600 transition-colors truncate">{p.Producto}</div>
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="text-[10px] font-bold text-gray-400 uppercase">{p.UnidadMedidaInventario}</div>
-                                                                {p.Categoria && (
-                                                                    <div className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-md text-gray-500 font-bold">
-                                                                        {p.ImagenCategoria} {p.Categoria}
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                            <form onSubmit={saveWaste} className="flex flex-col md:flex-row gap-4 bg-gray-50/50 border border-gray-100 rounded-xl p-5 items-end">
+                                <div className="flex-1 relative">
+                                    {!selectedProductId && searchTerm && filteredProducts.length > 0 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden divide-y divide-gray-50">
+                                            {filteredProducts.map(p => (
+                                                <div
+                                                    key={p.IdProducto}
+                                                    onClick={() => {
+                                                        setSelectedProductId(p.IdProducto.toString());
+                                                        setSearchTerm('');
+                                                    }}
+                                                    className="p-3 hover:bg-gray-50 cursor-pointer flex items-center gap-3 transition-colors group"
+                                                >
+                                                    {p.ArchivoImagen ? (
+                                                        <img src={p.ArchivoImagen} alt={p.Producto} className="w-10 h-10 rounded-lg object-cover shadow-sm flex-shrink-0" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-base flex-shrink-0">📦</div>
+                                                    )}
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <div className="text-sm font-black text-gray-700 group-hover:text-red-600 transition-colors truncate">{p.Producto}</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="text-[10px] font-bold text-gray-400 uppercase">{p.UnidadMedidaInventario}</div>
+                                                            {p.Categoria && (
+                                                                <div className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-md text-gray-500 font-bold">
+                                                                    {p.ImagenCategoria} {p.Categoria}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 
-                                <div className="w-full md:w-auto space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t('quantity')}</label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            className="w-32 p-3 border rounded-xl text-sm font-black focus:ring-2 outline-none transition-all"
-                                            value={quantity}
-                                            onChange={(e) => setQuantity(e.target.value)}
-                                            required
-                                            style={{ '--tw-ring-color': colors.colorFondo1 } as any}
-                                        />
-                                        {selectedProduct && (
-                                            <span className="text-[10px] font-black text-gray-500 uppercase bg-primary-100/50 px-2 py-1 rounded-lg border border-primary-200 min-w-[40px] text-center">
-                                                {selectedProduct.UnidadMedidaInventario}
-                                            </span>
-                                        )}
-                                    </div>
+                                <div className="flex items-end gap-2">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="Cantidad"
+                                        className="w-24 h-9 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 text-center"
+                                        value={quantity}
+                                        onChange={(e) => setQuantity(e.target.value)}
+                                        required
+                                    />
+                                    {selectedProduct && (
+                                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
+                                            {selectedProduct.UnidadMedidaInventario}
+                                        </span>
+                                    )}
                                 </div>
 
-                                <Button type="submit" disabled={!selectedProductId} className="px-8 py-3 h-12 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all">
+                                <Button type="submit" disabled={!selectedProductId} size="sm">
                                     {t('save')}
                                 </Button>
                             </form>
 
                             {/* Current Waste Grid */}
-                            <div className="flex-1 overflow-auto border border-gray-100 rounded-2xl shadow-inner bg-white">
-                                <table className="min-w-full divide-y divide-gray-100">
-                                    <ThemedGridHeader>
-                                        <ThemedGridHeaderCell>{t('product')}</ThemedGridHeaderCell>
-                                        <ThemedGridHeaderCell className="text-center">{t('quantity')}</ThemedGridHeaderCell>
-                                        <ThemedGridHeaderCell className="text-center">{t('unit')}</ThemedGridHeaderCell>
-                                        <ThemedGridHeaderCell className="text-right">{t('price')}</ThemedGridHeaderCell>
-                                        <ThemedGridHeaderCell className="text-right">{t('total')}</ThemedGridHeaderCell>
-                                        <th className="px-6 py-3 text-center w-20"> </th>
-                                    </ThemedGridHeader>
+                            <div className="flex-1 overflow-auto border border-gray-100 rounded-xl bg-white">
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr className="border-b border-gray-200">
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('product')}</th>
+                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('quantity')}</th>
+                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('unit')}</th>
+                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('price')}</th>
+                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('total')}</th>
+                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
+                                        </tr>
+                                    </thead>
                                     <tbody className="divide-y divide-gray-50">
                                         {wasteRecords.filter(r => r.Dia === selectedDate.getDate()).length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-20 text-center text-gray-400 font-bold italic">
+                                                <td colSpan={6} className="px-5 py-20 text-center text-gray-400 font-bold italic">
                                                     {t('noRecords')}
                                                 </td>
                                             </tr>
                                         ) : (
                                             wasteRecords.filter(r => r.Dia === selectedDate.getDate()).map((record, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
-                                                    <td className="px-6 py-4 text-sm font-bold text-gray-700">{record.Producto}</td>
-                                                    <td className="px-6 py-4 text-center text-sm font-black text-gray-900">{record.Cantidad}</td>
-                                                    <td className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase">{record.UnidadMedidaInventario}</td>
-                                                    <td className="px-6 py-4 text-right text-sm font-bold text-gray-500">${record.Precio.toFixed(2)}</td>
-                                                    <td className="px-6 py-4 text-right text-sm font-black text-red-600">${(record.Cantidad * record.Precio).toFixed(2)}</td>
-                                                    <td className="px-6 py-4 text-center">
+                                                <tr key={idx} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
+                                                    <td className="px-5 py-3 text-sm font-medium text-gray-900">{record.Producto}</td>
+                                                    <td className="px-5 py-3 text-center text-sm text-gray-900">{record.Cantidad}</td>
+                                                    <td className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{record.UnidadMedidaInventario}</td>
+                                                    <td className="px-5 py-3 text-right text-sm text-gray-600">${record.Precio.toFixed(2)}</td>
+                                                    <td className="px-5 py-3 text-right text-sm font-medium text-red-600">${(record.Cantidad * record.Precio).toFixed(2)}</td>
+                                                    <td className="px-5 py-3 text-center">
                                                         <button
                                                             onClick={() => deleteWaste(record.IdProducto)}
-                                                            className="text-gray-200 hover:text-red-500 transition-colors p-2"
-                                                        >🗑️</button>
+                                                            className="p-1 hover:bg-red-50 text-red-600 rounded transition-colors"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))
@@ -492,15 +510,18 @@ export default function WasteCapturePage() {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
 
-                            <div className="flex justify-end pt-4 gap-3">
-                                <button
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-8 py-3 bg-gray-100 text-gray-500 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-gray-200 transition-all active:scale-95"
-                                >
-                                    {t('close')}
-                                </button>
-                            </div>
+                        {/* Footer */}
+                        <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2.5">
+                            <Button
+                                onClick={() => setIsModalOpen(false)}
+                                variant="secondary"
+                                size="md"
+                                leftIcon={X}
+                            >
+                                {t('close')}
+                            </Button>
                         </div>
                     </div>
                 </div>

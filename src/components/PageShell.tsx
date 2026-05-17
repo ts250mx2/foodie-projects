@@ -74,10 +74,10 @@ export default function PageShell({
                     <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
                             {ResolvedIcon && (
-                                <ResolvedIcon 
-                                    size={18} 
+                                <ResolvedIcon
+                                    size={18}
                                     className="shrink-0"
-                                    style={{ color: colors.colorFondo1 }} 
+                                    style={{ color: colors.colorFondo1 }}
                                 />
                             )}
                             <h1 className="text-[17px] font-semibold text-gray-900 leading-tight tracking-[-0.01em] truncate">
