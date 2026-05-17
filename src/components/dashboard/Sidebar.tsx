@@ -197,23 +197,23 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
     return (
         <aside
-            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar border-r`}
+            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar`}
             style={{ 
-                backgroundColor: '#f8fafc',
-                borderColor: '#e2e8f0'
+                backgroundColor: colors.colorFondo1,
+                borderRight: '1px solid rgba(255, 255, 255, 0.08)'
             }}
         >
             <nav className="p-3 flex flex-col gap-1">
                 {/* Buscador */}
                 {!isCollapsed && (
                     <div className="relative mb-2">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
                         <input
                             type="text"
                             placeholder="Buscar módulo..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-350 focus:bg-slate-50 transition-all placeholder:text-slate-400 text-slate-700"
+                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/12 border border-white/10 text-white placeholder:text-white/50 focus:bg-white/18 focus:ring-2 focus:ring-white/20 focus:outline-none transition-all"
                         />
                     </div>
                 )}
@@ -224,25 +224,21 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                     title={isCollapsed ? t('dashboard') : ''}
                     className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
                         ${pathname === `/${locale}/dashboard`
-                            ? 'bg-slate-200/60 font-semibold text-slate-900 shadow-sm'
-                            : 'hover:bg-slate-100 font-medium text-slate-600 hover:text-slate-900'
+                            ? 'bg-white font-semibold shadow-md'
+                            : 'hover:bg-white/10 font-medium text-white/80 hover:text-white'
                         }
                         ${isCollapsed ? 'justify-center' : ''}
                     `}
+                    style={{
+                        color: pathname === `/${locale}/dashboard` ? colors.colorFondo1 : '#ffffff',
+                    }}
                 >
-                    {pathname === `/${locale}/dashboard` && (
-                        <div 
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r" 
-                            style={{ backgroundColor: colors.colorFondo1 }} 
-                            id="active-indicator-dashboard"
-                        />
-                    )}
-                    <span className="text-[17px] shrink-0 leading-none">📊</span>
+                    <LayoutDashboard size={18} className="shrink-0" />
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
                 {/* Divisor */}
-                <div className="border-t border-slate-200 my-1" />
+                <div className="border-t border-white/10 my-1" />
 
                 {/* Secciones */}
                 {filteredSections.map(section => {
@@ -262,17 +258,14 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                     }
                                 }}
                                 title={isCollapsed ? t(section.title) : ''}
-                                className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-slate-650 hover:text-slate-900 hover:bg-slate-100
-                                    ${hasActiveChild && !isOpen ? 'bg-slate-200/50 font-semibold text-slate-900 shadow-sm' : 'font-medium'}
+                                className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-white/85 hover:text-white hover:bg-white/10
+                                    ${hasActiveChild && !isOpen ? 'bg-white/18 font-semibold text-white' : 'font-medium'}
                                     ${isCollapsed ? 'justify-center' : 'justify-between'}
                                   `}
+                                style={{ color: '#ffffff' }}
                             >
                                 <div className="flex items-center gap-3">
-                                    {section.emoji ? (
-                                        <span className="text-[17px] shrink-0 leading-none">{section.emoji}</span>
-                                    ) : (
-                                        <SectionIcon size={18} className="shrink-0" />
-                                    )}
+                                    <SectionIcon size={18} className="shrink-0" />
                                     {!isCollapsed && (
                                         <span className="text-sm font-medium">{t(section.title)}</span>
                                     )}
@@ -290,7 +283,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 <div
                                     className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
                                 >
-                                    <ul className="mt-0.5 ml-3 pl-4 border-l border-slate-200 flex flex-col gap-0.5 py-1">
+                                    <ul className="mt-0.5 ml-3 pl-4 border-l border-white/15 flex flex-col gap-0.5 py-1">
                                         {section.items.map(item => {
                                             const ItemIcon = item.icon;
                                             const isActive = pathname === `/${locale}${item.href}`;
@@ -300,23 +293,15 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                         href={`/${locale}${item.href}`}
                                                         className={`relative flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-150
                                                             ${isActive
-                                                                ? 'bg-slate-200/60 font-semibold text-slate-900 shadow-sm'
-                                                                : 'hover:bg-slate-100 text-slate-650 hover:text-slate-900 font-medium'
+                                                                ? 'bg-white font-semibold shadow-md'
+                                                                : 'hover:bg-white/10 text-white/80 hover:text-white font-medium'
                                                             }
                                                         `}
+                                                        style={{
+                                                            color: isActive ? colors.colorFondo1 : '#ffffff',
+                                                        }}
                                                     >
-                                                        {isActive && (
-                                                            <div 
-                                                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" 
-                                                                style={{ backgroundColor: colors.colorFondo1 }} 
-                                                                id={`active-indicator-${item.key}`}
-                                                            />
-                                                        )}
-                                                        {item.emoji ? (
-                                                            <span className="text-sm shrink-0 leading-none">{item.emoji}</span>
-                                                        ) : (
-                                                            <ItemIcon size={14} className="shrink-0" />
-                                                        )}
+                                                        <ItemIcon size={14} className="shrink-0" />
                                                         <span>{t(item.key)}</span>
                                                     </Link>
                                                 </li>

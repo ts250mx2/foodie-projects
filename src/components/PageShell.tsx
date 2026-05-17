@@ -2,53 +2,58 @@
 
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
+import { 
+    FolderOpen, Rocket, MapPin, UserCheck, Receipt, TrendingUp,
+    Store, Calculator, Tag, ClipboardList, Scale, Trash2,
+    Truck, FileText, PenLine, Lightbulb as LightbulbIcon, Scissors,
+    CalendarDays, Banknote, Book, UtensilsCrossed, Flame, Zap,
+    Camera, Files
+} from 'lucide-react';
 
 interface PageShellProps {
     title: string;
     subtitle?: string;
     icon?: React.ElementType;
-    emoji?: string;
     actions?: React.ReactNode;
     children: React.ReactNode;
     className?: string;
     noPadding?: boolean;
 }
 
-const getEmojiByTitle = (title: string): string => {
+const getIconByTitle = (title: string): React.ElementType | null => {
     const lowerTitle = title.toLowerCase().trim();
     
-    if (lowerTitle.includes('subreceta')) return '📖';
-    if (lowerTitle.includes('platillo') || lowerTitle.includes('dish')) return '🍲';
-    if (lowerTitle.includes('recetario') || lowerTitle.includes('categoría recetario')) return '📖';
-    if (lowerTitle.includes('sucursal') || lowerTitle.includes('branch')) return '📍';
-    if (lowerTitle.includes('proveedor') || lowerTitle.includes('supplier')) return '🚚';
-    if (lowerTitle.includes('orden') || lowerTitle.includes('compra') || lowerTitle.includes('purchase')) return '📄';
-    if (lowerTitle.includes('producto') || lowerTitle.includes('product')) return '🏷️';
-    if (lowerTitle.includes('máximos') || lowerTitle.includes('mínimos') || lowerTitle.includes('min-max') || lowerTitle.includes('escala')) return '⚖️';
-    if (lowerTitle.includes('carga inicial') || lowerTitle.includes('initial load')) return '🚀';
-    if (lowerTitle.includes('canal') || lowerTitle.includes('channel')) return '🏪';
-    if (lowerTitle.includes('pago') || lowerTitle.includes('terminal') || lowerTitle.includes('payment')) return '💳';
-    if (lowerTitle.includes('nómina') || lowerTitle.includes('payroll')) return '💵';
-    if (lowerTitle.includes('horario') || lowerTitle.includes('schedule')) return '📅';
-    if (lowerTitle.includes('turno') || lowerTitle.includes('shift')) return '🕒';
-    if (lowerTitle.includes('gasto') || lowerTitle.includes('expense')) return '💸';
-    if (lowerTitle.includes('impuesto') || lowerTitle.includes('tax')) return '🧾';
-    if (lowerTitle.includes('empleado') || lowerTitle.includes('employee')) return '🧑‍💼';
-    if (lowerTitle.includes('módulo') || lowerTitle.includes('proyecto') || lowerTitle.includes('project')) return '📁';
-    if (lowerTitle.includes('punto de equilibrio') || lowerTitle.includes('break even')) return '📈';
-    if (lowerTitle.includes('merma') || lowerTitle.includes('waste')) return '🗑️';
-    if (lowerTitle.includes('presentación') || lowerTitle.includes('presentation')) return '📦';
-    if (lowerTitle.includes('categoría') || lowerTitle.includes('category')) return '🏷️';
-    if (lowerTitle.includes('ocr') || lowerTitle.includes('recibo') || lowerTitle.includes('documento ocr') || lowerTitle.includes('receipt')) return '📸';
+    if (lowerTitle.includes('subreceta')) return Book;
+    if (lowerTitle.includes('platillo') || lowerTitle.includes('dish')) return UtensilsCrossed;
+    if (lowerTitle.includes('recetario') || lowerTitle.includes('categoría recetario')) return Book;
+    if (lowerTitle.includes('sucursal') || lowerTitle.includes('branch')) return MapPin;
+    if (lowerTitle.includes('proveedor') || lowerTitle.includes('supplier')) return Truck;
+    if (lowerTitle.includes('orden') || lowerTitle.includes('compra') || lowerTitle.includes('purchase')) return FileText;
+    if (lowerTitle.includes('producto') || lowerTitle.includes('product')) return Tag;
+    if (lowerTitle.includes('máximos') || lowerTitle.includes('mínimos') || lowerTitle.includes('min-max') || lowerTitle.includes('escala')) return Scale;
+    if (lowerTitle.includes('carga inicial') || lowerTitle.includes('initial load')) return Rocket;
+    if (lowerTitle.includes('canal') || lowerTitle.includes('channel')) return Store;
+    if (lowerTitle.includes('pago') || lowerTitle.includes('terminal') || lowerTitle.includes('payment')) return Receipt;
+    if (lowerTitle.includes('nómina') || lowerTitle.includes('payroll')) return Banknote;
+    if (lowerTitle.includes('horario') || lowerTitle.includes('schedule')) return CalendarDays;
+    if (lowerTitle.includes('turno') || lowerTitle.includes('shift')) return CalendarDays;
+    if (lowerTitle.includes('gasto') || lowerTitle.includes('expense')) return Receipt;
+    if (lowerTitle.includes('impuesto') || lowerTitle.includes('tax')) return Receipt;
+    if (lowerTitle.includes('empleado') || lowerTitle.includes('employee')) return UserCheck;
+    if (lowerTitle.includes('módulo') || lowerTitle.includes('proyecto') || lowerTitle.includes('project')) return FolderOpen;
+    if (lowerTitle.includes('punto de equilibrio') || lowerTitle.includes('break even')) return TrendingUp;
+    if (lowerTitle.includes('merma') || lowerTitle.includes('waste')) return Trash2;
+    if (lowerTitle.includes('presentación') || lowerTitle.includes('presentation')) return Tag;
+    if (lowerTitle.includes('categoría') || lowerTitle.includes('category')) return Tag;
+    if (lowerTitle.includes('ocr') || lowerTitle.includes('recibo') || lowerTitle.includes('documento ocr') || lowerTitle.includes('receipt')) return Camera;
 
-    return '';
+    return null;
 };
 
 export default function PageShell({
     title,
     subtitle,
     icon: Icon,
-    emoji,
     actions,
     children,
     className = '',
@@ -56,7 +61,7 @@ export default function PageShell({
 }: PageShellProps) {
     const { colors } = useTheme();
 
-    const resolvedEmoji = emoji || getEmojiByTitle(title);
+    const ResolvedIcon = Icon || getIconByTitle(title);
 
     return (
         <div className="flex flex-col min-h-full">
@@ -64,21 +69,17 @@ export default function PageShell({
             {/* ── Page header (Floating Card) ─────────────────────────── */}
             <div className="shrink-0 bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
 
-                {/* Left: emoji/icon + title + subtitle */}
+                {/* Left: icon + title + subtitle */}
                 <div className="flex items-center gap-3.5 min-w-0">
                     <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
-                            {resolvedEmoji ? (
-                                <span className="text-[20px] shrink-0 leading-none mr-1" role="img" aria-label={title}>
-                                    {resolvedEmoji}
-                                </span>
-                            ) : Icon ? (
-                                <Icon 
+                            {ResolvedIcon && (
+                                <ResolvedIcon 
                                     size={18} 
                                     className="shrink-0"
                                     style={{ color: colors.colorFondo1 }} 
                                 />
-                            ) : null}
+                            )}
                             <h1 className="text-[17px] font-semibold text-gray-900 leading-tight tracking-[-0.01em] truncate">
                                 {title}
                             </h1>
