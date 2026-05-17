@@ -95,8 +95,8 @@ export default function AddMaterialModal({
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = searchTerm === '' ||
-            p.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.Codigo.toLowerCase().includes(searchTerm.toLowerCase());
+            (p.Producto || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.Codigo || '').toLowerCase().includes(searchTerm.toLowerCase());
 
         return matchesSearch;
     });

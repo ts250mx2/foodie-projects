@@ -8,6 +8,7 @@ import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridH
 import CostingModal from '@/components/CostingModal';
 import MassiveProductUpload from '@/components/MassiveProductUpload';
 import ProductImageCaptureModal from '@/components/ProductImageCaptureModal';
+import PageShell from '@/components/PageShell';
 
 interface Product {
     IdProducto: number;
@@ -344,8 +345,8 @@ export default function ProductsPage() {
 
     const filteredProducts = products.filter(p =>
         p.IdProducto !== selectedProduct?.IdProducto &&
-        (p.Producto.toLowerCase().includes(productSearch.toLowerCase()) ||
-            p.Codigo.toLowerCase().includes(productSearch.toLowerCase()))
+        ((p.Producto || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+            (p.Codigo || '').toLowerCase().includes(productSearch.toLowerCase()))
     );
 
     const sortedAndFilteredProducts = products
@@ -399,10 +400,10 @@ export default function ProductsPage() {
 
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <div className="flex gap-2">
+        <PageShell
+            title={t('title')}
+            actions={
+                <div className="flex gap-2 flex-wrap">
                     <Button
                         onClick={() => setShowRecentOnly(!showRecentOnly)}
                         variant={showRecentOnly ? 'primary' : 'secondary'}
@@ -411,22 +412,10 @@ export default function ProductsPage() {
                     >
                         {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
                     </Button>
-                    <Button
-                        onClick={() => {
-                            setIsMassiveModalOpen(true);
-                        }}
-                        variant="primary"
-                        className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2"
-                    >
+                    <Button onClick={() => setIsMassiveModalOpen(true)} variant="primary" className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2">
                         📊 Carga por Excel
                     </Button>
-                    <Button
-                        onClick={() => {
-                            setIsProductImageCaptureModalOpen(true);
-                        }}
-                        variant="primary"
-                        className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2"
-                    >
+                    <Button onClick={() => setIsProductImageCaptureModalOpen(true)} variant="primary" className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2">
                         📸 Carga por Imagen
                     </Button>
                     <Button
@@ -441,7 +430,6 @@ export default function ProductsPage() {
                                 'IVA (%)': p.IVA,
                                 'Estatus': p.Status === 0 ? 'Activo' : 'Inactivo'
                             }));
-
                             const worksheet = XLSX.utils.json_to_sheet(dataToExport);
                             const workbook = XLSX.utils.book_new();
                             XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
@@ -451,24 +439,17 @@ export default function ProductsPage() {
                     >
                         📤 Exportar Excel
                     </Button>
-                    <Button onClick={() => {
-                        setEditingProduct(null);
-                        setSelectedProductForCosting(null);
-                        setIsModalOpen(true);
-                    }}>
+                    <Button onClick={() => { setEditingProduct(null); setSelectedProductForCosting(null); setIsModalOpen(true); }}>
                         {t('addProduct')}
                     </Button>
                     {selectedIds.length > 0 && (
-                        <Button
-                            onClick={() => setIsBulkDeleteModalOpen(true)}
-                            variant="primary"
-                            className="bg-red-600 hover:bg-red-700 flex items-center gap-2 animate-in fade-in slide-in-from-right-2"
-                        >
+                        <Button onClick={() => setIsBulkDeleteModalOpen(true)} variant="primary" className="bg-red-600 hover:bg-red-700 flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
                             🗑️ Eliminar ({selectedIds.length})
                         </Button>
                     )}
                 </div>
-            </div>
+            }
+        >
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 {/* ... table content remains same ... */}
@@ -774,6 +755,6 @@ export default function ProductsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

@@ -31,8 +31,8 @@ export default function ProductSearchModal({
 
     const filteredProducts = products.filter(p =>
         searchTerm === '' ||
-        p.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.Codigo.toLowerCase().includes(searchTerm.toLowerCase())
+        (p.Producto || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.Codigo || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (!isOpen) return null;

@@ -123,8 +123,8 @@ export default function ProductGrid({ productType, pageTitle }: ProductGridProps
     const sortedAndFilteredProducts = products
         .filter(product =>
             searchTerm === '' ||
-            product.Producto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.Codigo.toLowerCase().includes(searchTerm.toLowerCase())
+            (product.Producto || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (product.Codigo || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
         .sort((a, b) => {
             if (!sortConfig) return 0;
