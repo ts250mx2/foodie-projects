@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Tag, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Tag, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
+import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
 
 interface RecipeCategory {
@@ -51,8 +52,7 @@ export default function RecipeCategoriesPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         try {
             const url = editingCategory
                 ? '/api/production/recipe-categories' // PUT uses body id
@@ -165,122 +165,103 @@ export default function RecipeCategoriesPage() {
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
-                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
-                        <ThemedGridHeader>
+                    <table className="min-w-full border-collapse">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
                             <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'CategoriaRecetario' ? sortConfig.direction : null}
                                 onClick={() => handleSort('CategoriaRecetario')}
                             >
-                                <div className="flex items-center gap-1">
-                                    {t('moduleName')}
-                                    {sortConfig?.key === 'CategoriaRecetario' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
+                                {t('moduleName')}
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>
                                 {t('active')}
                             </ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell className="text-right">
+                            <ThemedGridHeaderCell align="right">
                                 {t('actions')}
                             </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <TableBody
+                            loading={false}
+                            empty={sortedAndFilteredCategories.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay módulos. Agrega el primero.'}
+                            colSpan={3}
+                        >
                             {sortedAndFilteredCategories.map((category) => (
-                                <tr key={category.IdCategoriaRecetario} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {category.CategoriaRecetario}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${category.Status === 1
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {category.Status === 1 ? t('active') : 'Inactive'}
+                                <TableRow key={category.IdCategoriaRecetario}>
+                                    <TableCell>
+                                        <span className="font-medium text-gray-900">{category.CategoriaRecetario}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`badge ${category.Status === 1 ? 'badge-green' : 'badge-red'}`}>
+                                            {category.Status === 1 ? t('active') : 'Inactivo'}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editCategory')}
+                                                variant="edit"
                                                 onClick={() => openEditModal(category)}
-                                                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                                                title={t('editCategory')}
-                                            >
-                                                <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
-                                            </button>
-                                            <button
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteCategory')}
+                                                variant="delete"
                                                 onClick={() => openDeleteModal(category)}
-                                                className="p-1.5 hover:bg-red-50 rounded transition-colors"
-                                                title={t('deleteCategory')}
-                                            >
-                                                <Trash2 size={18} className="text-red-600 hover:text-red-900" />
-                                            </button>
+                                            />
                                         </div>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingCategory ? t('editModule') : t('addModule')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('moduleName')}
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                required
-                            />
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                    title="Cancel"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingCategory ? t('editModule') : t('addModule')}
+                subtitle={editingCategory ? `Editando: ${editingCategory.CategoriaRecetario}` : 'Completa la información del módulo'}
+                size="lg"
+                onConfirm={handleSubmit}
+                confirmLabel={t('save')}
+                cancelLabel={t('cancel')}
+                headerVariant="primary"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label={t('moduleName')}
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        required
+                    />
                 </div>
-            )}
+            </BaseModal>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteModule')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                title="Cancel"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                                title={t('deleteModule')}
-                            >
-                                {t('deleteModule')}
-                            </button>
-                        </div>
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar módulo"
+                size="sm"
+                onConfirm={handleDelete}
+                confirmLabel="Sí, eliminar"
+                cancelLabel={t('cancel')}
+            >
+                <div className="flex flex-col items-center gap-4 py-2 text-center">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <AlertTriangle size={24} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">¿Eliminar {editingCategory?.CategoriaRecetario}?</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('confirmDelete')}</p>
                     </div>
                 </div>
-            )}
+            </BaseModal>
         </PageShell>
     );
 }
