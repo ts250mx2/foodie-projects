@@ -420,6 +420,7 @@
     },
     "Products": {
         "title": "Administración de Productos",
+        "search": "Buscar",
         "massiveProductUpload": "Carga Masiva Productos",
         "productName": "Producto",
         "code": "Código",

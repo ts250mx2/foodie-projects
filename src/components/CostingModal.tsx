@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { Settings, TrendingUp, FileText, AlertCircle, Image, X } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
@@ -1416,38 +1417,31 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                         <button
                             onClick={handleClose}
-                            className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
+                            className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0 transition-colors"
                         >
-                            ✕
+                            <X size={24} />
                         </button>
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex gap-2 mt-6 overflow-x-auto relative px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <div className="flex gap-0 mt-6 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {[
-                            { id: 'general', label: '⚙️ Configuración General', show: true },
-                            { id: 'costing', label: '💰 Costeo', show: product.IdProducto !== 0 && productType !== 0 },
-                            { id: 'instructions', label: '📝 Instrucciones', show: product.IdProducto !== 0 },
-                            { id: 'documents', label: '⚠️ Observaciones', show: product.IdProducto !== 0 },
-                            { id: 'photo', label: '🖼️ Foto', show: product.IdProducto !== 0 }
+                            { id: 'general', icon: Settings, label: 'Configuración General', show: true },
+                            { id: 'costing', icon: TrendingUp, label: 'Costeo', show: product.IdProducto !== 0 && productType !== 0 },
+                            { id: 'instructions', icon: FileText, label: 'Instrucciones', show: product.IdProducto !== 0 },
+                            { id: 'documents', icon: AlertCircle, label: 'Observaciones', show: product.IdProducto !== 0 },
+                            { id: 'photo', icon: Image, label: 'Foto', show: product.IdProducto !== 0 }
                         ].filter(t => t.show).map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-5 py-3 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
-                                    ? 'bg-white text-gray-900 text-base font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.1)]'
-                                    : 'bg-white/10 text-sm font-normal hover:bg-white/20 hover:-translate-y-1'
+                                className={`px-4 py-2.5 flex items-center gap-1.5 border-b-2 text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
+                                    ? 'border-blue-500 text-blue-600 font-semibold'
+                                    : 'border-transparent text-gray-600 hover:text-gray-800'
                                     }`}
-                                style={
-                                    activeTab === tab.id
-                                        ? {}
-                                        : { color: colors.colorLetra }
-                                }
                             >
+                                <tab.icon size={18} />
                                 {tab.label}
-                                {activeTab === tab.id && (
-                                    <div className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-white z-40"></div>
-                                )}
                             </button>
                         ))}
                     </div>

@@ -58,11 +58,12 @@ interface KitItem {
     Presentacion: string;
 }
 
-function productInitials(name: string) {
+function productInitials(name?: string | null) {
+    if (!name) return '??';
     return name
         .split(' ')
         .slice(0, 2)
-        .map((w) => w[0])
+        .map((w) => w[0] || '')
         .join('')
         .toUpperCase();
 }
@@ -553,22 +554,27 @@ export default function ProductsPage() {
                                 {t('actions')}
                             </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <TableBody
+                            loading={isLoading}
+                            empty={!isLoading && sortedAndFilteredProducts.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'No se encontraron productos.'}
+                            colSpan={showRecentOnly ? 7 : 6}
+                        >
                             {sortedAndFilteredProducts.map((product) => (
-                                <tr key={product.IdProducto} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product.IdProducto) ? 'bg-indigo-50/30' : ''}`}>
+                                <TableRow key={product.IdProducto} selected={selectedIds.includes(product.IdProducto)}>
                                     {showRecentOnly && (
-                                        <td className="px-6 py-4">
+                                        <TableCell>
                                             <input 
                                                 type="checkbox" 
                                                 checked={selectedIds.includes(product.IdProducto)}
                                                 onChange={() => toggleSelectProduct(product.IdProducto)}
                                                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                             />
-                                        </td>
+                                        </TableCell>
                                     )}
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
                                                 {product.ArchivoImagen ? (
                                                     <img
                                                         src={product.ArchivoImagen}
@@ -581,13 +587,13 @@ export default function ProductsPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <span>{product.Producto}</span>
+                                            <span className="font-medium text-gray-900">{product.Producto}</span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell muted>
                                         {product.Codigo}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell muted>
                                         <span className="flex items-center gap-1">
                                             {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
                                             {product.Categoria}
@@ -597,34 +603,35 @@ export default function ProductsPage() {
                                                 </sup>
                                             ) : null}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                    </TableCell>
+                                    <TableCell muted align="right">
                                         ${(product.Precio || 0).toFixed(2)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell muted>
                                         {product.FechaAct ? new Date(product.FechaAct).toLocaleString(undefined, {
                                             year: 'numeric', month: '2-digit', day: '2-digit',
                                             hour: '2-digit', minute: '2-digit'
                                         }) : '---'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex items-center justify-end gap-2">
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
                                             <RowActionButton
                                                 icon={Pencil}
                                                 onClick={() => openEditModal(product)}
-                                                title={t('editProduct')}
+                                                label={t('editProduct')}
+                                                variant="edit"
                                             />
                                             <RowActionButton
                                                 icon={Trash2}
                                                 onClick={() => openDeleteModal(product)}
-                                                title={t('deleteProduct')}
-                                                isDanger
+                                                label={t('deleteProduct')}
+                                                variant="delete"
                                             />
                                         </div>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
             </div>

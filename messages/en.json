@@ -394,6 +394,7 @@
     },
     "Products": {
         "title": "Products Management",
+        "search": "Search",
         "massiveProductUpload": "Bulk Product Upload",
         "productName": "Product",
         "code": "Code",
