@@ -695,7 +695,7 @@ export default function BreakEvenPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                                 {fixedExpenses.map((exp, idx) => (
                                     <div key={idx} className="flex items-end gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 group hover:border-gray-300 transition-all">
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[10px] font-bold text-gray-600 uppercase mb-1 block">Concepto</label>
                                             <input
                                                 ref={el => { expenseInputsRef.current[idx] = el }}
@@ -707,11 +707,11 @@ export default function BreakEvenPage() {
                                                 className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded text-xs font-bold text-gray-900 outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400/20"
                                             />
                                         </div>
-                                        <div className="w-20">
+                                        <div className="w-40 flex-shrink-0">
                                             <label className="text-[10px] font-bold text-gray-600 uppercase mb-1 block">Monto</label>
                                             <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} onBlur={flushSave} />
                                         </div>
-                                        <button onClick={() => handleDeleteExpense(idx)} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100">
+                                        <button onClick={() => handleDeleteExpense(idx)} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100 flex-shrink-0">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
