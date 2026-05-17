@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Smartphone } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Smartphone } from 'lucide-react';
 
 interface Platform {
     IdPlataforma: number;
@@ -140,11 +140,17 @@ export default function PlatformsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Smartphone} actions={<Button onClick={() => {
-                    setEditingPlatform(null);
-                    setFormData({ platform: '', commission: '', order: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Smartphone} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingPlatform(null);
+                        setFormData({ platform: '', commission: '', order: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addPlatform')}
                 </Button>}>
 

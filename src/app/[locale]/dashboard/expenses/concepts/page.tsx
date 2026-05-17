@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Settings } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -185,16 +186,16 @@ export default function ExpenseConceptsPage() {
             title={t('title')}
             actions={
                 <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setIsPaymentChannelsModalOpen(true)}>
+                    <Button variant="secondary" leftIcon={Settings} iconBox onClick={() => setIsPaymentChannelsModalOpen(true)} size="sm">
                         Canales de Pago
                     </Button>
-                    <Button onClick={() => {
+                    <Button variant="solid" leftIcon={Plus} iconBox onClick={() => {
                         setEditingConcept(null);
                         setFormData({ concept: '', requiredReference: false, paymentChannelId: '' });
                         setPaymentChannelSearch('');
                         setSelectedPaymentChannel(null);
                         setIsModalOpen(true);
-                    }}>
+                    }} size="sm">
                         {t('addConcept')}
                     </Button>
                 </div>

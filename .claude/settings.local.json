@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Find-ChildItem -Path \"src\\\\app\\\\[locale]\\\\dashboard\" -Name \"page.tsx\" -Recurse)",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(xargs grep -l \"Button\\\\|<button\")",
+      "Bash(cd \"/c/Users/Ruben/Documents/Antigravity Projects/foodie-projects\" && grep -n \"isModalOpen &&\" \"src/app/\\\\[locale\\\\]/dashboard/inventories/products/page.tsx\" | head -3)",
+      "Read(//c/c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/**)"
     ]
   }
 }

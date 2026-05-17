@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Store } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Store } from 'lucide-react';
 
 interface Channel {
     IdCanalVenta: number;
@@ -169,11 +169,17 @@ export default function SalesChannelsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Store} actions={<Button onClick={() => {
-                    setEditingChannel(null);
-                    setFormData({ channel: '', commission: '', order: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Store} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingChannel(null);
+                        setFormData({ channel: '', commission: '', order: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addChannel')}
                 </Button>}>
 

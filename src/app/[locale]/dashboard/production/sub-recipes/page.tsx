@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, BookOpen } from 'lucide-react';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
 import PageShell from '@/components/PageShell';
-import { BookOpen } from 'lucide-react';
 
 interface SubRecipe {
     IdProducto: number;
@@ -141,7 +141,7 @@ export default function SubRecipesPage() {
     }
 
     return (
-        <PageShell title="Subrecetas" icon={BookOpen} actions={<Button onClick={handleOpenAddModal}>Agregar Subreceta</Button>}>
+        <PageShell title="Subrecetas" icon={BookOpen} actions={<Button variant="solid" leftIcon={Plus} iconBox size="sm" onClick={handleOpenAddModal}>Agregar Subreceta</Button>}>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>

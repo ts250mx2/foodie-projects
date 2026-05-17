@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, FolderOpen } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { FolderOpen } from 'lucide-react';
 
 interface Category {
     IdCategoria: number;
@@ -135,11 +135,17 @@ export default function CategoriesPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={FolderOpen} actions={<Button onClick={() => {
-                    setEditingCategory(null);
-                    setFormData({ category: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={FolderOpen} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingCategory(null);
+                        setFormData({ category: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addCategory')}
                 </Button>}>
 

@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Monitor } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Monitor } from 'lucide-react';
 
 interface Terminal {
     IdTerminal: number;
@@ -137,11 +137,17 @@ export default function TerminalsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Monitor} actions={<Button onClick={() => {
-                    setEditingTerminal(null);
-                    setFormData({ terminal: '', commission: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Monitor} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingTerminal(null);
+                        setFormData({ terminal: '', commission: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addTerminal')}
                 </Button>}>
 

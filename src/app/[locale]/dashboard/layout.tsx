@@ -51,7 +51,7 @@ export default function DashboardLayout({
                     <Sidebar isCollapsed={isCollapsed} onExpand={() => setIsCollapsed(false)} />
 
                     {/* Main Content Area */}
-                    <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} p-8 transition-all duration-300`}>
+                    <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} px-8 pt-4 pb-8 transition-all duration-300`}>
                         {children}
                     </main>
                 </div>

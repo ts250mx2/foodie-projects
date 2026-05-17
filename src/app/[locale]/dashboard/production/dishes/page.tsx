@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Settings } from 'lucide-react';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
@@ -150,12 +151,15 @@ export default function DishesPage() {
             actions={
                 <div className="flex gap-2">
                     <Button
+                        variant="secondary"
+                        leftIcon={Settings}
+                        iconBox
+                        size="sm"
                         onClick={() => setIsMenuSectionsModalOpen(true)}
-                        className="bg-primary-100 !text-primary-700 hover:bg-primary-200 border border-primary-200"
                     >
                         Secciones de Menú
                     </Button>
-                    <Button onClick={handleOpenAddModal}>Agregar Platillo</Button>
+                    <Button variant="solid" leftIcon={Plus} iconBox size="sm" onClick={handleOpenAddModal}>Agregar Platillo</Button>
                 </div>
             }
         >

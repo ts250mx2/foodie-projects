@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Package } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Package } from 'lucide-react';
 
 interface Presentation {
     IdPresentacion: number;
@@ -134,11 +134,17 @@ export default function PresentationsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Package} actions={<Button onClick={() => {
-                    setEditingPresentation(null);
-                    setFormData({ presentation: '' });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Package} actions={<Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={() => {
+                        setEditingPresentation(null);
+                        setFormData({ presentation: '' });
+                        setIsModalOpen(true);
+                    }}
+                >
                     {t('addPresentation')}
                 </Button>}>
 
