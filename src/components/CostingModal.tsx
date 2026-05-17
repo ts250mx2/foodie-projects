@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Settings, TrendingUp, FileText, AlertCircle, Image, X } from 'lucide-react';
+import { Settings, TrendingUp, FileText, AlertCircle, Image, X, FileBarChart, Check, Ban, Plus } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
@@ -1328,14 +1328,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     if (!isOpen) return null;
 
     return (
-        <div className={`fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 ${isOpen ? '' : 'hidden'} ${zIndexClass}`}>
-            <div className="bg-white w-[70vw] h-[85vh] rounded-lg shadow-lg flex flex-col overflow-hidden">
-                {/* Header with Info Boxes */}
-                <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                    <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
+        <div className={`fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] ${isOpen ? '' : 'hidden'} ${zIndexClass}`}>
+            <div className="bg-white w-[70vw] h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+                {/* Compact Header */}
+                <div className="px-5 py-3" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                             {/* Product Type Label */}
-                            <div className="flex items-center gap-2 mb-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                                 <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                                     {productType === 0 ? 'Materia Prima' :
                                         productType === 2 ? 'Subreceta' : 'Receta/Platillo'}
@@ -1347,32 +1347,28 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 )}
                             </div>
 
-                            {/* Product Name (Big) */}
-                            <h1 className="text-3xl font-black mb-0 leading-tight" >
+                            {/* Product Name (Compact) */}
+                            <h1 className="text-lg font-bold leading-tight truncate">
                                 {product.Producto || 'Nuevo Producto'}
                             </h1>
-
-
                         </div>
 
                         {/* Info Boxes - Only show in Costing Tab and NOT for Sub-recipes */}
                         {
                             activeTab === 'costing' && productType !== 2 && (
-                                <div className="flex gap-3">
+                                <div className="flex gap-2">
                                     {/* % Impuesto */}
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
-                                        <h3 className="text-xs font-bold mb-1">% {t('iva')}</h3>
-                                        <p className="text-[10px] opacity-90">{t('iva')}: {parseFloat(formData.iva) || 0}%</p>
-                                        <p className="text-lg font-bold">
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-md px-2.5 py-1.5 min-w-[110px]">
+                                        <h3 className="text-[10px] font-semibold opacity-80">% {t('iva')} ({parseFloat(formData.iva) || 0}%)</h3>
+                                        <p className="text-sm font-bold leading-tight">
                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 0) * ((parseFloat(formData.iva) || 0) / 100))}
                                         </p>
                                     </div>
 
                                     {/* % Costo Precio con IVA */}
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
-                                        <h3 className="text-xs font-bold mb-1">% Costo/Precio</h3>
-                                        <p className="text-[10px] opacity-90">con {t('iva')}</p>
-                                        <p className="text-lg font-bold">
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-md px-2.5 py-1.5 min-w-[110px]">
+                                        <h3 className="text-[10px] font-semibold opacity-80">% Costo c/{t('iva')}</h3>
+                                        <p className="text-sm font-bold leading-tight">
                                             {(() => {
                                                 const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
                                                 return price > 0 ? ((totalCost / price) * 100).toFixed(2) : '0.00';
@@ -1381,23 +1377,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
 
                                     {/* % Costo Neto / Precio (Sin IVA) */}
-                                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 min-w-[140px]">
-                                        <h3 className="text-xs font-bold mb-1">% Costo/Precio</h3>
-                                        <p className="text-[10px] opacity-90">sin {t('iva')}</p>
-                                        <p className="text-lg font-bold">
+                                    <div className="bg-white/10 backdrop-blur-sm rounded-md px-2.5 py-1.5 min-w-[110px]">
+                                        <h3 className="text-[10px] font-semibold opacity-80">% Costo s/{t('iva')}</h3>
+                                        <p className="text-sm font-bold leading-tight">
                                             {(() => {
                                                 const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
                                                 const iva = parseFloat(formData.iva) || 0;
-                                                // The user logic for "calculated without VAT" implies we want to see the cost against the net price?
-                                                // The previous code was: totalCost / (product.Precio - (product.Precio * (product.IVA / 100)))
-                                                // Wait, price - price*iva/100 is NOT price without Tax if price includes tax?
-                                                // Usually "Precio" is the menu price.
-                                                // If menu price includes tax, then Net Price = Price / (1 + Tax/100).
-                                                // If menu price excludes tax, then Price is Net Price.
-                                                // The previous code `product.Precio - (product.Precio * (product.IVA / 100))` implies Price is Gross, and we are subtracting Tax.
-                                                // Warning: X - X*0.16 is X*0.84. But X / 1.16 is X*0.86.
-                                                // Let's stick to the previous formula logic for now but use dynamic values.
-                                                // Previous: product.Precio - (product.Precio * (product.IVA / 100))
                                                 const netPrice = price - (price * (iva / 100));
                                                 return netPrice > 0 ? ((totalCost / netPrice) * 100).toFixed(2) : '0.00';
                                             })()}%
@@ -1409,48 +1394,59 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                         <button
                             onClick={handleGenerateTechnicalSheet}
-                            className="bg-white/20 hover:bg-white/30 text-white rounded-lg px-3 py-2 flex items-center gap-2 transition-colors flex-shrink-0"
+                            className="bg-white/15 hover:bg-white/25 rounded-md px-2.5 py-1.5 flex items-center gap-1.5 transition-colors flex-shrink-0 text-xs font-medium"
                             title="Generar Ficha Técnica"
                         >
-                            📋 <span className="hidden sm:inline">Ficha Técnica</span>
+                            <FileBarChart size={14} />
+                            <span className="hidden sm:inline">Ficha Técnica</span>
                         </button>
 
                         <button
                             onClick={handleClose}
-                            className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0 transition-colors"
+                            className="hover:bg-white/20 rounded-lg p-1.5 flex-shrink-0 transition-colors"
+                            aria-label="Cerrar"
                         >
-                            <X size={24} />
+                            <X size={18} />
                         </button>
                     </div>
+                </div>
 
-                    {/* Tabs */}
-                    <div className="flex gap-0 mt-6 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {/* Tabs Bar - Light background with prominent active state */}
+                <div className="bg-gray-50 border-b border-gray-200 px-3">
+                    <div className="flex gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {[
                             { id: 'general', icon: Settings, label: 'Configuración General', show: true },
                             { id: 'costing', icon: TrendingUp, label: 'Costeo', show: product.IdProducto !== 0 && productType !== 0 },
                             { id: 'instructions', icon: FileText, label: 'Instrucciones', show: product.IdProducto !== 0 },
                             { id: 'documents', icon: AlertCircle, label: 'Observaciones', show: product.IdProducto !== 0 },
                             { id: 'photo', icon: Image, label: 'Foto', show: product.IdProducto !== 0 }
-                        ].filter(t => t.show).map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-4 py-2.5 flex items-center gap-1.5 border-b-2 text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                    ? 'border-blue-500 text-blue-600 font-semibold'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                                    }`}
-                            >
-                                <tab.icon size={18} />
-                                {tab.label}
-                            </button>
-                        ))}
+                        ].filter(t => t.show).map(tab => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={`relative px-4 py-2.5 flex items-center gap-2 text-sm transition-all whitespace-nowrap rounded-t-lg ${isActive
+                                        ? 'bg-white text-gray-900 font-semibold shadow-[0_-2px_8px_rgba(0,0,0,0.06)] -mb-px border border-b-0 border-gray-200'
+                                        : 'text-gray-500 hover:text-gray-800 hover:bg-white/60 font-medium'
+                                        }`}
+                                    style={isActive ? {
+                                        borderBottom: `3px solid ${colors.colorFondo1}`,
+                                        marginBottom: '-1px',
+                                    } : {}}
+                                >
+                                    <tab.icon size={16} style={isActive ? { color: colors.colorFondo1 } : {}} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto flex flex-col p-6 z-20 relative bg-white border-t border-gray-200" >
+                <div className="flex-1 overflow-y-auto flex flex-col p-4 z-20 relative bg-white" >
                     {activeTab === 'general' && (
-                        <form onSubmit={handleSaveGeneral} className="max-w-4xl mx-auto w-full space-y-3">
+                        <form onSubmit={handleSaveGeneral} className="max-w-5xl mx-auto w-full space-y-2.5">
                             {/* Row 1: Nombre y Código */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="flex flex-col gap-1 md:col-span-2">
@@ -1651,8 +1647,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         if (e.key === 'Escape') setIsCreatingMenuSection(false);
                                                                     }}
                                                                 />
-                                                                <button type="button" onClick={handleCreateMenuSection} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
-                                                                <button type="button" onClick={() => setIsCreatingMenuSection(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
+                                                                <button type="button" onClick={handleCreateMenuSection} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full flex items-center justify-center"><Check size={16} /></button>
+                                                                <button type="button" onClick={() => setIsCreatingMenuSection(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full flex items-center justify-center"><X size={16} /></button>
                                                             </div>
                                                         ) : (
                                                             <select
@@ -1734,8 +1730,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                             if (e.key === 'Escape') setIsCreatingPresentation(false);
                                                                         }}
                                                                     />
-                                                                    <button type="button" onClick={handleCreatePresentation} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full">💾</button>
-                                                                    <button type="button" onClick={() => setIsCreatingPresentation(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full">✕</button>
+                                                                    <button type="button" onClick={handleCreatePresentation} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 h-full flex items-center justify-center"><Check size={16} /></button>
+                                                                    <button type="button" onClick={() => setIsCreatingPresentation(false)} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 h-full flex items-center justify-center"><X size={16} /></button>
                                                                 </div>
                                                             ) : (
                                                                 <select
@@ -2217,9 +2213,27 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                 </div>
                             )}
 
-                            <div className="flex justify-end pt-4">
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving ? 'Guardando...' : '💾 Guardar Cambios'}
+                            <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-gray-100">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="md"
+                                    leftIcon={Ban}
+                                    iconBox
+                                    onClick={handleClose}
+                                    disabled={isSaving}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="solid"
+                                    size="md"
+                                    leftIcon={Check}
+                                    iconBox
+                                    isLoading={isSaving}
+                                >
+                                    Guardar
                                 </Button>
                             </div>
                         </form>
@@ -2571,12 +2585,30 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         )}
                                     </div>
 
-                                    <div className="flex justify-end pt-4">
-                                        <Button onClick={() => setIsAddModalOpen(true)} className="mr-auto bg-gray-500 hover:bg-gray-600">
+                                    <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-gray-100">
+                                        <Button onClick={() => setIsAddModalOpen(true)} variant="secondary" size="md" className="mr-auto">
                                             Buscar Referencia
                                         </Button>
-                                        <Button onClick={handleSaveGeneral} disabled={isSaving}>
-                                            {isSaving ? 'Guardando...' : '💾 Guardar Costeo'}
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="md"
+                                            leftIcon={Ban}
+                                            iconBox
+                                            onClick={handleClose}
+                                            disabled={isSaving}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            variant="solid"
+                                            size="md"
+                                            leftIcon={Check}
+                                            iconBox
+                                            onClick={handleSaveGeneral}
+                                            isLoading={isSaving}
+                                        >
+                                            Guardar Costeo
                                         </Button>
                                     </div>
                                 </div>
@@ -2637,20 +2669,40 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                                                 {/* Action Row */}
                                                 <div className="flex justify-between items-center border-t border-gray-100 pt-4">
-                                                    <Button onClick={async () => {
-                                                        await handleSaveAll();
-                                                        setIsAddModalOpen(true);
-                                                    }}>
-                                                        ➕ Agregar Producto
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="md"
+                                                        leftIcon={Plus}
+                                                        iconBox
+                                                        onClick={async () => {
+                                                            await handleSaveAll();
+                                                            setIsAddModalOpen(true);
+                                                        }}
+                                                    >
+                                                        Agregar Producto
                                                     </Button>
 
-                                                    <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2.5">
                                                         <Button
-                                                            onClick={handleSaveAll}
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="md"
+                                                            leftIcon={Ban}
+                                                            iconBox
+                                                            onClick={handleClose}
                                                             disabled={isSaving}
-                                                            className="bg-green-600"
                                                         >
-                                                            {isSaving ? 'Guardando...' : '💾 Guardar Todo'}
+                                                            Cancelar
+                                                        </Button>
+                                                        <Button
+                                                            variant="solid"
+                                                            size="md"
+                                                            leftIcon={Check}
+                                                            iconBox
+                                                            onClick={handleSaveAll}
+                                                            isLoading={isSaving}
+                                                        >
+                                                            Guardar Todo
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -2659,11 +2711,17 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <div className="flex justify-between items-center flex-wrap gap-2">
                                                 <div className="flex items-center gap-2">
 
-                                                    <Button onClick={async () => {
-                                                        await handleSaveAll();
-                                                        setIsAddModalOpen(true);
-                                                    }}>
-                                                        ➕ Agregar Producto
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="md"
+                                                        leftIcon={Plus}
+                                                        iconBox
+                                                        onClick={async () => {
+                                                            await handleSaveAll();
+                                                            setIsAddModalOpen(true);
+                                                        }}
+                                                    >
+                                                        Agregar Producto
                                                     </Button>
                                                     {productType === 1 && (
                                                         <div className="flex flex-col ml-4">
@@ -2724,11 +2782,25 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         Costo Total: <span className="text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCost)}</span>
                                                     </div>
                                                     <Button
-                                                        onClick={handleSaveAll}
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="md"
+                                                        leftIcon={Ban}
+                                                        iconBox
+                                                        onClick={handleClose}
                                                         disabled={isSaving}
-                                                        className="bg-green-600"
                                                     >
-                                                        {isSaving ? 'Guardando...' : '💾 Guardar Todo'}
+                                                        Cancelar
+                                                    </Button>
+                                                    <Button
+                                                        variant="solid"
+                                                        size="md"
+                                                        leftIcon={Check}
+                                                        iconBox
+                                                        onClick={handleSaveAll}
+                                                        isLoading={isSaving}
+                                                    >
+                                                        Guardar Todo
                                                     </Button>
                                                 </div>
                                             </div>
