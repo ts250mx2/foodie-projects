@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
+import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
-import { FileText } from 'lucide-react';
+import { FileText, Plus, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 
 interface DocumentType {
     IdTipoDocumento: number;
@@ -51,8 +52,7 @@ export default function DocumentTypesPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         try {
             const url = editingDocumentType
                 ? `/api/document-types/${editingDocumentType.IdTipoDocumento}`
@@ -134,135 +134,144 @@ export default function DocumentTypesPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={FileText} actions={<Button onClick={() => {
-                    setEditingDocumentType(null);
-                    setFormData({ documentType: '' });
-                    setIsModalOpen(true);
-                }}>
-                    {t('addDocumentType')}
-                </Button>}>
+        <PageShell
+            title={t('title')}
+            icon={FileText}
+            actions={
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                        <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ color: '#9ca3af' }}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Buscar tipo de documento…"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border bg-white focus:outline-none transition-all placeholder:text-gray-400 text-gray-700"
+                            style={{
+                                borderColor: '#e5e7eb',
+                            }}
+                        />
+                    </div>
+                    <Button
+                        onClick={() => {
+                            setEditingDocumentType(null);
+                            setFormData({ documentType: '' });
+                            setIsModalOpen(true);
+                        }}
+                        variant="solid"
+                        leftIcon={Plus}
+                        iconBox
+                        size="sm"
+                    >
+                        {t('addDocumentType')}
+                    </Button>
+                </div>
+            }
+        >
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-100 table-row-hover">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('TipoDocumento')}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full border-collapse">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                            <ThemedGridHeaderCell
+                                sortable
+                                sortDir={sortConfig?.key === 'TipoDocumento' ? sortConfig.direction : null}
+                                onClick={() => handleSort('TipoDocumento')}
+                            >
+                                {t('documentTypeName')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('active')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <TableBody
+                            loading={false}
+                            empty={sortedAndFilteredDocumentTypes.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay tipos de documento. Agrega el primero.'}
+                            colSpan={3}
                         >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('documentTypeName')}
-                                    {sortConfig?.key === 'TipoDocumento' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredDocumentTypes.map((docType) => (
-                            <tr key={docType.IdTipoDocumento} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {docType.TipoDocumento}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${docType.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {docType.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(docType)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editDocumentType')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(docType)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteDocumentType')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            {sortedAndFilteredDocumentTypes.map((docType) => (
+                                <TableRow key={docType.IdTipoDocumento}>
+                                    <TableCell>
+                                        <span className="font-medium text-gray-900">{docType.TipoDocumento}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`badge ${docType.Status === 0 ? 'badge-green' : 'badge-red'}`}>
+                                            {docType.Status === 0 ? t('active') : 'Inactivo'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editDocumentType')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(docType)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteDocumentType')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(docType)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </table>
+                </div>
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingDocumentType ? t('editDocumentType') : t('addDocumentType')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('documentTypeName')}
-                                value={formData.documentType}
-                                onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-                                required
-                            />
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingDocumentType ? t('editDocumentType') : t('addDocumentType')}
+                subtitle={editingDocumentType ? `Editando: ${editingDocumentType.TipoDocumento}` : 'Completa la información del tipo de documento'}
+                size="lg"
+                onConfirm={handleSubmit}
+                confirmLabel={t('save')}
+                cancelLabel={t('cancel')}
+                headerVariant="primary"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label={t('documentTypeName')}
+                        value={formData.documentType}
+                        onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
+                        required
+                    />
                 </div>
-            )}
+            </BaseModal>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteDocumentType')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                {t('deleteDocumentType')}
-                            </button>
-                        </div>
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar tipo de documento"
+                size="sm"
+                onConfirm={handleDelete}
+                confirmLabel="Sí, eliminar"
+                cancelLabel={t('cancel')}
+            >
+                <div className="flex flex-col items-center gap-4 py-2 text-center">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <AlertTriangle size={24} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">¿Eliminar {editingDocumentType?.TipoDocumento}?</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('confirmDelete')}</p>
                     </div>
                 </div>
-            )}
+            </BaseModal>
         </PageShell>
     );
 }
