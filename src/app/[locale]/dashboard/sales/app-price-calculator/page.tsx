@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageShell from '@/components/PageShell';
-import { Calculator } from 'lucide-react';
+import { Calculator, FileText, ArrowDown, Settings as SettingsIcon, BarChart3, Search } from 'lucide-react';
 
 type AppResult = {
     priceWithoutIva: number;
@@ -262,7 +262,7 @@ export default function AppPriceCalculatorPage() {
                     onClick={exportToPDF}
                     className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg font-bold shadow transition-all active:scale-95 text-xs border border-white/30"
                 >
-                    <span>📄</span> Exportar PDF
+                    <FileText size={16} /> Exportar PDF
                 </button>}>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -271,7 +271,7 @@ export default function AppPriceCalculatorPage() {
                     className="lg:col-span-3 bg-white/40 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl text-black"
                 >
                     <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                        <span>📥</span> {t('inputs')}
+                        <ArrowDown size={20} /> {t('inputs')}
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -302,7 +302,7 @@ export default function AppPriceCalculatorPage() {
                                     className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-black font-bold text-lg pr-10"
                                 />
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-40 pointer-events-none">
-                                    🔍
+                                    <Search size={18} />
                                 </div>
                             </div>
 
@@ -415,7 +415,7 @@ export default function AppPriceCalculatorPage() {
                     className="lg:col-span-3 bg-white/40 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl text-black"
                 >
                     <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                        <span>⚙️</span> {t('calculations')}
+                        <SettingsIcon size={20} /> {t('calculations')}
                     </h2>
                     
                     <div className="overflow-x-auto">
@@ -466,7 +466,7 @@ export default function AppPriceCalculatorPage() {
                 <div className="lg:col-span-3">
                     <h2 className="text-2xl font-bold mb-8 text-center flex flex-col items-center justify-center gap-3 text-black">
                         <div className="flex items-center gap-3">
-                            <span className="text-3xl">📊</span> {t('summary')}
+                            <BarChart3 size={28} /> {t('summary')}
                         </div>
                         {productName && (
                             <span className="text-blue-800 text-lg opacity-80 mt-1 uppercase tracking-widest">{productName}</span>

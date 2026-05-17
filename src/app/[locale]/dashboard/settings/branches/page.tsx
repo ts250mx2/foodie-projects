@@ -7,7 +7,7 @@ import Input from '@/components/Input';
 import BranchEditModal from '@/components/BranchEditModal';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { MapPin } from 'lucide-react';
+import { MapPin, Search, Pencil, Trash2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -206,14 +206,17 @@ export default function BranchesPage() {
                                             <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                         )}
                                     </div>
-                                    <input
-                                        type="text"
-                                        placeholder="🔍 Filter..."
-                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
+                                    <div className="mt-1 flex items-center gap-1.5 px-2 py-1 border border-gray-300 rounded bg-white">
+                                        <Search size={14} className="text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter..."
+                                            className="flex-1 text-xs border-0 outline-none bg-transparent text-gray-700"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
                                 </div>
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>
@@ -250,20 +253,22 @@ export default function BranchesPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => openEditModal(branch)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title={t('editBranch')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(branch)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title={t('deleteBranch')}
-                                        >
-                                            🗑️
-                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => openEditModal(branch)}
+                                                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                                                title={t('editBranch')}
+                                            >
+                                                <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
+                                            </button>
+                                            <button
+                                                onClick={() => openDeleteModal(branch)}
+                                                className="p-1.5 hover:bg-red-50 rounded transition-colors"
+                                                title={t('deleteBranch')}
+                                            >
+                                                <Trash2 size={18} className="text-red-600 hover:text-red-900" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
