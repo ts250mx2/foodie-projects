@@ -1,9 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Menu, LogOut, ChevronRight, User } from 'lucide-react';
 
 interface HeaderProps {
     userName: string;
@@ -11,13 +13,90 @@ interface HeaderProps {
     onToggleSidebar?: () => void;
 }
 
+// Mapa de segmentos de URL a etiquetas legibles
+const ROUTE_LABELS: Record<string, string> = {
+    dashboard: 'Dashboard',
+    config: 'Configuración',
+    project: 'Proyecto',
+    'initial-load': 'Carga Inicial',
+    taxes: 'Impuestos',
+    'break-even': 'Punto de Equilibrio',
+    'payment-channels': 'Canales de Pago',
+    settings: 'Ajustes',
+    branches: 'Sucursales',
+    'document-types': 'Tipos de Documento',
+    tips: 'Propinas',
+    sales: 'Ventas',
+    capture: 'Captura',
+    'channels-capture': 'Captura por Canal',
+    'terminals-capture': 'Captura por Terminal',
+    'tips-capture': 'Captura de Propinas',
+    channels: 'Canales',
+    terminals: 'Terminales',
+    platforms: 'Plataformas',
+    'app-price-calculator': 'Calculadora de Precio',
+    inventories: 'Inventarios',
+    products: 'Productos',
+    categories: 'Categorías',
+    presentations: 'Presentaciones',
+    'min-max': 'Mín/Máx',
+    'waste-capture': 'Captura de Merma',
+    production: 'Producción',
+    dishes: 'Platillos',
+    'raw-materials': 'Materias Primas',
+    'sub-recipes': 'Subrecetas',
+    'recipe-categories': 'Categorías de Receta',
+    'menu-sections': 'Secciones de Menú',
+    'material-explosion': 'Explosión de Materiales',
+    payroll: 'Nómina',
+    employees: 'Empleados',
+    positions: 'Puestos',
+    shifts: 'Turnos',
+    schedules: 'Horarios',
+    purchases: 'Compras',
+    suppliers: 'Proveedores',
+    'purchase-orders': 'Órdenes de Compra',
+    expenses: 'Gastos',
+    concepts: 'Conceptos',
+    receipt: 'Recibo',
+    ocr: 'OCR',
+    upload: 'Subir',
+    documents: 'Documentos',
+    'receipt-capture': 'Captura de Recibo',
+    'massive-product-upload': 'Carga Masiva',
+};
+
+function buildBreadcrumbs(pathname: string, locale: string) {
+    const base = `/${locale}`;
+    const relative = pathname.replace(base, '');
+    const segments = relative.split('/').filter(Boolean);
+
+    const crumbs: { label: string; href: string }[] = [
+        { label: 'Inicio', href: `/${locale}/dashboard` },
+    ];
+
+    let accumulated = `/${locale}`;
+    for (const seg of segments) {
+        accumulated += `/${seg}`;
+        const label = ROUTE_LABELS[seg] ?? seg;
+        crumbs.push({ label, href: accumulated });
+    }
+
+    // Quitar el último (es la página actual) para no duplicar
+    return { crumbs: crumbs.slice(0, -1), current: crumbs[crumbs.length - 1]?.label ?? '' };
+}
+
 export default function Header({ userName: initialUserName, onLogout, onToggleSidebar }: HeaderProps) {
     const t = useTranslations('Navigation');
     const router = useRouter();
+    const pathname = usePathname();
+    const params = useParams();
+    const locale = params.locale as string;
     const { colors } = useTheme();
+
     const [userName, setUserName] = useState(initialUserName || '');
-    const [projectTitle, setProjectTitle] = useState('');
     const [projectLogo, setProjectLogo] = useState('');
+    const [projectTitle, setProjectTitle] = useState('');
     const [projectName, setProjectName] = useState('');
 
     useEffect(() => {
@@ -27,41 +106,23 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
         if (storedUser) {
             try {
                 const user = JSON.parse(storedUser);
-                if (user.nombreUsuario) {
-                    setUserName(user.nombreUsuario);
-                }
-            } catch (e) {
-                console.error('Error parsing user data', e);
-            }
+                if (user.nombreUsuario) setUserName(user.nombreUsuario);
+            } catch { /* ignore */ }
         }
 
         if (storedProject) {
             try {
                 const project = JSON.parse(storedProject);
-                if (project.nombre) {
-                    setProjectName(project.nombre);
-                }
-                // Fetch custom project settings
-                if (project.idProyecto) {
-                    fetchProjectSettings(project.idProyecto);
-                }
-            } catch (e) {
-                console.error('Error parsing project data', e);
-            }
+                if (project.nombre) setProjectName(project.nombre);
+                if (project.idProyecto) fetchProjectSettings(project.idProyecto);
+            } catch { /* ignore */ }
         }
 
-        // Listen for logo updates
         const handleLogoUpdate = (event: CustomEvent) => {
-            if (event.detail) {
-                setProjectLogo(event.detail);
-            }
+            if (event.detail) setProjectLogo(event.detail);
         };
-
         window.addEventListener('project-logo-updated', handleLogoUpdate as EventListener);
-
-        return () => {
-            window.removeEventListener('project-logo-updated', handleLogoUpdate as EventListener);
-        };
+        return () => window.removeEventListener('project-logo-updated', handleLogoUpdate as EventListener);
     }, []);
 
     const fetchProjectSettings = async (projectId: number) => {
@@ -72,84 +133,105 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 setProjectTitle(data.titulo || '');
                 setProjectLogo(data.logo64 || '');
             }
-        } catch (error) {
-            console.error('Error fetching project settings:', error);
-        }
+        } catch { /* ignore */ }
     };
 
     const handleLogout = () => {
         localStorage.removeItem('user');
-        if (onLogout) {
-            onLogout();
-        } else {
-            router.push('/');
-        }
+        onLogout ? onLogout() : router.push('/');
     };
 
-    // Determine what to display
-    const displayTitle = projectTitle || `Foodie Guru${projectName ? ` - ${projectName}` : ''}`;
+    const displayTitle = projectTitle || `Foodie Guru${projectName ? ` · ${projectName}` : ''}`;
+    const isDashboardHome = pathname === `/${locale}/dashboard`;
+    const { crumbs, current } = buildBreadcrumbs(pathname, locale);
 
     return (
         <header
-            className="fixed top-0 left-0 right-0 h-16 z-50 px-6 flex items-center justify-between shadow-lg"
-            style={{
-                background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`
-            }}
+            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 shadow-lg"
+            style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})` }}
         >
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={onToggleSidebar}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{ color: colors.colorLetra }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    aria-label="Toggle Sidebar"
-                >
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-current stroke-2">
-                        <path d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-                {projectLogo && (
-                    <img
-                        src={projectLogo}
-                        alt="Project Logo"
-                        className="h-10 w-auto object-contain"
-                        onError={() => setProjectLogo('')}
-                    />
-                )}
-                <span
-                    className="text-xl font-bold tracking-wide"
-                    style={{ color: colors.colorLetra }}
-                >
-                    {displayTitle}
-                </span>
-            </div>
+            <div className="flex items-center justify-between gap-4">
+                {/* Left: hamburger + logo + title + breadcrumb */}
+                <div className="flex items-center gap-3 min-w-0">
+                    <button
+                        onClick={onToggleSidebar}
+                        className="shrink-0 p-2 rounded-lg hover:bg-white/15 transition-colors"
+                        style={{ color: colors.colorLetra }}
+                        aria-label="Toggle Sidebar"
+                    >
+                        <Menu size={20} />
+                    </button>
 
-            <div className="flex items-center gap-4">
-                <span
-                    className="font-medium"
-                    style={{ color: colors.colorLetra }}
-                >
-                    {userName || 'User'}
-                </span>
-                <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium rounded-full transition-all"
-                    style={{
-                        color: `${colors.colorLetra}e6`,
-                        backgroundColor: 'rgba(255,255,255,0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.color = colors.colorLetra;
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.color = `${colors.colorLetra}e6`;
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                    }}
-                >
-                    {t('logout')}
-                </button>
+                    {projectLogo ? (
+                        <img
+                            src={projectLogo}
+                            alt="Logo"
+                            className="h-9 w-auto object-contain shrink-0"
+                            onError={() => setProjectLogo('')}
+                        />
+                    ) : null}
+
+                    <div className="flex flex-col min-w-0">
+                        <span
+                            className="text-sm font-bold leading-tight truncate"
+                            style={{ color: colors.colorLetra }}
+                        >
+                            {displayTitle}
+                        </span>
+
+                        {/* Breadcrumb — solo cuando no es la home del dashboard */}
+                        {!isDashboardHome && (
+                            <nav className="flex items-center gap-1" aria-label="Breadcrumb">
+                                {crumbs.map((crumb, i) => (
+                                    <span key={i} className="flex items-center gap-1">
+                                        {i > 0 && (
+                                            <ChevronRight size={10} style={{ color: `${colors.colorLetra}80` }} />
+                                        )}
+                                        <Link
+                                            href={crumb.href}
+                                            className="text-[11px] hover:underline transition-opacity opacity-60 hover:opacity-90 whitespace-nowrap"
+                                            style={{ color: colors.colorLetra }}
+                                        >
+                                            {crumb.label}
+                                        </Link>
+                                    </span>
+                                ))}
+                                {crumbs.length > 0 && (
+                                    <>
+                                        <ChevronRight size={10} style={{ color: `${colors.colorLetra}80` }} />
+                                        <span
+                                            className="text-[11px] font-semibold whitespace-nowrap"
+                                            style={{ color: colors.colorLetra }}
+                                        >
+                                            {current}
+                                        </span>
+                                    </>
+                                )}
+                            </nav>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: usuario + logout */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div
+                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15"
+                        style={{ color: colors.colorLetra }}
+                    >
+                        <User size={14} className="opacity-70" />
+                        <span className="text-sm font-medium">{userName || 'Usuario'}</span>
+                    </div>
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                        style={{ color: colors.colorLetra }}
+                        title={t('logout')}
+                    >
+                        <LogOut size={15} />
+                        <span className="hidden sm:inline">{t('logout')}</span>
+                    </button>
+                </div>
             </div>
         </header>
     );

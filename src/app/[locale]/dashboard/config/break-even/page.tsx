@@ -17,6 +17,8 @@ import {
     Legend,
     ResponsiveContainer
 } from 'recharts';
+import PageShell from '@/components/PageShell';
+import { TrendingUp } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -553,27 +555,12 @@ export default function BreakEvenPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen p-4 gap-4 bg-slate-50/50">
-            {/* Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-3 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-slate-100">
-                <div className="flex flex-col">
-                    <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">📈 {t('title')}</h1>
-                    <div className="flex items-center gap-3">
-                        <p className="text-[10px] text-slate-400 font-bold tracking-wider">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>
-                        <button 
-                            onClick={handleImportPreviousMonth}
-                            className="text-[9px] font-black uppercase tracking-widest text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 transition-all"
-                        >
-                            🔄 Importar Mes Anterior
-                        </button>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
+        <PageShell title={t('title')} icon={TrendingUp} actions={<div className="flex items-center gap-3 flex-wrap">
                     {autoSaveStatus && (
                         <div className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded flex items-center gap-2 ${
-                            autoSaveStatus === 'saving' ? 'bg-amber-50 text-amber-600' :
-                            autoSaveStatus === 'saved' ? 'bg-emerald-50 text-emerald-600' :
-                            'bg-rose-50 text-rose-600'
+                            autoSaveStatus === 'saving' ? 'bg-white/20 text-white' :
+                            autoSaveStatus === 'saved' ? 'bg-white/20 text-white' :
+                            'bg-white/20 text-white'
                         }`}>
                             <span className={autoSaveStatus === 'saving' ? 'animate-pulse' : ''}>
                                 {autoSaveStatus === 'saving' ? '🔄' : autoSaveStatus === 'saved' ? '✅' : '❌'}
@@ -581,35 +568,34 @@ export default function BreakEvenPage() {
                             {autoSaveStatus === 'saving' ? 'Guardando...' : autoSaveStatus === 'saved' ? 'Guardado' : 'Error'}
                         </div>
                     )}
-                    <div className="flex items-center gap-3 flex-wrap justify-center">
-                    {/* Selectors */}
-                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
+                    <button
+                        onClick={handleImportPreviousMonth}
+                        className="text-[9px] font-black uppercase tracking-widest text-white bg-white/20 px-2 py-1 rounded-md border border-white/30 transition-all hover:bg-white/30"
+                    >
+                        🔄 Importar Mes Anterior
+                    </button>
+                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
                         {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
                     </select>
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
                         {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tProd(`months.${i}`)}</option>)}
                     </select>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-sm outline-none">
+                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
                         {years.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
-                    <div className="flex items-center gap-2">
-                        <Button 
-                            onClick={() => setIsChartModalOpen(true)} 
-                            className="h-9 px-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 border border-indigo-200"
-                        >
-                            📊 Ver Gráfica
-                        </Button>
-                        <Button onClick={handleExportPdf} className="h-9 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2">
-
-                            <span>📄</span> Exportar
-                        </Button>
-                        <Button onClick={() => handleSave()} disabled={isSaving} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all">
-                            {isSaving ? '⏳' : '💾'} {t('save')}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    <Button
+                        onClick={() => setIsChartModalOpen(true)}
+                        className="h-9 px-3 bg-white/20 text-white hover:bg-white/30 rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 border border-white/30"
+                    >
+                        📊 Ver Gráfica
+                    </Button>
+                    <Button onClick={handleExportPdf} className="h-9 px-4 bg-white/20 hover:bg-white/30 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2 border border-white/30">
+                        <span>📄</span> Exportar
+                    </Button>
+                    <Button onClick={() => handleSave()} disabled={isSaving} className="h-9 px-4 bg-white/20 hover:bg-white/30 text-white rounded-lg font-black text-xs shadow-md active:scale-95 transition-all border border-white/30">
+                        {isSaving ? '⏳' : '💾'} {t('save')}
+                    </Button>
+                </div>}>
 
             <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 pb-20">
                 
@@ -1056,7 +1042,7 @@ export default function BreakEvenPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }
 

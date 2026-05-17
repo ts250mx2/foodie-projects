@@ -9,6 +9,8 @@ import ProductImageCaptureModal from '@/components/ProductImageCaptureModal';
 import InitialLoadImageCapture from '@/components/InitialLoadImageCapture';
 import Button from '@/components/Button';
 import { useParams } from 'next/navigation';
+import PageShell from '@/components/PageShell';
+import { Rocket } from 'lucide-react';
 
 export default function InitialLoadPage() {
     const t = useTranslations('InitialLoad');
@@ -366,12 +368,7 @@ export default function InitialLoadPage() {
     ];
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <header className="mb-10">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('title')}</h1>
-                <p className="text-gray-500 italic">Gestión de flujo de carga inicial.</p>
-                <div className="h-1 w-20 bg-indigo-500 rounded-full mt-4"></div>
-            </header>
+        <PageShell title={t('title')} subtitle="Gestión de flujo de carga inicial." icon={Rocket}>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {steps.map((step) => (
@@ -935,6 +932,6 @@ export default function InitialLoadPage() {
                 }}
             />
             <footer className="mt-16 text-center text-gray-400 text-sm">© {new Date().getFullYear()} Foodie Guru</footer>
-        </div>
+        </PageShell>
     );
 }

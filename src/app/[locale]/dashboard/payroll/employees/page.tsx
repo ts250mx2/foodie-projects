@@ -8,6 +8,7 @@ import EmployeeDocumentsModal from '@/components/EmployeeDocumentsModal';
 import EmployeeAccessModal from '@/components/EmployeeAccessModal';
 import DocumentTypesModal from '@/components/DocumentTypesModal';
 import MassiveEmployeeUpload from '@/components/MassiveEmployeeUpload';
+import PageShell from '@/components/PageShell';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 
 import { useTheme } from '@/contexts/ThemeContext';
@@ -349,21 +350,14 @@ export default function EmployeesPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
+        <PageShell
+            title={t('title')}
+            actions={
                 <div className="flex gap-2">
-                    <Button
-                        variant="secondary"
-                        onClick={() => setIsMassiveUploadOpen(true)}
-                        className="flex items-center gap-2"
-                    >
+                    <Button variant="secondary" onClick={() => setIsMassiveUploadOpen(true)} className="flex items-center gap-2">
                         🚀 Carga Masiva
                     </Button>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setIsDocumentTypesModalOpen(true)}
-                    >
+                    <Button variant="secondary" onClick={() => setIsDocumentTypesModalOpen(true)}>
                         📑 Tipos de Documento
                     </Button>
                     <Button onClick={() => {
@@ -378,125 +372,128 @@ export default function EmployeesPage() {
                         {t('addEmployee')}
                     </Button>
                 </div>
-            </div>
+            }
+        >
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Empleado')}
-                        >
-                            <div className="flex flex-col gap-1">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
+                        <ThemedGridHeader>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Empleado')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('employeeName')}
+                                        {sortConfig?.key === 'Empleado' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Puesto')}
+                            >
                                 <div className="flex items-center gap-1">
-                                    {t('employeeName')}
-                                    {sortConfig?.key === 'Empleado' && (
+                                    {t('position')}
+                                    {sortConfig?.key === 'Puesto' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Puesto')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('position')}
-                                {sortConfig?.key === 'Puesto' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Sucursal')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('branch')}
-                                {sortConfig?.key === 'Sucursal' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('phone')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('email')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredEmployees.map((employee) => (
-                            <tr key={employee.IdEmpleado} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <div className="flex items-center gap-3">
-                                        {employee.ArchivoFoto ? (
-                                            <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-full object-cover border" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border">
-                                                👤
-                                            </div>
-                                        )}
-                                        {employee.Empleado}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div className="flex items-center gap-2">
-                                        <span>{employee.ImagenTipoPuesto}</span>
-                                        <span>{employee.Puesto || '-'}</span>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {employee.Sucursal || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {employee.Telefonos || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {employee.CorreoElectronico || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {employee.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(employee)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editEmployee')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(employee)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteEmployee')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Sucursal')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    {t('branch')}
+                                    {sortConfig?.key === 'Sucursal' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('phone')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('email')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('active')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell className="text-right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedAndFilteredEmployees.map((employee) => (
+                                <tr key={employee.IdEmpleado} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <div className="flex items-center gap-3">
+                                            {employee.ArchivoFoto ? (
+                                                <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border">
+                                                    👤
+                                                </div>
+                                            )}
+                                            {employee.Empleado}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div className="flex items-center gap-2">
+                                            <span>{employee.ImagenTipoPuesto}</span>
+                                            <span>{employee.Puesto || '-'}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {employee.Sucursal || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {employee.Telefonos || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {employee.CorreoElectronico || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.Status === 0
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                            }`}>
+                                            {employee.Status === 0 ? t('active') : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => openEditModal(employee)}
+                                            className="text-xl mr-4 hover:scale-110 transition-transform"
+                                            title={t('editEmployee')}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(employee)}
+                                            className="text-xl hover:scale-110 transition-transform"
+                                            title={t('deleteEmployee')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Edit/Create Modal */}
@@ -875,6 +872,6 @@ export default function EmployeesPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

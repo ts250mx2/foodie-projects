@@ -451,184 +451,185 @@ export default function ProductsPage() {
             }
         >
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                {/* ... table content remains same ... */}
-                <table className="min-w-full divide-y divide-gray-200">
-                    <ThemedGridHeader>
-                        {showRecentOnly && (
-                            <ThemedGridHeaderCell className="w-10" style={{ minWidth: '40px' }}>
-                                <div className="flex items-center gap-2">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
-                                        onChange={toggleSelectAll}
-                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                        title="Seleccionar todo"
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
+                        <ThemedGridHeader>
+                            {showRecentOnly && (
+                                <ThemedGridHeaderCell className="w-10" style={{ minWidth: '40px' }}>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedIds.length > 0 && selectedIds.length === sortedAndFilteredProducts.length}
+                                            onChange={toggleSelectAll}
+                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            title="Seleccionar todo"
+                                        />
+                                    </div>
+                                </ThemedGridHeaderCell>
+                            )}
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Producto')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('productName')}
+                                        {sortConfig?.key === 'Producto' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
                             </ThemedGridHeaderCell>
-                        )}
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Producto')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('productName')}
-                                    {sortConfig?.key === 'Producto' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Codigo')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('code')}
-                                    {sortConfig?.key === 'Codigo' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={codeSearch}
-                                    onChange={(e) => setCodeSearch(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Categoria')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('category')}
-                                    {sortConfig?.key === 'Categoria' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Category..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={categorySearch}
-                                    onChange={(e) => setCategorySearch(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Precio')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                {t('price')}
-                                {sortConfig?.key === 'Precio' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('FechaAct')}
-                        >
-                            <div className="flex items-center gap-1">
-                                Fecha Act
-                                {sortConfig?.key === 'FechaAct' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredProducts.map((product) => (
-                            <tr key={product.IdProducto} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product.IdProducto) ? 'bg-indigo-50/30' : ''}`}>
-                                {showRecentOnly && (
-                                    <td className="px-6 py-4">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedIds.includes(product.IdProducto)}
-                                            onChange={() => toggleSelectProduct(product.IdProducto)}
-                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                        />
-                                    </td>
-                                )}
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
-                                            {product.ArchivoImagen ? (
-                                                <img
-                                                    src={product.ArchivoImagen}
-                                                    alt={product.Producto}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-gray-400 text-xl">📦</span>
-                                            )}
-                                        </div>
-                                        <span>{product.Producto}</span>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Codigo')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('code')}
+                                        {sortConfig?.key === 'Codigo' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
                                     </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {product.Codigo}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <span className="flex items-center gap-1">
-                                        {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
-                                        {product.Categoria}
-                                        {product.IdModuloRecetario && product.IdModuloRecetario > 0 ? (
-                                            <sup className="text-primary-600 font-bold ml-0.5">
-                                                {product.IdModuloRecetario}
-                                            </sup>
-                                        ) : null}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    ${(product.Precio || 0).toFixed(2)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {product.FechaAct ? new Date(product.FechaAct).toLocaleString(undefined, {
-                                        year: 'numeric', month: '2-digit', day: '2-digit',
-                                        hour: '2-digit', minute: '2-digit'
-                                    }) : '---'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(product)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editProduct')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(product)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteProduct')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={codeSearch}
+                                        onChange={(e) => setCodeSearch(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Categoria')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('category')}
+                                        {sortConfig?.key === 'Categoria' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Category..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={categorySearch}
+                                        onChange={(e) => setCategorySearch(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Precio')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    {t('price')}
+                                    {sortConfig?.key === 'Precio' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('FechaAct')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Fecha Act
+                                    {sortConfig?.key === 'FechaAct' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell className="text-right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedAndFilteredProducts.map((product) => (
+                                <tr key={product.IdProducto} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(product.IdProducto) ? 'bg-indigo-50/30' : ''}`}>
+                                    {showRecentOnly && (
+                                        <td className="px-6 py-4">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedIds.includes(product.IdProducto)}
+                                                onChange={() => toggleSelectProduct(product.IdProducto)}
+                                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                        </td>
+                                    )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                                {product.ArchivoImagen ? (
+                                                    <img
+                                                        src={product.ArchivoImagen}
+                                                        alt={product.Producto}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-gray-400 text-xl">📦</span>
+                                                )}
+                                            </div>
+                                            <span>{product.Producto}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {product.Codigo}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <span className="flex items-center gap-1">
+                                            {product.ImagenCategoria && <span>{product.ImagenCategoria}</span>}
+                                            {product.Categoria}
+                                            {product.IdModuloRecetario && product.IdModuloRecetario > 0 ? (
+                                                <sup className="text-primary-600 font-bold ml-0.5">
+                                                    {product.IdModuloRecetario}
+                                                </sup>
+                                            ) : null}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        ${(product.Precio || 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {product.FechaAct ? new Date(product.FechaAct).toLocaleString(undefined, {
+                                            year: 'numeric', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        }) : '---'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => openEditModal(product)}
+                                            className="text-xl mr-4 hover:scale-110 transition-transform"
+                                            title={t('editProduct')}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(product)}
+                                            className="text-xl hover:scale-110 transition-transform"
+                                            title={t('deleteProduct')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Costing Modal for Create/Edit and Kits */}

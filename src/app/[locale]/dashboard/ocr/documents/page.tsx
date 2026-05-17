@@ -8,6 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import QRCode from 'react-qr-code';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
+import PageShell from '@/components/PageShell';
+import { Files } from 'lucide-react';
 
 function OCRDocumentsContent() {
     const t = useTranslations('OCRDocuments');
@@ -679,13 +681,10 @@ function OCRDocumentsContent() {
         : '';
 
     return (
-        <div className="p-6">
-            {/* Minimalist Header matched with Products page */}
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                    <p className="text-sm text-gray-500 font-medium">{navT('ocrProcessing')}</p>
-                </div>
+        <PageShell
+            title="Documentos OCR"
+            icon={Files}
+            actions={
                 <div className="flex flex-wrap items-end gap-2">
                     <Button onClick={handleAddClick}>
                         ➕ {t('addDocument')}
@@ -693,7 +692,7 @@ function OCRDocumentsContent() {
                     <div className="flex gap-2">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-tight">{t('startDate')}</span>
-                            <input 
+                            <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
@@ -702,7 +701,7 @@ function OCRDocumentsContent() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-tight">{t('endDate')}</span>
-                            <input 
+                            <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
@@ -711,11 +710,12 @@ function OCRDocumentsContent() {
                         </div>
                     </div>
                 </div>
-            </div>
+            }
+        >
 
             {/* Grid matched with Products page */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100 table-row-hover">
                     <ThemedGridHeader>
                         <ThemedGridHeaderCell className="w-20">{t('id')}</ThemedGridHeaderCell>
                         <ThemedGridHeaderCell className="w-32 text-center">Documentos</ThemedGridHeaderCell>
@@ -1633,7 +1633,7 @@ function OCRDocumentsContent() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }
 

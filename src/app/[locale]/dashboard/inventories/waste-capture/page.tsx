@@ -6,6 +6,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import PageShell from '@/components/PageShell';
+import { Trash2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -251,13 +253,9 @@ export default function WasteCapturePage() {
     const selectedProduct = products.find(p => p.IdProducto === parseInt(selectedProductId));
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4">
+        <PageShell title={t('title')} icon={Trash2}>
             {/* Header / Selectors */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    🗑️ {t('title')}
-                </h1>
-
+            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
@@ -507,6 +505,6 @@ export default function WasteCapturePage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

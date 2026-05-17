@@ -6,6 +6,8 @@ import Input from '@/components/Input';
 import TipProfileEarningsModal from '@/components/TipProfileEarningsModal';
 import TipProfileExpensesModal from '@/components/TipProfileExpensesModal';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import PageShell from '@/components/PageShell';
+import { DollarSign } from 'lucide-react';
 
 interface TipProfile {
     IdPerfilPropina: number;
@@ -125,9 +127,10 @@ export default function TipsProfilesPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Administración de Perfiles de Propinas</h1>
+        <PageShell
+            title="Administración de Perfiles de Propinas"
+            icon={DollarSign}
+            actions={
                 <Button onClick={() => {
                     setEditingProfile(null);
                     setProfileName('');
@@ -135,10 +138,10 @@ export default function TipsProfilesPage() {
                 }}>
                     Agregar Perfil
                 </Button>
-            </div>
-
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+            }
+        >
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100 table-row-hover">
                     <ThemedGridHeader>
                         <ThemedGridHeaderCell>
                             Perfil de Propina
@@ -304,6 +307,6 @@ export default function TipsProfilesPage() {
                     projectId={project.idProyecto}
                 />
             )}
-        </div>
+        </PageShell>
     );
 }

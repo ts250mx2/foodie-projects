@@ -7,6 +7,8 @@ import {
     Cell, PieChart, Pie, Legend
 } from 'recharts';
 import AiAgent from '@/components/dashboard/AiAgent';
+import PageShell from '@/components/PageShell';
+import { LayoutDashboard, Maximize2, Minimize2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -544,72 +546,30 @@ export default function DashboardPage() {
 
     // KPI Section
     return (
-        <div ref={dashboardRef} className={`flex flex-col gap-6 p-6 min-h-screen ${isFullscreen ? 'bg-slate-50 overflow-y-auto' : ''}`}>
+        <div ref={dashboardRef} className={isFullscreen ? 'overflow-y-auto' : ''}>
+        <PageShell
+            title={t('title')}
+            subtitle={`${tPurchases(`months.${selectedMonth}`)} ${selectedYear} · ${t('features.managementDesc')}`}
+            icon={LayoutDashboard}
+            actions={
+                <div className="flex items-center gap-3 flex-wrap">
+                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                        {branches.length === 0 && <option value="">{tPurchases('noBranches')}</option>}
+                        {branches.map(branch => <option key={branch.IdSucursal} value={branch.IdSucursal}>{branch.Sucursal}</option>)}
+                    </select>
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                        {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tPurchases(`months.${i}`)}</option>)}
+                    </select>
+                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50">
+                        {years.map(year => <option key={year} value={year}>{year}</option>)}
+                    </select>
+                    <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors" title={isFullscreen ? 'Restaurar' : 'Maximizar'}>
+                        {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                    </button>
+                </div>
+            }
+        >
             <AiAgent dashboardData={dashboardDataContext} />
-            <div className={`sticky z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-gray-100 ${isFullscreen ? 'top-0' : 'top-16'}`}>
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="text-2xl font-bold text-gray-800">{t('title')} - {tPurchases(`months.${selectedMonth}`)} {selectedYear}</h1>
-                        <button 
-                            onClick={toggleFullscreen}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 transition-all shadow-sm bg-white"
-                            title={isFullscreen ? "Restaurar" : "Maximizar Dashboard"}
-                        >
-                            {isFullscreen ? (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
-                            ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
-                            )}
-                        </button>
-                    </div>
-                    <p className="text-sm text-gray-500">{t('features.managementDesc')}</p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    {/* Branch Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{tPurchases('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
-                        >
-                            {branches.length === 0 && <option value="">{tPurchases('noBranches')}</option>}
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{tPurchases('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{tPurchases(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{tPurchases('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm bg-white"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
             {/* KPI Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-2">
                 {/* Sales KPI Card */}
@@ -1629,6 +1589,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
             )}
+        </PageShell>
         </div>
     );
 }

@@ -5,6 +5,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import PageShell from '@/components/PageShell';
+import { Calculator } from 'lucide-react';
 
 type AppResult = {
     priceWithoutIva: number;
@@ -256,19 +258,12 @@ export default function AppPriceCalculatorPage() {
     const platforms: (keyof typeof prices)[] = ['uber', 'didi', 'rappi'];
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                <div className="w-10 h-10 hidden md:block"></div>
-                <h1 className="text-3xl font-bold text-center text-black">
-                    {t('title')}
-                </h1>
-                <button
+        <PageShell title="Calculadora de Precio App" icon={Calculator} actions={<button
                     onClick={exportToPDF}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
+                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg font-bold shadow transition-all active:scale-95 text-xs border border-white/30"
                 >
                     <span>📄</span> Exportar PDF
-                </button>
-            </div>
+                </button>}>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Inputs Section */}
@@ -525,6 +520,6 @@ export default function AppPriceCalculatorPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageShell>
     );
 }

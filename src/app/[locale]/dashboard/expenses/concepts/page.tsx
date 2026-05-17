@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PaymentChannelsModal from '@/components/PaymentChannelsModal';
+import PageShell from '@/components/PageShell';
 
 interface ExpenseConcept {
     IdConceptoGasto: number;
@@ -180,14 +181,11 @@ export default function ExpenseConceptsPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
+        <PageShell
+            title={t('title')}
+            actions={
                 <div className="flex gap-2">
-                    <Button
-                        variant="secondary"
-                        onClick={() => setIsPaymentChannelsModalOpen(true)}
-                    >
+                    <Button variant="secondary" onClick={() => setIsPaymentChannelsModalOpen(true)}>
                         Canales de Pago
                     </Button>
                     <Button onClick={() => {
@@ -200,10 +198,11 @@ export default function ExpenseConceptsPage() {
                         {t('addConcept')}
                     </Button>
                 </div>
-            </div>
+            }
+        >
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100 table-row-hover">
                     <ThemedGridHeader>
                         <ThemedGridHeaderCell
                             className="cursor-pointer hover:opacity-80"
@@ -387,6 +386,6 @@ export default function ExpenseConceptsPage() {
                 }}
                 projectId={project?.idProyecto}
             />
-        </div>
+        </PageShell>
     );
 }

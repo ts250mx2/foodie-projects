@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import PageShell from '@/components/PageShell';
+import { Clock } from 'lucide-react';
 
 interface Shift {
     IdTurno: number;
@@ -170,109 +172,107 @@ export default function ShiftsPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <Button onClick={() => {
+        <PageShell title={t('title')} icon={Clock} actions={<Button onClick={() => {
                     setEditingShift(null);
                     setFormData({ shift: '', branchId: '', startTime: '', endTime: '' });
                     setIsModalOpen(true);
                 }}>
                     {t('addShift')}
-                </Button>
-            </div>
+                </Button>}>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Turno')}
-                        >
-                            <div className="flex flex-col gap-1">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
+                        <ThemedGridHeader>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Turno')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('shiftName')}
+                                        {sortConfig?.key === 'Turno' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Sucursal')}
+                            >
                                 <div className="flex items-center gap-1">
-                                    {t('shiftName')}
-                                    {sortConfig?.key === 'Turno' && (
+                                    {t('branch')}
+                                    {sortConfig?.key === 'Sucursal' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Sucursal')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('branch')}
-                                {sortConfig?.key === 'Sucursal' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('startTime')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('endTime')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredShifts.map((shift) => (
-                            <tr key={shift.IdTurno} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {shift.Turno}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {shift.Sucursal || 'N/A'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {shift.HoraInicio || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {shift.HoraFin || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shift.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {shift.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(shift)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editShift')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(shift)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteShift')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('startTime')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('endTime')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('active')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell className="text-right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedAndFilteredShifts.map((shift) => (
+                                <tr key={shift.IdTurno} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {shift.Turno}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {shift.Sucursal || 'N/A'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {shift.HoraInicio || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {shift.HoraFin || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${shift.Status === 0
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                            }`}>
+                                            {shift.Status === 0 ? t('active') : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => openEditModal(shift)}
+                                            className="text-xl mr-4 hover:scale-110 transition-transform"
+                                            title={t('editShift')}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(shift)}
+                                            className="text-xl hover:scale-110 transition-transform"
+                                            title={t('deleteShift')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Edit/Create Modal */}
@@ -359,6 +359,6 @@ export default function ShiftsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

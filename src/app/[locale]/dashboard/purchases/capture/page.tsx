@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import PurchaseImageCaptureModal from '@/components/PurchaseImageCaptureModal';
+import PageShell from '@/components/PageShell';
+import { ShoppingBag } from 'lucide-react';
 
 
 interface Branch {
@@ -774,13 +776,9 @@ export default function PurchasesCapturePage() {
         .reduce((sum, p) => sum + (p.Total || 0), 0);
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4">
+        <PageShell title="Captura de Compras" icon={ShoppingBag}>
             {/* Standardized Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    🛒 {t('title')}
-                </h1>
-
+            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
                 <div className="flex items-center gap-4">
                     {/* OCR Capture Button */}
                     <div className="flex flex-col">
@@ -1712,6 +1710,6 @@ export default function PurchasesCapturePage() {
                     </div>
                 </div>
             )}
-</div>
+        </PageShell>
     );
 }

@@ -6,6 +6,8 @@ import AddMaterialModal from '@/components/AddMaterialModal';
 import { SearchProduct } from '@/components/ProductSearchModal';
 import CostingModal from '@/components/CostingModal';
 import Button from '@/components/Button';
+import PageShell from '@/components/PageShell';
+import { Leaf } from 'lucide-react';
 
 interface RawMaterial {
     IdProducto: number;
@@ -353,11 +355,10 @@ export default function RawMaterialsPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    🥕 Materia Prima
-                </h1>
+        <PageShell
+            title="Materia Prima"
+            icon={Leaf}
+            actions={
                 <div className="flex gap-2">
                     <Button onClick={() => setIsSearchModalOpen(true)}>
                         ➕ Agregar
@@ -369,7 +370,8 @@ export default function RawMaterialsPage() {
                         {isSaving ? 'Guardando...' : `Guardar Todo ${Object.keys(editedFields).length > 0 ? `(${Object.keys(editedFields).length})` : ''}`}
                     </Button>
                 </div>
-            </div>
+            }
+        >
 
             {/* Search Filter */}
             <div className="mb-4">
@@ -407,7 +409,7 @@ export default function RawMaterialsPage() {
             {activeTab && (
                 <div className="bg-white rounded-b-lg shadow overflow-hidden rounded-t-none">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
+                        <table className="min-w-full divide-y divide-gray-100 table-row-hover">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-3 py-2 text-left text-xs font-bold text-gray-600">Código</th>
@@ -623,6 +625,6 @@ export default function RawMaterialsPage() {
                     initialTab="general"
                 />
             )}
-        </div>
+        </PageShell>
     );
 }

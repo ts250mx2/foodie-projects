@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
+import PageShell from '@/components/PageShell';
+import { Banknote } from 'lucide-react';
 
 interface Employee {
     IdEmpleado: number;
@@ -313,13 +315,9 @@ export default function PayrollCapturePage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4">
+        <PageShell title="Captura de Nómina" icon={Banknote}>
             {/* Standardized Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    👥 {t('title')}
-                </h1>
-
+            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
                 <div className="flex items-center gap-4">
                     {/* Branch Selector */}
                     <div className="flex flex-col">
@@ -623,6 +621,6 @@ export default function PayrollCapturePage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

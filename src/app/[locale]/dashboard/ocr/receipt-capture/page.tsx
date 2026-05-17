@@ -6,6 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/ThemeContext';
 import QRCode from 'react-qr-code';
+import PageShell from '@/components/PageShell';
+import { Camera } from 'lucide-react';
 
 function ReceiptCaptureContent() {
     const t = useTranslations('ReceiptCapture');
@@ -213,13 +215,9 @@ function ReceiptCaptureContent() {
         : '';
 
     return (
+        <PageShell title="Captura de Recibos" icon={Camera}>
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-800 tracking-tight">{navT('ocrProcessing')}</h1>
-                    <p className="text-gray-500 text-sm font-medium">{navT('receiptCapture')}</p>
-                </div>
-                
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex flex-col gap-2 min-w-[200px]">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Sucursal</label>
                     <select 
@@ -259,7 +257,7 @@ function ReceiptCaptureContent() {
                         </button>
                     </div>
                 </div>
-            </header>
+            </div>
 
             {!isMobile && previews.length === 0 ? (
                 // Desktop View (No images yet): Show QR Code
@@ -494,6 +492,7 @@ function ReceiptCaptureContent() {
                 </div>
             )}
         </div>
+        </PageShell>
     );
 }
 

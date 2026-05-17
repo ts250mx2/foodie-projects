@@ -6,6 +6,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import * as XLSX from 'xlsx';
+import PageShell from '@/components/PageShell';
+import { BarChart2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -198,18 +200,10 @@ export default function MinMaxPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3">
-                    <span className="text-3xl">⚖️</span>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">
-                            {tNav('inventories')} / {t('title')}
-                        </p>
-                    </div>
-                </div>
-
+        <PageShell
+            title={t('title')}
+            icon={BarChart2}
+            actions={
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
@@ -235,7 +229,8 @@ export default function MinMaxPage() {
                         💾 {tCommon('save')}
                     </Button>
                 </div>
-            </div>
+            }
+        >
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                 <div className="p-4 bg-gray-50 border-b flex items-center justify-between gap-4">
@@ -254,7 +249,7 @@ export default function MinMaxPage() {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-4 space-y-4">
+                <div className="flex-1 overflow-auto p-4 space-y-4" style={{ maxHeight: 'calc(100vh - 290px)' }}>
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
                             <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
@@ -339,6 +334,6 @@ export default function MinMaxPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </PageShell>
     );
 }

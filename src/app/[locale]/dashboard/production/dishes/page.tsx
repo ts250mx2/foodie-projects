@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
 import MenuSectionsModal from '@/components/MenuSectionsModal';
+import PageShell from '@/components/PageShell';
 
 interface Dish {
     IdProducto: number;
@@ -144,9 +145,9 @@ export default function DishesPage() {
     }
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">🍽️ Platillos Menu</h1>
+        <PageShell
+            title="Platillos Menu"
+            actions={
                 <div className="flex gap-2">
                     <Button
                         onClick={() => setIsMenuSectionsModalOpen(true)}
@@ -156,206 +157,209 @@ export default function DishesPage() {
                     </Button>
                     <Button onClick={handleOpenAddModal}>Agregar Platillo</Button>
                 </div>
-            </div>
+            }
+        >
 
-            <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Producto')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('productName')}
-                                    {sortConfig?.key === 'Producto' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Codigo')}
-                        >
-                            <div className="flex items-center gap-1">
-                                {t('code')}
-                                {sortConfig?.key === 'Codigo' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('SeccionMenu')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    Sección Menú
-                                    {sortConfig?.key === 'SeccionMenu' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 block px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={menuSectionSearch}
-                                    onChange={(e) => setMenuSectionSearch(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Precio')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                {t('price')}
-                                {sortConfig?.key === 'Precio' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('IVA')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                {t('iva')}
-                                {sortConfig?.key === 'IVA' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Costo')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                Costo
-                                {sortConfig?.key === 'Costo' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('PorcentajeCostoIdeal')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                % Costo Ideal
-                                {sortConfig?.key === 'PorcentajeCostoIdeal' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="text-right cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('PorcentajeCosto')}
-                        >
-                            <div className="flex items-center justify-end gap-1">
-                                % Costo Real
-                                {sortConfig?.key === 'PorcentajeCosto' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('AlertaCosto')}
-                        >
-                            <div className="flex items-center gap-1">
-                                Alerta
-                                {sortConfig?.key === 'AlertaCosto' && (
-                                    <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                )}
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">{t('actions')}</ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredDishes.map((dish) => (
-                            <tr key={dish.IdProducto} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
-                                            {dish.ArchivoImagen ? (
-                                                <img
-                                                    src={dish.ArchivoImagen}
-                                                    alt={dish.Producto}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-gray-400 text-xl">🍽️</span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="flex items-center gap-1">
-                                                {dish.ImagenCategoria && <span>{dish.ImagenCategoria}</span>}
-                                                {dish.Producto}
-                                                {dish.IdModuloRecetario && dish.IdModuloRecetario > 0 ? (
-                                                    <sup className="text-primary-600 font-bold ml-0.5">
-                                                        {dish.IdModuloRecetario}
-                                                    </sup>
-                                                ) : null}
-                                            </span>
-                                            {dish.Categoria && <span className="text-[10px] text-gray-400 font-normal">{dish.Categoria}</span>}
-                                        </div>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
+                        <ThemedGridHeader>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Producto')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('productName')}
+                                        {sortConfig?.key === 'Producto' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
                                     </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {dish.Codigo}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {dish.SeccionMenu || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.Precio)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    {dish.IVA}%
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-medium text-blue-600">
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.Costo || 0)}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                                    {(dish.PorcentajeCostoIdeal || 0).toFixed(2)}%
-                                </td>
-                                <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${dish.AlertaCosto === 1 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {(dish.PorcentajeCosto || 0).toFixed(2)}%
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                    {dish.AlertaCosto === 1 && <span title="¡Alerta de Costo!" className="text-xl cursor-help">⚠️</span>}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => handleOpenEditModal(dish)}
-                                        className="text-xl mr-3 hover:scale-110 transition-transform"
-                                        title={t('editProduct')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(dish)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteProduct')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Codigo')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    {t('code')}
+                                    {sortConfig?.key === 'Codigo' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('SeccionMenu')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        Sección Menú
+                                        {sortConfig?.key === 'SeccionMenu' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 block px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={menuSectionSearch}
+                                        onChange={(e) => setMenuSectionSearch(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Precio')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    {t('price')}
+                                    {sortConfig?.key === 'Precio' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('IVA')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    {t('iva')}
+                                    {sortConfig?.key === 'IVA' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Costo')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    Costo
+                                    {sortConfig?.key === 'Costo' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('PorcentajeCostoIdeal')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    % Costo Ideal
+                                    {sortConfig?.key === 'PorcentajeCostoIdeal' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('PorcentajeCosto')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    % Costo Real
+                                    {sortConfig?.key === 'PorcentajeCosto' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('AlertaCosto')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Alerta
+                                    {sortConfig?.key === 'AlertaCosto' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell className="text-right">{t('actions')}</ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedAndFilteredDishes.map((dish) => (
+                                <tr key={dish.IdProducto} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                                {dish.ArchivoImagen ? (
+                                                    <img
+                                                        src={dish.ArchivoImagen}
+                                                        alt={dish.Producto}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-gray-400 text-xl">🍽️</span>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="flex items-center gap-1">
+                                                    {dish.ImagenCategoria && <span>{dish.ImagenCategoria}</span>}
+                                                    {dish.Producto}
+                                                    {dish.IdModuloRecetario && dish.IdModuloRecetario > 0 ? (
+                                                        <sup className="text-primary-600 font-bold ml-0.5">
+                                                            {dish.IdModuloRecetario}
+                                                        </sup>
+                                                    ) : null}
+                                                </span>
+                                                {dish.Categoria && <span className="text-[10px] text-gray-400 font-normal">{dish.Categoria}</span>}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {dish.Codigo}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {dish.SeccionMenu || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.Precio)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        {dish.IVA}%
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-medium text-blue-600">
+                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.Costo || 0)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                        {(dish.PorcentajeCostoIdeal || 0).toFixed(2)}%
+                                    </td>
+                                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${dish.AlertaCosto === 1 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {(dish.PorcentajeCosto || 0).toFixed(2)}%
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        {dish.AlertaCosto === 1 && <span title="¡Alerta de Costo!" className="text-xl cursor-help">⚠️</span>}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => handleOpenEditModal(dish)}
+                                            className="text-xl mr-3 hover:scale-110 transition-transform"
+                                            title={t('editProduct')}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(dish)}
+                                            className="text-xl hover:scale-110 transition-transform"
+                                            title={t('deleteProduct')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Delete Confirmation Modal */}
@@ -399,6 +403,6 @@ export default function DishesPage() {
                     projectId={project.idProyecto}
                 />
             )}
-        </div>
+        </PageShell>
     );
 }

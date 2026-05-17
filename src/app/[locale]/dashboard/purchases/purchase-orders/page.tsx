@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import PageShell from '@/components/PageShell';
+import { FileText } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -826,22 +828,18 @@ export default function PurchaseOrdersPage() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 space-y-6 relative">
-
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{t('title')}</h1>
-                    <p className="text-slate-400 text-xs font-semibold mt-1 uppercase tracking-widest">{t('subtitle')}</p>
-                </div>
+        <PageShell
+            title={t('title')}
+            icon={FileText}
+            actions={
                 <div className="flex gap-2">
-                    <button 
+                    <button
                         onClick={handleOpenCategoryModal}
                         className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-sm"
                     >
                         <span>📂</span> Pedido por Categorías
                     </button>
-                    <button 
+                    <button
                         onClick={() => {
                             const today = new Date().toISOString().split('T')[0];
                             setEditingOrder(null);
@@ -860,7 +858,8 @@ export default function PurchaseOrdersPage() {
                         <span className="text-base leading-none">+</span> {t('newOrder')}
                     </button>
                 </div>
-            </div>
+            }
+        >
 
             {/* Stats + Search Row */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -1611,6 +1610,6 @@ export default function PurchaseOrdersPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

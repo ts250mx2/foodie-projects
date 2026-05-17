@@ -7,6 +7,8 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import QRCode from 'react-qr-code';
 import ExpenseImageCaptureModal from '@/components/ExpenseImageCaptureModal';
+import PageShell from '@/components/PageShell';
+import { CreditCard } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -579,12 +581,8 @@ export default function ExpensesCapturePage() {
     const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (exp.Gasto || 0), 0);
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4">
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    💸 {t('title')}
-                </h1>
-
+        <PageShell title="Captura de Gastos" icon={CreditCard}>
+            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
                 <div className="flex items-center gap-4">
                     {/* OCR Capture Button */}
                     <div className="flex flex-col">
@@ -1357,7 +1355,7 @@ export default function ExpensesCapturePage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }
 

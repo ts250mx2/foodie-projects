@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import POSInsertModal from '@/components/POSInsertModal';
+import PageShell from '@/components/PageShell';
+import { Store } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -627,59 +629,43 @@ export default function SalesChannelsCapturePage() {
     }, [shifts, selectedBranch]);
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4">
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    🏪 {t('title')}
-                </h1>
-
-                <div className="flex items-center gap-4">
+        <PageShell title={t('title')} icon={Store} actions={<div className="flex items-center gap-4 flex-wrap">
                     {/* Branch Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                        >
-                            {branches.length === 0 && <option>{t('noBranches')}</option>}
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                    >
+                        {branches.length === 0 && <option>{t('noBranches')}</option>}
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
 
                     {/* Month Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{t(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{t(`months.${i}`)}</option>
+                        ))}
+                    </select>
 
                     {/* Year Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                    >
+                        {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                </div>}>
 
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
                 {/* Continuous Header */}
@@ -1349,7 +1335,7 @@ export default function SalesChannelsCapturePage() {
                 </div>
             )}
             {isPOSModalOpen && (
-                <POSInsertModal 
+                <POSInsertModal
                     isOpen={isPOSModalOpen}
                     onClose={() => setIsPOSModalOpen(false)}
                     onSave={handleSavePOS}
@@ -1358,6 +1344,6 @@ export default function SalesChannelsCapturePage() {
                     initialItems={posItems}
                 />
             )}
-        </div>
+        </PageShell>
     );
 }

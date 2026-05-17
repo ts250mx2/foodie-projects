@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/ThemeContext';
+import PageShell from '@/components/PageShell';
+import { ScanText } from 'lucide-react';
 
 function SimpleUploadContent() {
     const t = useTranslations('OCRDocuments');
@@ -91,11 +93,8 @@ function SimpleUploadContent() {
     };
 
     return (
-        <div className="max-w-md mx-auto p-4 space-y-6 pb-20">
-            <header className="text-center py-6">
-                <h1 className="text-2xl font-black text-gray-800 tracking-tight">{t('title')}</h1>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Carga Rápida Móvil</p>
-            </header>
+        <PageShell title="Subir Documento OCR" icon={ScanText} subtitle="Carga Rápida Móvil">
+            <div className="max-w-md mx-auto space-y-6 pb-20">
 
             <div className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 space-y-6">
                 <div className="space-y-2">
@@ -150,6 +149,7 @@ function SimpleUploadContent() {
                 </Button>
             </div>
         </div>
+        </PageShell>
     );
 }
 

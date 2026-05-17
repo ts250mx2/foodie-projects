@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import MenuSectionsModal from '@/components/MenuSectionsModal';
+import PageShell from '@/components/PageShell';
+import { LayoutList } from 'lucide-react';
 
 export default function MenuSectionsPage() {
     const [project, setProject] = useState<any>(null);
@@ -25,7 +27,7 @@ export default function MenuSectionsPage() {
     if (!project) return <div className="p-6">Cargando...</div>;
 
     return (
-        <div className="p-6">
+        <PageShell title="Secciones de Menú" icon={LayoutList}>
             <MenuSectionsModal
                 isOpen={true}
                 onClose={() => window.history.back()}
@@ -34,6 +36,6 @@ export default function MenuSectionsPage() {
             <div className="text-gray-400 text-sm mt-4 italic">
                 Tip: Ahora puedes gestionar las secciones directamente desde la pantalla de Platillos Menu.
             </div>
-        </div>
+        </PageShell>
     );
 }

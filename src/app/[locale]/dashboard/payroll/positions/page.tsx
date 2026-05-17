@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import PageShell from '@/components/PageShell';
+import { Briefcase } from 'lucide-react';
 
 interface Position {
     IdPuesto: number;
@@ -135,89 +137,87 @@ export default function PositionsPage() {
     };
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                <Button onClick={() => {
+        <PageShell title={t('title')} icon={Briefcase} actions={<Button onClick={() => {
                     setEditingPosition(null);
                     setFormData({ position: '', hasTips: false });
                     setIsModalOpen(true);
                 }}>
                     {t('addPosition')}
-                </Button>
-            </div>
+                </Button>}>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('Puesto')}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('positionName')}
-                                    {sortConfig?.key === 'Puesto' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
+                        <ThemedGridHeader>
+                            <ThemedGridHeaderCell
+                                className="cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('Puesto')}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        {t('positionName')}
+                                        {sortConfig?.key === 'Puesto' && (
+                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="🔍 Filter..."
+                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('hasTips')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredPositions.map((position) => (
-                            <tr key={position.IdPuesto} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {position.Puesto}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {position.TienePropina === 1 ? 'Sí' : 'No'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${position.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {position.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(position)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editPosition')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(position)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deletePosition')}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('hasTips')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('active')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell className="text-right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {sortedAndFilteredPositions.map((position) => (
+                                <tr key={position.IdPuesto} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {position.Puesto}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {position.TienePropina === 1 ? 'Sí' : 'No'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${position.Status === 0
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                            }`}>
+                                            {position.Status === 0 ? t('active') : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button
+                                            onClick={() => openEditModal(position)}
+                                            className="text-xl mr-4 hover:scale-110 transition-transform"
+                                            title={t('editPosition')}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(position)}
+                                            className="text-xl hover:scale-110 transition-transform"
+                                            title={t('deletePosition')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Edit/Create Modal */}
@@ -285,6 +285,6 @@ export default function PositionsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageShell>
     );
 }

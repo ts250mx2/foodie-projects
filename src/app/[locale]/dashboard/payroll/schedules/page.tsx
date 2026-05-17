@@ -7,6 +7,8 @@ import BulkScheduleModal from '@/components/BulkScheduleModal';
 import Button from '@/components/Button';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import PageShell from '@/components/PageShell';
+import { CalendarDays } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -500,93 +502,72 @@ export default function SchedulesPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen p-6 gap-4 bg-gray-50">
-            {/* Header / Toolbar */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-md border border-gray-200">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsAttendanceMode(!isAttendanceMode)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all shadow-sm active:scale-95 group font-black uppercase tracking-tight text-xs ${
-                                isAttendanceMode 
-                                ? 'bg-blue-600 border-blue-400 text-white shadow-blue-200' 
-                                : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'
-                            }`}
-                        >
-                            <span className={`text-sm transition-transform duration-300 ${isAttendanceMode ? 'rotate-0 scale-125' : 'rotate-180 scale-100 opacity-50'}`}>
-                                {isAttendanceMode ? '✅' : '⚪'}
-                            </span>
-                            Modo Asistencia: {isAttendanceMode ? 'ON' : 'OFF'}
-                        </button>
-                        <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200">
-                            <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600">◀</button>
-                            <span className="px-4 font-bold text-gray-700 min-w-[200px] text-center">{formatWeekRange()}</span>
-                            <button onClick={() => navigateWeek(1)} className="p-2 hover:bg-white hover:shadow-sm rounded-md transition-all text-gray-600">▶</button>
-                        </div>
-                        <button
-                            onClick={handleImportPreviousWeek}
-                            disabled={loading || selectedBranch === ''}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-                        >
-                            {loading ? (
-                                <span className="animate-spin text-lg">⏳</span>
-                            ) : (
-                                <span>📅</span>
-                            )}
-                            {t('importPreviousWeek')}
-                        </button>
-                        <button
-                            onClick={handleExportPdf}
-                            disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg font-bold hover:bg-black transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-50"
-                        >
-                            <span>📄</span>
-                            {t('exportPdf')}
-                        </button>
+        <PageShell title={t('title')} icon={CalendarDays} actions={<div className="flex items-center gap-4 flex-wrap">
+                    <button
+                        onClick={() => setIsAttendanceMode(!isAttendanceMode)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all shadow-sm active:scale-95 group font-black uppercase tracking-tight text-xs ${
+                            isAttendanceMode
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-blue-200'
+                            : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'
+                        }`}
+                    >
+                        <span className={`text-sm transition-transform duration-300 ${isAttendanceMode ? 'rotate-0 scale-125' : 'rotate-180 scale-100 opacity-50'}`}>
+                            {isAttendanceMode ? '✅' : '⚪'}
+                        </span>
+                        Modo Asistencia: {isAttendanceMode ? 'ON' : 'OFF'}
+                    </button>
+                    <div className="flex items-center bg-white/20 rounded-lg p-1 border border-white/30">
+                        <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">◀</button>
+                        <span className="px-4 font-bold text-white min-w-[200px] text-center text-xs">{formatWeekRange()}</span>
+                        <button onClick={() => navigateWeek(1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">▶</button>
                     </div>
-                </div>
-
-                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleImportPreviousWeek}
+                        disabled={loading || selectedBranch === ''}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-bold hover:bg-white/30 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none text-xs border border-white/30"
+                    >
+                        {loading ? (
+                            <span className="animate-spin text-lg">⏳</span>
+                        ) : (
+                            <span>📅</span>
+                        )}
+                        {t('importPreviousWeek')}
+                    </button>
+                    <button
+                        onClick={handleExportPdf}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-bold hover:bg-white/30 transition-all shadow-md active:scale-95 disabled:opacity-50 text-xs border border-white/30"
+                    >
+                        <span>📄</span>
+                        {t('exportPdf')}
+                    </button>
                     {branches.length > 1 && (
                         <button
                             onClick={() => setViewAllEmployees(!viewAllEmployees)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all shadow-sm font-bold select-none ${viewAllEmployees
-                                ? 'bg-primary-600 border-primary-700 text-white shadow-primary-200'
-                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all shadow-sm font-bold select-none text-xs ${viewAllEmployees
+                                ? 'bg-white text-primary-600 border-white'
+                                : 'bg-white/20 border-white/30 text-white hover:bg-white/30'
                                 }`}
                         >
-                            <span className={`w-5 h-5 flex items-center justify-center rounded border ${viewAllEmployees ? 'bg-white text-primary-600 border-white' : 'bg-gray-100 border-gray-300'}`}>
-                                {viewAllEmployees && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 stroke-[4px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                )}
-                            </span>
                             {t('viewAllEmployees')}
                         </button>
                     )}
-
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white font-medium shadow-sm"
-                        >
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-2 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white focus:outline-none focus:ring-1 focus:ring-white/50"
+                    >
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
+                </div>}>
 
             {/* Weekly Board */}
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
+            <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden flex flex-col">
+                <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
                     <table className="min-w-full border-collapse">
                         <thead>
                             <tr
@@ -766,6 +747,6 @@ export default function SchedulesPage() {
                     />
                 </>
             )}
-        </div>
+        </PageShell>
     );
 }

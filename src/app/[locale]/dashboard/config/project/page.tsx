@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import PageShell from '@/components/PageShell';
+import { Settings } from 'lucide-react';
 
 interface ProjectSettings {
     Logo64: string;
@@ -168,11 +170,7 @@ export default function ProjectSettingsPage() {
     }
 
     return (
-        <div className="p-6">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Configuración del Proyecto</h1>
-            </div>
-
+        <PageShell title="Configuración del Proyecto" icon={Settings}>
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Project Settings Card */}
                 <div className="bg-white rounded-lg shadow p-6 space-y-6">
@@ -362,6 +360,6 @@ export default function ProjectSettingsPage() {
                     </Button>
                 </div>
             </form>
-        </div>
+        </PageShell>
     );
 }

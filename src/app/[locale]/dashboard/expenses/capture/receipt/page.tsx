@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/ThemeContext';
+import PageShell from '@/components/PageShell';
+import { Receipt } from 'lucide-react';
 
 export default function ReceiptCapturePage() {
     const t = useTranslations('ReceiptCapture');
@@ -128,11 +130,8 @@ export default function ReceiptCapturePage() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50 p-4 md:p-8 max-w-md mx-auto">
-            <header className="mb-6 text-center">
-                <h1 className="text-2xl font-black text-gray-800">{t('title')}</h1>
-                <p className="text-gray-500 text-sm">{t('subtitle')}</p>
-            </header>
+        <PageShell title="Captura de Recibo" icon={Receipt} subtitle={t('subtitle')}>
+            <div className="flex flex-col bg-gray-50 max-w-md mx-auto">
 
             {!preview ? (
                 <div 
@@ -247,5 +246,6 @@ export default function ReceiptCapturePage() {
                 Foodie Guru &copy; 2026 - Powered by Claude AI
             </footer>
         </div>
+        </PageShell>
     );
 }

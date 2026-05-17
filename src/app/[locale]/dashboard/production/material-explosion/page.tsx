@@ -6,6 +6,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CostingModal, { Product } from '@/components/CostingModal';
+import PageShell from '@/components/PageShell';
+import { Zap } from 'lucide-react';
 
 interface SubRecipe {
     IdProducto: number;
@@ -129,63 +131,26 @@ export default function MaterialExplosionPage() {
     const grandTotal = explosionResults?.reduce((sum, item) => sum + item.total, 0) || 0;
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tight flex items-center gap-3">
-                        <span className="text-3xl">💥</span>
-                        {t('title')}
-                    </h1>
-                    <div className="flex gap-2 mt-4 bg-gray-100 p-1 rounded-xl w-fit">
-                        <button
-                            onClick={() => {
-                                setActiveType('2');
-                                setQuantities({});
-                            }}
-                            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                                activeType === '2' 
-                                ? 'bg-white text-green-600 shadow-sm' 
-                                : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
+        <PageShell
+            title={t('title')}
+            icon={Zap}
+            actions={
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex gap-1 bg-white/20 p-1 rounded-xl">
+                        <button onClick={() => { setActiveType('2'); setQuantities({}); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeType === '2' ? 'bg-white text-green-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
                             🥣 {t('subRecipes')}
                         </button>
-                        <button
-                            onClick={() => {
-                                setActiveType('1');
-                                setQuantities({});
-                            }}
-                            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                                activeType === '1' 
-                                ? 'bg-white text-blue-600 shadow-sm' 
-                                : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
+                        <button onClick={() => { setActiveType('1'); setQuantities({}); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeType === '1' ? 'bg-white text-blue-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
                             🍽️ {t('dishes')}
                         </button>
                     </div>
-                </div>
-
-                <div className="flex gap-3">
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                        <input
-                            type="text"
-                            placeholder={t('searchPlaceholder')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 transition-all outline-none text-sm w-full md:w-64"
-                        />
-                    </div>
-                    <Button 
-                        onClick={handleExplode} 
-                        isLoading={isExploding}
-                        disabled={isLoading || Object.values(quantities).every(q => !parseFloat(q))}
-                    >
+                    <input type="text" placeholder={t('searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/50 w-48" />
+                    <Button onClick={handleExplode} isLoading={isExploding} disabled={isLoading || Object.values(quantities).every(q => !parseFloat(q))} variant="secondary" size="sm">
                         ⚡ {t('explode')}
                     </Button>
                 </div>
-            </header>
+            }
+        >
 
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -381,6 +346,6 @@ export default function MaterialExplosionPage() {
                     productType={editingProduct.IdTipoProducto ?? parseInt(activeType)}
                 />
             )}
-        </div>
+        </PageShell>
     );
 }
