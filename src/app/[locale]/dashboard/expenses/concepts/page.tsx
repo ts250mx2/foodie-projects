@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Settings, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Settings, Pencil, Trash2, Search, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
+import BaseModal from '@/components/BaseModal';
 import PaymentChannelsModal from '@/components/PaymentChannelsModal';
 import PageShell from '@/components/PageShell';
 
@@ -78,8 +79,7 @@ export default function ExpenseConceptsPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
         try {
             const url = editingConcept
                 ? `/api/expense-concepts/${editingConcept.IdConceptoGasto}`
@@ -185,202 +185,188 @@ export default function ExpenseConceptsPage() {
         <PageShell
             title={t('title')}
             actions={
-                <div className="flex gap-2">
-                    <Button variant="secondary" leftIcon={Settings} iconBox onClick={() => setIsPaymentChannelsModalOpen(true)} size="sm">
-                        Canales de Pago
-                    </Button>
-                    <Button variant="solid" leftIcon={Plus} iconBox onClick={() => {
-                        setEditingConcept(null);
-                        setFormData({ concept: '', requiredReference: false, paymentChannelId: '' });
-                        setPaymentChannelSearch('');
-                        setSelectedPaymentChannel(null);
-                        setIsModalOpen(true);
-                    }} size="sm">
-                        {t('addConcept')}
-                    </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                        <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ color: '#9ca3af' }}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Buscar concepto…"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border bg-white focus:outline-none transition-all placeholder:text-gray-400 text-gray-700"
+                            style={{
+                                borderColor: '#e5e7eb',
+                            }}
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" leftIcon={Settings} iconBox onClick={() => setIsPaymentChannelsModalOpen(true)} size="sm">
+                            Canales de Pago
+                        </Button>
+                        <Button variant="solid" leftIcon={Plus} iconBox onClick={() => {
+                            setEditingConcept(null);
+                            setFormData({ concept: '', requiredReference: false, paymentChannelId: '' });
+                            setPaymentChannelSearch('');
+                            setSelectedPaymentChannel(null);
+                            setIsModalOpen(true);
+                        }} size="sm">
+                            {t('addConcept')}
+                        </Button>
+                    </div>
                 </div>
             }
         >
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-100 table-row-hover">
-                    <ThemedGridHeader>
-                        <ThemedGridHeaderCell
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => handleSort('ConceptoGasto')}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                    <table className="min-w-full border-collapse">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                            <ThemedGridHeaderCell
+                                sortable
+                                sortDir={sortConfig?.key === 'ConceptoGasto' ? sortConfig.direction : null}
+                                onClick={() => handleSort('ConceptoGasto')}
+                            >
+                                {t('conceptName')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                Canal de Pago Default
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>
+                                {t('active')}
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
+                        </ThemedGridHeader>
+                        <TableBody
+                            loading={false}
+                            empty={sortedAndFilteredConcepts.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay conceptos. Agrega el primero.'}
+                            colSpan={4}
                         >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1">
-                                    {t('conceptName')}
-                                    {sortConfig?.key === 'ConceptoGasto' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                                <div className="mt-1 flex items-center gap-1.5 px-2 py-1 border border-gray-300 rounded bg-white">
-                                    <Search size={14} className="text-gray-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Filter..."
-                                        className="flex-1 text-xs border-0 outline-none bg-transparent text-gray-700"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        </ThemedGridHeaderCell>
-
-                        <ThemedGridHeaderCell>
-                            Canal de Pago Default
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell>
-                            {t('active')}
-                        </ThemedGridHeaderCell>
-                        <ThemedGridHeaderCell className="text-right">
-                            {t('actions')}
-                        </ThemedGridHeaderCell>
-                    </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedAndFilteredConcepts.map((concept) => (
-                            <tr key={concept.IdConceptoGasto} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {concept.ConceptoGasto}
-                                </td>
-
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                    {concept.CanalPago || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${concept.Status === 0
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                        }`}>
-                                        {concept.Status === 0 ? t('active') : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <button
-                                            onClick={() => openEditModal(concept)}
-                                            className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                                            title={t('editConcept')}
-                                        >
-                                            <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(concept)}
-                                            className="p-1.5 hover:bg-red-50 rounded transition-colors"
-                                            title={t('deleteConcept')}
-                                        >
-                                            <Trash2 size={18} className="text-red-600 hover:text-red-900" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            {sortedAndFilteredConcepts.map((concept) => (
+                                <TableRow key={concept.IdConceptoGasto}>
+                                    <TableCell>
+                                        <span className="font-medium text-gray-900">{concept.ConceptoGasto}</span>
+                                    </TableCell>
+                                    <TableCell muted>{concept.CanalPago || '—'}</TableCell>
+                                    <TableCell>
+                                        <span className={`badge ${concept.Status === 0 ? 'badge-green' : 'badge-red'}`}>
+                                            {concept.Status === 0 ? t('active') : 'Inactivo'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editConcept')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(concept)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteConcept')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(concept)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </table>
+                </div>
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingConcept ? t('editConcept') : t('addConcept')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('conceptName')}
-                                value={formData.concept}
-                                onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
-                                required
-                            />
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingConcept ? t('editConcept') : t('addConcept')}
+                subtitle={editingConcept ? `Editando: ${editingConcept.ConceptoGasto}` : 'Completa la información del concepto'}
+                size="lg"
+                onConfirm={handleSubmit}
+                confirmLabel={t('save')}
+                cancelLabel={t('cancel')}
+                headerVariant="primary"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label={t('conceptName')}
+                        value={formData.concept}
+                        onChange={(e) => setFormData({ ...formData, concept: e.target.value })}
+                        required
+                    />
 
-
-
-                            <div className="relative">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Canal de Pago Default</label>
-                                <input
-                                    type="text"
-                                    value={paymentChannelSearch}
-                                    onChange={(e) => {
-                                        setPaymentChannelSearch(e.target.value);
-                                        setShowPaymentChannelDropdown(true);
-                                        setFormData({ ...formData, paymentChannelId: '' });
-                                        setSelectedPaymentChannel(null);
-                                    }}
-                                    onFocus={() => setShowPaymentChannelDropdown(true)}
-                                    placeholder="Buscar canal de pago (opcional)"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                />
-                                {showPaymentChannelDropdown && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                        {paymentChannels
-                                            .filter(c => paymentChannelSearch ? c.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
-                                            .map(c => (
-                                                <div
-                                                    key={c.IdCanalPago}
-                                                    onClick={() => {
-                                                        setSelectedPaymentChannel(c);
-                                                        setFormData({ ...formData, paymentChannelId: c.IdCanalPago.toString() });
-                                                        setPaymentChannelSearch(c.CanalPago);
-                                                        setShowPaymentChannelDropdown(false);
-                                                    }}
-                                                    className="px-3 py-2 hover:bg-primary-50 cursor-pointer"
-                                                >
-                                                    <div className="font-medium text-sm">{c.CanalPago}</div>
-                                                </div>
-                                            ))}
-                                        {paymentChannels.filter(c => paymentChannelSearch ? c.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
-                                            <div className="px-3 py-2 text-sm text-gray-400 italic">
-                                                No se encontraron canales de pago
-                                            </div>
-                                        )}
+                    <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Canal de Pago Default</label>
+                        <input
+                            type="text"
+                            value={paymentChannelSearch}
+                            onChange={(e) => {
+                                setPaymentChannelSearch(e.target.value);
+                                setShowPaymentChannelDropdown(true);
+                                setFormData({ ...formData, paymentChannelId: '' });
+                                setSelectedPaymentChannel(null);
+                            }}
+                            onFocus={() => setShowPaymentChannelDropdown(true)}
+                            placeholder="Buscar canal de pago (opcional)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                        {showPaymentChannelDropdown && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {paymentChannels
+                                    .filter(c => paymentChannelSearch ? c.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true)
+                                    .map(c => (
+                                        <div
+                                            key={c.IdCanalPago}
+                                            onClick={() => {
+                                                setSelectedPaymentChannel(c);
+                                                setFormData({ ...formData, paymentChannelId: c.IdCanalPago.toString() });
+                                                setPaymentChannelSearch(c.CanalPago);
+                                                setShowPaymentChannelDropdown(false);
+                                            }}
+                                            className="px-3 py-2 hover:bg-primary-50 cursor-pointer"
+                                        >
+                                            <div className="font-medium text-sm">{c.CanalPago}</div>
+                                        </div>
+                                    ))}
+                                {paymentChannels.filter(c => paymentChannelSearch ? c.CanalPago.toLowerCase().includes(paymentChannelSearch.toLowerCase()) : true).length === 0 && (
+                                    <div className="px-3 py-2 text-sm text-gray-400 italic">
+                                        No se encontraron canales de pago
                                     </div>
                                 )}
                             </div>
-
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
+                        )}
                     </div>
                 </div>
-            )}
+            </BaseModal>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteConcept')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                {t('deleteConcept')}
-                            </button>
-                        </div>
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar concepto"
+                size="sm"
+                onConfirm={handleDelete}
+                confirmLabel="Sí, eliminar"
+                cancelLabel={t('cancel')}
+            >
+                <div className="flex flex-col items-center gap-4 py-2 text-center">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <AlertTriangle size={24} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">¿Eliminar {editingConcept?.ConceptoGasto}?</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('confirmDelete')}</p>
                     </div>
                 </div>
-            )}
+            </BaseModal>
+
             {/* Payment Channels Modal */}
             <PaymentChannelsModal
                 isOpen={isPaymentChannelsModalOpen}
