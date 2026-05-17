@@ -573,7 +573,8 @@ export default function InventoryCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        backgroundColor: colors.colorFondo1,
+                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
@@ -650,7 +651,7 @@ export default function InventoryCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0 text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="px-6 pt-4 pb-0 text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0">

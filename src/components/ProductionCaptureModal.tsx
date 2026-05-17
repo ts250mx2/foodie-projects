@@ -178,7 +178,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl transition-all">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-100 text-white rounded-t-2xl" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                <div className="flex justify-between items-center p-6 border-b border-gray-100 text-white rounded-t-2xl" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-2xl font-black flex items-center gap-2">
                             🍳 {t('title') || 'Captura de Producción'}

@@ -101,7 +101,7 @@ export default function PageShell({
             </div>
 
             {/* ── Page content ────────────────────────────────────────── */}
-            <div className={`flex-1 flex flex-col mt-6 ${className}`}>
+            <div className={`flex-1 flex flex-col mt-3 ${className}`}>
                 {children}
             </div>
         </div>

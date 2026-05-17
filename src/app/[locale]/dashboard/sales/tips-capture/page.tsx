@@ -198,7 +198,8 @@ export default function TipsCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        backgroundColor: colors.colorFondo1,
+                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >

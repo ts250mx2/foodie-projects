@@ -23,6 +23,8 @@ interface BaseModalProps {
     disableBackdropClose?: boolean;
     /** Variante del botón de confirmación */
     confirmVariant?: 'primary' | 'danger';
+    /** Variante del fondo del header */
+    headerVariant?: 'default' | 'primary';
 }
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
@@ -47,6 +49,7 @@ export default function BaseModal({
     cancelLabel     = 'Cancelar',
     disableBackdropClose = false,
     confirmVariant  = 'primary',
+    headerVariant   = 'primary',
 }: BaseModalProps) {
     const { colors } = useTheme();
     const panelRef   = useRef<HTMLDivElement>(null);
@@ -118,24 +121,45 @@ export default function BaseModal({
                 style={{ maxHeight: '90vh' }}
             >
                 {/* ── Header ──────────────────────────────────────────── */}
-                <div className="shrink-0 flex items-stretch border-b border-gray-100">
-
+                <div 
+                    className={`shrink-0 flex items-stretch border-b ${
+                        headerVariant === 'primary' 
+                            ? 'border-black/5' 
+                            : 'border-gray-100'
+                    }`}
+                    style={{
+                        backgroundColor: headerVariant === 'primary' ? colors.colorFondo1 : undefined
+                    }}
+                >
                     {/* Accent bar */}
-                    <div
-                        className="w-[3px] shrink-0"
-                        style={{
-                            background: `linear-gradient(to bottom, ${colors.colorFondo1}, ${colors.colorFondo2})`,
-                        }}
-                    />
+                    {headerVariant !== 'primary' && (
+                        <div
+                            className="w-[3px] shrink-0"
+                            style={{
+                                backgroundColor: colors.colorFondo1,
+                            }}
+                        />
+                    )}
 
                     {/* Title + close */}
                     <div className="flex-1 flex items-start justify-between px-5 py-4 gap-4 min-w-0">
                         <div className="flex flex-col gap-0.5 min-w-0">
-                            <h2 className="text-[15px] font-semibold text-gray-900 leading-tight truncate">
+                            <h2 
+                                className="text-[15px] font-semibold leading-tight truncate"
+                                style={{
+                                    color: headerVariant === 'primary' ? colors.colorLetra : undefined
+                                }}
+                            >
                                 {title}
                             </h2>
                             {subtitle && (
-                                <p className="text-[12px] text-gray-400 leading-tight">
+                                <p 
+                                    className="text-[12px] leading-tight"
+                                    style={{
+                                        color: headerVariant === 'primary' ? colors.colorLetra : undefined,
+                                        opacity: headerVariant === 'primary' ? 0.8 : undefined
+                                    }}
+                                >
                                     {subtitle}
                                 </p>
                             )}
@@ -144,9 +168,14 @@ export default function BaseModal({
                         <button
                             onClick={onClose}
                             aria-label="Cerrar"
-                            className="shrink-0 mt-0.5 p-1.5 rounded-lg text-gray-400
-                                       hover:text-gray-700 hover:bg-gray-100
-                                       active:scale-95 transition-all duration-100"
+                            className={`shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 ${
+                                headerVariant === 'primary'
+                                    ? 'hover:bg-white/10'
+                                    : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                            }`}
+                            style={{
+                                color: headerVariant === 'primary' ? colors.colorLetra : undefined
+                            }}
                         >
                             <X size={16} strokeWidth={2} />
                         </button>

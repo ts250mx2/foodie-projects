@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { Plus, Upload, Download, Trash2 } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -412,13 +413,15 @@ export default function ProductsPage() {
                     >
                         {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
                     </Button>
-                    <Button onClick={() => setIsMassiveModalOpen(true)} variant="primary" className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2">
-                        📊 Carga por Excel
+                    <Button leftIcon={Upload} iconBox onClick={() => setIsMassiveModalOpen(true)} variant="secondary" size="sm">
+                        Carga por Excel
                     </Button>
-                    <Button onClick={() => setIsProductImageCaptureModalOpen(true)} variant="primary" className="bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2">
-                        📸 Carga por Imagen
+                    <Button leftIcon={Upload} iconBox onClick={() => setIsProductImageCaptureModalOpen(true)} variant="secondary" size="sm">
+                        Carga por Imagen
                     </Button>
                     <Button
+                        leftIcon={Download}
+                        iconBox
                         onClick={() => {
                             const XLSX = require('xlsx');
                             const dataToExport = sortedAndFilteredProducts.map(p => ({
@@ -436,15 +439,16 @@ export default function ProductsPage() {
                             XLSX.writeFile(workbook, "listado_productos.xlsx");
                         }}
                         variant="secondary"
+                        size="sm"
                     >
-                        📤 Exportar Excel
+                        Exportar Excel
                     </Button>
-                    <Button onClick={() => { setEditingProduct(null); setSelectedProductForCosting(null); setIsModalOpen(true); }}>
+                    <Button variant="solid" leftIcon={Plus} iconBox onClick={() => { setEditingProduct(null); setSelectedProductForCosting(null); setIsModalOpen(true); }} size="sm">
                         {t('addProduct')}
                     </Button>
                     {selectedIds.length > 0 && (
-                        <Button onClick={() => setIsBulkDeleteModalOpen(true)} variant="primary" className="bg-red-600 hover:bg-red-700 flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
-                            🗑️ Eliminar ({selectedIds.length})
+                        <Button leftIcon={Trash2} iconBox onClick={() => setIsBulkDeleteModalOpen(true)} variant="danger" size="sm" className="animate-in fade-in slide-in-from-right-2">
+                            Eliminar ({selectedIds.length})
                         </Button>
                     )}
                 </div>

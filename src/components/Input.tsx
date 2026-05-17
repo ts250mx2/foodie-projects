@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -12,8 +13,11 @@ export default function Input({
     hint,
     className = '',
     id,
+    style,
     ...props
 }: InputProps) {
+    const { colors } = useTheme();
+    const [isFocused, setIsFocused] = React.useState(false);
     const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
@@ -28,14 +32,32 @@ export default function Input({
             )}
             <input
                 id={inputId}
-                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all duration-150
-                    ${error
-                        ? 'border-red-400 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100'
-                        : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                    }
+                onFocus={(e) => {
+                    setIsFocused(true);
+                    if (props.onFocus) props.onFocus(e);
+                }}
+                onBlur={(e) => {
+                    setIsFocused(false);
+                    if (props.onBlur) props.onBlur(e);
+                }}
+                className={`w-full text-sm rounded-lg border transition-all duration-150
                     bg-white text-gray-800 placeholder:text-gray-400
                     focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed
                     ${className}`}
+                style={{
+                    borderColor: error 
+                        ? '#f87171' // border-red-400
+                        : isFocused 
+                            ? colors.colorFondo1 
+                            : '#e5e7eb', // border-gray-200
+                    borderWidth: isFocused ? '2px' : '1px',
+                    paddingLeft: isFocused ? '11px' : '12px',
+                    paddingRight: isFocused ? '11px' : '12px',
+                    paddingTop: isFocused ? '7px' : '8px',
+                    paddingBottom: isFocused ? '7px' : '8px',
+                    boxShadow: 'none',
+                    ...style
+                }}
                 {...props}
             />
             {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
@@ -52,7 +74,9 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
     children: React.ReactNode;
 }
 
-export function Select({ label, error, hint, className = '', id, children, ...props }: SelectProps) {
+export function Select({ label, error, hint, className = '', id, children, style, ...props }: SelectProps) {
+    const { colors } = useTheme();
+    const [isFocused, setIsFocused] = React.useState(false);
     const selectId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
@@ -67,14 +91,32 @@ export function Select({ label, error, hint, className = '', id, children, ...pr
             )}
             <select
                 id={selectId}
-                className={`w-full px-3 py-2 text-sm rounded-lg border transition-all duration-150
-                    ${error
-                        ? 'border-red-400 ring-2 ring-red-100'
-                        : 'border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                    }
+                onFocus={(e) => {
+                    setIsFocused(true);
+                    if (props.onFocus) props.onFocus(e);
+                }}
+                onBlur={(e) => {
+                    setIsFocused(false);
+                    if (props.onBlur) props.onBlur(e);
+                }}
+                className={`w-full text-sm rounded-lg border transition-all duration-150
                     bg-white text-gray-800 focus:outline-none
                     disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed
                     ${className}`}
+                style={{
+                    borderColor: error 
+                        ? '#f87171' // border-red-400
+                        : isFocused 
+                            ? colors.colorFondo1 
+                            : '#e5e7eb', // border-gray-200
+                    borderWidth: isFocused ? '2px' : '1px',
+                    paddingLeft: isFocused ? '11px' : '12px',
+                    paddingRight: isFocused ? '11px' : '12px',
+                    paddingTop: isFocused ? '7px' : '8px',
+                    paddingBottom: isFocused ? '7px' : '8px',
+                    boxShadow: 'none',
+                    ...style
+                }}
                 {...props}
             >
                 {children}

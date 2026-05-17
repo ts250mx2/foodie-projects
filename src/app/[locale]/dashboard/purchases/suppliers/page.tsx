@@ -18,6 +18,8 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
+import { useTheme } from '@/contexts/ThemeContext';
+
 
 interface Supplier {
     IdProveedor: number;
@@ -66,6 +68,7 @@ function avatarColor(id: number) {
 export default function SuppliersPage() {
     const t = useTranslations('Suppliers');
     const { success, error: toastError } = useToast();
+    const { colors } = useTheme();
 
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,8 +82,10 @@ export default function SuppliersPage() {
 
     const [project, setProject] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [typeFilter, setTypeFilter] = useState<'all' | 'gasto' | 'compra'>('all');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Supplier; direction: 'asc' | 'desc' } | null>(null);
+
 
     useEffect(() => {
         const stored = localStorage.getItem('project');
@@ -187,10 +192,10 @@ export default function SuppliersPage() {
             const term = searchTerm.toLowerCase();
             const matchSearch =
                 !term ||
-                s.Proveedor.toLowerCase().includes(term) ||
-                s.RFC.toLowerCase().includes(term) ||
-                s.Contacto.toLowerCase().includes(term) ||
-                s.CorreoElectronico.toLowerCase().includes(term);
+                s.Proveedor?.toLowerCase().includes(term) ||
+                s.RFC?.toLowerCase().includes(term) ||
+                s.Contacto?.toLowerCase().includes(term) ||
+                s.CorreoElectronico?.toLowerCase().includes(term);
             const matchType =
                 typeFilter === 'all' ||
                 (typeFilter === 'gasto' && s.EsProveedorGasto === 1) ||
@@ -212,45 +217,62 @@ export default function SuppliersPage() {
             title={t('title')}
             subtitle={`${suppliers.length} proveedores registrados`}
             icon={Truck}
+            className="!mt-3"
             actions={
-                <Button leftIcon={Plus} iconBox onClick={openNew} size="md" variant="solid">
-                    {t('addSupplier')}
-                </Button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    {/* Search */}
+                    <div className="relative w-full sm:w-64">
+                        <Search 
+                            size={14} 
+                            className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" 
+                            style={{ color: isSearchFocused ? colors.colorFondo1 : '#9ca3af' }}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre, RFC o contacto…"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setIsSearchFocused(false)}
+                            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border bg-white focus:outline-none transition-all placeholder:text-gray-400 text-gray-700"
+                            style={{
+                                borderColor: isSearchFocused ? colors.colorFondo1 : '#e5e7eb',
+                                borderWidth: isSearchFocused ? '2px' : '1px',
+                                paddingLeft: isSearchFocused ? '35px' : '36px',
+                                paddingRight: isSearchFocused ? '15px' : '16px',
+                                paddingTop: isSearchFocused ? '5px' : '6px',
+                                paddingBottom: isSearchFocused ? '5px' : '6px',
+                                boxShadow: 'none'
+                            }}
+                        />
+                    </div>
+
+                    {/* Filter chips */}
+                    <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg shrink-0">
+                        {(['all', 'compra', 'gasto'] as const).map((f) => {
+                            const labels = { all: 'Todos', compra: 'Compra', gasto: 'Gasto' };
+                            return (
+                                <button
+                                    key={f}
+                                    onClick={() => setTypeFilter(f)}
+                                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-all ${typeFilter === f
+                                        ? 'bg-white text-gray-800 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    {labels[f]}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Add Button */}
+                    <Button leftIcon={Plus} iconBox onClick={openNew} size="sm" variant="solid">
+                        {t('addSupplier')}
+                    </Button>
+                </div>
             }
         >
-            {/* ── Toolbar ─────────────────────────────────────────────── */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-                {/* Search */}
-                <div className="relative w-full sm:w-72">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre, RFC o contacto…"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400 transition-all placeholder:text-gray-400"
-                    />
-                </div>
-
-                {/* Filter chips */}
-                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg">
-                    {(['all', 'compra', 'gasto'] as const).map((f) => {
-                        const labels = { all: 'Todos', compra: 'Compra', gasto: 'Gasto' };
-                        return (
-                            <button
-                                key={f}
-                                onClick={() => setTypeFilter(f)}
-                                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${typeFilter === f
-                                    ? 'bg-white text-gray-800 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                {labels[f]}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
 
             {/* ── Table ───────────────────────────────────────────────── */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
@@ -389,6 +411,7 @@ export default function SuppliersPage() {
                 confirmLabel={t('save')}
                 confirmLoading={isSaving}
                 cancelLabel={t('cancel')}
+                headerVariant="primary"
             >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="sm:col-span-2">

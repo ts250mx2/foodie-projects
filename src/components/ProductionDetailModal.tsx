@@ -97,7 +97,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
                             📝 Detalle de Producción

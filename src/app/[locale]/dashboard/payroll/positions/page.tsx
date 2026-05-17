@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableRow, TableCell, TableBody, RowActionButton } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Briefcase } from 'lucide-react';
+import BaseModal from '@/components/BaseModal';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Briefcase, Pencil, Trash2, Plus } from 'lucide-react';
 
 interface Position {
     IdPuesto: number;
@@ -17,6 +19,7 @@ interface Position {
 
 export default function PositionsPage() {
     const t = useTranslations('Positions');
+    const { colors } = useTheme();
     const [positions, setPositions] = useState<Position[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,8 +55,8 @@ export default function PositionsPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         try {
             const url = editingPosition
                 ? `/api/positions/${editingPosition.IdPuesto}`
@@ -137,11 +140,17 @@ export default function PositionsPage() {
     };
 
     return (
-        <PageShell title={t('title')} icon={Briefcase} actions={<Button onClick={() => {
-                    setEditingPosition(null);
-                    setFormData({ position: '', hasTips: false });
-                    setIsModalOpen(true);
-                }}>
+        <PageShell title={t('title')} icon={Briefcase} actions={<Button
+                    onClick={() => {
+                        setEditingPosition(null);
+                        setFormData({ position: '', hasTips: false });
+                        setIsModalOpen(true);
+                    }}
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                >
                     {t('addPosition')}
                 </Button>}>
 
@@ -180,111 +189,89 @@ export default function PositionsPage() {
                                 {t('actions')}
                             </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <TableBody loading={isLoading} empty={sortedAndFilteredPositions.length === 0}>
                             {sortedAndFilteredPositions.map((position) => (
-                                <tr key={position.IdPuesto} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <TableRow key={position.IdPuesto}>
+                                    <TableCell className="font-medium text-gray-900">
                                         {position.Puesto}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    </TableCell>
+                                    <TableCell>
                                         {position.TienePropina === 1 ? 'Sí' : 'No'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    </TableCell>
+                                    <TableCell>
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${position.Status === 0
                                             ? 'bg-green-100 text-green-800'
                                             : 'bg-red-100 text-red-800'
                                             }`}>
                                             {position.Status === 0 ? t('active') : 'Inactive'}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => openEditModal(position)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title={t('editPosition')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(position)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title={t('deletePosition')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editPosition')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(position)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deletePosition')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(position)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingPosition ? t('editPosition') : t('addPosition')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('positionName')}
-                                value={formData.position}
-                                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                                required
-                            />
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium text-gray-700">
-                                    {t('hasTips')}
-                                </label>
-                                <div
-                                    onClick={() => setFormData({ ...formData, hasTips: !formData.hasTips })}
-                                    className={`w-12 h-6 flex-shrink-0 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${formData.hasTips ? 'bg-primary-500' : 'bg-gray-300'}`}
-                                >
-                                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${formData.hasTips ? 'translate-x-6' : 'translate-x-0'}`} />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deletePosition')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                {t('deletePosition')}
-                            </button>
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingPosition ? t('editPosition') : t('addPosition')}
+                onConfirm={handleSubmit}
+                confirmLabel={t('save')}
+                cancelLabel={t('cancel')}
+            >
+                <div className="space-y-4">
+                    <Input
+                        label={t('positionName')}
+                        value={formData.position}
+                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                        required
+                    />
+                    <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700">
+                            {t('hasTips')}
+                        </label>
+                        <div
+                            onClick={() => setFormData({ ...formData, hasTips: !formData.hasTips })}
+                            className={`w-12 h-6 flex-shrink-0 rounded-full p-1 cursor-pointer transition-colors duration-300 ease-in-out ${formData.hasTips ? 'bg-primary-500' : 'bg-gray-300'}`}
+                            style={{ backgroundColor: formData.hasTips ? colors.colorFondo1 : undefined }}
+                        >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${formData.hasTips ? 'translate-x-6' : 'translate-x-0'}`} />
                         </div>
                     </div>
                 </div>
-            )}
+            </BaseModal>
+
+            {/* Delete Confirmation Modal */}
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title={t('deletePosition')}
+                onConfirm={handleDelete}
+                confirmLabel={t('deletePosition')}
+                confirmVariant="danger"
+                cancelLabel={t('cancel')}
+            >
+                <p className="text-gray-500 text-sm">{t('confirmDelete')}</p>
+            </BaseModal>
         </PageShell>
     );
 }

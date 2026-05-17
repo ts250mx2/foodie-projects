@@ -356,7 +356,7 @@ export default function WasteCapturePage() {
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                         {/* Modal Header */}
-                        <div className="px-6 pt-4 pb-0 text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="px-6 pt-4 pb-0 text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0">

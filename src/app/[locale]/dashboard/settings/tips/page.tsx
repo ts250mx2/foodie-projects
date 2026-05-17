@@ -5,9 +5,11 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import TipProfileEarningsModal from '@/components/TipProfileEarningsModal';
 import TipProfileExpensesModal from '@/components/TipProfileExpensesModal';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableRow, TableCell, TableBody, RowActionButton } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { DollarSign } from 'lucide-react';
+import BaseModal from '@/components/BaseModal';
+import { useTheme } from '@/contexts/ThemeContext';
+import { DollarSign, Pencil, Trash2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface TipProfile {
     IdPerfilPropina: number;
@@ -18,6 +20,7 @@ interface TipProfile {
 }
 
 export default function TipsProfilesPage() {
+    const { colors } = useTheme();
     const [profiles, setProfiles] = useState<TipProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,8 +62,8 @@ export default function TipsProfilesPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         try {
             const url = editingProfile
                 ? `/api/tips-profiles/${editingProfile.IdPerfilPropina}`
@@ -156,138 +159,100 @@ export default function TipsProfilesPage() {
                             Acciones
                         </ThemedGridHeaderCell>
                     </ThemedGridHeader>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-4 text-center text-gray-500">Cargando...</td>
-                            </tr>
-                        ) : profiles.length === 0 ? (
-                            <tr>
-                                <td colSpan={3} className="px-6 py-4 text-center text-gray-500">No hay perfiles registrados</td>
-                            </tr>
-                        ) : (
-                            profiles.map((profile) => (
-                                <tr key={profile.IdPerfilPropina} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {profile.PerfilPropina}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${profile.EsActivo === 1
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {profile.EsActivo === 1 ? 'Activo' : 'Inactivo'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(profile.FechaAct).toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
+                    <TableBody loading={isLoading} empty={profiles.length === 0}>
+                        {profiles.map((profile) => (
+                            <TableRow key={profile.IdPerfilPropina}>
+                                <TableCell className="font-medium text-gray-900">
+                                    {profile.PerfilPropina}
+                                </TableCell>
+                                <TableCell>
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${profile.EsActivo === 1
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {profile.EsActivo === 1 ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-gray-500">
+                                    {new Date(profile.FechaAct).toLocaleString()}
+                                </TableCell>
+                                <TableCell align="right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                        <RowActionButton
+                                            icon={Pencil}
+                                            label="Editar"
+                                            variant="edit"
                                             onClick={() => openEditModal(profile)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title="Editar"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
+                                        />
+                                        <RowActionButton
+                                            icon={ArrowUpRight}
+                                            label="Ingresos"
                                             onClick={() => openEarningsModal(profile)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title="Ingresos"
-                                        >
-                                            💰
-                                        </button>
-                                        <button
+                                        />
+                                        <RowActionButton
+                                            icon={ArrowDownRight}
+                                            label="Egresos"
                                             onClick={() => openExpensesModal(profile)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title="Egresos"
-                                        >
-                                            💸
-                                        </button>
-                                        <button
+                                        />
+                                        <RowActionButton
+                                            icon={Trash2}
+                                            label="Eliminar"
+                                            variant="delete"
                                             onClick={() => openDeleteModal(profile)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title="Eliminar"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
                 </table>
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingProfile ? 'Editar Perfil' : 'Agregar Perfil'}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label="Nombre del Perfil"
-                                value={profileName}
-                                onChange={(e) => setProfileName(e.target.value)}
-                                required
-                            />
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingProfile ? 'Editar Perfil' : 'Agregar Perfil'}
+                onConfirm={handleSubmit}
+                confirmLabel="Guardar"
+                cancelLabel="Cancelar"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label="Nombre del Perfil"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        required
+                    />
 
-                            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
-                                <span className="text-sm font-medium text-gray-700">Estado Activo</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setEsActivo(esActivo === 1 ? 0 : 1)}
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${esActivo === 1 ? 'bg-primary-600' : 'bg-gray-200'
-                                        }`}
-                                >
-                                    <span
-                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${esActivo === 1 ? 'translate-x-5' : 'translate-x-0'
-                                            }`}
-                                    />
-                                </button>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    Cancelar
-                                </button>
-                                <Button type="submit">
-                                    Guardar
-                                </Button>
-                            </div>
-                        </form>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                        <span className="text-sm font-medium text-gray-700">Estado Activo</span>
+                        <button
+                            type="button"
+                            onClick={() => setEsActivo(esActivo === 1 ? 0 : 1)}
+                            className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                            style={{ backgroundColor: esActivo === 1 ? colors.colorFondo1 : '#e5e7eb' }}
+                        >
+                            <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${esActivo === 1 ? 'translate-x-5' : 'translate-x-0'}`}
+                            />
+                        </button>
                     </div>
                 </div>
-            )}
+            </BaseModal>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Eliminar Perfil</h3>
-                        <p className="text-gray-500 mb-6">¿Está seguro de eliminar este perfil de propina?</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                Eliminar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar Perfil"
+                onConfirm={handleDelete}
+                confirmLabel="Eliminar"
+                confirmVariant="danger"
+                cancelLabel="Cancelar"
+            >
+                <p className="text-gray-500 text-sm">¿Está seguro de eliminar este perfil de propina?</p>
+            </BaseModal>
 
             {selectedProfileForEarnings && (
                 <TipProfileEarningsModal

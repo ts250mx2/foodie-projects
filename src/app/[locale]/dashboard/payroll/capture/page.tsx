@@ -371,7 +371,8 @@ export default function PayrollCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        backgroundColor: colors.colorFondo1,
+                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
@@ -448,7 +449,7 @@ export default function PayrollCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
                                 <h2 className="text-2xl font-black">{tModal('title')}</h2>
                                 <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>

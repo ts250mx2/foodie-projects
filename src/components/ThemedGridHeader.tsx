@@ -74,7 +74,7 @@ export function ThemedGridHeaderCell({
             onClick={onClick}
             style={{ color: colors.colorLetra, ...style }}
             className={[
-                'px-4 py-3',
+                'px-4 py-2',
                 'text-[11px] font-semibold uppercase tracking-wider',
                 'whitespace-nowrap select-none',
                 alignClass,
@@ -122,7 +122,7 @@ export function TableBody({
                 {[...Array(5)].map((_, i) => (
                     <tr key={i} className="border-b border-gray-100 last:border-0">
                         {[...Array(colSpan)].map((_, j) => (
-                            <td key={j} className="px-4 py-3">
+                            <td key={j} className="px-4 py-2">
                                 <div
                                     className="h-[14px] bg-gray-100 rounded animate-pulse"
                                     style={{ width: `${55 + ((i * 3 + j * 7) % 35)}%` }}
@@ -177,7 +177,7 @@ export function TableRow({ children, onClick, className = '', selected }: TableR
             onClick={onClick}
             className={[
                 'transition-colors duration-75',
-                selected ? 'bg-blue-50/60' : 'bg-white hover:bg-gray-50/80',
+                selected ? 'bg-blue-100' : 'bg-white hover:bg-gray-100',
                 onClick ? 'cursor-pointer' : '',
                 className,
             ].join(' ')}
@@ -212,7 +212,7 @@ export function TableCell({
 
     return (
         <td className={[
-            'px-4 py-2.5 text-[13px] leading-snug',
+            'px-4 py-1.5 text-[13px] leading-snug',
             'tabular',                              /* numerales tabulares */
             muted ? 'text-gray-400' : 'text-gray-700',
             alignClass,

@@ -167,7 +167,7 @@ export default function InventoryMaxMinComparisonModal({
                 {/* Header */}
                 <div 
                     className="px-6 py-4 text-white flex justify-between items-center"
-                    style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}
+                    style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
                 >
                     <div>
                         <h2 className="text-xl font-black uppercase tracking-tight">{t('title')}</h2>

@@ -200,7 +200,7 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
             <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" 
-                     style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                     style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-2xl font-black flex items-center gap-2">
                             💳 Captura de Ventas POS
@@ -252,7 +252,7 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
                                         <Button 
                                             onClick={handleParse} 
                                             className="px-6 py-2 rounded-xl text-sm font-bold shadow-lg active:scale-95"
-                                            style={{ background: colors.colorFondo1, color: colors.colorLetra }}
+                                            style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
                                         >
                                             🔍 Procesar Reporte
                                         </Button>
@@ -401,7 +401,7 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
                             onClick={handleConfirmSave} 
                             disabled={isSaving || (parsedItems.length === 0 && totalFromManual === 0)}
                             className="px-10 py-3 rounded-2xl font-black shadow-xl disabled:opacity-50 active:scale-95 text-lg"
-                            style={{ background: colors.colorFondo1, color: colors.colorLetra }}
+                            style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
                         >
                             {isSaving ? 'Guardando...' : '💾 Guardar Todo'}
                         </Button>

@@ -572,7 +572,8 @@ export default function SchedulesPage() {
                         <thead>
                             <tr
                                 style={{
-                                    background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                                    backgroundColor: colors.colorFondo1,
+                                    backgroundImage: 'none',
                                     color: colors.colorLetra
                                 }}
                             >

@@ -647,7 +647,8 @@ export default function ExpensesCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`,
+                        backgroundColor: colors.colorFondo1,
+                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
@@ -724,7 +725,7 @@ export default function ExpensesCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
                                 <h2 className="text-2xl font-black">{tModal('title')}</h2>
                                 <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
@@ -1095,7 +1096,7 @@ export default function ExpensesCapturePage() {
             {isDetailModalOpen && activeExpense && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm shadow-2xl">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
                                 <h3 className="text-xl font-black">📝 {tDetailsModal('title')}</h3>
                                 <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
@@ -1233,7 +1234,7 @@ export default function ExpensesCapturePage() {
             {isSupplierModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <h3 className="text-xl font-black uppercase tracking-tight">🏢 Nuevo Proveedor</h3>
                             <button onClick={() => setIsSupplierModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
                         </div>
@@ -1266,7 +1267,7 @@ export default function ExpensesCapturePage() {
             {isConceptModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})`, color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <h3 className="text-xl font-black uppercase tracking-tight">🏷️ Nuevo Concepto</h3>
                             <button onClick={() => setIsConceptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
                         </div>

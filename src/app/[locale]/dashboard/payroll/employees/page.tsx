@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import PageShell from '@/components/PageShell';
 import EmployeeDocumentsModal from '@/components/EmployeeDocumentsModal';
 import EmployeeAccessModal from '@/components/EmployeeAccessModal';
 import DocumentTypesModal from '@/components/DocumentTypesModal';
 import MassiveEmployeeUpload from '@/components/MassiveEmployeeUpload';
-import PageShell from '@/components/PageShell';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
-
+import ThemedGridHeader, { ThemedGridHeaderCell, TableRow, TableCell, TableBody, RowActionButton } from '@/components/ThemedGridHeader';
+import { Search, Pencil, Trash2, User, Plus, Upload, FileText } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Employee {
@@ -353,14 +353,43 @@ export default function EmployeesPage() {
         <PageShell
             title={t('title')}
             actions={
-                <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setIsMassiveUploadOpen(true)} className="flex items-center gap-2">
-                        🚀 Carga Masiva
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder={t('searchPlaceholder') || 'Buscar empleado...'}
+                            className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none transition-all w-64 bg-white text-gray-800"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={(e) => {
+                                e.target.style.borderColor = colors.colorFondo1;
+                                e.target.style.borderWidth = '2px';
+                                e.target.style.paddingLeft = '35px';
+                                e.target.style.paddingRight = '15px';
+                                e.target.style.paddingTop = '7px';
+                                e.target.style.paddingBottom = '7px';
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.borderColor = '#d1d5db';
+                                e.target.style.borderWidth = '1px';
+                                e.target.style.paddingLeft = '36px';
+                                e.target.style.paddingRight = '16px';
+                                e.target.style.paddingTop = '8px';
+                                e.target.style.paddingBottom = '8px';
+                            }}
+                            style={{
+                                boxShadow: 'none'
+                            }}
+                        />
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    <Button variant="secondary" leftIcon={Upload} iconBox onClick={() => setIsMassiveUploadOpen(true)} size="sm">
+                        Carga Masiva
                     </Button>
-                    <Button variant="secondary" onClick={() => setIsDocumentTypesModalOpen(true)}>
-                        📑 Tipos de Documento
+                    <Button variant="secondary" leftIcon={FileText} iconBox onClick={() => setIsDocumentTypesModalOpen(true)} size="sm">
+                        Tipos de Documento
                     </Button>
-                    <Button onClick={() => {
+                    <Button variant="solid" leftIcon={Plus} iconBox onClick={() => {
                         setEditingEmployee(null);
                         setFormData({
                             name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
@@ -368,7 +397,7 @@ export default function EmployeesPage() {
                         });
                         setActiveTab('general');
                         setIsModalOpen(true);
-                    }}>
+                    }} size="sm">
                         {t('addEmployee')}
                     </Button>
                 </div>
@@ -383,21 +412,11 @@ export default function EmployeesPage() {
                                 className="cursor-pointer hover:opacity-80"
                                 onClick={() => handleSort('Empleado')}
                             >
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-1">
-                                        {t('employeeName')}
-                                        {sortConfig?.key === 'Empleado' && (
-                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="🔍 Filter..."
-                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
+                                <div className="flex items-center gap-1">
+                                    {t('employeeName')}
+                                    {sortConfig?.key === 'Empleado' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
                                 </div>
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
@@ -435,63 +454,63 @@ export default function EmployeesPage() {
                                 {t('actions')}
                             </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <TableBody loading={isLoading} empty={sortedAndFilteredEmployees.length === 0}>
                             {sortedAndFilteredEmployees.map((employee) => (
-                                <tr key={employee.IdEmpleado} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <TableRow key={employee.IdEmpleado}>
+                                    <TableCell className="font-medium text-gray-900">
                                         <div className="flex items-center gap-3">
                                             {employee.ArchivoFoto ? (
                                                 <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-full object-cover border" />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border">
-                                                    👤
+                                                    <User className="w-4 h-4 text-gray-400" />
                                                 </div>
                                             )}
                                             {employee.Empleado}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell>
                                         <div className="flex items-center gap-2">
                                             <span>{employee.ImagenTipoPuesto}</span>
                                             <span>{employee.Puesto || '-'}</span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell>
                                         {employee.Sucursal || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell>
                                         {employee.Telefonos || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell>
                                         {employee.CorreoElectronico || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    </TableCell>
+                                    <TableCell>
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.Status === 0
                                             ? 'bg-green-100 text-green-800'
                                             : 'bg-red-100 text-red-800'
                                             }`}>
                                             {employee.Status === 0 ? t('active') : 'Inactive'}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => openEditModal(employee)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title={t('editEmployee')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(employee)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title={t('deleteEmployee')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editEmployee')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(employee)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteEmployee')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(employee)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
             </div>

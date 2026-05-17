@@ -200,6 +200,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
             className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar`}
             style={{ 
                 backgroundColor: colors.colorFondo1,
+                backgroundImage: 'none',
                 borderRight: '1px solid rgba(255, 255, 255, 0.08)'
             }}
         >
@@ -207,13 +208,14 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 {/* Buscador */}
                 {!isCollapsed && (
                     <div className="relative mb-2">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white" />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white" style={{ color: '#ffffff' }} />
                         <input
                             type="text"
                             placeholder="Buscar módulo..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/12 border border-white font-medium text-white placeholder:text-white focus:bg-white/18 focus:ring-2 focus:ring-white/40 focus:outline-none transition-all"
+                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/12 border border-white/20 font-medium placeholder:text-white/70 focus:bg-white/18 focus:border-white focus:ring-0 focus:outline-none transition-all"
+                            style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
                         />
                     </div>
                 )}

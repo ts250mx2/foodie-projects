@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Button from './Button';
 import Input from './Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from './ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from './ThemedGridHeader';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface MenuSection {
     IdSeccionMenu: number;
@@ -20,6 +22,7 @@ interface MenuSectionsModalProps {
 
 export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSectionsModalProps) {
     const t = useTranslations('MenuSections');
+    const { colors } = useTheme();
     const [sections, setSections] = useState<MenuSection[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
@@ -135,9 +138,16 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="px-6 py-4 bg-primary-600 text-white flex justify-between items-center shrink-0">
+                <div 
+                    className="px-6 py-4 flex justify-between items-center shrink-0 border-b border-black/5"
+                    style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
+                >
                     <h2 className="text-xl font-bold">{t('title')}</h2>
-                    <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors text-white">
+                    <button 
+                        onClick={onClose} 
+                        className="hover:bg-white/20 p-2 rounded-full transition-colors"
+                        style={{ color: colors.colorLetra }}
+                    >
                         ✕
                     </button>
                 </div>
@@ -148,9 +158,28 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
                         <input
                             type="text"
                             placeholder={t('searchPlaceholder')}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-sm"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all text-sm bg-white text-gray-800"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={(e) => {
+                                e.target.style.borderColor = colors.colorFondo1;
+                                e.target.style.borderWidth = '2px';
+                                e.target.style.paddingLeft = '15px';
+                                e.target.style.paddingRight = '15px';
+                                e.target.style.paddingTop = '7px';
+                                e.target.style.paddingBottom = '7px';
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.borderColor = '#d1d5db';
+                                e.target.style.borderWidth = '1px';
+                                e.target.style.paddingLeft = '16px';
+                                e.target.style.paddingRight = '16px';
+                                e.target.style.paddingTop = '8px';
+                                e.target.style.paddingBottom = '8px';
+                            }}
+                            style={{
+                                boxShadow: 'none'
+                            }}
                         />
                     </div>
                     <Button onClick={() => {
@@ -181,43 +210,31 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
                                 {t('actions')}
                             </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={2} className="px-6 py-12 text-center text-gray-500 italic">
-                                        Cargando secciones...
-                                    </td>
-                                </tr>
-                            ) : sortedSections.length === 0 ? (
-                                <tr>
-                                    <td colSpan={2} className="px-6 py-12 text-center text-gray-500">
-                                        No se encontraron secciones.
-                                    </td>
-                                </tr>
-                            ) : sortedSections.map((section) => (
-                                <tr key={section.IdSeccionMenu} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-l-4 border-l-transparent hover:border-l-primary-500">
+                        <TableBody loading={isLoading} empty={sortedSections.length === 0}>
+                            {sortedSections.map((section) => (
+                                <TableRow key={section.IdSeccionMenu}>
+                                    <TableCell className="font-medium text-gray-900 border-l-4 border-l-transparent hover:border-l-primary-500">
                                         {section.SeccionMenu}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                        <button
-                                            onClick={() => openEditModal(section)}
-                                            className="text-lg hover:scale-125 transition-transform"
-                                            title={t('editSection')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(section)}
-                                            className="text-lg hover:scale-125 transition-transform"
-                                            title={t('deleteSection')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editSection')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(section)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteSection')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(section)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
 
