@@ -531,6 +531,15 @@ export default function BreakEvenPage() {
                         {autoSaveStatus === 'saving' ? 'Guardando...' : autoSaveStatus === 'saved' ? 'Guardado' : 'Error'}
                     </div>
                 )}
+                <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
+                    {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
+                </select>
+                <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
+                    {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tProd(`months.${i}`)}</option>)}
+                </select>
+                <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
                 <div className="flex gap-1.5">
                     <Button
                         onClick={handleImportPreviousMonth}
@@ -540,17 +549,6 @@ export default function BreakEvenPage() {
                     >
                         Importar
                     </Button>
-                    <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
-                        {branches.map(b => <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>)}
-                    </select>
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
-                        {Array.from({ length: 12 }, (_, i) => <option key={i} value={i}>{tProd(`months.${i}`)}</option>)}
-                    </select>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0">
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                </div>
-                <div className="flex gap-1.5">
                     <Button
                         onClick={() => setIsChartModalOpen(true)}
                         variant="outline"
