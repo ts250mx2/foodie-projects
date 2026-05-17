@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import PageShell from '@/components/PageShell';
-import { Receipt } from 'lucide-react';
+import { Receipt, Search, Pencil, Trash2 } from 'lucide-react';
 
 interface Tax {
     IdImpuesto: number;
@@ -161,14 +161,17 @@ export default function TaxesPage() {
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
+                                <div className="mt-1 flex items-center gap-1.5 px-2 py-1 border border-gray-300 rounded bg-white">
+                                    <Search size={14} className="text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter..."
+                                        className="flex-1 text-xs border-0 outline-none bg-transparent text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
                             </div>
                         </ThemedGridHeaderCell>
                         <ThemedGridHeaderCell
@@ -207,20 +210,22 @@ export default function TaxesPage() {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(tax)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editTax')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(tax)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteTax')}
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={() => openEditModal(tax)}
+                                            className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                                            title={t('editTax')}
+                                        >
+                                            <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(tax)}
+                                            className="p-1.5 hover:bg-red-50 rounded transition-colors"
+                                            title={t('deleteTax')}
+                                        >
+                                            <Trash2 size={18} className="text-red-600 hover:text-red-900" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
