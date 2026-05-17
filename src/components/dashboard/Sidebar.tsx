@@ -49,11 +49,13 @@ type MenuItem = {
     key: string;
     href: string;
     icon: React.ElementType;
+    emoji: string;
 };
 
 type MenuSection = {
     title: string;
     icon: React.ElementType;
+    emoji: string;
     items: MenuItem[];
 };
 
@@ -66,74 +68,82 @@ const menuItems: MenuSection[] = [
     {
         title: 'configuration',
         icon: Settings,
+        emoji: '⚙️',
         items: [
-            { key: 'project', href: '/dashboard/config/project', icon: FolderOpen },
-            { key: 'initialLoad', href: '/dashboard/config/initial-load', icon: Rocket },
-            { key: 'branches', href: '/dashboard/settings/branches', icon: MapPin },
-            { key: 'employees', href: '/dashboard/payroll/employees', icon: UserCheck },
-            { key: 'taxes', href: '/dashboard/config/taxes', icon: Receipt },
-            { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', icon: TrendingUp },
+            { key: 'project', href: '/dashboard/config/project', icon: FolderOpen, emoji: '📁' },
+            { key: 'initialLoad', href: '/dashboard/config/initial-load', icon: Rocket, emoji: '🚀' },
+            { key: 'branches', href: '/dashboard/settings/branches', icon: MapPin, emoji: '📍' },
+            { key: 'employees', href: '/dashboard/payroll/employees', icon: UserCheck, emoji: '🧑‍💼' },
+            { key: 'taxes', href: '/dashboard/config/taxes', icon: Receipt, emoji: '🧾' },
+            { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', icon: TrendingUp, emoji: '📈' },
         ],
     },
     {
         title: 'sales',
         icon: DollarSign,
+        emoji: '💰',
         items: [
-            { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store },
-            { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator },
+            { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
+            { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
         ],
     },
     {
         title: 'inventories',
         icon: Package,
+        emoji: '📦',
         items: [
-            { key: 'products', href: '/dashboard/inventories/products', icon: Tag },
-            { key: 'inventoryCapture', href: '/dashboard/inventories/capture', icon: ClipboardList },
-            { key: 'minMax', href: '/dashboard/inventories/min-max', icon: Scale },
-            { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', icon: Trash2 },
+            { key: 'products', href: '/dashboard/inventories/products', icon: Tag, emoji: '🏷️' },
+            { key: 'inventoryCapture', href: '/dashboard/inventories/capture', icon: ClipboardList, emoji: '📋' },
+            { key: 'minMax', href: '/dashboard/inventories/min-max', icon: Scale, emoji: '⚖️' },
+            { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', icon: Trash2, emoji: '🗑️' },
         ],
     },
     {
         title: 'purchases',
         icon: ShoppingCart,
+        emoji: '🛒',
         items: [
-            { key: 'suppliers', href: '/dashboard/purchases/suppliers', icon: Truck },
-            { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', icon: FileText },
-            { key: 'purchasesCapture', href: '/dashboard/purchases/capture', icon: PenLine },
+            { key: 'suppliers', href: '/dashboard/purchases/suppliers', icon: Truck, emoji: '🚚' },
+            { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', icon: FileText, emoji: '📄' },
+            { key: 'purchasesCapture', href: '/dashboard/purchases/capture', icon: PenLine, emoji: '📝' },
         ],
     },
     {
         title: 'expenses',
         icon: CreditCard,
+        emoji: '💳',
         items: [
-            { key: 'expenseConcepts', href: '/dashboard/expenses/concepts', icon: LightbulbIcon },
-            { key: 'expensesCapture', href: '/dashboard/expenses/capture', icon: Scissors },
+            { key: 'expenseConcepts', href: '/dashboard/expenses/concepts', icon: LightbulbIcon, emoji: '💡' },
+            { key: 'expensesCapture', href: '/dashboard/expenses/capture', icon: Scissors, emoji: '✂️' },
         ],
     },
     {
         title: 'payroll',
         icon: Users,
+        emoji: '👥',
         items: [
-            { key: 'schedules', href: '/dashboard/payroll/schedules', icon: CalendarDays },
-            { key: 'payrollCapture', href: '/dashboard/payroll/capture', icon: Banknote },
+            { key: 'schedules', href: '/dashboard/payroll/schedules', icon: CalendarDays, emoji: '📅' },
+            { key: 'payrollCapture', href: '/dashboard/payroll/capture', icon: Banknote, emoji: '💵' },
         ],
     },
     {
         title: 'production',
         icon: ChefHat,
+        emoji: '👨‍🍳',
         items: [
-            { key: 'subRecipes', href: '/dashboard/production/sub-recipes', icon: Book },
-            { key: 'dishes', href: '/dashboard/production/dishes', icon: UtensilsCrossed },
-            { key: 'productionCapture', href: '/dashboard/production/capture', icon: Flame },
-            { key: 'materialExplosion', href: '/dashboard/production/material-explosion', icon: Zap },
+            { key: 'subRecipes', href: '/dashboard/production/sub-recipes', icon: Book, emoji: '📖' },
+            { key: 'dishes', href: '/dashboard/production/dishes', icon: UtensilsCrossed, emoji: '🍲' },
+            { key: 'productionCapture', href: '/dashboard/production/capture', icon: Flame, emoji: '🔥' },
+            { key: 'materialExplosion', href: '/dashboard/production/material-explosion', icon: Zap, emoji: '⚡' },
         ],
     },
     {
         title: 'ocrProcessing',
         icon: ScanText,
+        emoji: '📸',
         items: [
-            { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', icon: Camera },
-            { key: 'ocrDocuments', href: '/dashboard/ocr/documents', icon: Files },
+            { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', icon: Camera, emoji: '📷' },
+            { key: 'ocrDocuments', href: '/dashboard/ocr/documents', icon: Files, emoji: '🗂️' },
         ],
     },
 ];
@@ -224,9 +234,10 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                         <div 
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r" 
                             style={{ backgroundColor: colors.colorFondo1 }} 
+                            id="active-indicator-dashboard"
                         />
                     )}
-                    <LayoutDashboard size={18} className="shrink-0" />
+                    <span className="text-[17px] shrink-0 leading-none">📊</span>
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
@@ -254,10 +265,14 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-slate-650 hover:text-slate-900 hover:bg-slate-100
                                     ${hasActiveChild && !isOpen ? 'bg-slate-200/50 font-semibold text-slate-900 shadow-sm' : 'font-medium'}
                                     ${isCollapsed ? 'justify-center' : 'justify-between'}
-                                `}
+                                  `}
                             >
                                 <div className="flex items-center gap-3">
-                                    <SectionIcon size={18} className="shrink-0" />
+                                    {section.emoji ? (
+                                        <span className="text-[17px] shrink-0 leading-none">{section.emoji}</span>
+                                    ) : (
+                                        <SectionIcon size={18} className="shrink-0" />
+                                    )}
                                     {!isCollapsed && (
                                         <span className="text-sm font-medium">{t(section.title)}</span>
                                     )}
@@ -294,9 +309,14 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                             <div 
                                                                 className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" 
                                                                 style={{ backgroundColor: colors.colorFondo1 }} 
+                                                                id={`active-indicator-${item.key}`}
                                                             />
                                                         )}
-                                                        <ItemIcon size={14} className="shrink-0" />
+                                                        {item.emoji ? (
+                                                            <span className="text-sm shrink-0 leading-none">{item.emoji}</span>
+                                                        ) : (
+                                                            <ItemIcon size={14} className="shrink-0" />
+                                                        )}
                                                         <span>{t(item.key)}</span>
                                                     </Link>
                                                 </li>
