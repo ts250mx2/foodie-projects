@@ -147,16 +147,17 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
     return (
         <header
-            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 shadow-lg"
-            style={{ background: `linear-gradient(to right, ${colors.colorFondo1}, ${colors.colorFondo2})` }}
+            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 border-b bg-white shadow-sm"
+            style={{ 
+                borderColor: '#e2e8f0'
+            }}
         >
             <div className="flex items-center justify-between gap-4">
                 {/* Left: hamburger + logo + title + breadcrumb */}
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={onToggleSidebar}
-                        className="shrink-0 p-2 rounded-lg hover:bg-white/15 transition-colors"
-                        style={{ color: colors.colorLetra }}
+                        className="shrink-0 p-2 rounded-lg hover:bg-slate-100 text-slate-650 hover:text-slate-800 transition-colors"
                         aria-label="Toggle Sidebar"
                     >
                         <Menu size={20} />
@@ -173,8 +174,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
                     <div className="flex flex-col min-w-0">
                         <span
-                            className="text-sm font-bold leading-tight truncate"
-                            style={{ color: colors.colorLetra }}
+                            className="text-sm font-bold leading-tight truncate text-slate-800"
                         >
                             {displayTitle}
                         </span>
@@ -185,12 +185,11 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                                 {crumbs.map((crumb, i) => (
                                     <span key={i} className="flex items-center gap-1">
                                         {i > 0 && (
-                                            <ChevronRight size={10} style={{ color: `${colors.colorLetra}80` }} />
+                                            <ChevronRight size={10} className="text-slate-400" />
                                         )}
                                         <Link
                                             href={crumb.href}
-                                            className="text-[11px] hover:underline transition-opacity opacity-60 hover:opacity-90 whitespace-nowrap"
-                                            style={{ color: colors.colorLetra }}
+                                            className="text-[11px] hover:underline transition-opacity opacity-75 hover:opacity-100 whitespace-nowrap text-slate-500 hover:text-slate-700"
                                         >
                                             {crumb.label}
                                         </Link>
@@ -198,10 +197,9 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                                 ))}
                                 {crumbs.length > 0 && (
                                     <>
-                                        <ChevronRight size={10} style={{ color: `${colors.colorLetra}80` }} />
+                                        <ChevronRight size={10} className="text-slate-400" />
                                         <span
-                                            className="text-[11px] font-semibold whitespace-nowrap"
-                                            style={{ color: colors.colorLetra }}
+                                            className="text-[11px] font-semibold whitespace-nowrap text-slate-700"
                                         >
                                             {current}
                                         </span>
@@ -215,20 +213,18 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 {/* Right: usuario + logout */}
                 <div className="flex items-center gap-3 shrink-0">
                     <div
-                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15"
-                        style={{ color: colors.colorLetra }}
+                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200/50 text-slate-700"
                     >
-                        <User size={14} className="opacity-70" />
+                        <User size={14} className="opacity-70 text-slate-500" />
                         <span className="text-sm font-medium">{userName || 'Usuario'}</span>
                     </div>
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                        style={{ color: colors.colorLetra }}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200/50 text-slate-700 transition-colors"
                         title={t('logout')}
                     >
-                        <LogOut size={15} />
+                        <LogOut size={15} className="text-slate-500" />
                         <span className="hidden sm:inline">{t('logout')}</span>
                     </button>
                 </div>

@@ -187,21 +187,23 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
     return (
         <aside
-            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar`}
-            style={{ background: `linear-gradient(180deg, ${colors.colorFondo1}, ${colors.colorFondo2})` }}
+            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar border-r`}
+            style={{ 
+                backgroundColor: '#f8fafc',
+                borderColor: '#e2e8f0'
+            }}
         >
             <nav className="p-3 flex flex-col gap-1">
                 {/* Buscador */}
                 {!isCollapsed && (
                     <div className="relative mb-2">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50" style={{ color: colors.colorLetra }} />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Buscar módulo..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/15 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/20 transition-all placeholder:opacity-50"
-                            style={{ color: colors.colorLetra }}
+                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-slate-100 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-350 focus:bg-slate-50 transition-all placeholder:text-slate-400 text-slate-700"
                         />
                     </div>
                 )}
@@ -210,23 +212,26 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 <Link
                     href={`/${locale}/dashboard`}
                     title={isCollapsed ? t('dashboard') : ''}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
+                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
                         ${pathname === `/${locale}/dashboard`
-                            ? 'bg-white shadow-md font-semibold'
-                            : 'hover:bg-white/15 font-medium'
+                            ? 'bg-slate-200/60 font-semibold text-slate-900 shadow-sm'
+                            : 'hover:bg-slate-100 font-medium text-slate-600 hover:text-slate-900'
                         }
                         ${isCollapsed ? 'justify-center' : ''}
                     `}
-                    style={{
-                        color: pathname === `/${locale}/dashboard` ? colors.colorFondo1 : colors.colorLetra,
-                    }}
                 >
+                    {pathname === `/${locale}/dashboard` && (
+                        <div 
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r" 
+                            style={{ backgroundColor: colors.colorFondo1 }} 
+                        />
+                    )}
                     <LayoutDashboard size={18} className="shrink-0" />
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
                 {/* Divisor */}
-                <div className="border-t border-white/15 my-1" />
+                <div className="border-t border-slate-200 my-1" />
 
                 {/* Secciones */}
                 {filteredSections.map(section => {
@@ -246,11 +251,10 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                     }
                                 }}
                                 title={isCollapsed ? t(section.title) : ''}
-                                className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group
-                                    ${hasActiveChild && !isOpen ? 'bg-white/20 font-semibold' : 'hover:bg-white/15'}
+                                className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-slate-650 hover:text-slate-900 hover:bg-slate-100
+                                    ${hasActiveChild && !isOpen ? 'bg-slate-200/50 font-semibold text-slate-900 shadow-sm' : 'font-medium'}
                                     ${isCollapsed ? 'justify-center' : 'justify-between'}
                                 `}
-                                style={{ color: colors.colorLetra }}
                             >
                                 <div className="flex items-center gap-3">
                                     <SectionIcon size={18} className="shrink-0" />
@@ -271,7 +275,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 <div
                                     className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
                                 >
-                                    <ul className="mt-0.5 ml-3 pl-4 border-l border-white/20 flex flex-col gap-0.5 py-1">
+                                    <ul className="mt-0.5 ml-3 pl-4 border-l border-slate-200 flex flex-col gap-0.5 py-1">
                                         {section.items.map(item => {
                                             const ItemIcon = item.icon;
                                             const isActive = pathname === `/${locale}${item.href}`;
@@ -279,16 +283,19 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                 <li key={item.key}>
                                                     <Link
                                                         href={`/${locale}${item.href}`}
-                                                        className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-150
+                                                        className={`relative flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-150
                                                             ${isActive
-                                                                ? 'bg-white font-semibold shadow-sm'
-                                                                : 'hover:bg-white/15 opacity-80 hover:opacity-100'
+                                                                ? 'bg-slate-200/60 font-semibold text-slate-900 shadow-sm'
+                                                                : 'hover:bg-slate-100 text-slate-650 hover:text-slate-900 font-medium'
                                                             }
                                                         `}
-                                                        style={{
-                                                            color: isActive ? colors.colorFondo1 : colors.colorLetra,
-                                                        }}
                                                     >
+                                                        {isActive && (
+                                                            <div 
+                                                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" 
+                                                                style={{ backgroundColor: colors.colorFondo1 }} 
+                                                            />
+                                                        )}
                                                         <ItemIcon size={14} className="shrink-0" />
                                                         <span>{t(item.key)}</span>
                                                     </Link>
