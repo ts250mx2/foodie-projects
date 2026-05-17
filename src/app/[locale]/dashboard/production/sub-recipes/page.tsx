@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, BookOpen } from 'lucide-react';
+import { Plus, BookOpen, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
+import BaseModal from '@/components/BaseModal';
 import CostingModal from '@/components/CostingModal';
 import PageShell from '@/components/PageShell';
 
@@ -141,95 +142,85 @@ export default function SubRecipesPage() {
     }
 
     return (
-        <PageShell title="Subrecetas" icon={BookOpen} actions={<Button variant="solid" leftIcon={Plus} iconBox size="sm" onClick={handleOpenAddModal}>Agregar Subreceta</Button>}>
+        <PageShell title="Subrecetas" icon={BookOpen} actions={
+            <div className="flex gap-2 items-center flex-wrap">
+                <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg flex-1 min-w-[200px] max-w-xs">
+                    <Search size={18} className="text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
+                    />
+                </div>
+                <Button
+                    variant="solid"
+                    leftIcon={Plus}
+                    iconBox
+                    size="sm"
+                    onClick={handleOpenAddModal}
+                >
+                    Agregar Subreceta
+                </Button>
+            </div>
+        }>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
-                    <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
-                        <ThemedGridHeader>
+                    <table className="min-w-full border-collapse">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
                             <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'Producto' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Producto')}
                             >
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-1">
-                                        {t('productName')}
-                                        {sortConfig?.key === 'Producto' && (
-                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="🔍 Filter..."
-                                        className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
+                                {t('productName')}
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'Codigo' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Codigo')}
                             >
-                                <div className="flex items-center gap-1">
-                                    {t('code')}
-                                    {sortConfig?.key === 'Codigo' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
+                                {t('code')}
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'Categoria' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Categoria')}
                             >
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-1">
-                                        {t('category')}
-                                        {sortConfig?.key === 'Categoria' && (
-                                            <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="🔍 Filter..."
-                                        className="mt-1 block px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                        value={categorySearch}
-                                        onChange={(e) => setCategorySearch(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
+                                {t('category')}
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'Presentacion' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Presentacion')}
                             >
-                                <div className="flex items-center gap-1">
-                                    {t('presentation')}
-                                    {sortConfig?.key === 'Presentacion' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
+                                {t('presentation')}
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
-                                className="text-right cursor-pointer hover:opacity-80"
+                                sortable
+                                sortDir={sortConfig?.key === 'Costo' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Costo')}
+                                align="right"
                             >
-                                <div className="flex items-center justify-end gap-1">
-                                    Costo
-                                    {sortConfig?.key === 'Costo' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
+                                Costo
                             </ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell className="text-right">{t('actions')}</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">
+                                {t('actions')}
+                            </ThemedGridHeaderCell>
                         </ThemedGridHeader>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <TableBody
+                            loading={false}
+                            empty={sortedAndFilteredSubRecipes.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay subrecetas. Agrega la primera.'}
+                            colSpan={6}
+                        >
                             {sortedAndFilteredSubRecipes.map((subRecipe) => (
-                                <tr key={subRecipe.IdProducto} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <TableRow key={subRecipe.IdProducto}>
+                                    <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center text-sm font-medium text-gray-600">
                                                 {subRecipe.ArchivoImagen ? (
                                                     <img
                                                         src={subRecipe.ArchivoImagen}
@@ -237,16 +228,14 @@ export default function SubRecipesPage() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <span className="text-gray-400 text-xl">🥣</span>
+                                                    subRecipe.Producto.substring(0, 2).toUpperCase()
                                                 )}
                                             </div>
-                                            <span>{subRecipe.Producto}</span>
+                                            <span className="font-medium text-gray-900">{subRecipe.Producto}</span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {subRecipe.Codigo}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    </TableCell>
+                                    <TableCell muted>{subRecipe.Codigo}</TableCell>
+                                    <TableCell muted>
                                         <span className="flex items-center gap-1">
                                             {subRecipe.ImagenCategoria && <span>{subRecipe.ImagenCategoria}</span>}
                                             {subRecipe.Categoria || '-'}
@@ -256,53 +245,54 @@ export default function SubRecipesPage() {
                                                 </sup>
                                             ) : null}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {subRecipe.Presentacion || '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right font-medium text-blue-600">
+                                    </TableCell>
+                                    <TableCell muted>{subRecipe.Presentacion || '-'}</TableCell>
+                                    <TableCell align="right" muted>
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(subRecipe.Costo || 0)}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => handleOpenEditModal(subRecipe)}
-                                            className="text-xl mr-3 hover:scale-110 transition-transform"
-                                            title={t('editProduct')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(subRecipe)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title={t('deleteProduct')}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editProduct')}
+                                                variant="edit"
+                                                onClick={() => handleOpenEditModal(subRecipe)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteProduct')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(subRecipe)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
+                        </TableBody>
                     </table>
                 </div>
             </div>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && selectedSubRecipe && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">{t('confirmDelete')}</h2>
-                        <p className="mb-6 text-gray-600">¿Está seguro que desea eliminar "{selectedSubRecipe.Producto}"?</p>
-                        <div className="flex justify-end gap-2">
-                            <Button onClick={() => setIsDeleteModalOpen(false)} className="bg-gray-500">
-                                {t('cancel')}
-                            </Button>
-                            <Button onClick={handleDelete} className="bg-red-600">
-                                {t('deleteProduct')}
-                            </Button>
-                        </div>
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar subreceta"
+                size="sm"
+                onConfirm={handleDelete}
+                confirmLabel="Sí, eliminar"
+                cancelLabel={t('cancel')}
+            >
+                <div className="flex flex-col items-center gap-4 py-2 text-center">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <AlertTriangle size={24} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">¿Eliminar {selectedSubRecipe?.Producto}?</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('confirmDelete')}</p>
                     </div>
                 </div>
-            )}
+            </BaseModal>
 
             {/* Costing Modal */}
             {isCostingModalOpen && project && (
