@@ -7,7 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CostingModal, { Product } from '@/components/CostingModal';
 import PageShell from '@/components/PageShell';
-import { Zap } from 'lucide-react';
+import { Zap, Printer } from 'lucide-react';
 
 interface SubRecipe {
     IdProducto: number;
@@ -145,8 +145,8 @@ export default function MaterialExplosionPage() {
                         </button>
                     </div>
                     <input type="text" placeholder={t('searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/50 w-48" />
-                    <Button onClick={handleExplode} isLoading={isExploding} disabled={isLoading || Object.values(quantities).every(q => !parseFloat(q))} variant="secondary" size="sm">
-                        ⚡ {t('explode')}
+                    <Button onClick={handleExplode} isLoading={isExploding} disabled={isLoading || Object.values(quantities).every(q => !parseFloat(q))} variant="secondary" size="sm" leftIcon={Zap} iconBox>
+                        {t('explode')}
                     </Button>
                 </div>
             }
@@ -321,8 +321,8 @@ export default function MaterialExplosionPage() {
                                 </div>
                             </div>
                             <div className="flex gap-3">
-                                <Button onClick={() => window.print()} variant="secondary" className="px-8">
-                                    🖨️ PDF
+                                <Button onClick={() => window.print()} variant="secondary" size="sm" leftIcon={Printer} iconBox>
+                                    PDF
                                 </Button>
                                 <Button onClick={() => setExplosionResults(null)} className="px-12 shadow-lg shadow-primary-200">
                                     {t('close')}
