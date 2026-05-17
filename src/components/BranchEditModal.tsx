@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Settings, TrendingUp, Calendar, Briefcase, Clock, ShoppingCart, CreditCard, X } from 'lucide-react';
 import BranchCostsModal from './BranchCostsModal';
 import BranchInventoryDatesModal from './BranchInventoryDatesModal';
 import BranchDocumentsModal from './BranchDocumentsModal';
@@ -170,13 +171,13 @@ export default function BranchEditModal({
     const isNewBranch = !branch || branch.IdSucursal === 0;
 
     const tabs = [
-        { id: 'general', label: 'Configuración General', icon: '✏️', show: true },
-        { id: 'costs', label: 'Objetivos y Costos', icon: '🎯', show: !isNewBranch },
-        { id: 'inventory', label: 'Inventarios/Ventas', icon: '📅', show: !isNewBranch },
-        { id: 'payroll', label: 'Nomina', icon: '📁', show: !isNewBranch },
-        { id: 'shifts', label: 'Turnos', icon: '⏰', show: !isNewBranch },
-        { id: 'sales-channels', label: 'Canales de Venta', icon: '📈', show: !isNewBranch },
-        { id: 'payment-methods', label: 'Formas de Pago', icon: '💳', show: !isNewBranch }
+        { id: 'general', label: 'Configuración General', icon: Settings, show: true },
+        { id: 'costs', label: 'Objetivos y Costos', icon: TrendingUp, show: !isNewBranch },
+        { id: 'inventory', label: 'Inventarios/Ventas', icon: Calendar, show: !isNewBranch },
+        { id: 'payroll', label: 'Nomina', icon: Briefcase, show: !isNewBranch },
+        { id: 'shifts', label: 'Turnos', icon: Clock, show: !isNewBranch },
+        { id: 'sales-channels', label: 'Canales de Venta', icon: ShoppingCart, show: !isNewBranch },
+        { id: 'payment-methods', label: 'Formas de Pago', icon: CreditCard, show: !isNewBranch }
     ];
 
     return (
@@ -204,38 +205,40 @@ export default function BranchEditModal({
                             onClick={onClose}
                             className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
                         >
-                            ✕
+                            <X size={24} />
                         </button>
                     </div>
+                </div>
 
-                    {/* Tabs Navigation */}
-                    <div className="flex gap-1 mt-6 overflow-x-auto relative px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                        {tabs.filter(tab => tab.show).map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2.5 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
-                                    ? 'bg-white text-gray-900 text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
-                                    : 'bg-white/10 text-xs font-normal hover:bg-white/20 hover:-translate-y-0.5'
-                                    }`}
-                                style={
-                                    activeTab === tab.id
-                                        ? {}
-                                        : { color: colors.colorLetra }
-                                }
-                            >
-                                <span className="mr-2">{tab.icon}</span>
-                                {tab.label}
-                                {activeTab === tab.id && (
-                                    <div className="absolute -bottom-[2px] left-0 right-0 h-[3px] bg-white z-40"></div>
-                                )}
-                            </button>
-                        ))}
+                {/* Tabs Navigation - Light background with prominent active state */}
+                <div className="bg-gray-50 border-b border-gray-200 px-3">
+                    <div className="flex gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {tabs.filter(tab => tab.show).map(tab => {
+                            const isActive = activeTab === tab.id;
+                            const IconComponent = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`relative px-4 py-2.5 flex items-center gap-2 text-sm transition-all whitespace-nowrap rounded-t-lg ${isActive
+                                        ? 'bg-white text-gray-900 font-semibold shadow-[0_-2px_8px_rgba(0,0,0,0.06)] -mb-px border border-b-0 border-gray-200'
+                                        : 'text-gray-500 hover:text-gray-800 hover:bg-white/60 font-medium'
+                                        }`}
+                                    style={isActive ? {
+                                        borderBottom: `3px solid ${colors.colorFondo1}`,
+                                        marginBottom: '-1px',
+                                    } : {}}
+                                >
+                                    <IconComponent size={16} style={isActive ? { color: colors.colorFondo1 } : {}} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-y-auto flex flex-col p-6 z-20 relative bg-white border-t border-gray-200">
+                <div className="flex-1 overflow-y-auto flex flex-col p-6 z-20 relative bg-white">
                     {activeTab === 'general' && (
                         <div className="max-w-4xl mx-auto py-4 w-full">
                             <form onSubmit={handleGeneralSubmit} className="space-y-6">
