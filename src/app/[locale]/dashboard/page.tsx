@@ -580,7 +580,7 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
 
-                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none">Ventas</span>
@@ -593,9 +593,9 @@ export default function DashboardPage() {
                         </div>
 
                         {isLoadingKpi ? (
-                            <div className="h-5 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
+                            <div className="h-4 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
-                            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                            <h2 className="text-base font-bold text-gray-900 leading-tight">
                                 {formatCurrency(totalSales)}
                             </h2>
                         )}
@@ -631,7 +631,7 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
 
-                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest leading-none">Nómina</span>
@@ -644,7 +644,7 @@ export default function DashboardPage() {
                         </div>
 
                         {isLoadingKpi || isPayrollLoading ? (
-                            <div className="h-5 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
+                            <div className="h-4 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
                             <h2 className="text-lg font-bold text-gray-900 leading-tight">
                                 {formatCurrency(totalPayroll)}
@@ -682,7 +682,7 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute -right-8 -top-8 w-24 h-24 bg-rose-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
 
-                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Gastos</span>
@@ -695,7 +695,7 @@ export default function DashboardPage() {
                         </div>
 
                         {isLoadingKpi ? (
-                            <div className="h-7 w-32 bg-gray-200 animate-pulse rounded-lg"></div>
+                            <div className="h-4 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
                             <h2 className={`${getKpiFontSize(formatCurrency(totalOperatingExpense))} font-bold text-gray-900 leading-tight`}>
                                 {formatCurrency(totalOperatingExpense)}
@@ -703,22 +703,22 @@ export default function DashboardPage() {
                         )}
 
                         {!isLoadingKpi && (
-                            <div className="space-y-3">
-                                <div className="space-y-1.5">
-                                    <div className="flex justify-between items-center text-[9px]">
+                            <div className="space-y-1">
+                                <div className="space-y-0.5">
+                                    <div className="flex justify-between items-center text-[8px]">
                                         <span className="text-gray-600 font-medium">% del total de ventas</span>
                                         <span className="font-bold text-rose-600">
                                             {totalSales > 0 ? `${((totalOperatingExpense / totalSales) * 100).toFixed(1)}%` : '0%'}
                                         </span>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                    <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all duration-500 ${((totalOperatingExpense / totalSales) * 100) <= operatingExpenseObjective || operatingExpenseObjective === 0 ? 'bg-gradient-to-r from-rose-500 to-rose-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
                                             style={{ width: `${Math.min(((totalOperatingExpense / totalSales) * 100) / (operatingExpenseObjective || 20), 1) * 100}%` }}
                                         ></div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg">
+                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-2 px-2 py-2 rounded-lg">
                                     <span className="text-gray-600">Meta</span>
                                     <span className="font-semibold text-gray-800">{operatingExpenseObjective > 0 ? `${operatingExpenseObjective}%` : 'S/P'}</span>
                                 </div>
@@ -735,7 +735,7 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
 
-                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Materia Prima</span>
@@ -748,7 +748,7 @@ export default function DashboardPage() {
                         </div>
 
                         {isLoadingKpi ? (
-                            <div className="h-7 w-32 bg-gray-200 animate-pulse rounded-lg"></div>
+                            <div className="h-4 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
                             <h2 className={`${getKpiFontSize(formatCurrency(totalRawMaterial))} font-bold text-gray-900 leading-tight`}>
                                 {formatCurrency(totalRawMaterial)}
@@ -756,22 +756,22 @@ export default function DashboardPage() {
                         )}
 
                         {!isLoadingKpi && (
-                            <div className="space-y-3">
-                                <div className="space-y-1.5">
-                                    <div className="flex justify-between items-center text-[9px]">
+                            <div className="space-y-1">
+                                <div className="space-y-0.5">
+                                    <div className="flex justify-between items-center text-[8px]">
                                         <span className="text-gray-600 font-medium">% del total de ventas</span>
                                         <span className="font-bold text-amber-600">
                                             {totalSales > 0 ? `${((totalRawMaterial / totalSales) * 100).toFixed(1)}%` : '0%'}
                                         </span>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                    <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all duration-500 ${((totalRawMaterial / totalSales) * 100) <= rawMaterialObjective || rawMaterialObjective === 0 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
                                             style={{ width: `${Math.min(((totalRawMaterial / totalSales) * 100) / (rawMaterialObjective || 30), 1) * 100}%` }}
                                         ></div>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg">
+                                <div className="flex justify-between items-center text-[9px] bg-gray-50 -mx-2 px-2 py-2 rounded-lg">
                                     <span className="text-gray-600">Meta</span>
                                     <span className="font-semibold text-gray-800">{rawMaterialObjective > 0 ? `${rawMaterialObjective}%` : 'S/P'}</span>
                                 </div>
@@ -780,74 +780,52 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Stacked Inventory and Waste Column */}
-                <div className="flex flex-col gap-5 lg:col-span-1">
-                    {/* Inventory KPI Card */}
-                    <div
-                        onClick={() => setSelectedKpi((selectedKpi as string) === 'inventory' ? null : 'inventory')}
-                        className={`flex-1 group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${(selectedKpi as string) === 'inventory' ? 'border-blue-400 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-50 to-blue-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-blue-300'}`}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                {/* Inventory & Waste KPI Card */}
+                <div
+                    onClick={() => setSelectedKpi((selectedKpi as string) === 'inventory' ? null : 'inventory')}
+                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${(selectedKpi as string) === 'inventory' ? 'border-blue-400 shadow-lg shadow-blue-500/20 bg-gradient-to-br from-blue-50 to-blue-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-blue-300'}`}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute -right-8 -top-8 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
 
-                        <div className="relative p-3 flex flex-col h-full gap-2.5">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Inventario</span>
-                                </div>
-                                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                    </svg>
-                                </div>
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest block leading-none">Inventario</span>
+                                {isLoadingKpi ? (
+                                    <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mt-0.5"></div>
+                                ) : (
+                                    <p className="text-sm font-bold text-gray-900 leading-tight truncate">{formatCurrency(lastInventoryCost)}</p>
+                                )}
                             </div>
-
-                            {isLoadingKpi ? (
-                                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
-                            ) : (
-                                <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                                    {formatCurrency(lastInventoryCost)}
-                                </h2>
-                            )}
+                            <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Waste KPI Card */}
-                    <div
-                        onClick={() => setSelectedKpi((selectedKpi as string) === 'waste' ? null : 'waste')}
-                        className={`flex-1 group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer ${(selectedKpi as string) === 'waste' ? 'border-pink-400 shadow-lg shadow-pink-500/20 bg-gradient-to-br from-pink-50 to-pink-50/50' : 'border-gray-200 bg-white shadow-md hover:shadow-lg hover:border-pink-300'}`}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="absolute -right-8 -top-8 w-24 h-24 bg-pink-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                        <div className="border-t border-blue-100"></div>
 
-                        <div className="relative p-3 flex flex-col h-full gap-2.5">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <span className="text-[10px] font-bold text-pink-600 uppercase tracking-widest">Mermas</span>
-                                </div>
-                                <div className="w-7 h-7 rounded-lg bg-pink-100 flex items-center justify-center">
-                                    <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                                <span className="text-[9px] font-bold text-pink-600 uppercase tracking-widest block leading-none">Mermas</span>
+                                {isLoadingKpi ? (
+                                    <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mt-0.5"></div>
+                                ) : (
+                                    <div className="flex items-baseline gap-1">
+                                        <p className="text-sm font-bold text-gray-900 leading-tight">{formatCurrency(totalWaste)}</p>
+                                        <span className={`text-[8px] font-bold ${totalSales > 0 ? 'text-pink-600' : 'text-gray-500'}`}>
+                                            {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-
-                            {isLoadingKpi ? (
-                                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
-                            ) : (
-                                <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                                    {formatCurrency(totalWaste)}
-                                </h2>
-                            )}
-
-                            {!isLoadingKpi && (
-                                <div className="text-[9px] bg-gray-50 -mx-3 px-3 py-2 rounded-lg flex justify-between">
-                                    <span className="text-gray-600">% de ventas</span>
-                                    <span className={`font-bold ${totalSales > 0 ? 'text-pink-600' : 'text-gray-600'}`}>
-                                        {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
-                                    </span>
-                                </div>
-                            )}
+                            <div className="w-6 h-6 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3.5 h-3.5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -860,7 +838,7 @@ export default function DashboardPage() {
                     <div className={`absolute inset-0 bg-gradient-to-br ${totalActualPercent <= totalBudgetPercent ? 'from-purple-500/5' : 'from-orange-500/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
                     <div className={`absolute -right-8 -top-8 w-24 h-24 rounded-full group-hover:scale-150 transition-transform duration-500 ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-500/10' : 'bg-orange-500/10'}`}></div>
 
-                    <div className="relative p-3 flex flex-col h-full gap-2.5">
+                    <div className="relative p-2 flex flex-col h-full gap-1.5">
                         <div className="flex items-start justify-between">
                             <div>
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>Análisis Global</span>
@@ -876,22 +854,22 @@ export default function DashboardPage() {
                             {totalActualPercent.toFixed(1)}%
                         </h2>
 
-                        <div className="space-y-3">
-                            <div className="space-y-1.5">
-                                <div className="flex justify-between items-center text-[9px]">
-                                    <span className="text-gray-600 font-medium">Progreso vs meta</span>
+                        <div className="space-y-1">
+                            <div className="space-y-0.5">
+                                <div className="flex justify-between items-center text-[8px]">
+                                    <span className="text-gray-500 font-medium">Progreso</span>
                                     <span className={`font-bold ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>
                                         {totalActualPercent.toFixed(1)}% / {totalBudgetPercent.toFixed(1)}%
                                     </span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all duration-500 ${totalActualPercent <= totalBudgetPercent ? 'bg-gradient-to-r from-purple-500 to-purple-400' : 'bg-gradient-to-r from-orange-500 to-orange-400'}`}
                                         style={{ width: `${Math.min((totalActualPercent / (totalBudgetPercent || 50)), 1) * 100}%` }}
                                     ></div>
                                 </div>
                             </div>
-                            <div className={`flex justify-between items-center text-[9px] font-semibold px-3 py-2 rounded-lg ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
+                            <div className={`flex justify-between items-center text-[7px] font-semibold px-2 py-1 rounded-lg ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
                                 <span>{totalActualPercent <= totalBudgetPercent ? '✓ ÓPTIMO' : '⚠ EXCEDIDO'}</span>
                                 <span>{Math.abs(diffPercent).toFixed(1)}% {totalActualPercent > totalBudgetPercent ? 'sobre' : 'bajo'} meta</span>
                             </div>

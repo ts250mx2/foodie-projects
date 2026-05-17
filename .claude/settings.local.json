@@ -22,7 +22,8 @@
       "Bash(netstat -ano)",
       "Bash(findstr :3006)",
       "Bash(start \"http://localhost:3006\")",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(git restore *)"
     ]
   }
 }
