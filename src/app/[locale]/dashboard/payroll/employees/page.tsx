@@ -42,6 +42,28 @@ interface Position {
     ImagenTipoPuesto?: string;
 }
 
+function employeeInitials(name: string) {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+}
+
+const AVATAR_COLORS = [
+    'bg-violet-100 text-violet-700',
+    'bg-blue-100 text-blue-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-rose-100 text-rose-700',
+    'bg-cyan-100 text-cyan-700',
+];
+
+function avatarColor(id: number) {
+    return AVATAR_COLORS[id % AVATAR_COLORS.length];
+}
+
 export default function EmployeesPage() {
     const t = useTranslations('Employees');
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -460,10 +482,10 @@ export default function EmployeesPage() {
                                     <TableCell className="font-medium text-gray-900">
                                         <div className="flex items-center gap-3">
                                             {employee.ArchivoFoto ? (
-                                                <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-full object-cover border" />
+                                                <img src={employee.ArchivoFoto} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200" />
                                             ) : (
-                                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs border">
-                                                    <User className="w-4 h-4 text-gray-400" />
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(employee.IdEmpleado)}`}>
+                                                    {employeeInitials(employee.Empleado)}
                                                 </div>
                                             )}
                                             {employee.Empleado}

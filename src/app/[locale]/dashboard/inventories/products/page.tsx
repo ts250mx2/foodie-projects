@@ -58,6 +58,28 @@ interface KitItem {
     Presentacion: string;
 }
 
+function productInitials(name: string) {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+}
+
+const AVATAR_COLORS = [
+    'bg-violet-100 text-violet-700',
+    'bg-blue-100 text-blue-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-rose-100 text-rose-700',
+    'bg-cyan-100 text-cyan-700',
+];
+
+function avatarColor(id: number) {
+    return AVATAR_COLORS[id % AVATAR_COLORS.length];
+}
+
 export default function ProductsPage() {
     const t = useTranslations('Products');
     const [products, setProducts] = useState<Product[]>([]);
@@ -546,7 +568,7 @@ export default function ProductsPage() {
                                     )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
                                                 {product.ArchivoImagen ? (
                                                     <img
                                                         src={product.ArchivoImagen}
@@ -554,7 +576,9 @@ export default function ProductsPage() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <span className="text-gray-400 text-xl">📦</span>
+                                                    <div className={`w-full h-full flex items-center justify-center text-xs font-bold ${avatarColor(product.IdProducto)}`}>
+                                                        {productInitials(product.Producto)}
+                                                    </div>
                                                 )}
                                             </div>
                                             <span>{product.Producto}</span>
