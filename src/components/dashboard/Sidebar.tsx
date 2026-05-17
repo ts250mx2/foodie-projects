@@ -213,7 +213,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                             placeholder="Buscar módulo..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/12 border border-white font-medium text-white placeholder:text-white/80 focus:bg-white/18 focus:ring-2 focus:ring-white/40 focus:outline-none transition-all"
+                            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl bg-white/12 border border-white font-medium text-white placeholder:text-white focus:bg-white/18 focus:ring-2 focus:ring-white/40 focus:outline-none transition-all"
                         />
                     </div>
                 )}
