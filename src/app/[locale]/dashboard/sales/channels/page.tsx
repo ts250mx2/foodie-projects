@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Store } from 'lucide-react';
+import { Plus, Store, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, RowActionButton } from '@/components/ThemedGridHeader';
+import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
 
 interface Channel {
@@ -214,8 +215,8 @@ export default function SalesChannelsPage() {
                                     key={chan.IdCanalVenta}
                                     className={`hover:bg-gray-50 cursor-move ${draggedItem === index ? 'opacity-50' : ''}`}
                                     draggable
-                                    onDragStart={(e) => handleDragStart(e, index)}
-                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragStart={(e: React.DragEvent<HTMLTableRowElement>) => handleDragStart(e, index)}
+                                    onDragOver={(e: React.DragEvent<HTMLTableRowElement>) => handleDragOver(e, index)}
                                     onDragEnd={handleDragEnd}
                                 >
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -233,20 +234,20 @@ export default function SalesChannelsPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => openEditModal(chan)}
-                                            className="text-xl mr-4 hover:scale-110 transition-transform"
-                                            title={t('editChannel')}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={() => openDeleteModal(chan)}
-                                            className="text-xl hover:scale-110 transition-transform"
-                                            title={t('deleteChannel')}
-                                        >
-                                            🗑️
-                                        </button>
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editChannel')}
+                                                variant="edit"
+                                                onClick={() => openEditModal(chan)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteChannel')}
+                                                variant="delete"
+                                                onClick={() => openDeleteModal(chan)}
+                                            />
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -256,68 +257,60 @@ export default function SalesChannelsPage() {
             </div>
 
             {/* Edit/Create Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">
-                            {editingChannel ? t('editChannel') : t('addChannel')}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                label={t('channelName')}
-                                value={formData.channel}
-                                onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label={t('commission')}
-                                type="number"
-                                step="0.01"
-                                value={formData.commission}
-                                onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
-                                required
-                            />
-
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                                >
-                                    {t('cancel')}
-                                </button>
-                                <Button type="submit">
-                                    {t('save')}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingChannel ? t('editChannel') : t('addChannel')}
+                subtitle={editingChannel ? `Editando: ${editingChannel.CanalVenta}` : 'Completa la información del canal de venta'}
+                size="lg"
+                onConfirm={() => {
+                    const form = new FormData();
+                    form.append('channel', formData.channel);
+                    form.append('commission', formData.commission);
+                    handleSubmit({ preventDefault: () => {} } as any);
+                }}
+                confirmLabel={t('save')}
+                cancelLabel={t('cancel')}
+                headerVariant="primary"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label={t('channelName')}
+                        value={formData.channel}
+                        onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                        required
+                    />
+                    <Input
+                        label={t('commission')}
+                        type="number"
+                        step="0.01"
+                        value={formData.commission}
+                        onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
+                        required
+                    />
                 </div>
-            )}
+            </BaseModal>
 
             {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{t('deleteChannel')}</h3>
-                        <p className="text-gray-500 mb-6">{t('confirmDelete')}</p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                            >
-                                {t('deleteChannel')}
-                            </button>
-                        </div>
+            <BaseModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title={t('deleteChannel')}
+                size="sm"
+                onConfirm={handleDelete}
+                confirmLabel="Sí, eliminar"
+                cancelLabel={t('cancel')}
+            >
+                <div className="flex flex-col items-center gap-4 py-2 text-center">
+                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <AlertTriangle size={24} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-800">¿Eliminar {editingChannel?.CanalVenta}?</p>
+                        <p className="text-sm text-gray-500 mt-1">{t('confirmDelete')}</p>
                     </div>
                 </div>
-            )}
+            </BaseModal>
         </PageShell>
     );
 }
