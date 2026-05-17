@@ -8,7 +8,7 @@ import Button from '@/components/Button';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageShell from '@/components/PageShell';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, FileText, Calendar, Plus, User } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -511,15 +511,23 @@ export default function SchedulesPage() {
                             : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'
                         }`}
                     >
-                        <span className={`text-sm transition-transform duration-300 ${isAttendanceMode ? 'rotate-0 scale-125' : 'rotate-180 scale-100 opacity-50'}`}>
-                            {isAttendanceMode ? '✅' : '⚪'}
-                        </span>
+                        {isAttendanceMode ? (
+                            <div className="w-4 h-4 rounded-full bg-white/30 flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-white"></div>
+                            </div>
+                        ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-current"></div>
+                        )}
                         Modo Asistencia: {isAttendanceMode ? 'ON' : 'OFF'}
                     </button>
                     <div className="flex items-center bg-white/20 rounded-lg p-1 border border-white/30">
-                        <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">◀</button>
+                        <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">
+                            <ChevronLeft size={16} />
+                        </button>
                         <span className="px-4 font-bold text-white min-w-[200px] text-center text-xs">{formatWeekRange()}</span>
-                        <button onClick={() => navigateWeek(1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">▶</button>
+                        <button onClick={() => navigateWeek(1)} className="p-2 hover:bg-white/20 rounded-md transition-all text-white">
+                            <ChevronRight size={16} />
+                        </button>
                     </div>
                     <button
                         onClick={handleImportPreviousWeek}
@@ -527,9 +535,11 @@ export default function SchedulesPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-bold hover:bg-white/30 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none text-xs border border-white/30"
                     >
                         {loading ? (
-                            <span className="animate-spin text-lg">⏳</span>
+                            <div className="animate-spin">
+                                <Calendar size={14} />
+                            </div>
                         ) : (
-                            <span>📅</span>
+                            <Calendar size={14} />
                         )}
                         {t('importPreviousWeek')}
                     </button>
@@ -538,7 +548,7 @@ export default function SchedulesPage() {
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-bold hover:bg-white/30 transition-all shadow-md active:scale-95 disabled:opacity-50 text-xs border border-white/30"
                     >
-                        <span>📄</span>
+                        <FileText size={14} />
                         {t('exportPdf')}
                     </button>
                     {branches.length > 1 && (
@@ -613,9 +623,9 @@ export default function SchedulesPage() {
                                             </div>
                                             <button
                                                 onClick={() => handleAssignBulk(date)}
-                                                className="bg-white/10 hover:bg-white/30 transition-colors py-1 px-2 rounded-md text-[9px] font-black uppercase tracking-tighter"
+                                                className="bg-white/10 hover:bg-white/30 transition-colors py-1 px-2 rounded-md text-[9px] font-black uppercase tracking-tighter flex items-center gap-1 justify-center w-full"
                                             >
-                                                ➕ {t('assignSchedules')}
+                                                <Plus size={12} /> {t('assignSchedules')}
                                             </button>
                                         </div>
                                     </th>
@@ -650,7 +660,9 @@ export default function SchedulesPage() {
                                                 {employee.ArchivoFoto ? (
                                                     <img src={employee.ArchivoFoto} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md" />
                                                 ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border italic underline">👤</div>
+                                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                        <User size={18} className="text-gray-400" />
+                                                    </div>
                                                 )}
                                                 <div>
                                                     <div className="font-bold text-gray-800 text-sm whitespace-nowrap">{employee.Empleado}</div>

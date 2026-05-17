@@ -9,7 +9,9 @@
       "Bash(cd \"/c/Users/Ruben/Documents/Antigravity Projects/foodie-projects\" && grep -n \"isModalOpen &&\" \"src/app/\\\\[locale\\\\]/dashboard/inventories/products/page.tsx\" | head -3)",
       "Read(//c/c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/**)",
       "Bash(find src/app/[locale]/dashboard -name \"*.tsx\" -type f)",
-      "Bash(xargs grep -l \"fixed inset-0 bg-black\")"
+      "Bash(xargs grep -l \"fixed inset-0 bg-black\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

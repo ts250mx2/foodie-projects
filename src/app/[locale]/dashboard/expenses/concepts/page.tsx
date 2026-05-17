@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Pencil, Trash2, Search } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -216,14 +216,17 @@ export default function ExpenseConceptsPage() {
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
                                 </div>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Filter..."
-                                    className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded font-normal text-gray-700"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                />
+                                <div className="mt-1 flex items-center gap-1.5 px-2 py-1 border border-gray-300 rounded bg-white">
+                                    <Search size={14} className="text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Filter..."
+                                        className="flex-1 text-xs border-0 outline-none bg-transparent text-gray-700"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
                             </div>
                         </ThemedGridHeaderCell>
 
@@ -256,20 +259,22 @@ export default function ExpenseConceptsPage() {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button
-                                        onClick={() => openEditModal(concept)}
-                                        className="text-xl mr-4 hover:scale-110 transition-transform"
-                                        title={t('editConcept')}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={() => openDeleteModal(concept)}
-                                        className="text-xl hover:scale-110 transition-transform"
-                                        title={t('deleteConcept')}
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            onClick={() => openEditModal(concept)}
+                                            className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                                            title={t('editConcept')}
+                                        >
+                                            <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
+                                        </button>
+                                        <button
+                                            onClick={() => openDeleteModal(concept)}
+                                            className="p-1.5 hover:bg-red-50 rounded transition-colors"
+                                            title={t('deleteConcept')}
+                                        >
+                                            <Trash2 size={18} className="text-red-600 hover:text-red-900" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

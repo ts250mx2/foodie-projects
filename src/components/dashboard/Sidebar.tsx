@@ -137,15 +137,7 @@ const menuItems: MenuSection[] = [
             { key: 'materialExplosion', href: '/dashboard/production/material-explosion', icon: Zap, emoji: '⚡' },
         ],
     },
-    {
-        title: 'ocrProcessing',
-        icon: ScanText,
-        emoji: '📸',
-        items: [
-            { key: 'receiptCapture', href: '/dashboard/ocr/receipt-capture', icon: Camera, emoji: '📷' },
-            { key: 'ocrDocuments', href: '/dashboard/ocr/documents', icon: Files, emoji: '🗂️' },
-        ],
-    },
+
 ];
 
 export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps) {
