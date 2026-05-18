@@ -24,7 +24,9 @@
       "Bash(start \"http://localhost:3006\")",
       "Bash(git diff *)",
       "Bash(git restore *)",
-      "Bash(powershell -Command \"Start-Sleep -Seconds 2; Write-Output 'Server refresh check complete'\")"
+      "Bash(powershell -Command \"Start-Sleep -Seconds 2; Write-Output 'Server refresh check complete'\")",
+      "Bash(\\\\.ts\")",
+      "Read(//c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/app/**)"
     ]
   }
 }

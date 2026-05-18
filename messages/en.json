@@ -597,6 +597,8 @@
         "total": "Total",
         "close": "Close",
         "file": "File",
+        "upload": "Upload",
+        "noRecords": "No records found",
         "new": "New"
     },
     "PurchasesCapture": {
@@ -642,6 +644,7 @@
         "edit": "Edit",
         "delete": "Delete",
         "close": "Close",
+        "upload": "Upload",
         "searchProvider": "Search provider...",
         "noResults": "No results found",
         "confirmDelete": "Are you sure you want to delete this purchase?",

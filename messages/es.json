@@ -632,6 +632,8 @@
         "addExpense": "Agregar Gasto",
         "editExpense": "Editar Gasto",
         "file": "Archivo",
+        "upload": "Subir",
+        "noRecords": "No se encontraron registros",
         "new": "Nuevo"
     },
     "ExpenseDetailsModal": {
@@ -737,6 +739,7 @@
         "edit": "Editar",
         "delete": "Eliminar",
         "close": "Cerrar",
+        "upload": "Subir",
         "searchProvider": "Buscar proveedor...",
         "noResults": "No se encontraron resultados",
         "confirmDelete": "¿Está seguro de eliminar esta compra?",

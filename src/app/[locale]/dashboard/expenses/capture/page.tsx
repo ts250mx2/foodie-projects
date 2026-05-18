@@ -1065,7 +1065,7 @@ export default function ExpensesCapturePage() {
                                                             }}
                                                             className="px-3 py-1.5 text-green-600 border border-green-300 bg-green-50 hover:bg-green-100 rounded transition-colors text-xs font-bold flex items-center gap-1 mx-auto"
                                                         >
-                                                            <Plus size={14} /> {tModal('upload') || "Subir"}
+                                                            <Plus size={14} /> {tModal('upload')}
                                                         </button>
                                                     )}
                                                 </TableCell>

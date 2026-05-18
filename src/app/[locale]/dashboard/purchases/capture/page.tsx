@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import PurchaseImageCaptureModal from '@/components/PurchaseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { ShoppingBag, Camera, X, Save, Plus, FileText, Search, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, Camera, X, Save, Plus, FileText, Search, ShoppingCart, Edit2, Trash2, Download, Package } from 'lucide-react';
 import Button from '@/components/Button';
 
 
@@ -1146,124 +1146,128 @@ export default function PurchasesCapturePage() {
                             )}
 
                             {/* Purchase Table */}
-                            <div className="px-6 py-5">
-                                <table className="min-w-full divide-y divide-gray-100">
-                                    <thead className="bg-gray-50 sticky top-0 z-10">
-                                        <tr>
-                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID</th>
-                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
-                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
-                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Canal</th>
-                                            <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
-                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Archivo</th>
-                                            <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                        <tbody className="bg-white divide-y divide-gray-50">
-                                            {dailyPurchases.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">{tModal('noRecords')}</td>
-                                                </tr>
-                                            ) : (
-                                                dailyPurchases.map((purchase) => (
-                                                    <tr
-                                                        key={purchase.IdCompra}
-                                                        className={`border-t border-gray-50 hover:bg-gray-50/60 transition-colors group ${purchase.Status === 2 ? 'bg-red-50 opacity-40 grayscale' : ''}`}
-                                                    >
-                                                        <td className="px-5 py-3 whitespace-nowrap text-xs text-gray-400 font-mono">#{purchase.IdCompra}</td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">{purchase.Proveedor}</td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-sm font-bold text-gray-500">{purchase.NumeroFactura}</td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-500">{purchase.CanalPago}</td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-sm text-blue-600 text-right font-black">
-                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchase.Total)}
-                                                        </td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-center text-sm">
-                                                            {purchase.ArchivoDocumento ? (
-                                                                <div className="flex items-center justify-center gap-2">
-                                                                     <button
-                                                                         onClick={() => {
-                                                                             setPreviewFile({
-                                                                                 content: purchase.ArchivoDocumento,
-                                                                                 name: purchase.NombreArchivo || 'documento',
-                                                                                 type: purchase.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
-                                                                             });
-                                                                         }}
-                                                                         className="relative group w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-100 hover:border-blue-500 transition-all shadow-sm flex items-center justify-center bg-gray-50"
-                                                                         title="Ver Documento"
-                                                                     >
-                                                                         {purchase.NombreArchivo?.toLowerCase().endsWith('.pdf') ? (
-                                                                             <div className="flex flex-col items-center">
-                                                                                <span className="text-[10px] font-black text-red-600">PDF</span>
-                                                                                <span className="text-[8px] text-gray-400 uppercase">Ver</span>
-                                                                             </div>
-                                                                         ) : (
-                                                                             <img
-                                                                                 src={`data:image/*;base64,${purchase.ArchivoDocumento}`}
-                                                                                 className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-300"
-                                                                                 alt="Miniatura"
-                                                                             />
-                                                                         )}
-                                                                         <div className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                             <span className="text-white text-xs">👁️</span>
-                                                                         </div>
-                                                                     </button>
-                                                                    <button onClick={() => {
-                                                                        setUploadingPurchaseKey(purchase.IdCompra.toString());
-                                                                        fileInputRef.current?.click();
-                                                                    }} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Cambiar Archivo">🔄</button>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setUploadingPurchaseKey(purchase.IdCompra.toString());
-                                                                        fileInputRef.current?.click();
-                                                                    }}
-                                                                    className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-all"
-                                                                    title="Subir Comprobante"
-                                                                >
-                                                                    📤
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-5 py-3 whitespace-nowrap text-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                {purchase.Status === 0 && (
-                                                                    <button
-                                                                        onClick={() => handleOpenDetailsModal(purchase)}
-                                                                        className="text-gray-300 hover:text-green-600 transition-colors p-1"
-                                                                        title="Productos"
-                                                                    >
-                                                                        📦
-                                                                    </button>
-                                                                )}
-                                                                {purchase.Status !== 2 && (
-                                                                    <>
-                                                                        <button
-                                                                            onClick={() => handleEditPurchase(purchase)}
-                                                                            className="text-gray-300 hover:text-blue-600 transition-colors p-1"
-                                                                            title={tModal('edit')}
-                                                                        >
-                                                                            ✏️
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => handleDeletePurchase(purchase)}
-                                                                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                                                                            title={tModal('delete')}
-                                                                        >
-                                                                            🗑️
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                                {purchase.Status === 2 && (
-                                                                    <span className="text-[10px] font-black text-red-600 uppercase tracking-wider">Anulada</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
+                            <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                                <table className="w-full border-collapse">
+                                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                        <ThemedGridHeaderCell>
+                                            ID
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            {tModal('provider')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            {tModal('invoiceNumber')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            Canal
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            {tModal('total')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="center">
+                                            Archivo
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            Acciones
+                                        </ThemedGridHeaderCell>
+                                    </ThemedGridHeader>
+                                    <TableBody
+                                        loading={false}
+                                        empty={dailyPurchases.length === 0}
+                                        emptyMessage={tModal('noRecords')}
+                                        colSpan={7}
+                                    >
+                                        {dailyPurchases.map((purchase) => (
+                                            <TableRow key={purchase.IdCompra} className={purchase.Status === 2 ? 'opacity-60' : ''}>
+                                                <TableCell>
+                                                    <span className="text-xs font-mono text-gray-500">#{purchase.IdCompra}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-medium text-gray-900">{purchase.Proveedor}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-gray-600">{purchase.NumeroFactura}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-gray-600">{purchase.CanalPago}</span>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <span className="font-bold text-blue-600">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(purchase.Total)}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    {purchase.ArchivoDocumento ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPreviewFile({
+                                                                        content: purchase.ArchivoDocumento,
+                                                                        name: purchase.NombreArchivo || 'documento',
+                                                                        type: purchase.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
+                                                                    });
+                                                                }}
+                                                                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                                                title="Descargar"
+                                                            >
+                                                                <Download size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setUploadingPurchaseKey(purchase.IdCompra.toString());
+                                                                    fileInputRef.current?.click();
+                                                                }}
+                                                                className="p-1 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors"
+                                                                title="Cambiar"
+                                                            >
+                                                                <FileText size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                setUploadingPurchaseKey(purchase.IdCompra.toString());
+                                                                fileInputRef.current?.click();
+                                                            }}
+                                                            className="px-3 py-1.5 text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 rounded transition-colors text-xs font-bold flex items-center gap-1 mx-auto"
+                                                        >
+                                                            <Plus size={14} /> {tModal('upload')}
+                                                        </button>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {purchase.Status === 0 && (
+                                                            <RowActionButton
+                                                                icon={Package}
+                                                                label="Productos"
+                                                                onClick={() => handleOpenDetailsModal(purchase)}
+                                                            />
+                                                        )}
+                                                        {purchase.Status !== 2 && (
+                                                            <>
+                                                                <RowActionButton
+                                                                    icon={Edit2}
+                                                                    label="Editar"
+                                                                    onClick={() => handleEditPurchase(purchase)}
+                                                                />
+                                                                <RowActionButton
+                                                                    icon={Trash2}
+                                                                    label="Eliminar"
+                                                                    variant="delete"
+                                                                    onClick={() => handleDeletePurchase(purchase)}
+                                                                />
+                                                            </>
+                                                        )}
+                                                        {purchase.Status === 2 && (
+                                                            <span className="text-[10px] font-bold text-red-600 uppercase">Anulada</span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </table>
                             </div>
                         </div>
 
