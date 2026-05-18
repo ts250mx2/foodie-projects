@@ -1374,218 +1374,220 @@ export default function PurchaseOrdersPage() {
 
             {/* Category Selection / Capture Modal */}
             {isCategoryModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[3rem] w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl relative border border-white/20 flex flex-col">
-                        <button 
-                            onClick={() => {
-                                setIsCategoryModalOpen(false);
-                                setSelectedCategory(null);
-                            }}
-                            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors text-2xl p-2 z-10"
-                        >
-                            ✕
-                        </button>
-
-                        <div className="p-10 flex-1 overflow-y-auto">
-                            {!selectedCategory ? (
-                                <>
-                                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                                        <h2 className="text-2xl font-black text-black border-b pb-3 inline-block">Pedido por Categorías</h2>
-                                        <div className="flex gap-4">
-                                            {(() => {
-                                                const count = categoryProductsCapture.filter(p => p.cantidad > 0).length;
-                                                return (
-                                                    <button
-                                                        onClick={handleSaveCategoryOrder}
-                                                        disabled={count === 0}
-                                                        className={`px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center gap-2 transition-all ${
-                                                            count > 0
-                                                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20'
-                                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                        }`}
-                                                    >
-                                                        ✓ Generar OC{count > 0 ? ` (${count} productos)` : ''}
-                                                    </button>
-                                                );
-                                            })()}
-                                            {multiSelectedIds.length > 0 && (
-                                                <button 
-                                                    onClick={handlePrintMultiCategories}
-                                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-red-500/20 transition-all uppercase tracking-widest text-sm flex items-center gap-2 animate-in zoom-in duration-200"
-                                                >
-                                                    <span>🖨️</span> Imprimir {multiSelectedIds.length} Seleccionadas
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="mb-10 relative">
-                                        <input 
-                                            type="text" 
-                                            placeholder="Buscar categoría..."
-                                            value={categorySearch}
-                                            onChange={(e) => setCategorySearch(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-6 py-4 pl-14 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
-                                        />
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl">📂</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                        {categories
-                                            .filter(cat => cat.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
-                                            .map(cat => {
-                                                const catCount = categoryProductsCapture.filter(p => p.idCategoria === cat.IdCategoria && p.cantidad > 0).length;
-                                                return (
-                                                    <button
-                                                        key={cat.IdCategoria}
-                                                        onClick={() => handleSelectCategory(cat)}
-                                                        className={`group relative p-8 rounded-[2rem] border transition-all duration-300 text-left overflow-hidden ${
-                                                            multiSelectedIds.includes(cat.IdCategoria)
-                                                                ? 'bg-blue-600 border-blue-400 shadow-xl shadow-blue-500/30'
-                                                                : catCount > 0
-                                                                    ? 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-lg'
-                                                                    : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'
-                                                        }`}
-                                                    >
-                                                        <div className={`text-4xl mb-4 group-hover:scale-110 transition-transform ${multiSelectedIds.includes(cat.IdCategoria) ? '' : 'grayscale-[0.5]'}`}>
-                                                            {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
-                                                        </div>
-                                                        <div className={`text-sm font-black tracking-tight ${multiSelectedIds.includes(cat.IdCategoria) ? 'text-white' : 'text-slate-900'}`}>
-                                                            {cat.Categoria}
-                                                        </div>
-                                                        {catCount > 0 && (
-                                                            <div className="mt-2">
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-600 text-white text-[10px] font-black">
-                                                                    ✓ {catCount} producto{catCount !== 1 ? 's' : ''}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                        <button
-                                                            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all bg-white/10 border-white/20 text-white"
-                                                            onClick={(e) => { e.stopPropagation(); handleToggleCategorySelection(cat.IdCategoria); }}
-                                                        >
-                                                            {multiSelectedIds.includes(cat.IdCategoria) ? '✓' : ''}
-                                                        </button>
-                                                    </button>
-                                                );
-                                            })}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="animate-in slide-in-from-right duration-300">
-                                    <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <button 
-                                                onClick={() => setSelectedCategory(null)}
-                                                className="bg-gray-100 hover:bg-gray-200 p-4 rounded-2xl text-gray-600 transition-all"
-                                            >
-                                                ⬅️
-                                            </button>
-                                            <h2 className="text-2xl font-black text-black">
-                                                {selectedCategory.ImagenCategoria || getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}
-                                            </h2>
-                                        </div>
-                                        <div className="flex gap-4">
-                                            <button 
-                                                onClick={handlePrintCategoryCapture}
-                                                className="bg-white border-2 border-red-600 text-red-600 hover:bg-red-50 px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2"
-                                            >
-                                                <span>🖨️</span> PDF
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-8 relative">
-                                        <input 
-                                            type="text" 
-                                            placeholder={`Buscar en ${selectedCategory.Categoria}...`}
-                                            value={categoryProductSearch}
-                                            onChange={(e) => setCategoryProductSearch(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-3xl px-8 py-4 pl-14 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-black font-bold text-lg transition-all"
-                                        />
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl">🔍</span>
-                                    </div>
-
-                                    <div className="border border-gray-100 rounded-[2rem] overflow-hidden shadow-inner">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-gray-100/80 border-b border-gray-200">
-                                                <tr>
-                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider">Producto</th>
-                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-32 text-center">Cantidad</th>
-                                                    <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider w-40 text-center">Unidad</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100 bg-white">
-                                                {(() => {
-                                                    const filteredCatItems = categoryProductsCapture
-                                                        .filter(p => p.idCategoria === selectedCategory.IdCategoria && (p.producto || '').toLowerCase().includes(categoryProductSearch.toLowerCase()));
-                                                    return filteredCatItems.map((item, filteredIndex) => {
-                                                        const realIndex = categoryProductsCapture.findIndex(p => p.idProducto === item.idProducto);
-                                                        const cantidadId = `cat-qty-${item.idProducto}`;
-                                                        const uomId = `cat-uom-${item.idProducto}`;
-                                                        const nextItem = filteredCatItems[filteredIndex + 1];
-                                                        return (
-                                                            <tr key={item.idProducto} className="hover:bg-blue-50/20 transition-colors">
-                                                                <td className="px-6 py-3">
-                                                                    <div className="font-bold text-black text-sm">{item.producto}</div>
-                                                                    {item.codigo && <div className="text-xs text-gray-400">{item.codigo}</div>}
-                                                                </td>
-                                                                <td className="px-4 py-3">
-                                                                    <input
-                                                                        id={cantidadId}
-                                                                        type="number"
-                                                                        value={item.cantidad || ''}
-                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', e.target.value)}
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === 'Enter') {
-                                                                                e.preventDefault();
-                                                                                const nextEl = document.getElementById(nextItem ? `cat-qty-${nextItem.idProducto}` : cantidadId);
-                                                                                nextEl?.focus();
-                                                                            }
-                                                                        }}
-                                                                        placeholder="0"
-                                                                        className="w-full text-center bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl py-2 outline-none text-black font-black text-lg transition-all"
-                                                                    />
-                                                                </td>
-                                                                <td className="px-4 py-3">
-                                                                    <select
-                                                                        id={uomId}
-                                                                        value={item.unidadMedida || ''}
-                                                                        onChange={(e) => handleUpdateCategoryProduct(realIndex, 'unidadMedida', e.target.value)}
-                                                                        className={`w-full text-center border rounded-xl py-2 outline-none font-semibold text-sm transition-all ${
-                                                                            !item.unidadMedida
-                                                                                ? 'bg-red-50 border-red-200 text-red-400'
-                                                                                : 'bg-gray-50 border-transparent focus:border-blue-500 focus:bg-white text-black'
-                                                                        }`}
-                                                                    >
-                                                                        <option value="">⚠ Unidad</option>
-                                                                        {['KG','G','MG','L','ML','PZA','CAJA','BOLSA','PAQUETE','LATA','BOTELLA','COSTAL','TARRO','BOTE','LITRO','ONZA','LIBRA','TON','M','CM','DOCENA','UNIDAD'].map(u => (
-                                                                            <option key={u} value={u}>{u}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    });
-                                                })()}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    <div className="mt-6 bg-blue-900 text-white p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-blue-900/20">
-                                        <div>
-                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Productos en Pedido</div>
-                                            <div className="text-2xl font-black">
-                                                {categoryProductsCapture.filter(p => p.cantidad > 0).length} / {categoryProductsCapture.length}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-blue-200 text-[10px] font-black uppercase tracking-widest mb-1">Sin Unidad</div>
-                                            <div className={`text-2xl font-black ${categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length > 0 ? 'text-red-300' : 'text-green-300'}`}>
-                                                {categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length === 0 ? '✓ OK' : categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length}
-                                            </div>
-                                        </div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-xl relative flex flex-col">
+                        {/* Header */}
+                        <div className="shrink-0 px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+                            {selectedCategory ? (
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setSelectedCategory(null)}
+                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        <ArrowLeft size={18} className="text-gray-600" />
+                                    </button>
+                                    <div>
+                                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Categoría</h2>
+                                        <p className="text-lg font-black text-gray-900">{selectedCategory.ImagenCategoria || getCategoryEmoji(selectedCategory.Categoria)} {selectedCategory.Categoria}</p>
                                     </div>
                                 </div>
+                            ) : (
+                                <div>
+                                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Pedido</h2>
+                                    <p className="text-lg font-black text-gray-900">Pedido por Categorías</p>
+                                </div>
                             )}
+                            <button
+                                onClick={() => {
+                                    setIsCategoryModalOpen(false);
+                                    setSelectedCategory(null);
+                                }}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X size={20} className="text-gray-600" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto">
+                {!selectedCategory ? (
+                    <div className="space-y-4">
+                        {/* Action Buttons */}
+                        {categoryProductsCapture.filter(p => p.cantidad > 0).length > 0 && (
+                            <div className="flex gap-3 flex-wrap pb-4 border-b border-gray-100">
+                                {multiSelectedIds.length > 0 && (
+                                    <Button
+                                        onClick={handlePrintMultiCategories}
+                                        variant="secondary"
+                                        size="sm"
+                                        leftIcon={Download}
+                                    >
+                                        Imprimir {multiSelectedIds.length}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar categoría..."
+                                value={categorySearch}
+                                onChange={(e) => setCategorySearch(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 pl-9 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-800 font-medium text-xs transition-all"
+                            />
+                        </div>
+
+                        {/* Category Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {categories
+                                .filter(cat => cat.Categoria.toLowerCase().includes(categorySearch.toLowerCase()))
+                                .map(cat => {
+                                    const catCount = categoryProductsCapture.filter(p => p.idCategoria === cat.IdCategoria && p.cantidad > 0).length;
+                                    const isSelected = multiSelectedIds.includes(cat.IdCategoria);
+                                    return (
+                                        <button
+                                            key={cat.IdCategoria}
+                                            onClick={() => handleSelectCategory(cat)}
+                                            className={`group relative p-6 rounded-lg border transition-all duration-200 text-left overflow-hidden ${
+                                                isSelected
+                                                    ? 'bg-blue-50 border-blue-200 shadow-md'
+                                                    : catCount > 0
+                                                        ? 'bg-green-50 border-green-100 hover:border-green-200 hover:shadow-sm'
+                                                        : 'bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm'
+                                            }`}
+                                        >
+                                            <div className={`text-3xl mb-3 group-hover:scale-110 transition-transform ${isSelected ? 'scale-110' : ''}`}>
+                                                {cat.ImagenCategoria || getCategoryEmoji(cat.Categoria)}
+                                            </div>
+                                            <div className={`text-sm font-bold truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                                                {cat.Categoria}
+                                            </div>
+                                            {catCount > 0 && (
+                                                <div className="mt-2">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[9px] font-black">
+                                                        ✓ {catCount}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                                                    <Check size={14} className="text-white" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {/* Search & Actions */}
+                        <div className="flex gap-3 pb-4 border-b border-gray-100">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder={`Buscar en ${selectedCategory.Categoria}...`}
+                                    value={categoryProductSearch}
+                                    onChange={(e) => setCategoryProductSearch(e.target.value)}
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 pl-9 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-800 font-medium text-xs transition-all"
+                                />
+                            </div>
+                            <Button
+                                onClick={handlePrintCategoryCapture}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={Download}
+                            >
+                                PDF
+                            </Button>
+                        </div>
+
+                        {/* Products Table */}
+                        <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm max-h-[400px] overflow-y-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-100 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Producto</th>
+                                        <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-32 text-center">Cantidad</th>
+                                        <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider w-40 text-center">Unidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 bg-white">
+                                    {(() => {
+                                        const filteredCatItems = categoryProductsCapture
+                                            .filter(p => p.idCategoria === selectedCategory.IdCategoria && (p.producto || '').toLowerCase().includes(categoryProductSearch.toLowerCase()));
+                                        return filteredCatItems.map((item, filteredIndex) => {
+                                            const realIndex = categoryProductsCapture.findIndex(p => p.idProducto === item.idProducto);
+                                            const cantidadId = `cat-qty-${item.idProducto}`;
+                                            const uomId = `cat-uom-${item.idProducto}`;
+                                            const nextItem = filteredCatItems[filteredIndex + 1];
+                                            return (
+                                                <tr key={item.idProducto} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-semibold text-gray-900 text-sm">{item.producto}</div>
+                                                        {item.codigo && <div className="text-xs text-gray-400 mt-0.5">{item.codigo}</div>}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <input
+                                                            id={cantidadId}
+                                                            type="number"
+                                                            value={item.cantidad || ''}
+                                                            onChange={(e) => handleUpdateCategoryProduct(realIndex, 'cantidad', e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    const nextEl = document.getElementById(nextItem ? `cat-qty-${nextItem.idProducto}` : cantidadId);
+                                                                    nextEl?.focus();
+                                                                }
+                                                            }}
+                                                            placeholder="0"
+                                                            className="w-full text-center bg-white border border-gray-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 rounded-lg py-2 outline-none text-gray-900 font-bold text-sm transition-all"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <select
+                                                            id={uomId}
+                                                            value={item.unidadMedida || ''}
+                                                            onChange={(e) => handleUpdateCategoryProduct(realIndex, 'unidadMedida', e.target.value)}
+                                                            className={`w-full text-center border rounded-lg py-2 outline-none font-semibold text-sm transition-all ${
+                                                                !item.unidadMedida
+                                                                    ? 'bg-red-50 border-red-200 text-red-600'
+                                                                    : 'bg-white border-gray-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 text-gray-900'
+                                                            }`}
+                                                        >
+                                                            <option value="">⚠ Unidad</option>
+                                                            {['KG','G','MG','L','ML','PZA','CAJA','BOLSA','PAQUETE','LATA','BOTELLA','COSTAL','TARRO','BOTE','LITRO','ONZA','LIBRA','TON','M','CM','DOCENA','UNIDAD'].map(u => (
+                                                                <option key={u} value={u}>{u}</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Footer Summary */}
+                        <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Productos en Pedido</p>
+                                <p className="text-lg font-black text-gray-900 mt-1">{categoryProductsCapture.filter(p => p.cantidad > 0).length} / {categoryProductsCapture.length}</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Sin Unidad</p>
+                                <p className={`text-lg font-black mt-1 ${categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length === 0 ? '✓ OK' : categoryProductsCapture.filter(p => p.cantidad > 0 && !p.unidadMedida).length}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
                         </div>
                     </div>
                 </div>

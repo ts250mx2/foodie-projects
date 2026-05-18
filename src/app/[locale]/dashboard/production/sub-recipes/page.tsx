@@ -23,6 +23,29 @@ interface SubRecipe {
     NombreArchivo?: string;
 }
 
+function subRecipeInitials(name?: string | null) {
+    if (!name) return '??';
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0] || '')
+        .join('')
+        .toUpperCase();
+}
+
+const AVATAR_COLORS = [
+    'bg-violet-100 text-violet-700',
+    'bg-blue-100 text-blue-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-rose-100 text-rose-700',
+    'bg-cyan-100 text-cyan-700',
+];
+
+function avatarColor(id: number) {
+    return AVATAR_COLORS[id % AVATAR_COLORS.length];
+}
+
 export default function SubRecipesPage() {
     const t = useTranslations('Products');
     const [subRecipes, setSubRecipes] = useState<SubRecipe[]>([]);
@@ -110,24 +133,17 @@ export default function SubRecipesPage() {
             const searchTermLower = searchTerm.toLowerCase();
             const productName = subRecipe.Producto ? String(subRecipe.Producto) : '';
             const productCode = subRecipe.Codigo ? String(subRecipe.Codigo) : '';
-            const matchesSearch = productName.toLowerCase().includes(searchTermLower) ||
+            return productName.toLowerCase().includes(searchTermLower) ||
                 productCode.toLowerCase().includes(searchTermLower);
-
-            const categoryName = subRecipe.Categoria ? String(subRecipe.Categoria) : '';
-            const matchesCategory = categoryName.toLowerCase().includes(categorySearch.toLowerCase());
-
-            return matchesSearch && matchesCategory;
         })
         .sort((a, b) => {
             if (!sortConfig) return 0;
             const { key, direction } = sortConfig;
 
-            const aValue = key === 'Categoria' ? (a.Categoria ?? '') :
-                key === 'Presentacion' ? (a.Presentacion ?? '') :
+            const aValue = key === 'Presentacion' ? (a.Presentacion ?? '') :
                     (a[key as keyof SubRecipe] ?? '');
 
-            const bValue = key === 'Categoria' ? (b.Categoria ?? '') :
-                key === 'Presentacion' ? (b.Presentacion ?? '') :
+            const bValue = key === 'Presentacion' ? (b.Presentacion ?? '') :
                     (b[key as keyof SubRecipe] ?? '');
 
             if (aValue < bValue) return direction === 'asc' ? -1 : 1;
@@ -186,13 +202,6 @@ export default function SubRecipesPage() {
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
                                 sortable
-                                sortDir={sortConfig?.key === 'Categoria' ? sortConfig.direction : null}
-                                onClick={() => handleSort('Categoria')}
-                            >
-                                {t('category')}
-                            </ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell
-                                sortable
                                 sortDir={sortConfig?.key === 'Presentacion' ? sortConfig.direction : null}
                                 onClick={() => handleSort('Presentacion')}
                             >
@@ -214,13 +223,13 @@ export default function SubRecipesPage() {
                             loading={false}
                             empty={sortedAndFilteredSubRecipes.length === 0}
                             emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay subrecetas. Agrega la primera.'}
-                            colSpan={6}
+                            colSpan={5}
                         >
                             {sortedAndFilteredSubRecipes.map((subRecipe) => (
                                 <TableRow key={subRecipe.IdProducto}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center text-sm font-medium text-gray-600">
+                                            <div className={`flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center text-xs font-bold ${subRecipe.ArchivoImagen ? 'bg-gray-100' : avatarColor(subRecipe.IdProducto)}`}>
                                                 {subRecipe.ArchivoImagen ? (
                                                     <img
                                                         src={subRecipe.ArchivoImagen}
@@ -228,24 +237,13 @@ export default function SubRecipesPage() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    subRecipe.Producto.substring(0, 2).toUpperCase()
+                                                    subRecipeInitials(subRecipe.Producto)
                                                 )}
                                             </div>
                                             <span className="font-medium text-gray-900">{subRecipe.Producto}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell muted>{subRecipe.Codigo}</TableCell>
-                                    <TableCell muted>
-                                        <span className="flex items-center gap-1">
-                                            {subRecipe.ImagenCategoria && <span>{subRecipe.ImagenCategoria}</span>}
-                                            {subRecipe.Categoria || '-'}
-                                            {subRecipe.IdModuloRecetario && subRecipe.IdModuloRecetario > 0 ? (
-                                                <sup className="text-primary-600 font-bold ml-0.5">
-                                                    {subRecipe.IdModuloRecetario}
-                                                </sup>
-                                            ) : null}
-                                        </span>
-                                    </TableCell>
                                     <TableCell muted>{subRecipe.Presentacion || '-'}</TableCell>
                                     <TableCell align="right" muted>
                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(subRecipe.Costo || 0)}

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Trash2, Plus } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface Document {
     idProductoDocumento: number;
@@ -210,28 +212,30 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
             />
 
             {/* Add Document Form */}
-            <div className="px-6 py-4 border-b bg-gray-50">
-                <div className="space-y-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Descripción Documento
-                        </label>
-                        <div className="flex gap-2">
-                            <textarea
-                                value={newDescription}
-                                onChange={(e) => setNewDescription(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                                rows={2}
-                                placeholder="Escriba la descripción del documento..."
-                            />
-                            <Button
-                                onClick={handleAddDocument}
-                                disabled={isSaving}
-                                className="bg-green-600 self-end"
-                            >
-                                ➕ Agregar
-                            </Button>
-                        </div>
+            <div className="px-6 py-4 border-b bg-white">
+                <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">
+                        Descripción Documento
+                    </label>
+                    <div className="flex gap-3">
+                        <textarea
+                            value={newDescription}
+                            onChange={(e) => setNewDescription(e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                            rows={2}
+                            placeholder="Escriba la descripción del documento..."
+                        />
+                        <Button
+                            onClick={handleAddDocument}
+                            disabled={isSaving}
+                            variant="solid"
+                            size="md"
+                            leftIcon={Plus}
+                            iconBox
+                            isLoading={isSaving}
+                        >
+                            Agregar
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -246,18 +250,21 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                     </div>
                 ) : (
                     <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Descripción</th>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-48">Archivo</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-24">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                        <table className="min-w-full border-collapse">
+                            <ThemedGridHeader>
+                                <ThemedGridHeaderCell>Descripción</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Archivo</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="center">Acciones</ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+                            <TableBody
+                                loading={false}
+                                empty={documents.length === 0}
+                                emptyMessage="No hay documentos"
+                                colSpan={3}
+                            >
                                 {documents.map((document) => (
-                                    <tr key={document.idProductoDocumento} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm">
+                                    <TableRow key={document.idProductoDocumento}>
+                                        <TableCell>
                                             <textarea
                                                 value={document.descripcion}
                                                 onChange={(e) => handleDescriptionChange(document.idProductoDocumento, e.target.value)}
@@ -266,8 +273,8 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                                                 rows={2}
                                                 style={{ minHeight: '3rem' }}
                                             />
-                                        </td>
-                                        <td className="px-4 py-3 text-sm align-top">
+                                        </TableCell>
+                                        <TableCell>
                                             <div className="flex items-center gap-2">
                                                 {(document.archivoDocumento || document.rutaArchivo) ? (
                                                     <>
@@ -304,19 +311,18 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
                                                     <span className="text-xs text-blue-500 animate-pulse">...</span>
                                                 )}
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center align-top">
-                                            <button
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label="Eliminar"
+                                                variant="delete"
                                                 onClick={() => handleDeleteDocument(document.idProductoDocumento)}
-                                                className="text-xl hover:scale-110 transition-transform text-red-600"
-                                                title="Eliminar"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </td>
-                                    </tr>
+                                            />
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </tbody>
+                            </TableBody>
                         </table>
                     </div>
                 )}

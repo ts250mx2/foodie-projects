@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { ArrowUp, ArrowDown, Trash2, Plus, Smartphone } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import QRCode from 'react-qr-code';
 import CryptoJS from 'crypto-js';
 
@@ -319,37 +321,41 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
             )}
 
             {/* Add Instruction Form */}
-            <div className="px-6 py-4 border-b bg-gray-50 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-end">
-                <div className="space-y-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Nueva Instrucción
-                        </label>
-                        <div className="flex gap-2">
-                            <textarea
-                                value={newInstruction}
-                                onChange={(e) => setNewInstruction(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md resize-none"
-                                rows={2}
-                                placeholder="Escriba la instrucción del paso..."
-                            />
-                            <Button
-                                onClick={handleAddInstruction}
-                                disabled={isSaving}
-                                className="bg-green-600 self-end whitespace-nowrap"
-                            >
-                                ➕ Agregar
-                            </Button>
-                        </div>
-                    </div>
+            <div className="px-6 py-4 border-b bg-white space-y-3">
+                <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">
+                    Nueva Instrucción
+                </label>
+                <div className="flex gap-3">
+                    <textarea
+                        value={newInstruction}
+                        onChange={(e) => setNewInstruction(e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                        rows={2}
+                        placeholder="Escriba la instrucción del paso..."
+                    />
                 </div>
-
-                <button
-                    onClick={() => setIsQRModalOpen(true)}
-                    className="bg-primary-100 text-primary-700 border border-primary-200 hover:bg-primary-200 px-4 py-2 rounded-lg font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                >
-                    📱 Modo Móvil
-                </button>
+                <div className="flex gap-3 justify-end">
+                    <Button
+                        onClick={() => setIsQRModalOpen(true)}
+                        variant="secondary"
+                        size="md"
+                        leftIcon={Smartphone}
+                        iconBox
+                    >
+                        Modo Móvil
+                    </Button>
+                    <Button
+                        onClick={handleAddInstruction}
+                        disabled={isSaving}
+                        variant="solid"
+                        size="md"
+                        leftIcon={Plus}
+                        iconBox
+                        isLoading={isSaving}
+                    >
+                        Agregar
+                    </Button>
+                </div>
             </div>
 
             {/* Instructions Grid */}
@@ -362,22 +368,25 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                     </div>
                 ) : (
                     <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-16">Paso</th>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600">Instrucción</th>
-                                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 w-48">Archivo</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 w-40">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                        <table className="min-w-full border-collapse">
+                            <ThemedGridHeader>
+                                <ThemedGridHeaderCell align="center">Paso</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Instrucción</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Archivo</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="center">Acciones</ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+                            <TableBody
+                                loading={false}
+                                empty={instructions.length === 0}
+                                emptyMessage="No hay instrucciones"
+                                colSpan={4}
+                            >
                                 {instructions.map((instruction) => (
-                                    <tr key={instruction.numeroPaso} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-center font-bold text-blue-600 align-top">
+                                    <TableRow key={instruction.numeroPaso}>
+                                        <TableCell align="center" className="font-bold text-blue-600 w-16">
                                             {instruction.numeroPaso}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
+                                        </TableCell>
+                                        <TableCell>
                                             <textarea
                                                 value={instruction.instrucciones}
                                                 onChange={(e) => handleInstructionChange(instruction.numeroPaso, e.target.value)}
@@ -386,8 +395,8 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                                                 rows={2}
                                                 style={{ minHeight: '3rem' }}
                                             />
-                                        </td>
-                                        <td className="px-4 py-3 text-sm align-top">
+                                        </TableCell>
+                                        <TableCell>
                                             <div className="flex items-center gap-2">
                                                 {(instruction.archivoDocumento || instruction.rutaArchivo) ? (
                                                     <>
@@ -424,37 +433,36 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
                                                     <span className="text-xs text-blue-500 animate-pulse">...</span>
                                                 )}
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center align-top">
-                                            <div className="flex justify-center gap-2">
+                                        </TableCell>
+                                        <TableCell align="center">
+                                            <div className="flex justify-center gap-1">
                                                 <button
                                                     onClick={() => handleMoveUp(instruction.numeroPaso)}
                                                     disabled={instruction.numeroPaso === 1}
-                                                    className="text-xl hover:scale-110 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     title="Subir"
                                                 >
-                                                    ⬆️
+                                                    <ArrowUp size={16} className="text-gray-600" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleMoveDown(instruction.numeroPaso)}
                                                     disabled={instruction.numeroPaso === instructions.length}
-                                                    className="text-xl hover:scale-110 transition-transform disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     title="Bajar"
                                                 >
-                                                    ⬇️
+                                                    <ArrowDown size={16} className="text-gray-600" />
                                                 </button>
-                                                <button
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label="Eliminar"
+                                                    variant="delete"
                                                     onClick={() => handleDeleteInstruction(instruction.numeroPaso)}
-                                                    className="text-xl hover:scale-110 transition-transform text-red-600"
-                                                    title="Eliminar"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                />
                                             </div>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </tbody>
+                            </TableBody>
                         </table>
                     </div>
                 )}

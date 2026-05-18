@@ -581,6 +581,7 @@
         "select": "Seleccionar...",
         "save": "Guardar",
         "total": "Total",
+        "new": "Nuevo",
         "close": "Cerrar"
     },
     "ExpensesCapture": {

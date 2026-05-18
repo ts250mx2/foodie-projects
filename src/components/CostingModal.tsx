@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Settings, TrendingUp, FileText, AlertCircle, Image, X, FileBarChart, Check, Ban, Plus } from 'lucide-react';
+import { Settings, TrendingUp, FileText, AlertCircle, Image, X, FileBarChart, Check, Ban, Plus, Pencil, Trash2, Camera, Circle } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
 import InstructionsTab from '@/components/InstructionsTab';
 import DocumentsTab from '@/components/DocumentsTab';
@@ -743,7 +744,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         const finalItem: KitItem = {
             IdProductoPadre: product.IdProducto,
             IdProductoHijo: selectedProduct.IdProducto,
-            Cantidad: 1,
+            Cantidad: 0,
             Codigo: selectedProduct.Codigo,
             Producto: selectedProduct.Producto,
             Costo: selectedProduct.Costo || selectedProduct.Precio || 0,
@@ -754,12 +755,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         };
 
         setKitItems(prev => [...prev, finalItem]);
-        setEditedQuantities(prev => ({ ...prev, [selectedProduct.IdProducto]: 1 }));
+        setEditedQuantities(prev => ({ ...prev, [selectedProduct.IdProducto]: 0 }));
 
         // Auto-save new item
         const kitsPayload = [...kitItems, finalItem].map(item => ({
             idProductoHijo: item.IdProductoHijo,
-            cantidad: item.IdProductoHijo === finalItem.IdProductoHijo ? 1 : (editedQuantities[item.IdProductoHijo] ?? item.Cantidad)
+            cantidad: item.IdProductoHijo === finalItem.IdProductoHijo ? 0 : (editedQuantities[item.IdProductoHijo] ?? item.Cantidad)
         }));
         saveKitsPayload(kitsPayload);
         setHasUnsavedChanges(true);
@@ -1933,24 +1934,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 >
                                                     <option value="">Selec...</option>
                                                     {(() => {
-                                                        const baseInv = getBaseUnit(unMedidaInventario);
-                                                        const children = UNIT_HIERARCHY[baseInv] || [];
                                                         const options = new Set<string>();
 
-                                                        if (unMedidaRecetario) options.add(unMedidaRecetario);
                                                         options.add(""); // Selec...
+                                                        if (unMedidaRecetario) options.add(unMedidaRecetario);
                                                         if (unMedidaInventario) options.add(unMedidaInventario);
                                                         
-                                                        // Priority: Children of Inventory Unit in hierarchy
-                                                        children.forEach(u => options.add(t(`units.${u}`)));
-
-                                                        // If it's a dish/sub-recipe and no hierarchy exists, or we want more flexibility
-                                                        if ((productType === 1 || productType === 2) && children.length === 0) {
-                                                            // For items like "Pieza", we might still want to select others if needed
-                                                            // But following the "ligada" (linked) request, we mostly want the inventory unit or its children.
-                                                            // Let's allow all if the user explicitly wants to break hierarchy for dishes (unlike raw materials)
-                                                            // However, let's keep it clean first.
-                                                        }
+                                                        // Add all units of measure regardless of inventory unit of measure
+                                                        Object.keys(UNIT_HIERARCHY).forEach(u => {
+                                                            options.add(t(`units.${u}`));
+                                                            (UNIT_HIERARCHY[u] || []).forEach(child => {
+                                                                options.add(t(`units.${child}`));
+                                                            });
+                                                        });
 
                                                         return Array.from(options).sort().map(u => (
                                                             <option key={u} value={u}>{u || 'Selec...'}</option>
@@ -2024,7 +2020,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                    <div className="grid grid-cols-2 gap-2">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">De:</label>
                                                             <select
@@ -2258,7 +2254,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 </>
                                             ) : (
                                                 <div className="text-center p-6">
-                                                    <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">📸</div>
+                                                    <Image size={64} className="mx-auto mb-4 text-gray-400 group-hover:scale-110 transition-transform" />
                                                     <p className="text-gray-500 font-medium">Click para seleccionar una foto</p>
                                                     <p className="text-gray-400 text-sm mt-2">Formatos: JPG, PNG, WEBP</p>
                                                 </div>
@@ -2268,9 +2264,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <div className="flex gap-4">
                                             <Button
                                                 onClick={startCamera}
-                                                className="bg-purple-600 px-8 py-3 text-lg"
+                                                variant="solid"
+                                                size="md"
+                                                leftIcon={Camera}
+                                                iconBox
                                             >
-                                                📷 Tomar Foto
+                                                Tomar Foto
                                             </Button>
                                         </div>
                                     </>
@@ -2283,13 +2282,19 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <div className="flex gap-4">
                                             <Button
                                                 onClick={capturePhoto}
-                                                className="bg-green-600 px-8 py-3 text-lg"
+                                                variant="solid"
+                                                size="md"
+                                                leftIcon={Circle}
+                                                iconBox
                                             >
-                                                🟢 Capturar
+                                                Capturar
                                             </Button>
                                             <Button
                                                 onClick={stopCamera}
-                                                className="bg-red-500 px-8 py-3 text-lg"
+                                                variant="secondary"
+                                                size="md"
+                                                leftIcon={X}
+                                                iconBox
                                             >
                                                 Cancelar
                                             </Button>
@@ -2313,7 +2318,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 setPhotoPreview(product.ArchivoImagen || null);
                                                 setSelectedPhotoBase64(product.ArchivoImagen || null);
                                             }}
-                                            className="bg-gray-500 px-8 py-3 text-lg"
+                                            variant="secondary"
+                                            size="md"
                                         >
                                             Cancelar
                                         </Button>
@@ -2326,8 +2332,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     {
                         activeTab === 'costing' && (
                             productType === 0 ? (
-                                <div className="max-w-2xl mx-auto w-full space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="max-w-5xl mx-auto w-full space-y-2.5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Compra</label>
                                             <select
@@ -2369,7 +2375,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
 
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="block text-sm font-medium text-gray-700">Contenido</label>
@@ -2398,7 +2404,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     </div>
 
                                                     <div className="space-y-3">
-                                                        <div className="grid grid-cols-2 gap-2">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div>
                                                                 <label className="block text-[10px] text-gray-500 font-bold mb-1 uppercase">De:</label>
                                                                 <select
@@ -2621,7 +2627,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         {productType === 2 ? (
                                             <div className="space-y-4">
                                                 {/* Fields Grid for Sub-recipes */}
-                                                <div className="grid grid-cols-4 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                     <div className="flex flex-col bg-gray-50 p-1 px-2 rounded border border-gray-100">
                                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1">Costo Total</label>
                                                         <span className="text-lg font-bold text-gray-900">
@@ -2832,19 +2838,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(categorySubtotal)}
                                                                     </span>
                                                                 </div>
-                                                                <table className="min-w-full divide-y divide-gray-200">
-                                                                    <thead className="bg-gray-50">
-                                                                        <tr>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Código</th>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
-                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Cantidad</th>
-                                                                            <th className="px-4 py-2 text-left text-xs font-bold text-gray-600 uppercase">Pres. Receta</th>
-                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Costo</th>
-                                                                            <th className="px-4 py-2 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
-                                                                            <th className="px-4 py-2 text-center text-xs font-bold text-gray-600 uppercase">Acciones</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="bg-white divide-y divide-gray-200">
+                                                                <table className="min-w-full border-collapse">
+                                                                    <ThemedGridHeader>
+                                                                        <ThemedGridHeaderCell>Código</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell>Producto</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell align="center">Cantidad</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell>Pres. Receta</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell align="right">Costo</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell align="right">Total</ThemedGridHeaderCell>
+                                                                        <ThemedGridHeaderCell align="center">Acciones</ThemedGridHeaderCell>
+                                                                    </ThemedGridHeader>
+                                                                    <TableBody
+                                                                        loading={false}
+                                                                        empty={items.length === 0}
+                                                                        emptyMessage="No hay productos en esta categoría"
+                                                                        colSpan={7}
+                                                                    >
                                                                         {items.map(item => {
                                                                             const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
 
@@ -2852,47 +2861,41 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                             const total = cantidad * costoUnitario;
 
                                                                             return (
-                                                                                <tr key={item.IdProductoHijo} className="hover:bg-gray-50">
-                                                                                    <td className="px-4 py-2 text-sm">{item.Codigo}</td>
-                                                                                    <td className="px-4 py-2 text-sm">{item.Producto}</td>
-                                                                                    <td className="px-4 py-2 text-center">
+                                                                                <TableRow key={item.IdProductoHijo}>
+                                                                                    <TableCell>{item.Codigo}</TableCell>
+                                                                                    <TableCell>{item.Producto}</TableCell>
+                                                                                    <TableCell align="center">
                                                                                         <input
                                                                                             type="number"
                                                                                             step="0.01"
-                                                                                            value={cantidad}
+                                                                                            value={cantidad === 0 ? '' : cantidad}
                                                                                             onChange={(e) => handleQuantityChange(item.IdProductoHijo, parseFloat(e.target.value) || 0)}
-                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500"
+                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                                         />
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 text-sm text-gray-500 text-center font-bold">{item.UnidadMedidaRecetario || item.PresentacionInventario || '-'}</td>
-                                                                                    <td className="px-4 py-2 text-right text-sm">
-                                                                                        ${costoUnitario.toFixed(2)}
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 text-right font-bold text-blue-600">
-                                                                                        ${total.toFixed(2)}
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 text-center">
-                                                                                        <div className="flex justify-center gap-2">
-                                                                                            <button
+                                                                                    </TableCell>
+                                                                                    <TableCell muted align="center">{item.UnidadMedidaRecetario || item.PresentacionInventario || '-'}</TableCell>
+                                                                                    <TableCell align="right">${costoUnitario.toFixed(3)}</TableCell>
+                                                                                    <TableCell align="right"><span className="font-bold text-blue-600">${total.toFixed(3)}</span></TableCell>
+                                                                                    <TableCell align="center">
+                                                                                        <div className="flex justify-center gap-1">
+                                                                                            <RowActionButton
+                                                                                                icon={Pencil}
+                                                                                                label="Editar"
+                                                                                                variant="edit"
                                                                                                 onClick={() => handleEditKitItem(item.IdProductoHijo)}
-                                                                                                className="text-blue-600 hover:text-blue-800 transition-colors"
-                                                                                                title="Editar"
-                                                                                            >
-                                                                                                ✏️
-                                                                                            </button>
-                                                                                            <button
+                                                                                            />
+                                                                                            <RowActionButton
+                                                                                                icon={Trash2}
+                                                                                                label="Eliminar"
+                                                                                                variant="delete"
                                                                                                 onClick={() => handleDeleteItem(item.IdProductoHijo)}
-                                                                                                className="text-red-600 hover:text-red-800 transition-colors"
-                                                                                                title="Eliminar"
-                                                                                            >
-                                                                                                🗑️
-                                                                                            </button>
+                                                                                            />
                                                                                         </div>
-                                                                                    </td>
-                                                                                </tr>
+                                                                                    </TableCell>
+                                                                                </TableRow>
                                                                             );
                                                                         })}
-                                                                    </tbody>
+                                                                    </TableBody>
                                                                 </table>
                                                             </div>
                                                         );

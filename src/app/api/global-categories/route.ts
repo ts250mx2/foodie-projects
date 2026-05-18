@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
         connection = await getFoodieProjectsConnection();
 
         const [rows] = await connection.query(
-            'SELECT IdCategoria, Categoria, ImagenCategoria, IdModuloRecetario FROM tblCategorias WHERE Status = 0 AND Idioma = ? ORDER BY Categoria ASC, IdModuloRecetario ASC',
-            [locale]
+            'SELECT IdCategoria, Categoria, ImagenCategoria, IdModuloRecetario FROM tblCategorias WHERE Status = 0 ORDER BY Categoria ASC, IdModuloRecetario ASC'
         );
 
         return NextResponse.json({ success: true, data: rows });

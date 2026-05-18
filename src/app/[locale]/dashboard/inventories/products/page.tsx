@@ -119,7 +119,7 @@ export default function ProductsPage() {
     const [newPresentationName, setNewPresentationName] = useState('');
     const [showRecentOnly, setShowRecentOnly] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Product, direction: 'asc' | 'desc' } | null>({ key: 'Producto', direction: 'asc' });
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
     const [isDeletingBulk, setIsDeletingBulk] = useState(false);
@@ -387,7 +387,7 @@ export default function ProductsPage() {
             return matchesSearch && matchesRecent;
         })
         .sort((a, b) => {
-            const { key, direction } = sortConfig || { key: 'FechaAct', direction: 'desc' };
+            const { key, direction } = sortConfig || { key: 'Producto', direction: 'asc' };
 
             const aValue = key === 'Categoria' ? (a.Categoria ?? '') :
                 key === 'Presentacion' ? (a.Presentacion ?? '') :

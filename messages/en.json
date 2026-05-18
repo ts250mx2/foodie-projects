@@ -551,6 +551,7 @@
         "cancel": "Cancel",
         "close": "Close",
         "total": "Total",
+        "new": "New",
         "select": "Select..."
     },
     "ExpensesCapture": {
