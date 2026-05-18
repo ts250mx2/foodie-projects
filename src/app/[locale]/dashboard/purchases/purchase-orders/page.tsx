@@ -18,7 +18,7 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
-import { FileText, Plus, Pencil, Trash2, Printer } from 'lucide-react';
+import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
