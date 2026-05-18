@@ -180,7 +180,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
             <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl transition-all">
                 {/* Header */}
                 <div
-                    className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                    className="sticky top-0 z-20 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5 shrink-0"
                     style={{ backgroundColor: colors.colorFondo1 }}
                 >
                     <div className="flex flex-col gap-0.5 min-w-0">
@@ -264,7 +264,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                         required
                                     />
                                     {showProductDropdown && (
-                                        <div className="absolute z-[510] w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                        <div className="absolute z-[510] w-full top-full mt-1 bg-white border-2 border-blue-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {products.length === 0 ? (
                                                 <div className="p-3 text-center text-gray-400 italic text-sm">Cargando productos...</div>
                                             ) : (
