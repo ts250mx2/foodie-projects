@@ -7,7 +7,18 @@ import { useParams } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageShell from '@/components/PageShell';
-import { FileText } from 'lucide-react';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import BaseModal from '@/components/BaseModal';
+import ThemedGridHeader, {
+    ThemedGridHeaderCell,
+    TableBody,
+    TableRow,
+    TableCell,
+    RowActionButton,
+} from '@/components/ThemedGridHeader';
+import { useToast } from '@/contexts/ToastContext';
+import { FileText, Plus, Pencil, Trash2, Printer } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -61,6 +72,7 @@ type PurchaseOrder = {
 export default function PurchaseOrdersPage() {
     const t = useTranslations('PurchaseOrders');
     const { colors } = useTheme();
+    const { success, error: toastError } = useToast();
     const params = useParams();
     const projectId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('project') || '{}').idProyecto : null;
 
@@ -831,15 +843,18 @@ export default function PurchaseOrdersPage() {
         <PageShell
             title={t('title')}
             icon={FileText}
+            className="!mt-3"
             actions={
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <button
                         onClick={handleOpenCategoryModal}
-                        className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-sm"
+                        className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg font-semibold text-xs transition-all shadow-sm"
                     >
-                        <span>📂</span> Pedido por Categorías
+                        📂 Pedido por Categorías
                     </button>
-                    <button
+                    <Button
+                        leftIcon={Plus}
+                        iconBox
                         onClick={() => {
                             const today = new Date().toISOString().split('T')[0];
                             setEditingOrder(null);
@@ -853,236 +868,199 @@ export default function PurchaseOrdersPage() {
                             setOrderItems([]);
                             setIsModalOpen(true);
                         }}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
+                        size="sm"
+                        variant="solid"
                     >
-                        <span className="text-base leading-none">+</span> {t('newOrder')}
-                    </button>
+                        {t('newOrder')}
+                    </Button>
                 </div>
             }
         >
 
             {/* Stats + Search Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Stats */}
-                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">📦</div>
+                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-base flex-shrink-0">📦</div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Órdenes</p>
-                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{filteredOrders.length}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Órdenes</p>
+                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{filteredOrders.length}</p>
                     </div>
                 </div>
-                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-lg flex-shrink-0">💰</div>
+                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-base flex-shrink-0">💰</div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inversión Total</p>
-                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (isNaN(Number(o.Total)) ? 0 : Number(o.Total) || 0), 0))}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Inversión Total</p>
+                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (isNaN(Number(o.Total)) ? 0 : Number(o.Total) || 0), 0))}</p>
                     </div>
                 </div>
-                <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">🏢</div>
+                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
+                    <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-base flex-shrink-0">🏢</div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Proveedores</p>
-                        <p className="text-xl font-black text-slate-900 leading-none mt-0.5">{new Set(filteredOrders.map(o => o.IdProveedor)).size}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Proveedores</p>
+                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{new Set(filteredOrders.map(o => o.IdProveedor)).size}</p>
                     </div>
                 </div>
 
                 {/* Search */}
                 <div className="relative">
-                    <input 
-                        type="text" 
-                        placeholder="Buscar proveedor, sucursal, folio..."
+                    <input
+                        type="text"
+                        placeholder="Buscar proveedor, sucursal..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-full bg-white border border-slate-200 rounded-2xl px-4 py-3 pl-10 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none text-slate-800 font-medium text-xs transition-all shadow-sm"
+                        className="w-full h-full bg-white border border-gray-200 rounded-lg px-3 py-2 pl-9 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-800 font-medium text-xs transition-all shadow-sm"
                     />
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base">🔍</span>
-                    {searchTerm && (
-                        <button onClick={() => setSearchTerm('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors text-xs">✕</button>
-                    )}
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">🔍</span>
                 </div>
             </div>
 
             {/* Period Filter */}
             <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Periodo:</span>
-                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Periodo:</span>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-transparent outline-none text-xs font-semibold text-slate-700" />
-                    <span className="text-slate-300 text-xs">→</span>
+                        className="bg-transparent outline-none text-xs font-semibold text-gray-700" />
+                    <span className="text-gray-300 text-xs">→</span>
                     <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-transparent outline-none text-xs font-semibold text-slate-700" />
+                        className="bg-transparent outline-none text-xs font-semibold text-gray-700" />
                 </div>
-                <span className="text-[10px] text-slate-400 font-semibold">{filteredOrders.length} resultado{filteredOrders.length !== 1 ? 's' : ''}</span>
+                <span className="text-[10px] text-gray-500 font-semibold">{filteredOrders.length} resultado{filteredOrders.length !== 1 ? 's' : ''}</span>
             </div>
 
             {/* Data Table */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* Table Header */}
-                <div className="grid grid-cols-[90px_1fr_110px_135px_120px_100px_100px_80px] px-4 py-3 bg-slate-50 border-b border-slate-100">
-                    {['Fecha', 'Proveedor', 'Sucursal', 'Estado', 'Entrega Prog.', 'Notas', 'Total', ''].map((h, i) => (
-                        <div key={i} className={`text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] ${i === 6 ? 'text-right' : ''}`}>
-                            {h}
-                        </div>
-                    ))}
-                </div>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+                    <table className="min-w-full border-collapse">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                            <ThemedGridHeaderCell>Fecha</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Proveedor</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Sucursal</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="center">Estado</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Entrega Prog.</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Notas</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">Total</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">Acciones</ThemedGridHeaderCell>
+                        </ThemedGridHeader>
 
-                {/* Rows */}
-                <div className="divide-y divide-slate-50">
-                    {filteredOrders.map((order) => (
-                        <div
-                            key={order.IdOrdenCompra}
-                            onClick={() => handleEdit(order)}
-                            className="grid grid-cols-[90px_1fr_110px_135px_120px_100px_100px_80px] px-4 py-3 items-center hover:bg-blue-50/20 transition-colors group cursor-pointer"
+                        <TableBody
+                            loading={isLoading}
+                            empty={!isLoading && filteredOrders.length === 0}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Sin órdenes para el periodo seleccionado'}
+                            colSpan={8}
                         >
-                            {/* Fecha */}
-                            <div className="text-xs font-semibold text-slate-700">
-                                {new Date(order.FechaOrden).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })}
-                            </div>
-
-                            {/* Proveedor */}
-                            <div className="min-w-0 pr-3">
-                                <div className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                                    {order.Proveedor}
-                                </div>
-                                <div className="text-[9px] text-slate-400 font-medium mt-0.5">
-                                    # {String(order.IdOrdenCompra).padStart(4, '0')}
-                                </div>
-                            </div>
-
-                            {/* Sucursal */}
-                            <div>
-                                <span className="inline-block bg-slate-100 text-slate-500 text-[9px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wide truncate max-w-full">
-                                    {order.Sucursal}
-                                </span>
-                            </div>
-
-                            {/* Estado — clickable toggle */}
-                            <div
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (order.Status === 0) handleStatusChange(order, 1);
-                                    else if (order.Status === 1) handleStatusChange(order, 0);
-                                }}
-                                className={`cursor-pointer transition-opacity ${order.Status === 0 || order.Status === 1 ? 'hover:opacity-70' : ''}`}
-                                title={order.Status === 0 ? 'Clic para marcar como Surtido' : order.Status === 1 ? 'Clic para regresar a En Tránsito' : ''}
-                            >
-                                {getStatusLabel(order.Status)}
-                            </div>
-
-                            {/* Entrega Programada + días en tránsito */}
-                            <div className="min-w-0">
-                                {order.FechaProgramadaEntrega ? (
-                                    <div>
-                                        <span className="text-[10px] font-semibold text-slate-600">
-                                            {new Date(order.FechaProgramadaEntrega).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
-                                        </span>
-                                        {order.Status === 0 && (() => {
-                                            const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
-                                            return days > 0 ? (
-                                                <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black">
-                                                    {days}d
+                            {filteredOrders.map((order) => (
+                                <TableRow key={order.IdOrdenCompra}>
+                                    <TableCell>
+                                        {new Date(order.FechaOrden).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-gray-900">{order.Proveedor}</span>
+                                            <span className="text-xs text-gray-400 font-semibold">OC-{String(order.IdOrdenCompra).padStart(4, '0')}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell muted>{order.Sucursal}</TableCell>
+                                    <TableCell align="center">
+                                        <div
+                                            onClick={() => {
+                                                if (order.Status === 0) handleStatusChange(order, 1);
+                                                else if (order.Status === 1) handleStatusChange(order, 0);
+                                            }}
+                                            className={`cursor-pointer transition-opacity ${order.Status === 0 || order.Status === 1 ? 'hover:opacity-70' : ''}`}
+                                        >
+                                            {getStatusLabel(order.Status)}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {order.FechaProgramadaEntrega ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">
+                                                    {new Date(order.FechaProgramadaEntrega).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
                                                 </span>
-                                            ) : null;
-                                        })()}
-                                    </div>
-                                ) : (
-                                    order.Status === 0 ? (() => {
-                                        const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
-                                        return days > 0 ? (
-                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black">
-                                                {days}d en tránsito
-                                            </span>
-                                        ) : <span className="text-[9px] text-slate-200">—</span>;
-                                    })() : <span className="text-[9px] text-slate-200">—</span>
-                                )}
-                            </div>
-
-                            {/* Notas */}
-                            <div className="min-w-0 pr-2">
-                                {order.Notas ? (
-                                    <span className="text-[10px] text-slate-400 truncate block" title={order.Notas}>{order.Notas}</span>
-                                ) : (
-                                    <span className="text-[9px] text-slate-200">—</span>
-                                )}
-                            </div>
-
-                            {/* Total */}
-                            <div className="text-right">
-                                <span className="text-xs font-bold text-slate-800">
-                                    {order.EsInterna ? <span className="text-slate-300 text-[9px]">Interna</span> : formatCurrency(order.Total)}
-                                </span>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                    onClick={() => exportOrderToPDF(order)}
-                                    className="w-7 h-7 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center text-xs"
-                                    title="PDF"
-                                >🖨️</button>
-                                <button
-                                    onClick={() => handleDelete(order)}
-                                    className="w-7 h-7 rounded-lg text-slate-300 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xs"
-                                    title="Eliminar"
-                                >🗑️</button>
-                            </div>
-                        </div>
-                    ))}
+                                                {order.Status === 0 && (() => {
+                                                    const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
+                                                    return days > 0 ? (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-semibold">
+                                                            {days}d
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            order.Status === 0 ? (() => {
+                                                const days = Math.floor((Date.now() - new Date(order.FechaOrden).getTime()) / 86400000);
+                                                return days > 0 ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-semibold">
+                                                        {days}d en tránsito
+                                                    </span>
+                                                ) : <span className="text-gray-300">—</span>;
+                                            })() : <span className="text-gray-300">—</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell muted>{order.Notas || '—'}</TableCell>
+                                    <TableCell align="right">
+                                        {order.EsInterna ? (
+                                            <span className="text-gray-400 text-sm font-medium">Interna</span>
+                                        ) : (
+                                            <span className="font-semibold text-gray-900">{formatCurrency(order.Total)}</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label="Editar"
+                                                variant="edit"
+                                                onClick={() => handleEdit(order)}
+                                            />
+                                            <RowActionButton
+                                                icon={Printer}
+                                                label="Imprimir"
+                                                variant="default"
+                                                onClick={() => exportOrderToPDF(order)}
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label="Eliminar"
+                                                variant="delete"
+                                                onClick={() => handleDelete(order)}
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </table>
                 </div>
 
-                {filteredOrders.length === 0 && (
-                    <div className="py-20 text-center">
-                        <div className="text-4xl mb-3 grayscale opacity-20">📦</div>
-                        <p className="text-xs font-semibold text-slate-300 uppercase tracking-widest">Sin resultados para el periodo seleccionado</p>
-                    </div>
-                )}
-
-                {filteredOrders.length > 0 && (
-                    <div className="flex justify-between items-center px-6 py-3 bg-slate-50 border-t border-slate-100">
-                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                            {filteredOrders.length} {filteredOrders.length === 1 ? 'orden' : 'órdenes'}
+                {!isLoading && filteredOrders.length > 0 && (
+                    <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                        <span className="text-xs text-gray-400">
+                            {filteredOrders.length} de {orders.length} órdenes
                         </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total período:</span>
-                            <span className="text-sm font-black text-slate-800">
-                                {formatCurrency(filteredOrders.reduce((s, o) => s + (isNaN(Number(o.Total)) ? 0 : Number(o.Total || 0)), 0))}
-                            </span>
-                        </div>
+                        <span className="text-xs font-semibold text-gray-600">
+                            Total período: {formatCurrency(filteredOrders.reduce((s, o) => s + (isNaN(Number(o.Total)) ? 0 : Number(o.Total || 0)), 0))}
+                        </span>
                     </div>
                 )}
             </div>
 
-            {/* Modal for new Order */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[3rem] w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl relative border border-white/20 flex flex-col">
-                        
-                        {/* Modal Header */}
-                        <div className="px-10 py-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
-                            <div>
-                                <h2 className="text-3xl font-black text-black tracking-tight leading-none mb-2">
-                                    {editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
-                                </h2>
-                                <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest">
-                                        {editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'En Tránsito'}
-                                    </span>
-                                    <span className="text-gray-300 text-xs">|</span>
-                                    <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Configuración de Suministros</p>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={closeModal}
-                                className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all shadow-sm hover:shadow-md"
-                            >
-                                <span className="text-xl leading-none">✕</span>
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
-
-                            {/* Header Fields - top row */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-6 border-b border-gray-100">
+            {/* Modal for new/edit Order */}
+            <BaseModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                title={editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
+                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'Configuración de Suministros'}
+                size="xl"
+                onConfirm={handleSubmit}
+                confirmLabel="Guardar"
+                confirmLoading={false}
+                cancelLabel={t('cancel')}
+                headerVariant="primary"
+            >
+                {/* Header Fields - top row */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-6 border-b border-gray-100">
 
                                 {/* Internal Order toggle */}
                                 <div className="md:col-span-4 flex items-center gap-3">
@@ -1183,9 +1161,9 @@ export default function PurchaseOrdersPage() {
                                 </div>
                             </div>
 
-                            {/* Items Section */}
-                            <div className="space-y-4">
-                                <div className="relative" ref={productListRef}>
+                {/* Items Section */}
+                <div className="space-y-4">
+                    <div className="relative" ref={productListRef}>
                                         <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                                             <span className="text-xl">🔍</span>
                                         </div>
@@ -1359,37 +1337,14 @@ export default function PurchaseOrdersPage() {
                                         </table>
                                     </div>
                             </div>
-                        </div>
+            </BaseModal>
 
-                        {/* Modal Footer */}
-                        <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center gap-4">
-                            <div>
-                                {editingOrder && (
-                                    <button 
-                                        onClick={() => exportOrderToPDF(editingOrder)}
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 font-semibold text-xs transition-all shadow-sm"
-                                    >
-                                        🖨️ Imprimir PDF
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex gap-3">
-                            <button 
-                                onClick={closeModal}
-                                className="px-6 py-2.5 rounded-xl border border-gray-200 font-semibold hover:bg-white hover:shadow-sm transition-all text-gray-400 text-xs"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button 
-                                onClick={handleSubmit}
-                                className="px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
-                            >
-                                {editingOrder ? 'Actualizar Orden' : 'Confirmar y Guardar'}
-                            </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {editingOrder && (
+                <button
+                    onClick={() => exportOrderToPDF(editingOrder)}
+                    className="hidden"
+                    id="export-pdf-btn"
+                />
             )}
 
             {/* Category Selection / Capture Modal */}
@@ -1607,9 +1562,7 @@ export default function PurchaseOrdersPage() {
                                 </div>
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
+            </BaseModal>
         </PageShell>
     );
 }

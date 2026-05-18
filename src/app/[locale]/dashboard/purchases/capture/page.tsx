@@ -1296,7 +1296,7 @@ export default function PurchasesCapturePage() {
 
             {/* Purchase Details Modal (Standardized Nested) */}
             {isDetailsModalOpen && selectedPurchaseForDetails && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[520] p-4 backdrop-blur-sm">
                     <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-blue-200 animate-in zoom-in-95 duration-200">
                         {/* Header */}
                         <div className="px-5 py-3 bg-gradient-to-r from-blue-50 to-blue-50/50 border-b border-blue-100 flex justify-between items-center">
@@ -1345,7 +1345,7 @@ export default function PurchasesCapturePage() {
                                         required
                                     />
                                     {showProductDropdown && (
-                                        <div className="absolute z-60 w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                        <div className="absolute z-[610] w-full top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                                             {products.filter(p => !productSearch || p.Producto.toLowerCase().includes(productSearch.toLowerCase()) || p.Codigo.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
                                                 <div
                                                     key={p.IdProducto}
@@ -1540,7 +1540,7 @@ export default function PurchasesCapturePage() {
 
             {/* Product Creation Modal (Standardized Nested) */}
             {isProductModalOpen && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4 backdrop-blur-md">
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[600] p-4 backdrop-blur-md">
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
@@ -1651,7 +1651,7 @@ export default function PurchasesCapturePage() {
         
             {/* Modal for New/Edit Provider */}
             {isNewProviderModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-[510] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 transform animate-in zoom-in-95 duration-300">
                         <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
                             <h3 className="text-xl font-black tracking-tight">{isEditingProvider ? 'EDITAR PROVEEDOR' : 'NUEVO PROVEEDOR'}</h3>
@@ -1672,7 +1672,7 @@ export default function PurchasesCapturePage() {
                                         />
                                         {/* Suggestions list */}
                                         {newProviderName.length >= 2 && providers.filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase())).length > 0 && (
-                                            <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-[100] max-h-40 overflow-auto overflow-x-hidden p-2 animate-in fade-in slide-in-from-top-2 duration-200 text-slate-800">
+                                            <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-[610] max-h-40 overflow-auto overflow-x-hidden p-2 animate-in fade-in slide-in-from-top-2 duration-200 text-slate-800">
                                                 {providers
                                                     .filter(p => p.Proveedor.toUpperCase().includes(newProviderName.toUpperCase()))
                                                     .slice(0, 5)
@@ -1736,7 +1736,7 @@ export default function PurchasesCapturePage() {
 
             {/* File Preview Modal */}
             {previewFile && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-[530] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
                     <div className="bg-white w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <h3 className="text-xl font-black text-gray-800 flex items-center gap-3">
