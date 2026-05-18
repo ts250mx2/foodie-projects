@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Settings, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Settings, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
@@ -27,6 +27,29 @@ interface Dish {
     Categoria?: string;
     ImagenCategoria?: string;
     IdModuloRecetario?: number;
+}
+
+function dishInitials(name?: string | null) {
+    if (!name) return '??';
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0] || '')
+        .join('')
+        .toUpperCase();
+}
+
+const AVATAR_COLORS = [
+    'bg-violet-100 text-violet-700',
+    'bg-blue-100 text-blue-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-rose-100 text-rose-700',
+    'bg-cyan-100 text-cyan-700',
+];
+
+function avatarColor(id: number) {
+    return AVATAR_COLORS[id % AVATAR_COLORS.length];
 }
 
 export default function DishesPage() {
@@ -285,7 +308,7 @@ export default function DishesPage() {
                                 <tr key={dish.IdProducto} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+                                            <div className={`flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center font-bold text-xs ${dish.ArchivoImagen ? 'bg-gray-100' : avatarColor(dish.IdProducto)}`}>
                                                 {dish.ArchivoImagen ? (
                                                     <img
                                                         src={dish.ArchivoImagen}
@@ -293,12 +316,11 @@ export default function DishesPage() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <span className="text-gray-400 text-xl">🍽️</span>
+                                                    <span>{dishInitials(dish.Producto)}</span>
                                                 )}
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="flex items-center gap-1">
-                                                    {dish.ImagenCategoria && <span>{dish.ImagenCategoria}</span>}
                                                     {dish.Producto}
                                                     {dish.IdModuloRecetario && dish.IdModuloRecetario > 0 ? (
                                                         <sup className="text-primary-600 font-bold ml-0.5">
@@ -306,7 +328,6 @@ export default function DishesPage() {
                                                         </sup>
                                                     ) : null}
                                                 </span>
-                                                {dish.Categoria && <span className="text-[10px] text-gray-400 font-normal">{dish.Categoria}</span>}
                                             </div>
                                         </div>
                                     </td>
@@ -332,7 +353,11 @@ export default function DishesPage() {
                                         {(dish.PorcentajeCosto || 0).toFixed(2)}%
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                                        {dish.AlertaCosto === 1 && <span title="¡Alerta de Costo!" className="text-xl cursor-help">⚠️</span>}
+                                        {dish.AlertaCosto === 1 && (
+                                            <div title="¡Alerta de Costo!" className="flex justify-center cursor-help">
+                                                <AlertTriangle size={20} className="text-amber-500" />
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center justify-end gap-2">
