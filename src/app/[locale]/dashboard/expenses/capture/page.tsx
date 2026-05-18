@@ -8,7 +8,8 @@ import Input from '@/components/Input';
 import QRCode from 'react-qr-code';
 import ExpenseImageCaptureModal from '@/components/ExpenseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { CreditCard, Camera, X, Save, Plus, DollarSign, FileText } from 'lucide-react';
+import { CreditCard, Camera, X, Save, Plus, DollarSign, FileText, Edit2, Trash2, Download } from 'lucide-react';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface Branch {
     IdSucursal: number;
@@ -985,123 +986,128 @@ export default function ExpensesCapturePage() {
                             )}
 
                             {/* Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
-                                <div className="overflow-y-auto max-h-[400px]">
-                                    <table className="min-w-full divide-y divide-gray-100">
-                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('provider')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('invoiceNumber')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('concept')}</th>
-                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('total')}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('file') || "Archivo"}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{tCommon('Action') || "Acción"}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-50">
-                                            {dailyExpenses.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400 italic">{tModal('noRecords') || "No se encontraron registros"}</td>
-                                                </tr>
-                                            ) : (
-                                                dailyExpenses.map((exp, idx) => (
-                                                    <tr key={idx} className="hover:bg-red-50/30 transition-colors group">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-bold">{exp.Proveedor || '-'}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.NumeroFactura || exp.Referencia || '-'}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{exp.ConceptoGasto}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 text-right font-black">
-                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Total || exp.Gasto))}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                                            {exp.ArchivoDocumento ? (
-                                                                <div className="flex items-center justify-center gap-2">
-                                                                     <button
-                                                                         onClick={() => {
-                                                                             setPreviewFile({
-                                                                                 content: exp.ArchivoDocumento,
-                                                                                 name: exp.NombreArchivo || 'documento',
-                                                                                 type: exp.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
-                                                                             });
-                                                                         }}
-                                                                         className="relative group w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-100 hover:border-blue-500 transition-all shadow-sm flex items-center justify-center bg-gray-50"
-                                                                         title="Ver Documento"
-                                                                     >
-                                                                         {exp.NombreArchivo?.toLowerCase().endsWith('.pdf') ? (
-                                                                             <div className="flex flex-col items-center">
-                                                                                <span className="text-[10px] font-black text-red-600">PDF</span>
-                                                                                <span className="text-[8px] text-gray-400 uppercase">Ver</span>
-                                                                             </div>
-                                                                         ) : (
-                                                                             <img
-                                                                                 src={`data:image/*;base64,${exp.ArchivoDocumento}`}
-                                                                                 className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-300"
-                                                                                 alt="Miniatura"
-                                                                             />
-                                                                         )}
-                                                                         <div className="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                             <span className="text-white text-xs">👁️</span>
-                                                                         </div>
-                                                                     </button>
-                                                                    <button onClick={() => {
-                                                                        setUploadingExpenseKey(exp.IdGasto.toString());
-                                                                        fileInputRef.current?.click();
-                                                                    }} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Cambiar Archivo">🔄</button>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setUploadingExpenseKey(exp.IdGasto.toString());
-                                                                        fileInputRef.current?.click();
-                                                                    }}
-                                                                    className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto font-bold uppercase"
-                                                                >
-                                                                    📤 {tModal('upload') || "Subir"}
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center flex items-center justify-center gap-2">
-                                                            <button 
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    setFormData({
-                                                                        idGasto: exp.IdGasto,
-                                                                        conceptId: exp.IdConceptoGasto?.toString() || '',
-                                                                        providerId: exp.IdProveedor?.toString() || '',
-                                                                        amount: (exp.Total || exp.Gasto)?.toString() || '',
-                                                                        reference: exp.Referencia || '',
-                                                                        invoiceNumber: exp.NumeroFactura || '',
-                                                                        paymentChannelId: exp.IdCanalPago?.toString() || ''
+                            <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                                <table className="w-full border-collapse">
+                                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                        <ThemedGridHeaderCell>
+                                            {tModal('provider')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            {tModal('invoiceNumber')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            {tModal('concept')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            {tModal('total')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="center">
+                                            {tModal('file') || "Archivo"}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            {tCommon('Action') || "Acciones"}
+                                        </ThemedGridHeaderCell>
+                                    </ThemedGridHeader>
+                                    <TableBody
+                                        loading={false}
+                                        empty={dailyExpenses.length === 0}
+                                        emptyMessage={tModal('noRecords') || "No se encontraron registros"}
+                                        colSpan={6}
+                                    >
+                                        {dailyExpenses.map((exp, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell>
+                                                    <span className="font-medium text-gray-900">{exp.Proveedor || '-'}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-gray-600">{exp.NumeroFactura || exp.Referencia || '-'}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-gray-600">{exp.ConceptoGasto}</span>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <span className="font-bold text-rose-600">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(exp.Total || exp.Gasto))}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    {exp.ArchivoDocumento ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPreviewFile({
+                                                                        content: exp.ArchivoDocumento,
+                                                                        name: exp.NombreArchivo || 'documento',
+                                                                        type: exp.NombreArchivo?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*'
                                                                     });
-                                                                    setConceptSearch(exp.ConceptoGasto || '');
-                                                                    setProviderSearch(exp.Proveedor || '');
-                                                                    setPaymentChannelSearch(exp.CanalPago || '');
-                                                                    setIsFormOpen(true);
                                                                 }}
-                                                                className="text-gray-300 hover:text-blue-500 transition-colors p-1"
-                                                                title="Editar Gasto"
+                                                                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                                                title="Descargar"
                                                             >
-                                                                ✏️
+                                                                <Download size={16} />
                                                             </button>
                                                             <button
-                                                                onClick={() => handleOpenDetails(exp)}
-                                                                className="text-gray-300 hover:text-green-500 transition-colors p-1"
-                                                                title="Ver/Agregar Detalles"
+                                                                onClick={() => {
+                                                                    setUploadingExpenseKey(exp.IdGasto.toString());
+                                                                    fileInputRef.current?.click();
+                                                                }}
+                                                                className="p-1 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors"
+                                                                title="Cambiar"
                                                             >
-                                                                📄
+                                                                <FileText size={16} />
                                                             </button>
-                                                            <button
-                                                                onClick={() => handleDeleteExpense(exp)}
-                                                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                                                            >
-                                                                🗑️
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                setUploadingExpenseKey(exp.IdGasto.toString());
+                                                                fileInputRef.current?.click();
+                                                            }}
+                                                            className="px-3 py-1.5 text-green-600 border border-green-300 bg-green-50 hover:bg-green-100 rounded transition-colors text-xs font-bold flex items-center gap-1 mx-auto"
+                                                        >
+                                                            <Plus size={14} /> {tModal('upload') || "Subir"}
+                                                        </button>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <RowActionButton
+                                                            icon={Edit2}
+                                                            label="Editar"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                setFormData({
+                                                                    idGasto: exp.IdGasto,
+                                                                    conceptId: exp.IdConceptoGasto?.toString() || '',
+                                                                    providerId: exp.IdProveedor?.toString() || '',
+                                                                    amount: (exp.Total || exp.Gasto)?.toString() || '',
+                                                                    reference: exp.Referencia || '',
+                                                                    invoiceNumber: exp.NumeroFactura || '',
+                                                                    paymentChannelId: exp.IdCanalPago?.toString() || ''
+                                                                });
+                                                                setConceptSearch(exp.ConceptoGasto || '');
+                                                                setProviderSearch(exp.Proveedor || '');
+                                                                setPaymentChannelSearch(exp.CanalPago || '');
+                                                                setIsFormOpen(true);
+                                                            }}
+                                                        />
+                                                        <RowActionButton
+                                                            icon={FileText}
+                                                            label="Detalles"
+                                                            onClick={() => handleOpenDetails(exp)}
+                                                        />
+                                                        <RowActionButton
+                                                            icon={Trash2}
+                                                            label="Eliminar"
+                                                            variant="delete"
+                                                            onClick={() => handleDeleteExpense(exp)}
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </table>
                             </div>
                         </div>
 

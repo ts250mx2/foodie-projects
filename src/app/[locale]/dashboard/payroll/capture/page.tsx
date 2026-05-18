@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import PageShell from '@/components/PageShell';
-import { Banknote } from 'lucide-react';
+import { Banknote, X, Save, Plus, DollarSign, Users } from 'lucide-react';
 
 interface Employee {
     IdEmpleado: number;
@@ -60,6 +60,7 @@ export default function PayrollCapturePage() {
 
     const [employeeSearch, setEmployeeSearch] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(false);
 
     // Generate years
     const currentYear = new Date().getFullYear();
@@ -242,6 +243,10 @@ export default function PayrollCapturePage() {
         } catch (error) {
             console.error('Error saving payroll:', error);
         }
+    };
+
+    const handleNewPayment = () => {
+        setIsFormOpen(true);
     };
 
     const filteredEmployees = useMemo(() => {
@@ -446,42 +451,95 @@ export default function PayrollCapturePage() {
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+                        onClick={() => setIsModalOpen(false)}
+                    />
+
+                    {/* Panel */}
+                    <div
+                        className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl animate-in zoom-in-95 fade-in duration-200"
+                        style={{ maxHeight: '90vh' }}
+                    >
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <div>
-                                <h2 className="text-2xl font-black">{tModal('title')}</h2>
-                                <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>
+                        <div
+                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            style={{ backgroundColor: colors.colorFondo1 }}
+                        >
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h2
+                                    className="text-[15px] font-semibold leading-tight"
+                                    style={{ color: colors.colorLetra }}
+                                >
+                                    {tModal('title')}
+                                </h2>
+                                <p
+                                    className="text-[12px] leading-tight"
+                                    style={{ color: colors.colorLetra, opacity: 0.8 }}
+                                >
+                                    {selectedDate.toLocaleDateString()}
+                                </p>
                             </div>
+
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                                aria-label="Cerrar"
+                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                                style={{ color: colors.colorLetra }}
                             >
-                                ✕
+                                <X size={16} strokeWidth={2} />
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Nómina Total</label>
-                                    <div className="text-xl font-black text-indigo-600">
+                        {/* Summary Cards */}
+                        <div className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Nómina Total */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <DollarSign size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Nómina Total</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-indigo-600">
                                         {formatCurrency(totalPayroll)}
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">👥 Colaboradores Pagados</label>
-                                    <div className="text-xl font-black text-gray-800">
+
+                                {/* Colaboradores Pagados */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Users size={14} className="text-gray-400" />
+                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Colaboradores Pagados</label>
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">
                                         {dailyPayroll.length}
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
+                        {/* New Payment Button */}
+                        {!isFormOpen && (
+                            <div className="shrink-0 px-6 py-3 bg-gray-50/50 border-b border-gray-100">
+                                <Button
+                                    onClick={handleNewPayment}
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={Plus}
+                                    iconBox
+                                >
+                                    {tModal('new')}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Content: Form + Table */}
+                        <div className="flex-1 overflow-y-auto">
                             {/* Form */}
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-indigo-50 p-6 rounded-xl border border-indigo-100 items-end shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                            {isFormOpen && (
+                                <form onSubmit={handleSubmit} className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                                 <div className="flex flex-col relative">
                                     <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('employee')}</label>
                                     <div className="relative">
@@ -561,14 +619,20 @@ export default function PayrollCapturePage() {
                                     />
                                 </div>
 
-                                <button type="submit" className="bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 font-bold transition-all shadow-md active:scale-95">
-                                    💾 {tModal('save')}
-                                </button>
+                                <Button
+                                    type="submit"
+                                    variant="solid"
+                                    size="sm"
+                                    leftIcon={Save}
+                                    iconBox
+                                >
+                                    {tModal('save')}
+                                </Button>
                             </form>
+                            )}
 
                             {/* Payroll Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col">
-                                <div className="overflow-y-auto max-h-[400px]">
+                            <div className="px-6 py-5">
                                     <table className="min-w-full divide-y divide-gray-100">
                                         <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
                                             <tr>
@@ -611,7 +675,6 @@ export default function PayrollCapturePage() {
                                     </table>
                                 </div>
                             </div>
-                        </div>
 
                         {/* Footer */}
                         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">

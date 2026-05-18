@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import AiAgent from '@/components/dashboard/AiAgent';
 import PageShell from '@/components/PageShell';
-import { LayoutDashboard, Maximize2, Minimize2 } from 'lucide-react';
+import { LayoutDashboard, Maximize2, Minimize2, X } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -1498,42 +1498,46 @@ export default function DashboardPage() {
             )}
             {/* Total Cost vs Budget Modal */}
             {isTotalCostModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden border border-white/20 relative animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className={`bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-300 border ${totalActualPercent <= totalBudgetPercent ? 'border-purple-200' : 'border-orange-200'}`}>
                         {/* Header */}
-                        <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                        <div className={`px-5 py-3 flex justify-between items-center border-b ${totalActualPercent <= totalBudgetPercent ? 'bg-gradient-to-r from-purple-50 to-purple-50/50 border-purple-100' : 'bg-gradient-to-r from-orange-50 to-orange-50/50 border-orange-100'}`}>
                             <div>
-                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Análisis Costo Total vs Presupuesto</h3>
-                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Sucursal: {branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || 'Global'}</p>
+                                <h2 className="text-base font-bold text-gray-900">Análisis Global</h2>
+                                <p className={`text-[11px] font-medium mt-0.5 ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>Costo Total vs Presupuesto • {branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || 'Global'}</p>
                             </div>
-                            <button onClick={() => setIsTotalCostModalOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all">✕</button>
+                            <button onClick={() => setIsTotalCostModalOpen(false)} className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${totalActualPercent <= totalBudgetPercent ? 'hover:bg-purple-100 text-purple-400 hover:text-purple-600' : 'hover:bg-orange-100 text-orange-400 hover:text-orange-600'}`}>
+                                <X size={16} strokeWidth={2.5} />
+                            </button>
                         </div>
 
-                        <div className="p-6">
-                            <div className="text-center mb-6">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Costo Real Acumulado</span>
-                                <h1 className="text-4xl font-black text-slate-800 tracking-tighter">
+                        <div className="p-4 space-y-3">
+                            <div className="text-center space-y-1.5">
+                                <p className={`text-[10px] font-bold uppercase tracking-widest ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>Costo Total Acumulado</p>
+                                <h1 className="text-2xl font-bold text-gray-900">
                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalActualValue)}
                                 </h1>
-                                <p className="text-slate-400 text-xs font-bold mt-2 italic">Nómina + Gastos Op. + Materia Prima</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div className="p-4 bg-slate-50 rounded-[20px] border border-slate-100 text-center">
-                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Suma % Real</span>
-                                    <h4 className="text-2xl font-black text-slate-800">{totalActualPercent.toFixed(2)}%</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className={`p-3 rounded-lg border text-center ${totalActualPercent <= totalBudgetPercent ? 'bg-purple-50 border-purple-100' : 'bg-orange-50 border-orange-100'}`}>
+                                    <p className={`text-[8px] font-bold uppercase tracking-widest mb-0.5 ${totalActualPercent <= totalBudgetPercent ? 'text-purple-600' : 'text-orange-600'}`}>Costo %</p>
+                                    <p className={`text-lg font-bold ${totalActualPercent <= totalBudgetPercent ? 'text-purple-700' : 'text-orange-700'}`}>{totalActualPercent.toFixed(1)}%</p>
                                 </div>
-                                <div className="p-4 bg-indigo-50/50 rounded-[20px] border border-indigo-100 text-center">
-                                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Suma % Presupuesto</span>
-                                    <h4 className="text-2xl font-black text-indigo-700">{totalBudgetPercent.toFixed(2)}%</h4>
+                                <div className={`p-3 rounded-lg border text-center ${totalActualPercent <= totalBudgetPercent ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                                    <p className={`text-[8px] font-bold uppercase tracking-widest mb-0.5 ${totalActualPercent <= totalBudgetPercent ? 'text-emerald-600' : 'text-amber-600'}`}>Meta %</p>
+                                    <p className={`text-lg font-bold ${totalActualPercent <= totalBudgetPercent ? 'text-emerald-700' : 'text-amber-700'}`}>{totalBudgetPercent.toFixed(1)}%</p>
                                 </div>
                             </div>
 
-                            <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 border ${diffPercent > 0 ? 'bg-rose-50 border-rose-100 text-rose-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
-                                <span className="text-xl">{diffPercent > 0 ? '⚠️' : '✅'}</span>
-                                <div className="flex-1">
-                                    <p className="text-sm font-black uppercase tracking-tight">
-                                        {diffPercent > 0 ? `Advertencia: Exceso de presupuesto del ${diffPercent.toFixed(2)}%` : `Éxito: Ahorro de presupuesto del ${Math.abs(diffPercent).toFixed(2)}%`}
+                            <div className={`p-3 rounded-lg border-l-4 flex items-start gap-2 ${totalActualPercent <= totalBudgetPercent ? 'bg-emerald-50 border-emerald-400' : 'bg-orange-50 border-orange-400'}`}>
+                                <span className="text-lg flex-shrink-0">{totalActualPercent <= totalBudgetPercent ? '✓' : '⚠'}</span>
+                                <div>
+                                    <p className={`text-[10px] font-bold uppercase ${totalActualPercent <= totalBudgetPercent ? 'text-emerald-700' : 'text-orange-700'}`}>
+                                        {totalActualPercent <= totalBudgetPercent ? 'ÓPTIMO' : 'EXCEDIDO'}
+                                    </p>
+                                    <p className={`text-[9px] font-medium ${totalActualPercent <= totalBudgetPercent ? 'text-emerald-600' : 'text-orange-600'}`}>
+                                        {Math.abs(diffPercent).toFixed(1)}% {totalActualPercent <= totalBudgetPercent ? 'bajo' : 'sobre'} meta
                                     </p>
                                 </div>
                             </div>
@@ -1618,17 +1622,16 @@ export default function DashboardPage() {
                                 </div>
                             </div>
 
-                            {/* Utility Section */}
-                            <div className={`rounded-[24px] p-6 text-center border-2 border-dashed ${utilityPercent < 0 ? 'bg-rose-50 border-rose-100' : utilityPercent < 10 ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                                <span className={`text-[9px] font-black uppercase tracking-[0.3em] block mb-2 ${utilityPercent < 0 ? 'text-rose-400' : utilityPercent < 10 ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                    {utilityPercent < 0 ? '⚠️ Alerta crítica de utilidad' : utilityPercent < 10 ? '⚡ Advertencia de margen bajo' : '✅ Utilidad Teórica Saludable'}
-                                </span>
-                                <div className={`inline-flex flex-col items-center justify-center text-white px-6 py-3 rounded-2xl shadow-lg ${utilityPercent < 0 ? 'bg-rose-500 shadow-rose-500/20' : utilityPercent < 10 ? 'bg-amber-500 shadow-amber-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}>
-                                    <h2 className="text-3xl font-black leading-tight">
-                                        {utilityPercent.toFixed(2)}%
-                                    </h2>
-                                    <p className="text-sm font-bold opacity-90 mt-0.5">
-                                        {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(utilityAmount)}
+                            <div className={`p-3 rounded-lg border-l-4 ${utilityPercent < 0 ? 'bg-rose-50 border-rose-400' : utilityPercent < 10 ? 'bg-amber-50 border-amber-400' : 'bg-emerald-50 border-emerald-400'}`}>
+                                <p className={`text-[10px] font-bold uppercase mb-1 ${utilityPercent < 0 ? 'text-rose-700' : utilityPercent < 10 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                    Utilidad Teórica
+                                </p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className={`text-2xl font-bold ${utilityPercent < 0 ? 'text-rose-700' : utilityPercent < 10 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        {utilityPercent.toFixed(1)}%
+                                    </p>
+                                    <p className={`text-[11px] font-medium ${utilityPercent < 0 ? 'text-rose-600' : utilityPercent < 10 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                        ({new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', notation: 'compact' }).format(utilityAmount)})
                                     </p>
                                 </div>
                             </div>
