@@ -18,7 +18,7 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
-import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen } from 'lucide-react';
+import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -874,7 +874,7 @@ export default function PurchaseOrdersPage() {
                         size="sm"
                         variant="secondary"
                     >
-                        📂 Categorías
+                        Categorías
                     </Button>
 
                     {/* New Order Button */}
@@ -904,26 +904,32 @@ export default function PurchaseOrdersPage() {
         >
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-base flex-shrink-0">📦</div>
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Órdenes</p>
-                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{filteredOrders.length}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Package size={14} className="text-gray-400" />
+                        <div>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</p>
+                            <p className="text-sm font-bold text-gray-900">{filteredOrders.length}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center text-base flex-shrink-0">💰</div>
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Inversión Total</p>
-                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (isNaN(Number(o.Total)) ? 0 : Number(o.Total) || 0), 0))}</p>
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <DollarSign size={14} className="text-gray-400" />
+                        <div>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Inversión Total</p>
+                            <p className="text-sm font-bold text-gray-900">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (isNaN(Number(o.Total)) ? 0 : Number(o.Total) || 0), 0))}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
-                    <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-base flex-shrink-0">🏢</div>
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Proveedores</p>
-                        <p className="text-lg font-black text-gray-900 leading-none mt-0.5">{new Set(filteredOrders.map(o => o.IdProveedor)).size}</p>
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Users size={14} className="text-gray-400" />
+                        <div>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Proveedores</p>
+                            <p className="text-sm font-bold text-gray-900">{new Set(filteredOrders.map(o => o.IdProveedor)).size}</p>
+                        </div>
                     </div>
                 </div>
             </div>

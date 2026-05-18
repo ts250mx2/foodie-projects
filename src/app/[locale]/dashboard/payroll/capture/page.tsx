@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import PageShell from '@/components/PageShell';
-import { Banknote, X, Save, Plus, DollarSign, Users } from 'lucide-react';
+import { Banknote, X, Save, Plus, DollarSign, Users, Trash2, Gift, CreditCard, AlertTriangle, User } from 'lucide-react';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell } from '@/components/ThemedGridHeader';
 
 interface Employee {
     IdEmpleado: number;
@@ -438,23 +439,24 @@ export default function PayrollCapturePage() {
                     <div className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl" style={{ maxHeight: '90vh' }}>
                         {/* Header */}
                         <div
-                            className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
+                            className="sticky top-0 z-20 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5 shrink-0"
                             style={{ backgroundColor: colors.colorFondo1 }}
                         >
-                            <div className="flex flex-col min-w-0">
-                                <h2 className="text-[15px] font-semibold" style={{ color: colors.colorLetra }}>
-                                    💰 {tModal('title')}
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                                <h2 className="text-[15px] font-semibold leading-tight flex items-center gap-2" style={{ color: colors.colorLetra }}>
+                                    <Banknote size={16} /> {tModal('title')}
                                 </h2>
-                                <p className="text-[12px] opacity-80 mt-1" style={{ color: colors.colorLetra }}>
+                                <p className="text-[12px] leading-tight" style={{ color: colors.colorLetra, opacity: 0.8 }}>
                                     {selectedDate.toLocaleDateString()}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="flex-shrink-0 rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                                aria-label="Cerrar"
+                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
                                 style={{ color: colors.colorLetra }}
                             >
-                                <X size={16} />
+                                <X size={16} strokeWidth={2} />
                             </button>
                         </div>
 
@@ -508,7 +510,7 @@ export default function PayrollCapturePage() {
                                         <div className="relative">
                                             <input
                                                 type="text"
-                                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-semibold text-gray-700 transition-all"
+                                                className="w-full p-2 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold text-gray-700 transition-all"
                                                 placeholder="Seleccionar..."
                                                 value={employeeSearch}
                                                 onChange={(e) => {
@@ -521,7 +523,7 @@ export default function PayrollCapturePage() {
                                                 required
                                             />
                                             {isDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                                                <div className="absolute z-[510] w-full mt-1 bg-white border-2 border-blue-300 rounded-lg shadow-xl max-h-40 overflow-y-auto">
                                                     {filteredEmployees.length === 0 ? (
                                                         <div className="px-3 py-2 text-sm text-gray-400 italic">No hay colaboradores</div>
                                                     ) : (
@@ -537,8 +539,8 @@ export default function PayrollCapturePage() {
                                                             >
                                                                 <div className="font-semibold text-sm text-gray-800">{e.Empleado}</div>
                                                                 {e.Puesto && (
-                                                                    <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">
-                                                                        {e.ImagenTipoPuesto || '👤'} {e.Puesto}
+                                                                    <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold flex items-center gap-1">
+                                                                        {e.ImagenTipoPuesto || <User size={12} />} {e.Puesto}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -552,14 +554,14 @@ export default function PayrollCapturePage() {
                                     <div className="flex flex-col">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tipo</label>
                                         <select
-                                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-semibold text-gray-700 transition-all"
+                                            className="w-full p-2 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-semibold text-gray-700 transition-all"
                                             value={formData.paymentType}
                                             onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
                                         >
-                                            <option value="PAGO NOMINA">💵 Pago</option>
-                                            <option value="BONO">🎁 Bono</option>
-                                            <option value="PRESTAMO">💳 Préstamo</option>
-                                            <option value="PENALIZACION">⚠️ Penalización</option>
+                                            <option value="PAGO NOMINA">Pago</option>
+                                            <option value="BONO">Bono</option>
+                                            <option value="PRESTAMO">Préstamo</option>
+                                            <option value="PENALIZACION">Penalización</option>
                                         </select>
                                     </div>
 
@@ -567,7 +569,7 @@ export default function PayrollCapturePage() {
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{tModal('amount')}</label>
                                         <input
                                             type="text"
-                                            className={`w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-black transition-all ${formData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-gray-900'}`}
+                                            className={`w-full p-2 bg-white border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-black transition-all ${formData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-gray-900'}`}
                                             value={formData.amount}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -595,43 +597,54 @@ export default function PayrollCapturePage() {
                             )}
 
                             {/* Payroll Table */}
-                            <div className="px-5 py-4">
-                                <table className="min-w-full divide-y divide-gray-100">
-                                    <thead className="bg-gray-50 sticky top-0 z-10">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-24">Tipo</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest w-28">{tModal('amount')}</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-16">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-50">
-                                        {dailyPayroll.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400 italic">Sin registros para este día</td>
-                                            </tr>
-                                        ) : (
-                                            dailyPayroll.map((pay, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-4 py-3 text-sm font-semibold text-gray-700">{pay.Empleado}</td>
-                                                    <td className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">{pay.TipoPago || 'Pago'}</td>
-                                                    <td className={`px-4 py-3 text-sm text-right font-black ${pay.Pago < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                            <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm m-5">
+                                <table className="w-full border-collapse">
+                                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                        <ThemedGridHeaderCell>
+                                            {tModal('employee')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            Tipo
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            {tModal('amount')}
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="center">
+                                            Acción
+                                        </ThemedGridHeaderCell>
+                                    </ThemedGridHeader>
+                                    <TableBody
+                                        loading={false}
+                                        empty={dailyPayroll.length === 0}
+                                        emptyMessage="Sin registros para este día"
+                                        colSpan={4}
+                                    >
+                                        {dailyPayroll.map((pay, idx) => (
+                                            <TableRow key={idx}>
+                                                <TableCell>
+                                                    <span className="font-medium text-gray-900">{pay.Empleado}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-sm text-gray-600">{pay.TipoPago || 'Pago'}</span>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <span className={`font-bold ${pay.Pago < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
                                                         {formatCurrency(pay.Pago)}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete(pay.IdUsuario)}
-                                                            className="text-gray-300 hover:text-red-500 transition-colors text-lg"
-                                                            title="Eliminar"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(pay.IdUsuario)}
+                                                        className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
                                 </table>
                             </div>
                         </div>
