@@ -7,7 +7,9 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CostingModal, { Product } from '@/components/CostingModal';
 import PageShell from '@/components/PageShell';
-import { Zap, Printer } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
+import { Zap, Printer, BookOpen, UtensilsCrossed, Pencil, X, PackageSearch } from 'lucide-react';
 
 interface SubRecipe {
     IdProducto: number;
@@ -136,15 +138,23 @@ export default function MaterialExplosionPage() {
             icon={Zap}
             actions={
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex gap-1 bg-white/20 p-1 rounded-xl">
-                        <button onClick={() => { setActiveType('2'); setQuantities({}); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeType === '2' ? 'bg-white text-green-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
-                            🥣 {t('subRecipes')}
+                    <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg shrink-0">
+                        <button
+                            onClick={() => { setActiveType('2'); setQuantities({}); }}
+                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${activeType === '2' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <BookOpen size={14} />
+                            {t('subRecipes')}
                         </button>
-                        <button onClick={() => { setActiveType('1'); setQuantities({}); }} className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeType === '1' ? 'bg-white text-blue-600 shadow-sm' : 'text-white/70 hover:text-white'}`}>
-                            🍽️ {t('dishes')}
+                        <button
+                            onClick={() => { setActiveType('1'); setQuantities({}); }}
+                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${activeType === '1' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <UtensilsCrossed size={14} />
+                            {t('dishes')}
                         </button>
                     </div>
-                    <input type="text" placeholder={t('searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-1.5 text-xs rounded-lg border border-white/30 bg-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/50 w-48" />
+                    <input type="text" placeholder={t('searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-48" />
                     <Button onClick={handleExplode} isLoading={isExploding} disabled={isLoading || Object.values(quantities).every(q => !parseFloat(q))} variant="secondary" size="sm" leftIcon={Zap} iconBox>
                         {t('explode')}
                     </Button>
@@ -153,9 +163,8 @@ export default function MaterialExplosionPage() {
         >
 
             {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{tCommon('loading')}</p>
+                <div className="py-20">
+                    <LoadingSpinner message={tCommon('loading')} size="md" />
                 </div>
             ) : filteredSubRecipes.length === 0 ? (
                 <div className="bg-white p-20 rounded-2xl border-2 border-dashed border-gray-200 text-center">
@@ -174,15 +183,15 @@ export default function MaterialExplosionPage() {
                                 activeType === '2' ? 'bg-green-50/50' : 'bg-blue-50/50'
                             }`}>
                                 {recipe.ArchivoImagen ? (
-                                    <img 
-                                        src={recipe.ArchivoImagen} 
-                                        alt={recipe.Producto} 
+                                    <img
+                                        src={recipe.ArchivoImagen}
+                                        alt={recipe.Producto}
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <span className="text-4xl filter grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
-                                        {activeType === '2' ? '🥣' : '🍽️'}
-                                    </span>
+                                    <div className={`text-gray-300 group-hover:text-gray-400 transition-all ${activeType === '2' ? 'text-green-300 group-hover:text-green-400' : 'text-blue-300 group-hover:text-blue-400'}`}>
+                                        {activeType === '2' ? <BookOpen size={48} strokeWidth={1.5} /> : <UtensilsCrossed size={48} strokeWidth={1.5} />}
+                                    </div>
                                 )}
                             </div>
                             <div className="p-4 space-y-3">
@@ -191,17 +200,15 @@ export default function MaterialExplosionPage() {
                                         <h3 className="font-black text-gray-800 uppercase text-sm leading-tight truncate">{recipe.Producto}</h3>
                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">{recipe.Codigo}</p>
                                     </div>
-                                    <button
+                                    <RowActionButton
+                                        icon={Pencil}
+                                        label="Editar Costeo"
+                                        variant="edit"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            // Cast to Product (SubRecipe matches most fields)
                                             setEditingProduct(recipe as any);
                                         }}
-                                        className="text-gray-400 hover:text-primary-500 transition-colors p-1"
-                                        title="Editar Costeo"
-                                    >
-                                        ✏️
-                                    </button>
+                                    />
                                 </div>
                                 
                                 <div className="flex items-center justify-between gap-2">
@@ -236,95 +243,88 @@ export default function MaterialExplosionPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-white/20">
                         {/* Header */}
-                        <div 
-                            className="px-8 py-6 text-white flex justify-between items-center"
+                        <div
+                            className="px-6 py-4 text-white flex justify-between items-center sticky top-0 z-10"
                             style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
                         >
-                            <div>
-                                <h2 className="text-2xl font-black uppercase tracking-tight">{t('results')}</h2>
-                                <div className="text-lg font-bold text-white mt-1 line-clamp-2" title={
-                                    subRecipes
-                                        .filter(sr => parseFloat(quantities[sr.IdProducto]) > 0)
-                                        .map(sr => `${sr.Producto} (${quantities[sr.IdProducto]})`)
-                                        .join(', ')
-                                }>
-                                    🚀 {subRecipes
+                            <div className="flex-1 min-w-0">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <PackageSearch size={20} />
+                                    {t('results')}
+                                </h2>
+                                <p className="text-xs opacity-90 mt-1 line-clamp-2">
+                                    {subRecipes
                                         .filter(sr => parseFloat(quantities[sr.IdProducto]) > 0)
                                         .map(sr => `${sr.Producto} (${quantities[sr.IdProducto]})`)
                                         .join(', ')}
-                                </div>
-                                <p className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1 italic">
-                                    {explosionResults.length} Insumos Requeridos
                                 </p>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setExplosionResults(null)}
-                                className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors text-xl"
+                                className="shrink-0 p-1.5 rounded-lg hover:bg-white/20 transition-colors ml-4"
+                                title={t('close')}
                             >
-                                ✕
+                                <X size={20} strokeWidth={2} />
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-auto p-8">
-                            <div className="rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                                <table className="w-full text-left">
-                                    <thead className="bg-gray-50 border-b border-gray-100">
-                                        <tr>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('product')}</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{t('quantity')}</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">{t('unit')}</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">{t('cost')}</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">{t('total')}</th>
-                                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {explosionResults.map((item) => (
-                                            <tr key={item.productId} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="font-bold text-gray-800">{item.product}</div>
-                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{item.code}</div>
-                                                </td>
-                                                <td className="px-6 py-4 text-center font-black text-primary-600">{item.quantity.toFixed(3)}</td>
-                                                <td className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest italic">{item.unit}</td>
-                                                <td className="px-6 py-4 text-right text-sm text-gray-500">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price)}
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-black text-gray-900">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total)}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <button
-                                                        onClick={() => setEditingProduct(item.productData)}
-                                                        className="text-gray-400 hover:text-primary-500 transition-colors p-1"
-                                                        title="Editar Insumo"
-                                                    >
-                                                        ✏️
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div className="flex-1 overflow-auto p-6">
+                            <table className="w-full min-w-full divide-y divide-gray-200 border-collapse">
+                                <ThemedGridHeader>
+                                    <ThemedGridHeaderCell>{t('product')}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="center">{t('quantity')}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="center">{t('unit')}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="right">{t('cost')}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="right">{t('total')}</ThemedGridHeaderCell>
+                                    <ThemedGridHeaderCell align="center">Acciones</ThemedGridHeaderCell>
+                                </ThemedGridHeader>
+                                <TableBody empty={explosionResults.length === 0} emptyMessage="Sin resultados" colSpan={6}>
+                                    {explosionResults.map((item) => (
+                                        <TableRow key={item.productId}>
+                                            <TableCell>
+                                                <div className="font-bold text-gray-900">{item.product}</div>
+                                                <div className="text-xs text-gray-500 font-medium mt-0.5">{item.code}</div>
+                                            </TableCell>
+                                            <TableCell align="center" className="font-bold text-blue-600">
+                                                {item.quantity.toFixed(3)}
+                                            </TableCell>
+                                            <TableCell align="center" muted className="text-xs uppercase font-medium">
+                                                {item.unit}
+                                            </TableCell>
+                                            <TableCell align="right" muted>
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price)}
+                                            </TableCell>
+                                            <TableCell align="right" className="font-bold text-gray-900">
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total)}
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <RowActionButton
+                                                    icon={Pencil}
+                                                    label="Editar Insumo"
+                                                    variant="edit"
+                                                    onClick={() => setEditingProduct(item.productData)}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </table>
                         </div>
 
                         {/* Footer with Summary */}
-                        <div className="px-8 py-6 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Estimado</p>
-                                    <p className="text-3xl font-black text-primary-600">
-                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}
-                                    </p>
-                                </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center gap-4">
+                            <div className="text-right">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Estimado</p>
+                                <p className="text-2xl font-bold text-blue-600 mt-1">
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(grandTotal)}
+                                </p>
                             </div>
-                            <div className="flex gap-3">
-                                <Button onClick={() => window.print()} variant="secondary" size="sm" leftIcon={Printer} iconBox>
+                            <div className="flex gap-2">
+                                <Button onClick={() => window.print()} variant="secondary" size="sm" leftIcon={Printer}>
                                     PDF
                                 </Button>
-                                <Button onClick={() => setExplosionResults(null)} className="px-12 shadow-lg shadow-primary-200">
+                                <Button onClick={() => setExplosionResults(null)} size="sm">
                                     {t('close')}
                                 </Button>
                             </div>
