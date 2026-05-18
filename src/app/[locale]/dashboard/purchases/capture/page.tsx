@@ -6,7 +6,7 @@ import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell,
 import { useTheme } from '@/contexts/ThemeContext';
 import PurchaseImageCaptureModal from '@/components/PurchaseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { ShoppingBag, Camera, X, Save, Plus, FileText, Search, ShoppingCart, Edit2, Trash2, Download, Package } from 'lucide-react';
+import { ShoppingBag, Camera, X, Save, Plus, FileText, Search, ShoppingCart, Edit2, Trash2, Download, Package, Check, Eye, Sparkles } from 'lucide-react';
 import Button from '@/components/Button';
 
 
@@ -1296,32 +1296,20 @@ export default function PurchasesCapturePage() {
 
             {/* Purchase Details Modal (Standardized Nested) */}
             {isDetailsModalOpen && selectedPurchaseForDetails && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-blue-200 animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-0">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            Productos
-                                        </span>
-                                        <span className="bg-green-400 text-green-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                            {selectedPurchaseForDetails.NumeroFactura} — {selectedPurchaseForDetails.Proveedor}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-3xl font-black mb-0 leading-tight">
-                                        {tDetails('title')}
-                                    </h1>
-                                </div>
-                                <button
-                                    onClick={() => setIsDetailsModalOpen(false)}
-                                    className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
-                                >
-                                    ✕
-                                </button>
+                        <div className="px-5 py-3 bg-gradient-to-r from-blue-50 to-blue-50/50 border-b border-blue-100 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-base font-bold text-gray-900">Productos de Compra</h2>
+                                <p className="text-[11px] font-medium mt-0.5 text-blue-600">{selectedPurchaseForDetails.NumeroFactura} • {selectedPurchaseForDetails.Proveedor}</p>
                             </div>
-                            <div className="h-4"></div>
+                            <button
+                                onClick={() => setIsDetailsModalOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-all"
+                            >
+                                <X size={16} strokeWidth={2.5} />
+                            </button>
                         </div>
 
                         {/* Content */}
@@ -1383,9 +1371,9 @@ export default function PurchasesCapturePage() {
                                                     <button
                                                         type="button"
                                                         onClick={openProductModal}
-                                                        className="w-full bg-green-100 text-green-700 p-2 rounded-lg font-bold text-xs hover:bg-green-200 transition-colors"
+                                                        className="w-full bg-green-100 text-green-700 p-2 rounded-lg font-bold text-xs hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
                                                     >
-                                                        ✨ {tDetails('createProductButton')}
+                                                        <Sparkles size={14} /> {tDetails('createProductButton')}
                                                     </button>
                                                 </div>
                                             )}
@@ -1427,27 +1415,40 @@ export default function PurchasesCapturePage() {
                                     </div>
                                 </div>
 
-                                <button type="submit" className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 font-bold transition-all shadow-md active:scale-95 md:col-span-1 py-2.5">
-                                    ➕
+                                <button type="submit" className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 font-bold transition-all shadow-md active:scale-95 md:col-span-1 py-2.5 flex items-center justify-center" title="Agregar">
+                                    <Plus size={18} />
                                 </button>
                             </form>
 
                             {/* Details Table */}
-                            <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col flex-1 min-h-[300px]">
-                                <div className="overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-gray-200">
-                                    <table className="min-w-full divide-y divide-gray-100">
-                                        <ThemedGridHeader>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Cant.</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest">Producto</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Costo</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-right">Total</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Archivo</ThemedGridHeaderCell>
-                                            <ThemedGridHeaderCell className="text-[10px] tracking-widest text-center">Acciones</ThemedGridHeaderCell>
-                                        </ThemedGridHeader>
-                                    <tbody className="bg-white divide-y divide-gray-50">
+                            <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                                <table className="w-full border-collapse">
+                                    <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                        <ThemedGridHeaderCell>
+                                            Cantidad
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell>
+                                            Producto
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            Costo
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            Total
+                                        </ThemedGridHeaderCell>
+                                        <ThemedGridHeaderCell align="right">
+                                            Acciones
+                                        </ThemedGridHeaderCell>
+                                    </ThemedGridHeader>
+                                    <TableBody
+                                        loading={false}
+                                        empty={purchaseDetails.length === 0}
+                                        emptyMessage="No hay productos"
+                                        colSpan={5}
+                                    >
                                         {purchaseDetails.map((detail) => (
-                                            <tr key={detail.IdDetalleCompra} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-3 text-sm font-bold text-gray-700">
+                                            <TableRow key={detail.IdDetalleCompra}>
+                                                <TableCell>
                                                     {editingDetailId === detail.IdDetalleCompra ? (
                                                         <input
                                                             type="number"
@@ -1457,56 +1458,81 @@ export default function PurchasesCapturePage() {
                                                             onChange={(e) => setEditQuantity(e.target.value)}
                                                         />
                                                     ) : (
-                                                        <>
-                                                            {detail.Cantidad} <span className="text-[10px] font-normal text-gray-400">{detail.UnidadMedidaCompra}</span>
-                                                        </>
+                                                        <span className="font-medium text-gray-900">{detail.Cantidad} <span className="text-[10px] font-normal text-gray-500">{detail.UnidadMedidaCompra}</span></span>
                                                     )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="text-sm font-bold text-gray-800">{detail.Producto}</div>
-                                                    <div className="text-[10px] text-gray-400 font-mono">#{detail.Codigo}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-sm">
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="font-medium text-gray-900">{detail.Producto}</div>
+                                                    <div className="text-[10px] text-gray-500 font-mono">#{detail.Codigo}</div>
+                                                </TableCell>
+                                                <TableCell align="right">
                                                     {editingDetailId === detail.IdDetalleCompra ? (
                                                         <input
                                                             type="text"
-                                                            className="w-24 p-1 border rounded text-right text-sm font-bold text-green-600"
+                                                            className="w-24 p-1 border rounded text-right text-sm font-bold text-blue-600"
                                                             value={editCost}
                                                             onChange={(e) => setEditCost(e.target.value.replace(/[^0-9.]/g, ''))}
                                                         />
                                                     ) : (
-                                                        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Costo)
+                                                        <span className="text-gray-900 font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Costo)}</span>
                                                     )}
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-sm font-black text-green-600">
-                                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <span className="font-bold text-blue-600">
+                                                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Total)}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         {editingDetailId === detail.IdDetalleCompra ? (
                                                             <>
-                                                                <button onClick={() => handleEditDetailSave(detail.IdDetalleCompra)} className="text-green-600 hover:scale-125 transition-all">✅</button>
-                                                                <button onClick={handleEditDetailCancel} className="text-red-500 hover:scale-125 transition-all">✕</button>
+                                                                <button onClick={() => handleEditDetailSave(detail.IdDetalleCompra)} className="p-1 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded transition-colors" title="Guardar">
+                                                                    <Check size={16} />
+                                                                </button>
+                                                                <button onClick={handleEditDetailCancel} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors" title="Cancelar">
+                                                                    <X size={16} />
+                                                                </button>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <button onClick={() => handleEditDetailStart(detail)} className="text-gray-300 hover:text-blue-500 transition-colors">✏️</button>
-                                                                <button onClick={() => handleDeleteDetail(detail.IdDetalleCompra)} className="text-gray-300 hover:text-red-500 transition-colors">🗑️</button>
+                                                                <RowActionButton
+                                                                    icon={Edit2}
+                                                                    label="Editar"
+                                                                    onClick={() => handleEditDetailStart(detail)}
+                                                                />
+                                                                <RowActionButton
+                                                                    icon={Trash2}
+                                                                    label="Eliminar"
+                                                                    variant="delete"
+                                                                    onClick={() => handleDeleteDetail(detail.IdDetalleCompra)}
+                                                                />
                                                             </>
                                                         )}
                                                     </div>
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
+                                    </TableBody>
                                 </table>
                             </div>
                         </div>
-                        </div>
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
+                        <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2.5">
+                            <Button
+                                onClick={() => setIsDetailsModalOpen(false)}
+                                variant="secondary"
+                                size="md"
+                                leftIcon={X}
+                            >
                                 {tDetails('close')}
-                            </button>
+                            </Button>
+                            <Button
+                                variant="solid"
+                                size="md"
+                                leftIcon={Save}
+                                iconBox
+                            >
+                                {tCommon('save')}
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -1535,7 +1561,7 @@ export default function PurchasesCapturePage() {
                                     onClick={() => setIsProductModalOpen(false)}
                                     className="text-white hover:bg-white/20 rounded-full p-2 flex-shrink-0"
                                 >
-                                    ✕
+                                    <X size={20} strokeWidth={2} />
                                 </button>
                             </div>
                             <div className="h-4"></div>
@@ -1597,8 +1623,12 @@ export default function PurchasesCapturePage() {
                                 </div>
                             </div>
                             <div className="flex gap-2 pt-4">
-                                <button type="submit" className="flex-1 bg-green-600 text-white p-3 rounded-xl font-black shadow-lg hover:bg-green-700 active:scale-95 transition-all">Crear Producto</button>
-                                <button type="button" onClick={() => setIsProductModalOpen(false)} className="px-6 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all">Cancelar</button>
+                                <Button type="submit" variant="solid" size="md" leftIcon={Save} iconBox className="flex-1">
+                                    Crear Producto
+                                </Button>
+                                <Button type="button" onClick={() => setIsProductModalOpen(false)} variant="secondary" size="md" leftIcon={X}>
+                                    Cancelar
+                                </Button>
                             </div>
                         </form>
                     </div>
@@ -1710,7 +1740,9 @@ export default function PurchasesCapturePage() {
                     <div className="bg-white w-full max-w-5xl h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <h3 className="text-xl font-black text-gray-800 flex items-center gap-3">
-                                <span className="bg-blue-600 text-white p-2 rounded-xl text-sm">👁️</span>
+                                <span className="bg-blue-600 text-white p-2 rounded-xl flex items-center justify-center">
+                                    <Eye size={16} />
+                                </span>
                                 {previewFile.name}
                             </h3>
                             <div className="flex items-center gap-2">
@@ -1725,7 +1757,7 @@ export default function PurchasesCapturePage() {
                                     onClick={() => setPreviewFile(null)}
                                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
                                 >
-                                    ✕
+                                    <X size={20} strokeWidth={2} />
                                 </button>
                             </div>
                         </div>
