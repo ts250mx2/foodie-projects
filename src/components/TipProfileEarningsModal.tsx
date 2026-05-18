@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 
@@ -212,7 +213,9 @@ export default function TipProfileEarningsModal({
                         <tbody className="bg-white divide-y divide-gray-200">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">Cargando...</td>
+                                    <td colSpan={4} className="px-6 py-4">
+                                        <LoadingSpinner message="Cargando..." size="sm" />
+                                    </td>
                                 </tr>
                             ) : earnings.length === 0 ? (
                                 <tr>

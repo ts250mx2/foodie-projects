@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell } from '@/components/ThemedGridHeader';
 import ProductionDetailModal from '@/components/ProductionDetailModal';
@@ -266,7 +267,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                     {showProductDropdown && (
                                         <div className="absolute z-[510] w-full top-full mt-1 bg-white border-2 border-blue-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {products.length === 0 ? (
-                                                <div className="p-3 text-center text-gray-400 italic text-sm">Cargando productos...</div>
+                                                <div className="p-3"><LoadingSpinner message="Cargando productos..." size="sm" /></div>
                                             ) : (
                                                 <>
                                                     {products

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import QRCode from 'react-qr-code';
 import CryptoJS from 'crypto-js';
@@ -354,7 +355,7 @@ export default function InstructionsTab({ product, projectId }: InstructionsTabP
             {/* Instructions Grid */}
             <div className="flex-1 overflow-y-auto p-6">
                 {isLoading ? (
-                    <div className="text-center text-gray-600">Cargando...</div>
+                    <LoadingSpinner message="Cargando..." size="md" />
                 ) : instructions.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                         No hay instrucciones. Agregue el primer paso.

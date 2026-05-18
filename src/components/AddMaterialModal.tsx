@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export interface SearchProduct {
@@ -146,7 +147,7 @@ export default function AddMaterialModal({
 
                 <div className="flex-1 overflow-y-auto p-4 bg-white">
                     {isLoading ? (
-                        <div className="text-center py-8 text-gray-500">Cargando productos...</div>
+                        <LoadingSpinner message="Cargando productos..." size="md" />
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">

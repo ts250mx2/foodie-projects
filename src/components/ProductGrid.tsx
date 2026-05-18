@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -138,7 +139,7 @@ export default function ProductGrid({ productType, pageTitle }: ProductGridProps
     if (isLoading) {
         return (
             <div className="p-6">
-                <div className="text-center text-gray-600">Cargando...</div>
+                <LoadingSpinner message="Cargando..." size="md" />
             </div>
         );
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
@@ -195,8 +196,8 @@ export default function DocumentTypesModal({ isOpen, onClose, projectId }: Docum
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={3} className="px-6 py-10 text-center text-gray-500 italic">
-                                            Cargando tipos de documentos...
+                                        <td colSpan={3} className="px-6 py-10">
+                                            <LoadingSpinner message="Cargando tipos de documentos..." size="md" />
                                         </td>
                                     </tr>
                                 ) : sortedAndFilteredDocumentTypes.length === 0 ? (

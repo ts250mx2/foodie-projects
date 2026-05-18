@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 
 interface Document {
@@ -238,7 +239,7 @@ export default function DocumentsTab({ product, projectId }: DocumentsTabProps) 
             {/* Documents Grid */}
             <div className="flex-1 overflow-y-auto p-6">
                 {isLoading ? (
-                    <div className="text-center text-gray-600">Cargando...</div>
+                    <LoadingSpinner message="Cargando..." size="md" />
                 ) : documents.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                         No hay documentos. Agregue el primer documento.

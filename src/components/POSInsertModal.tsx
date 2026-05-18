@@ -1,4 +1,5 @@
 'use client';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -312,10 +313,7 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
 
                                 {/* Product List Grouped by Section */}
                                 {isLoadingProducts ? (
-                                    <div className="flex flex-col items-center justify-center py-20 opacity-40">
-                                        <div className="animate-spin text-4xl mb-4">⌛</div>
-                                        <p className="font-bold uppercase tracking-widest text-sm">Cargando catálogo...</p>
-                                    </div>
+                                    <LoadingSpinner message="Cargando catálogo..." size="md" />
                                 ) : (
                                     <div className="space-y-6">
                                         {Object.entries(groupedProducts).map(([section, products]) => (

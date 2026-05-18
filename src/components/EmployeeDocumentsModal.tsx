@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from './Button';
 import Input from './Input';
 
@@ -277,7 +278,7 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
                 <div className="md:col-span-2 overflow-y-auto pr-2">
                     <h3 className="text-sm font-bold text-gray-600 mb-4 uppercase">Historial</h3>
                     {isLoading ? (
-                        <div className="text-center py-10 text-gray-500">Cargando documentos...</div>
+                        <LoadingSpinner message="Cargando documentos..." size="md" />
                     ) : documents.length === 0 ? (
                         <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg">No hay documentos registrados.</div>
                     ) : (

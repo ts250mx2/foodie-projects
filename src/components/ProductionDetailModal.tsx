@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import { FileText, X } from 'lucide-react';
 
@@ -114,7 +115,7 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
 
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
                     {isLoading ? (
-                        <div className="text-center py-10 text-gray-500">Cargando detalle de receta...</div>
+                        <LoadingSpinner message="Cargando detalle de receta..." size="md" />
                     ) : groupedData.length === 0 ? (
                         <div className="text-center py-10 text-gray-500 italic">Este producto no tiene una receta configurada (Kits).</div>
                     ) : (

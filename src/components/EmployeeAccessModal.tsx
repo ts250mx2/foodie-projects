@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from './Button';
 import Input from './Input';
 
@@ -117,7 +118,7 @@ export default function EmployeeAccessModal({
                 </div>
 
                 {isLoading ? (
-                    <div className="text-center py-8 text-gray-500">Cargando...</div>
+                    <LoadingSpinner message="Cargando..." size="md" />
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (

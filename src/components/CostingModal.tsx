@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Settings, TrendingUp, FileText, AlertCircle, Image, X, FileBarChart, Check, Ban, Plus } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
@@ -2810,7 +2811,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     {/* Costing Grid */}
                                     <div>
                                         {isLoading ? (
-                                            <div className="text-center text-gray-600">Cargando...</div>
+                                            <LoadingSpinner message="Cargando..." size="md" />
                                         ) : (
                                             <div className="space-y-6">
                                                 {/* Grouped Stacked List */}
@@ -3135,10 +3136,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </a>
                                     ))
                                 ) : (
-                                    <div className="text-center py-10">
-                                        <div className="text-4xl mb-4">⌛</div>
-                                        <p className="text-gray-500 font-medium">Buscando los mejores precios para ti...</p>
-                                    </div>
+                                    <LoadingSpinner message="Buscando los mejores precios para ti..." size="md" />
                                 )}
                             </div>
 
