@@ -5,7 +5,7 @@ import Button from '@/components/Button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Carrot, UtensilsCrossed, X, Image, Folder, Plus, Pencil, Search } from 'lucide-react';
+import { Carrot, UtensilsCrossed, X, Image, Plus, Pencil, Search } from 'lucide-react';
 
 export interface SearchProduct {
     IdProducto: number;
@@ -187,7 +187,7 @@ export default function AddMaterialModal({
                                         <TableCell className="font-medium text-gray-800">{p.Producto}</TableCell>
                                         <TableCell muted>
                                             <div className="flex items-center gap-1.5">
-                                                <Folder size={16} className="text-gray-400" />
+                                                <span className="text-base">{p.ImagenCategoria || '📁'}</span>
                                                 <span>{p.Categoria || '-'}</span>
                                             </div>
                                         </TableCell>
