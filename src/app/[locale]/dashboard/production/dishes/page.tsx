@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus, Settings, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import Button from '@/components/Button';
-import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
+import ThemedGridHeader, { ThemedGridHeaderCell, RowActionButton } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
 import MenuSectionsModal from '@/components/MenuSectionsModal';
 import PageShell from '@/components/PageShell';
@@ -360,21 +360,19 @@ export default function DishesPage() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
+                                        <div className="flex items-center justify-end gap-1">
+                                            <RowActionButton
+                                                icon={Pencil}
+                                                label={t('editProduct')}
+                                                variant="edit"
                                                 onClick={() => handleOpenEditModal(dish)}
-                                                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                                                title={t('editProduct')}
-                                            >
-                                                <Pencil size={18} className="text-gray-600 hover:text-gray-900" />
-                                            </button>
-                                            <button
+                                            />
+                                            <RowActionButton
+                                                icon={Trash2}
+                                                label={t('deleteProduct')}
+                                                variant="delete"
                                                 onClick={() => openDeleteModal(dish)}
-                                                className="p-1.5 hover:bg-red-50 rounded transition-colors"
-                                                title={t('deleteProduct')}
-                                            >
-                                                <Trash2 size={18} className="text-red-600 hover:text-red-900" />
-                                            </button>
+                                            />
                                         </div>
                                     </td>
                                 </tr>
