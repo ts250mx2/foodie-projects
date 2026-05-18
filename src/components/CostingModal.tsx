@@ -2669,7 +2669,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     <div className="flex flex-col bg-blue-50 p-1 px-2 rounded border border-blue-100">
                                                         <label className="text-xs font-bold text-blue-600 uppercase mb-1">Formula Costo/Unidad</label>
                                                         <span className="text-lg font-bold text-blue-800">
-                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(calculateCostPerUnit())}
+                                                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(calculateCostPerUnit())}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-500 mt-0.5 font-medium leading-tight">
+                                                            Costo por unidad de medida de inventario ({unMedidaInventario || '-'})
                                                         </span>
                                                     </div>
                                                 </div>
