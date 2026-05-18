@@ -1337,15 +1337,34 @@ export default function PurchaseOrdersPage() {
                                         </table>
                                     </div>
                             </div>
+                        {/* Modal Footer */}
+                        <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center gap-4">
+                            <div>
+                                {editingOrder && (
+                                    <button 
+                                        onClick={() => exportOrderToPDF(editingOrder)}
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 font-semibold text-xs transition-all shadow-sm"
+                                    >
+                                        🖨️ Imprimir PDF
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex gap-3">
+                            <button 
+                                onClick={closeModal}
+                                className="px-6 py-2.5 rounded-xl border border-gray-200 font-semibold hover:bg-white hover:shadow-sm transition-all text-gray-400 text-xs"
+                            >
+                                {t('cancel')}
+                            </button>
+                            <button 
+                                onClick={handleSubmit}
+                                className="px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
+                            >
+                                {editingOrder ? 'Actualizar Orden' : 'Confirmar y Guardar'}
+                            </button>
+                            </div>
+                        </div>
             </BaseModal>
-
-            {editingOrder && (
-                <button
-                    onClick={() => exportOrderToPDF(editingOrder)}
-                    className="hidden"
-                    id="export-pdf-btn"
-                />
-            )}
 
             {/* Category Selection / Capture Modal */}
             {isCategoryModalOpen && (
@@ -1562,7 +1581,9 @@ export default function PurchaseOrdersPage() {
                                 </div>
                             )}
                         </div>
-            </BaseModal>
+                    </div>
+                </div>
+            )}
         </PageShell>
     );
 }

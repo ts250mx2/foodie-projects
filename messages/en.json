@@ -980,6 +980,7 @@
         "category": "Category",
         "noChanges": "No changes to save",
         "Action": "Action",
+        "actions": "Actions",
         "confirmImportLast": "Are you sure you want to import the last inventory? This will overwrite current quantities.",
         "successImport": "Inventory imported successfully!",
         "errorImport": "Error importing inventory"

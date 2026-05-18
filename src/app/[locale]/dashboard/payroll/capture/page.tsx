@@ -320,78 +320,67 @@ export default function PayrollCapturePage() {
     };
 
     return (
-        <PageShell title="Captura de Nómina" icon={Banknote}>
-            {/* Standardized Header */}
-            <div className="sticky top-16 z-30 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm mb-4">
-                <div className="flex items-center gap-4">
-                    {/* Branch Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('selectBranch')}</label>
-                        <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        >
-                            {branches.length === 0 && <option>{t('noBranches')}</option>}
-                            {branches.map(branch => (
-                                <option key={branch.IdSucursal} value={branch.IdSucursal}>
-                                    {branch.Sucursal}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+        <PageShell
+            title={t('title') || 'Captura de Nómina'}
+            icon={Banknote}
+            actions={
+                <div className="flex items-center gap-3 flex-wrap">
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {branches.length === 0 && <option>{t('noBranches')}</option>}
+                        {branches.map(branch => (
+                            <option key={branch.IdSucursal} value={branch.IdSucursal}>
+                                {branch.Sucursal}
+                            </option>
+                        ))}
+                    </select>
 
-                    {/* Month Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('month')}</label>
-                        <select
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        >
-                            {Array.from({ length: 12 }, (_, i) => (
-                                <option key={i} value={i}>{t(`months.${i}`)}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{t(`months.${i}`)}</option>
+                        ))}
+                    </select>
 
-                    {/* Year Selector */}
-                    <div className="flex flex-col">
-                        <label className="text-xs text-gray-500 mb-1">{t('year')}</label>
-                        <select
-                            value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                        >
-                            {years.map(year => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
                 </div>
-            </div>
+            }
+        >
 
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
-                {/* Continuous Header */}
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+                {/* Sticky Header */}
                 <div
-                    className="grid grid-cols-7"
+                    className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
                         backgroundColor: colors.colorFondo1,
-                        backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
                 >
                     {weekDays.map(day => (
                         <div
                             key={day}
-                            className="text-center font-bold py-4 text-[10px] uppercase tracking-[0.2em]"
+                            className="text-center font-bold text-sm uppercase tracking-wider"
                         >
                             {t(`days.${day}`)}
                         </div>
                     ))}
                 </div>
 
-                <div className="p-4 bg-gray-50/30">
+                <div className="p-4 bg-white">
                     <div className="grid grid-cols-7 gap-3">
                         {calendarDays.map((date, index) => {
                             if (!date) {
@@ -401,7 +390,6 @@ export default function PayrollCapturePage() {
                             const dayNum = date.getDate();
                             const details = monthlyPayrollDetails[dayNum];
                             const hasPayroll = details && details.length > 0;
-                            const isToday = new Date().toDateString() === date.toDateString();
 
                             return (
                                 <div
@@ -410,26 +398,21 @@ export default function PayrollCapturePage() {
                                     className={`
                                     aspect-square rounded-xl p-3 cursor-pointer transition-all duration-300
                                     flex flex-col justify-between group relative overflow-hidden
-                                    ${isToday
-                                            ? 'bg-white border-2 border-indigo-400 shadow-indigo-100'
+                                    ${hasPayroll
+                                            ? 'bg-white border-2 border-green-100 shadow-sm hover:border-green-400 hover:shadow-green-100'
                                             : 'bg-white border border-slate-200/60 hover:border-blue-400 hover:shadow-blue-100'
                                         }
-                                    hover:scale-[1.02] hover:shadow-xl shadow-sm
+                                    hover:scale-[1.02] hover:shadow-xl
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-indigo-600' : hasPayroll ? 'text-slate-800' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                        <span className={`text-xl font-black ${hasPayroll ? 'text-green-700' : 'text-slate-400 group-hover:text-blue-600'}`}>
                                             {dayNum}
                                         </span>
-                                        {isToday && (
-                                            <span className="text-[9px] font-extrabold bg-indigo-500 text-white px-2 py-0.5 rounded-full shadow-sm animate-pulse tracking-tighter">
-                                                {t('today') || 'HOY'}
-                                            </span>
-                                        )}
                                     </div>
                                     {hasPayroll && (
                                         <div className="space-y-0.5 z-10">
-                                            <div className="text-sm font-black text-indigo-600 leading-tight">
+                                            <div className="text-sm font-black text-green-600 leading-tight">
                                                 {formatCurrency(details.reduce((sum, d) => sum + d.total, 0))}
                                             </div>
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
@@ -440,7 +423,7 @@ export default function PayrollCapturePage() {
                                     {/* Decorative background element for hover */}
                                     <div className={`
                                     absolute -right-4 -bottom-4 w-12 h-12 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                                    ${isToday ? 'bg-indigo-600' : 'bg-blue-600'}
+                                    ${hasPayroll ? 'bg-green-600' : 'bg-blue-600'}
                                 `} />
                                 </div>
                             );
@@ -451,70 +434,50 @@ export default function PayrollCapturePage() {
 
             {/* Modal */}
             {isModalOpen && selectedDate && (
-                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" aria-modal="true" role="dialog">
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-                        onClick={() => setIsModalOpen(false)}
-                    />
-
-                    {/* Panel */}
-                    <div
-                        className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl animate-in zoom-in-95 fade-in duration-200"
-                        style={{ maxHeight: '90vh' }}
-                    >
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+                    <div className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl" style={{ maxHeight: '90vh' }}>
                         {/* Header */}
                         <div
                             className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
                             style={{ backgroundColor: colors.colorFondo1 }}
                         >
-                            <div className="flex flex-col gap-0.5 min-w-0">
-                                <h2
-                                    className="text-[15px] font-semibold leading-tight"
-                                    style={{ color: colors.colorLetra }}
-                                >
-                                    {tModal('title')}
+                            <div className="flex flex-col min-w-0">
+                                <h2 className="text-[15px] font-semibold" style={{ color: colors.colorLetra }}>
+                                    💰 {tModal('title')}
                                 </h2>
-                                <p
-                                    className="text-[12px] leading-tight"
-                                    style={{ color: colors.colorLetra, opacity: 0.8 }}
-                                >
+                                <p className="text-[12px] opacity-80 mt-1" style={{ color: colors.colorLetra }}>
                                     {selectedDate.toLocaleDateString()}
                                 </p>
                             </div>
-
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                aria-label="Cerrar"
-                                className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                                className="flex-shrink-0 rounded-lg p-1.5 hover:bg-white/10 transition-colors"
                                 style={{ color: colors.colorLetra }}
                             >
-                                <X size={16} strokeWidth={2} />
+                                <X size={16} />
                             </button>
                         </div>
 
                         {/* Summary Cards */}
-                        <div className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {/* Nómina Total */}
-                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
-                                    <div className="flex items-center gap-2 mb-2">
+                        <div className="shrink-0 px-5 py-3 bg-gray-50/50 border-b border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
                                         <DollarSign size={14} className="text-gray-400" />
-                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Nómina Total</label>
-                                    </div>
-                                    <div className="text-lg font-bold text-indigo-600">
-                                        {formatCurrency(totalPayroll)}
+                                        <div>
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nómina Total</p>
+                                            <p className="text-sm font-bold text-gray-900">{formatCurrency(totalPayroll)}</p>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Colaboradores Pagados */}
-                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
-                                    <div className="flex items-center gap-2 mb-2">
+                                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
                                         <Users size={14} className="text-gray-400" />
-                                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Colaboradores Pagados</label>
-                                    </div>
-                                    <div className="text-lg font-bold text-gray-800">
-                                        {dailyPayroll.length}
+                                        <div>
+                                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Colaboradores</p>
+                                            <p className="text-sm font-bold text-gray-900">{dailyPayroll.length}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -522,7 +485,7 @@ export default function PayrollCapturePage() {
 
                         {/* New Payment Button */}
                         {!isFormOpen && (
-                            <div className="shrink-0 px-6 py-3 bg-gray-50/50 border-b border-gray-100">
+                            <div className="shrink-0 px-5 py-3 bg-gray-50/50 border-b border-gray-100">
                                 <Button
                                     onClick={handleNewPayment}
                                     variant="secondary"
@@ -539,148 +502,150 @@ export default function PayrollCapturePage() {
                         <div className="flex-1 overflow-y-auto">
                             {/* Form */}
                             {isFormOpen && (
-                                <form onSubmit={handleSubmit} className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="flex flex-col relative">
-                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('employee')}</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
-                                            placeholder={tModal('select')}
-                                            value={employeeSearch}
-                                            onChange={(e) => {
-                                                setEmployeeSearch(e.target.value);
-                                                setIsDropdownOpen(true);
-                                                if (!e.target.value) setFormData({ ...formData, employeeId: '' });
-                                            }}
-                                            onFocus={() => setIsDropdownOpen(true)}
-                                            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                                            required
-                                        />
-                                        {isDropdownOpen && (
-                                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                                                {filteredEmployees.length === 0 ? (
-                                                    <div className="px-4 py-3 text-sm text-gray-400 italic">No se encontraron colaboradores</div>
-                                                ) : (
-                                                    filteredEmployees.map(e => (
-                                                        <div
-                                                            key={e.IdEmpleado}
-                                                            className="px-4 py-2 hover:bg-indigo-50 cursor-pointer border-b last:border-0 border-gray-50"
-                                                            onClick={() => {
-                                                                setFormData({ ...formData, employeeId: e.IdEmpleado.toString() });
-                                                                setEmployeeSearch(e.Empleado);
-                                                                setIsDropdownOpen(false);
-                                                            }}
-                                                        >
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold text-sm text-gray-800">{e.Empleado}</span>
+                                <form onSubmit={handleSubmit} className="shrink-0 px-5 py-4 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{tModal('employee')}</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-semibold text-gray-700 transition-all"
+                                                placeholder="Seleccionar..."
+                                                value={employeeSearch}
+                                                onChange={(e) => {
+                                                    setEmployeeSearch(e.target.value);
+                                                    setIsDropdownOpen(true);
+                                                    if (!e.target.value) setFormData({ ...formData, employeeId: '' });
+                                                }}
+                                                onFocus={() => setIsDropdownOpen(true)}
+                                                onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                                                required
+                                            />
+                                            {isDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                                                    {filteredEmployees.length === 0 ? (
+                                                        <div className="px-3 py-2 text-sm text-gray-400 italic">No hay colaboradores</div>
+                                                    ) : (
+                                                        filteredEmployees.map(e => (
+                                                            <div
+                                                                key={e.IdEmpleado}
+                                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-0 border-gray-50"
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, employeeId: e.IdEmpleado.toString() });
+                                                                    setEmployeeSearch(e.Empleado);
+                                                                    setIsDropdownOpen(false);
+                                                                }}
+                                                            >
+                                                                <div className="font-semibold text-sm text-gray-800">{e.Empleado}</div>
                                                                 {e.Puesto && (
-                                                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                                                                    <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">
                                                                         {e.ImagenTipoPuesto || '👤'} {e.Puesto}
-                                                                    </span>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
+                                                        ))
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">Tipo de Pago</label>
-                                    <select
-                                        className="w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
-                                        value={formData.paymentType}
-                                        onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
-                                    >
-                                        <option value="PAGO NOMINA">PAGO NOMINA</option>
-                                        <option value="BONO">BONO</option>
-                                        <option value="PRESTAMO">PRESTAMO</option>
-                                        <option value="PENALIZACION">PENALIZACION</option>
-                                    </select>
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2 ml-1">{tModal('amount')}</label>
-                                    <input
-                                        type="text"
-                                        className={`w-full p-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-black ${formData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-indigo-600'}`}
-                                        value={formData.amount}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (/^[0-9.$,-]*$/.test(val)) {
-                                                setFormData({ ...formData, amount: val });
-                                            }
-                                        }}
-                                        onBlur={handleAmountBlur}
-                                        onFocus={handleAmountFocus}
-                                        required
-                                        placeholder="0.00"
-                                    />
-                                </div>
 
-                                <Button
-                                    type="submit"
-                                    variant="solid"
-                                    size="sm"
-                                    leftIcon={Save}
-                                    iconBox
-                                >
-                                    {tModal('save')}
-                                </Button>
-                            </form>
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Tipo</label>
+                                        <select
+                                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-semibold text-gray-700 transition-all"
+                                            value={formData.paymentType}
+                                            onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
+                                        >
+                                            <option value="PAGO NOMINA">💵 Pago</option>
+                                            <option value="BONO">🎁 Bono</option>
+                                            <option value="PRESTAMO">💳 Préstamo</option>
+                                            <option value="PENALIZACION">⚠️ Penalización</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{tModal('amount')}</label>
+                                        <input
+                                            type="text"
+                                            className={`w-full p-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none font-black transition-all ${formData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-gray-900'}`}
+                                            value={formData.amount}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (/^[0-9.$,-]*$/.test(val)) {
+                                                    setFormData({ ...formData, amount: val });
+                                                }
+                                            }}
+                                            onBlur={handleAmountBlur}
+                                            onFocus={handleAmountFocus}
+                                            required
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        variant="solid"
+                                        size="sm"
+                                        leftIcon={Save}
+                                        iconBox
+                                    >
+                                        {tModal('save')}
+                                    </Button>
+                                </form>
                             )}
 
                             {/* Payroll Table */}
-                            <div className="px-6 py-5">
-                                    <table className="min-w-full divide-y divide-gray-100">
-                                        <thead className="bg-gray-50 sticky top-0 z-10 backdrop-blur-sm">
+                            <div className="px-5 py-4">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-24">Tipo</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest w-28">{tModal('amount')}</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-16">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-50">
+                                        {dailyPayroll.length === 0 ? (
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('employee')}</th>
-                                                <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo</th>
-                                                <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">{tModal('amount')}</th>
-                                                <th className="px-6 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                                                <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400 italic">Sin registros para este día</td>
                                             </tr>
-
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-50">
-                                            {dailyPayroll.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400 italic">No se encontraron registros para este día</td>
+                                        ) : (
+                                            dailyPayroll.map((pay, idx) => (
+                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 py-3 text-sm font-semibold text-gray-700">{pay.Empleado}</td>
+                                                    <td className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">{pay.TipoPago || 'Pago'}</td>
+                                                    <td className={`px-4 py-3 text-sm text-right font-black ${pay.Pago < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                                                        {formatCurrency(pay.Pago)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDelete(pay.IdUsuario)}
+                                                            className="text-gray-300 hover:text-red-500 transition-colors text-lg"
+                                                            title="Eliminar"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </td>
                                                 </tr>
-
-                                            ) : (
-                                                dailyPayroll.map((pay, idx) => (
-                                                    <tr key={idx} className="hover:bg-indigo-50/30 transition-colors group">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700">{pay.Empleado}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-[10px] font-black text-slate-400 uppercase tracking-widest">{pay.TipoPago || 'PAGO NOMINA'}</td>
-                                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-black ${pay.Pago < 0 ? 'text-rose-600' : 'text-indigo-600'}`}>
-                                                            {formatCurrency(pay.Pago)}
-                                                        </td>
-
-                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDelete(pay.IdUsuario)}
-                                                                className="text-gray-300 hover:text-red-500 transition-colors p-2"
-                                                                title="Borrar registro"
-                                                            >
-                                                                🗑️
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
+                        </div>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                            <button onClick={() => setIsModalOpen(false)} className="px-8 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition-all">
+                        <div className="shrink-0 px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex items-center justify-end gap-2">
+                            <Button
+                                onClick={() => setIsModalOpen(false)}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={X}
+                            >
                                 {tModal('close')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

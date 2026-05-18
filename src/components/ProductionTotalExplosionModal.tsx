@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import Button from '@/components/Button';
+import { Zap, X } from 'lucide-react';
 
 interface ProductionTotalExplosionModalProps {
     isOpen: boolean;
@@ -94,13 +95,13 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[530]">
             <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
-                            💥 {t('title')}
+                            <Zap size={20} /> {t('title')}
                         </h2>
                         {sourceSummary && (
                             <div className="text-lg font-bold opacity-90 mt-1 line-clamp-1" title={sourceSummary}>
@@ -111,8 +112,8 @@ export default function ProductionTotalExplosionModal({ isOpen, onClose, date, p
                             Fecha: {date.toLocaleDateString()}
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl font-bold">
-                        ✕
+                    <button onClick={onClose} className="text-white hover:text-gray-200 rounded transition-all p-1">
+                        <X size={20} strokeWidth={2} />
                     </button>
                 </div>
 

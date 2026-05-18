@@ -8,6 +8,7 @@ import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell } from '@/components/ThemedGridHeader';
 import ProductionDetailModal from '@/components/ProductionDetailModal';
 import ProductionTotalExplosionModal from '@/components/ProductionTotalExplosionModal';
+import { ChefHat, X, Plus, Zap, Trash2, FileText, RotateCw, DollarSign, Package } from 'lucide-react';
 
 interface ProductionProduct {
     IdProducto: number;
@@ -175,18 +176,18 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[500] p-4">
             <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl transition-all">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-100 text-white rounded-t-2xl" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                     <div>
                         <h2 className="text-2xl font-black flex items-center gap-2">
-                            🍳 {t('title') || 'Captura de Producción'}
+                            <ChefHat size={28} /> {t('title') || 'Captura de Producción'}
                         </h2>
                         <p className="text-sm font-medium opacity-90">{date.toLocaleDateString()}</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl">
-                        ✕
+                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all">
+                        <X size={20} strokeWidth={2} />
                     </button>
                 </div>
 
@@ -194,19 +195,19 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">💰 Costo Producción</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider flex items-center gap-2"><DollarSign size={14} /> Costo Producción</label>
                             <div className="text-xl font-black text-teal-600">
                                 {formatCurrency(gridItems.reduce((sum, item) => sum + item.Total, 0))}
                             </div>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">📦 Items Producidos</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider flex items-center gap-2"><Package size={14} /> Items Producidos</label>
                             <div className="text-xl font-black text-gray-800">
                                 {gridItems.length}
                             </div>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider">🔄 Total Insumos</label>
+                            <label className="text-xs font-bold text-gray-500 uppercase mb-1 block tracking-wider flex items-center gap-2"><RotateCw size={14} /> Total Insumos</label>
                             <div className="text-xl font-black text-gray-800">
                                 {gridItems.reduce((sum, item) => sum + item.Cantidad, 0).toFixed(2)}
                             </div>
@@ -234,7 +235,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                         className="w-full px-4 py-2.5 bg-white border border-teal-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all font-bold text-gray-700"
                                     />
                                     {showProductDropdown && (
-                                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                        <div className="absolute z-[510] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {products.length === 0 ? (
                                                 <div className="p-3 text-center text-gray-400 italic text-sm">Cargando productos...</div>
                                             ) : (
@@ -311,9 +312,9 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                             <button
                                 onClick={handleAddProduct}
                                 disabled={!selectedProduct || !quantity || isSaving}
-                                className="bg-teal-600 text-white px-8 py-2.5 rounded-lg hover:bg-teal-700 font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed h-[42px]"
+                                className="bg-teal-600 text-white px-6 py-2.5 rounded-lg hover:bg-teal-700 font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed h-[42px] flex items-center justify-center"
                             >
-                                {isSaving ? '...' : '＋'}
+                                {isSaving ? '...' : <Plus size={18} />}
                             </button>
                         </form>
                     </div>
@@ -371,21 +372,21 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                                                             title="Detalle"
                                                             onClick={() => handleOpenDetail(item)}
                                                         >
-                                                            📝
+                                                            <FileText size={16} />
                                                         </button>
                                                         <button
                                                             className="p-1.5 hover:bg-primary-50 text-primary-600 rounded-lg transition-colors"
                                                             title="Explosión"
                                                             onClick={() => alert('Para ver la explosión total, usa el botón abajo.')}
                                                         >
-                                                            💥
+                                                            <Zap size={16} />
                                                         </button>
                                                         <button
                                                             className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
                                                             title="Eliminar"
                                                             onClick={() => handleDeleteItem(item.IdProduccion)}
                                                         >
-                                                            🗑️
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -418,9 +419,9 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     <div className="flex gap-3 w-full md:w-auto">
                         <button
                             onClick={() => setIsExplosionOpen(true)}
-                            className="flex-1 md:flex-none px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-bold transition-all shadow-md shadow-primary-200"
+                            className="flex-1 md:flex-none px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-bold transition-all shadow-md shadow-primary-200 flex items-center justify-center gap-2"
                         >
-                            💥 Explosión Total
+                            <Zap size={18} /> Explosión Total
                         </button>
                         <button
                             onClick={onClose}

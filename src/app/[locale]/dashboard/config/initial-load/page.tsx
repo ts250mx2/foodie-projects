@@ -837,7 +837,7 @@ export default function InitialLoadPage() {
                                             )}
                                             <div className="flex items-center gap-2">
                                                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg shadow-sm overflow-hidden">
-                                                    {p.ArchivoImagen ? <img src={p.ArchivoImagen} className="w-full h-full object-cover" alt={p.Producto} /> : Image}
+                                                    {p.ArchivoImagen ? <img src={p.ArchivoImagen} className="w-full h-full object-cover" alt={p.Producto} /> : <Image className="w-6 h-6 text-gray-400" />}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-sm font-medium text-gray-900 truncate">{p.Producto}</div>

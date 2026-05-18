@@ -1169,6 +1169,7 @@
         "download": "Descargar",
         "close": "Cerrar",
         "Action": "Acción",
+        "actions": "Acciones",
         "confirmImportLast": "¿Estás seguro de que deseas importar el último inventario? Esto sobrescribirá las cantidades actuales.",
         "successImport": "¡Inventario importado con éxito!",
         "errorImport": "Error al importar"
