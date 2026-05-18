@@ -26,7 +26,8 @@
       "Bash(git restore *)",
       "Bash(powershell -Command \"Start-Sleep -Seconds 2; Write-Output 'Server refresh check complete'\")",
       "Bash(\\\\.ts\")",
-      "Read(//c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/app/**)"
+      "Read(//c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/app/**)",
+      "Bash(npm run *)"
     ]
   }
 }

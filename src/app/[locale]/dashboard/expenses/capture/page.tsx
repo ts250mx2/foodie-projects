@@ -8,7 +8,7 @@ import Input from '@/components/Input';
 import QRCode from 'react-qr-code';
 import ExpenseImageCaptureModal from '@/components/ExpenseImageCaptureModal';
 import PageShell from '@/components/PageShell';
-import { CreditCard, Camera, X, Save, Plus, DollarSign, FileText, Edit2, Trash2, Download } from 'lucide-react';
+import { CreditCard, Camera, X, Save, Plus, DollarSign, FileText, Edit2, Trash2, Download, FileDown, Building2, Tag, FileText as FileTextIcon } from 'lucide-react';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
 interface Branch {
@@ -1124,16 +1124,16 @@ export default function ExpensesCapturePage() {
 
             {/* Secondary Modal: Expense Details */}
             {isDetailModalOpen && activeExpense && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm shadow-2xl">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[520] p-4 backdrop-blur-sm shadow-2xl">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
-                                <h3 className="text-xl font-black">📝 {tDetailsModal('title')}</h3>
+                                <h3 className="text-xl font-black flex items-center gap-2"><FileTextIcon size={24} /> {tDetailsModal('title')}</h3>
                                 <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
                                     {activeExpense.Proveedor} • {activeExpense.NumeroFactura || activeExpense.Referencia}
                                 </p>
                             </div>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                            <button onClick={() => setIsDetailModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all"><X size={20} strokeWidth={2} /></button>
                         </div>
 
                         <div className="p-6 flex flex-col gap-6 overflow-y-auto">
@@ -1202,7 +1202,7 @@ export default function ExpensesCapturePage() {
                                                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(detail.Cantidad * detail.Costo)}
                                                     </td>
                                                     <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
-                                                        <button 
+                                                        <button
                                                             onClick={e => {
                                                                 e.preventDefault();
                                                                 setDetailFormData({
@@ -1215,14 +1215,14 @@ export default function ExpensesCapturePage() {
                                                             className="text-gray-300 hover:text-blue-500 transition-colors p-1"
                                                             title={tCommon('edit') || "Editar"}
                                                         >
-                                                            ✏️
+                                                            <Edit2 size={16} />
                                                         </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteDetail(detail.IdDetalleGasto)} 
+                                                        <button
+                                                            onClick={() => handleDeleteDetail(detail.IdDetalleGasto)}
                                                             className="text-gray-300 hover:text-red-500 transition-colors p-1"
                                                             title={tCommon('delete') || "Eliminar"}
                                                         >
-                                                            🗑️
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1262,11 +1262,11 @@ export default function ExpensesCapturePage() {
 
             {/* Supplier Modal */}
             {isSupplierModalOpen && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[510] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <h3 className="text-xl font-black uppercase tracking-tight">🏢 Nuevo Proveedor</h3>
-                            <button onClick={() => setIsSupplierModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Building2 size={24} /> Nuevo Proveedor</h3>
+                            <button onClick={() => setIsSupplierModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all"><X size={20} strokeWidth={2} /></button>
                         </div>
                         <form onSubmit={handleSaveSupplier} className="p-6 flex flex-col gap-4">
                             <div className="flex flex-col gap-1">
@@ -1295,11 +1295,11 @@ export default function ExpensesCapturePage() {
 
             {/* Concept Modal */}
             {isConceptModalOpen && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[510] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                            <h3 className="text-xl font-black uppercase tracking-tight">🏷️ Nuevo Concepto</h3>
-                            <button onClick={() => setIsConceptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold">✕</button>
+                            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Tag size={24} /> Nuevo Concepto</h3>
+                            <button onClick={() => setIsConceptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all"><X size={20} strokeWidth={2} /></button>
                         </div>
                         <form onSubmit={handleSaveConcept} className="p-6 flex flex-col gap-4">
                             <div className="flex flex-col gap-1">
@@ -1344,12 +1344,12 @@ export default function ExpensesCapturePage() {
 
             {/* Preview Modal */}
             {previewFile && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-md">
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[530] p-4 backdrop-blur-md">
                     <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                             <div className="flex flex-col">
                                 <h3 className="font-bold text-gray-800">{previewFile.name}</h3>
-                                <button 
+                                <button
                                     onClick={() => {
                                         const byteCharacters = atob(previewFile.content);
                                         const byteNumbers = new Array(byteCharacters.length);
@@ -1364,10 +1364,10 @@ export default function ExpensesCapturePage() {
                                     }}
                                     className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                                 >
-                                    📥 Descargar original
+                                    <FileDown size={14} /> Descargar original
                                 </button>
                             </div>
-                            <button onClick={() => setPreviewFile(null)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition-all text-gray-500 font-bold">✕</button>
+                            <button onClick={() => setPreviewFile(null)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition-all text-gray-500"><X size={20} strokeWidth={2} /></button>
                         </div>
                         <div className="flex-1 bg-gray-200 overflow-hidden flex items-center justify-center p-4">
                             {previewFile.type === 'application/pdf' ? (
