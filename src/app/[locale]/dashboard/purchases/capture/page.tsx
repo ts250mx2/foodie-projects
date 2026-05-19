@@ -1313,7 +1313,7 @@ export default function PurchasesCapturePage() {
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                        <div className="flex-1 min-h-0 overflow-hidden p-6 flex flex-col gap-6">
                             {/* Summary Card */}
                             <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex items-center justify-between">
                                 <div>
@@ -1421,7 +1421,7 @@ export default function PurchasesCapturePage() {
                             </form>
 
                             {/* Details Table */}
-                            <div className="flex-1 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+                            <div className="flex-1 min-h-0 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-sm">
                                 <table className="w-full border-collapse">
                                     <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
                                         <ThemedGridHeaderCell>

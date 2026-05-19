@@ -27,7 +27,13 @@
       "Bash(powershell -Command \"Start-Sleep -Seconds 2; Write-Output 'Server refresh check complete'\")",
       "Bash(\\\\.ts\")",
       "Read(//c/Users/Ruben/Documents/Antigravity Projects/foodie-projects/src/app/**)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(Find 'src/components' -name \"*.tsx\" -type f)",
+      "Bash(xargs grep -l \"Cargando\\\\|isLoading\\\\|animate-pulse\")",
+      "Bash(grep -E \"page\\\\.tsx|\\\\.tsx$\")",
+      "Bash(Find 'src' -name \"*.tsx\" -type f)",
+      "Bash(xargs grep -l \"text-center.*py-.*Cargando\\\\|isLoading.*<div\")",
+      "Bash(xargs grep -l \"LoadingSpinner message=\")"
     ]
   }
 }

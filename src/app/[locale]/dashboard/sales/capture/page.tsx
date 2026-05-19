@@ -506,7 +506,7 @@ export default function SalesCapturePage() {
                                     {hasSales && (
                                         <div className="space-y-0.5">
                                             <div className="text-xs font-black text-green-700">
-                                                ${Math.round(details.reduce((sum, s) => sum + s.total, 0))}
+                                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(details.reduce((sum, s) => sum + s.total, 0))}
                                             </div>
                                             <div className="text-[10px] font-bold text-gray-500 uppercase">
                                                 {details.length} turno{details.length !== 1 ? 's' : ''}

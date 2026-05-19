@@ -728,51 +728,51 @@ export default function SalesChannelsCapturePage() {
                                         )}
                                     </div>
                                     {(hasSales || monthlyDailyTotals[dayNum] || monthlyPaymentDetails[dayNum]) && (() => {
-                                        const reported = monthlyDailyTotals[dayNum] || 0;
-                                        const channelsTotal = details?.reduce((sum, s) => sum + s.total, 0) || 0;
-                                        const paymentsTotal = monthlyPaymentDetails[dayNum] || 0;
-                                        const diffChannels = channelsTotal - reported;
-                                        const diffPayments = paymentsTotal - reported;
+                                         const reported = monthlyDailyTotals[dayNum] || 0;
+                                         const channelsTotal = details?.reduce((sum, s) => sum + s.total, 0) || 0;
+                                         const paymentsTotal = monthlyPaymentDetails[dayNum] || 0;
+                                         const diffChannels = channelsTotal - reported;
+                                         const diffPayments = paymentsTotal - reported;
 
-                                        return (
-                                            <div className="space-y-1 z-10">
-                                                {monthlyDailyTotals[dayNum] !== undefined && (
-                                                    <div>
-                                                        <div className="text-[8px] font-bold text-gray-500 uppercase">Reportado</div>
-                                                        <div className="text-xs font-black text-gray-800">
-                                                            ${Math.round(reported)}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {(hasSales || reported > 0) && (
-                                                    <div className="border-t border-gray-200/50 pt-1">
-                                                        <div className="text-[8px] font-bold text-green-600 uppercase">Canales</div>
-                                                        <div className="text-xs font-black text-green-700">
-                                                            ${Math.round(channelsTotal)}
-                                                        </div>
-                                                        {Math.abs(diffChannels) >= 0.01 && (
-                                                            <div className="text-[10px] font-bold" style={{ color: diffChannels > 0 ? '#a855f7' : '#dc2626' }}>
-                                                                {diffChannels > 0 ? '+' : ''}{Math.round(diffChannels)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {(monthlyPaymentDetails[dayNum] !== undefined || reported > 0) && (
-                                                    <div className="border-t border-gray-200/50 pt-1">
-                                                        <div className="text-[8px] font-bold text-blue-600 uppercase">Pagos</div>
-                                                        <div className="text-xs font-black text-blue-700">
-                                                            ${Math.round(paymentsTotal)}
-                                                        </div>
-                                                        {Math.abs(diffPayments) >= 0.01 && (
-                                                            <div className="text-[10px] font-bold" style={{ color: diffPayments > 0 ? '#a855f7' : '#dc2626' }}>
-                                                                {diffPayments > 0 ? '+' : ''}{Math.round(diffPayments)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
+                                         return (
+                                             <div className="space-y-1 z-10">
+                                                 {monthlyDailyTotals[dayNum] !== undefined && (
+                                                     <div>
+                                                         <div className="text-[8px] font-bold text-gray-500 uppercase">Reportado</div>
+                                                         <div className="text-xs font-black text-gray-800">
+                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(reported)}
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                                 {(hasSales || reported > 0) && (
+                                                     <div className="border-t border-gray-200/50 pt-1">
+                                                         <div className="text-[8px] font-bold text-green-600 uppercase">Canales</div>
+                                                         <div className="text-xs font-black text-green-700">
+                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(channelsTotal)}
+                                                         </div>
+                                                         {Math.abs(diffChannels) >= 0.01 && (
+                                                             <div className="text-[10px] font-bold" style={{ color: diffChannels > 0 ? '#a855f7' : '#dc2626' }}>
+                                                                 {diffChannels > 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(diffChannels)}
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 )}
+                                                 {(monthlyPaymentDetails[dayNum] !== undefined || reported > 0) && (
+                                                     <div className="border-t border-gray-200/50 pt-1">
+                                                         <div className="text-[8px] font-bold text-blue-600 uppercase">Pagos</div>
+                                                         <div className="text-xs font-black text-blue-700">
+                                                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(paymentsTotal)}
+                                                         </div>
+                                                         {Math.abs(diffPayments) >= 0.01 && (
+                                                             <div className="text-[10px] font-bold" style={{ color: diffPayments > 0 ? '#a855f7' : '#dc2626' }}>
+                                                                 {diffPayments > 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(diffPayments)}
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         );
+                                     })()}
                                 </div>
                             );
                         })}
