@@ -163,14 +163,20 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                         <Menu size={20} />
                     </button>
 
-                    {projectLogo ? (
+                    <div className="h-11 w-11 rounded-full bg-white border border-slate-200 shadow-sm overflow-hidden shrink-0">
                         <img
-                            src={projectLogo}
+                            src={projectLogo || '/images/foodie-guru-logo.png'}
                             alt="Logo"
-                            className="h-9 w-auto object-contain shrink-0"
-                            onError={() => setProjectLogo('')}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                                if (projectLogo) {
+                                    setProjectLogo('');
+                                } else {
+                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                }
+                            }}
                         />
-                    ) : null}
+                    </div>
 
                     <div className="flex flex-col min-w-0">
                         <span
