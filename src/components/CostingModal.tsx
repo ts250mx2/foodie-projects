@@ -1446,7 +1446,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto flex flex-col p-4 z-20 relative bg-white" >
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col p-4 z-20 relative bg-white" >
                     {activeTab === 'general' && (
                         <form onSubmit={handleSaveGeneral} className="max-w-5xl mx-auto w-full space-y-2.5">
                             {/* Row 1: Nombre y Código */}
@@ -2620,10 +2620,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
                                 </div>
                             ) : (
-                                <>
+                                <div className="flex-1 min-h-0 flex flex-col w-full">
                                     {/* Toolbar */}
-                                    {/* Toolbar */}
-                                    <div className="mb-4 flex flex-col gap-4 bg-white sticky top-0 z-10 px-1 py-2 shadow-sm">
+                                    <div className="mb-4 flex flex-col gap-4 bg-white z-10 px-1 py-2 shadow-sm flex-shrink-0">
                                         {productType === 2 ? (
                                             <div className="space-y-4">
                                                 {/* Fields Grid for Sub-recipes */}
@@ -2818,7 +2817,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     </div>
 
                                     {/* Costing Grid */}
-                                    <div>
+                                    <div className="flex-1 min-h-0 overflow-y-auto pr-3" style={{ scrollbarGutter: 'stable' }}>
                                         {isLoading ? (
                                             <LoadingSpinner message="Cargando..." size="md" />
                                         ) : (
@@ -2834,14 +2833,14 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                         }, 0);
 
                                                         return (
-                                                            <div key={category} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-                                                                <div className="bg-gray-50 px-4 py-2 font-bold flex justify-between items-center border-b border-gray-200 text-primary-800">
+                                                            <div key={category} className="bg-white rounded-lg shadow border border-gray-100">
+                                                                <div className="bg-gray-50 px-4 py-2 font-bold flex justify-between items-center border-b border-gray-200 text-primary-800 sticky top-0 z-20 rounded-t-lg">
                                                                     <span>{category}</span>
                                                                     <span>
                                                                         Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(categorySubtotal)}
                                                                     </span>
                                                                 </div>
-                                                                <table className="min-w-full border-collapse">
+                                                                <table className="min-w-full border-collapse [&_thead]:top-[41px]">
                                                                     <ThemedGridHeader>
                                                                         <ThemedGridHeaderCell>Código</ThemedGridHeaderCell>
                                                                         <ThemedGridHeaderCell>Producto</ThemedGridHeaderCell>
@@ -2913,7 +2912,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             </div>
                                         )}
                                     </div>
-                                </>
+                                </div>
                             )
                         )
                     }

@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import AiAgent from '@/components/dashboard/AiAgent';
 import PageShell from '@/components/PageShell';
-import { LayoutDashboard, Maximize2, Minimize2, X } from 'lucide-react';
+import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -115,6 +115,11 @@ export default function DashboardPage() {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isModalMaximized, setIsModalMaximized] = useState(false);
     const [isTotalCostModalOpen, setIsTotalCostModalOpen] = useState(false);
+
+    // Costing Alerts state
+    const [costingAlerts, setCostingAlerts] = useState<any[]>([]);
+    const [isLoadingCostingAlerts, setIsLoadingCostingAlerts] = useState<boolean>(false);
+
     const dashboardRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -467,6 +472,32 @@ export default function DashboardPage() {
             setIsLoadingDetails(false);
         }
     };
+
+    const fetchCostingAlerts = async () => {
+        if (!project?.idProyecto) return;
+        setIsLoadingCostingAlerts(true);
+        try {
+            const response = await fetch(`/api/dashboard/costing-alerts?projectId=${project.idProyecto}`);
+            const data = await response.json();
+            if (data.success) {
+                setCostingAlerts(data.data);
+            } else {
+                setCostingAlerts([]);
+            }
+        } catch (error) {
+            console.error('Error fetching costing alerts:', error);
+            setCostingAlerts([]);
+        } finally {
+            setIsLoadingCostingAlerts(false);
+        }
+    };
+
+    useEffect(() => {
+        if (project?.idProyecto) {
+            fetchCostingAlerts();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project]);
 
     useEffect(() => {
         if (selectedKpi === 'sales') {
@@ -1375,6 +1406,90 @@ export default function DashboardPage() {
                     )}
                 </div>
             )}
+
+            {/* Costing Alerts Section */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl mt-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-6">
+                    <div>
+                        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                            <span className={`w-2 h-8 rounded-full ${costingAlerts.length > 0 ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                            Alertas de Costeo
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Platillos cuyo % de costo real supera el % de costo ideal definido
+                        </p>
+                    </div>
+                    {!isLoadingCostingAlerts && (
+                        costingAlerts.length > 0 ? (
+                            <span className="text-xs font-black text-red-700 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 uppercase tracking-wider">
+                                <AlertTriangle size={14} />
+                                {costingAlerts.length} {costingAlerts.length === 1 ? 'platillo excede meta' : 'platillos exceden meta'}
+                            </span>
+                        ) : (
+                            <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 uppercase tracking-wider">
+                                <CheckCircle2 size={14} />
+                                Todo dentro de meta
+                            </span>
+                        )
+                    )}
+                </div>
+
+                {isLoadingCostingAlerts ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="h-20 bg-slate-50 animate-pulse rounded-xl"></div>
+                        ))}
+                    </div>
+                ) : costingAlerts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-emerald-600 bg-emerald-50/40 border border-dashed border-emerald-200 rounded-2xl">
+                        <CheckCircle2 size={48} className="mb-3 opacity-70" />
+                        <p className="font-black text-lg">¡Excelente!</p>
+                        <p className="text-sm text-emerald-700 font-medium mt-1">Todos los platillos están dentro del costo ideal configurado.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {costingAlerts.map((item: any) => {
+                            const real = Number(item.PorcentajeCosto) || 0;
+                            const ideal = Number(item.PorcentajeCostoIdeal) || 0;
+                            const diff = real - ideal;
+                            return (
+                                <div
+                                    key={item.IdProducto}
+                                    onClick={() => { window.location.href = '/dashboard/production/dishes'; }}
+                                    className="bg-gradient-to-br from-red-50 to-rose-50/50 border border-red-100 rounded-xl p-4 flex justify-between items-center hover:shadow-md hover:border-red-200 transition-all cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-12 h-12 rounded-xl bg-white border border-red-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
+                                            {item.ImagenCategoria || '🍽️'}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className="text-sm font-black text-slate-800 truncate">{item.Producto}</h4>
+                                            <p className="text-[11px] text-slate-500 font-medium truncate">
+                                                {item.Codigo}{item.Categoria ? ` · ${item.Categoria}` : ''}{item.SeccionMenu ? ` · ${item.SeccionMenu}` : ''}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <span className="text-[10px] font-bold text-slate-500">Costo: <span className="text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(item.Costo) || 0)}</span></span>
+                                                <span className="text-[10px] font-bold text-slate-500">Precio: <span className="text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(item.Precio) || 0)}</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 ml-3">
+                                        <div className="flex items-baseline gap-1 justify-end">
+                                            <span className="text-2xl font-black text-red-600 leading-none">{real.toFixed(1)}%</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-500 font-bold mt-1">
+                                            Ideal: <span className="text-slate-700">{ideal.toFixed(1)}%</span>
+                                        </p>
+                                        <span className="inline-block mt-1 text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                                            +{diff.toFixed(1)} pts
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
 
             {/* Drilldown Modal */}
             {drilldownItem && (

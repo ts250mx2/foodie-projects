@@ -1,7 +1,9 @@
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import Button from '@/components/Button';
+import AuthFooter from '@/components/AuthFooter';
 
 export default function LandingPage() {
   const t = useTranslations('HomePage');
@@ -10,8 +12,18 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary-50 via-secondary-50 to-primary-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <header className="absolute top-0 w-full p-6 flex justify-between items-center z-10">
-        <div className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-          Foodie Guru
+        <div className="flex items-center gap-3">
+          <Image
+            src="/images/foodie-guru-logo.png"
+            alt="Foodie Guru"
+            width={48}
+            height={48}
+            priority
+            className="object-contain"
+          />
+          <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white hidden sm:inline">
+            Foodie Guru
+          </span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -70,6 +82,10 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+
+      <div className="p-6">
+        <AuthFooter />
+      </div>
     </div>
   );
 }

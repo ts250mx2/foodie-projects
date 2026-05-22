@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -189,14 +190,14 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
     return (
         <aside
-            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] overflow-y-auto z-40 transition-all duration-300 custom-scrollbar`}
-            style={{ 
+            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] z-40 transition-all duration-300 flex flex-col`}
+            style={{
                 backgroundColor: colors.colorFondo1,
                 backgroundImage: 'none',
                 borderRight: '1px solid rgba(255, 255, 255, 0.08)'
             }}
         >
-            <nav className="p-3 flex flex-col gap-1">
+            <nav className="p-3 flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 {/* Buscador */}
                 {!isCollapsed && (
                     <div className="relative mb-2">
@@ -308,6 +309,60 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                     );
                 })}
             </nav>
+
+            {/* Footer: logo + copyright + links */}
+            <div
+                className="shrink-0 px-3 py-2.5 border-t border-white/10"
+                style={{ backgroundColor: colors.colorFondo1 }}
+            >
+                {isCollapsed ? (
+                    <div className="flex justify-center" title="© Foodie Guru">
+                        <Image
+                            src="/images/foodie-guru-logo.png"
+                            alt="Foodie Guru"
+                            width={32}
+                            height={32}
+                            className="object-contain"
+                        />
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2.5">
+                        <Image
+                            src="/images/foodie-guru-logo.png"
+                            alt="Foodie Guru"
+                            width={40}
+                            height={40}
+                            className="object-contain shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 leading-snug">
+                            <p
+                                className="text-[11px] font-medium leading-tight"
+                                style={{ color: '#ffffff' }}
+                            >
+                                © {new Date().getFullYear()} Foodie Guru.<br />
+                                Todos los derechos reservados.
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <Link
+                                    href={`/${locale}/terms-and-conditions`}
+                                    className="text-[11px] hover:underline transition-colors"
+                                    style={{ color: '#ffffff' }}
+                                >
+                                    Términos
+                                </Link>
+                                <span className="text-[11px]" style={{ color: '#ffffff' }}>·</span>
+                                <Link
+                                    href={`/${locale}/privacy-policy`}
+                                    className="text-[11px] hover:underline transition-colors"
+                                    style={{ color: '#ffffff' }}
+                                >
+                                    Privacidad
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </aside>
     );
 }

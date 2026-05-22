@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'; // Use standard ho
 import { Link } from '@/i18n/navigation';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import BrandLogo from '@/components/BrandLogo';
+import AuthFooter from '@/components/AuthFooter';
 import { useTranslations, useLocale } from 'next-intl';
 
 export default function ResetPasswordPage() {
@@ -77,14 +79,7 @@ export default function ResetPasswordPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
-                        Foodie Guru
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">
-                        {locale === 'en' ? 'Set New Password' : 'Crear Nueva Contraseña'}
-                    </p>
-                </div>
+                <BrandLogo subtitle={locale === 'en' ? 'Set New Password' : 'Crear Nueva Contraseña'} size="md" />
 
                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -120,6 +115,8 @@ export default function ResetPasswordPage() {
                         </Button>
                     </form>
                 </div>
+
+                <AuthFooter />
             </div>
         </div>
     );

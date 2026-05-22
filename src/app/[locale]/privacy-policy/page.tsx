@@ -121,10 +121,10 @@ export default function PrivacyPolicyPage() {
                 {/* Back Button */}
                 <div className="mt-8 text-center">
                     <Link
-                        href="/register"
+                        href="/"
                         className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors"
                     >
-                        ← Volver al registro
+                        ← Volver al inicio
                     </Link>
                 </div>
             </div>

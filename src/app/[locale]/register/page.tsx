@@ -6,6 +6,8 @@ import Input from '@/components/Input';
 import PhoneInput from '@/components/PhoneInput';
 import CountrySelect from '@/components/CountrySelect';
 import Button from '@/components/Button';
+import BrandLogo from '@/components/BrandLogo';
+import AuthFooter from '@/components/AuthFooter';
 import { useTranslations, useLocale } from 'next-intl';
 
 
@@ -78,12 +80,7 @@ export default function RegisterPage() {
         <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 py-12">
             <div className="w-full max-w-2xl">
                 {/* Logo/Title */}
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-pink-500 bg-clip-text text-transparent mb-2">
-                        Foodie Guru
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">{t('registerTitle')}</p>
-                </div>
+                <BrandLogo subtitle={t('registerTitle')} size="md" />
 
                 {/* Registration Card */}
                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
@@ -227,6 +224,8 @@ export default function RegisterPage() {
                         ← Volver al inicio
                     </Link>
                 </div>
+
+                <AuthFooter />
             </div>
         </div>
     );
