@@ -276,7 +276,7 @@ export default function MobileBatchModal({
                                 </button>
                             )}
                             <div>
-                                <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                                <h2 className="brand-heading text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
                                     <span className="bg-indigo-600 text-white p-2 rounded-xl shadow-md text-base">📱</span>
                                     {view === 'list' ? 'Lotes de Celular' : view === 'detail' ? (activeBatch?.DocumentoOCR || 'Detalle') : 'QR de Carga'}
                                 </h2>

@@ -182,12 +182,13 @@ export default function BranchEditModal({
 
     return (
         <div className={`fixed inset-0 flex items-center justify-center bg-black/50 ${isOpen ? '' : 'hidden'} z-50 p-4`}>
-            <div className="bg-white w-full max-w-6xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="px-5 py-3" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                    <div className="flex justify-between items-start gap-4">
+                <div className="px-5 py-3 relative overflow-hidden" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="flex justify-between items-start gap-4 relative z-10">
                         <div className="flex-1">
-                            <h1 className="text-[15px] font-semibold leading-tight">
+                            <h1 className="brand-heading text-lg font-semibold leading-tight">
                                 {isNewBranch ? 'Nueva Sucursal' : branch?.Sucursal}
                             </h1>
                             <p className="text-[12px] leading-tight opacity-80 mt-0.5">

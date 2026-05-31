@@ -16,13 +16,11 @@ interface ThemedGridHeaderProps {
 }
 
 export default function ThemedGridHeader({ children, className = '' }: ThemedGridHeaderProps) {
-    const { colors } = useTheme();
-
     return (
         <thead className="sticky top-0 z-10 shadow-sm">
             <tr
                 className={className}
-                style={{ backgroundColor: colors.colorFondo1 }}
+                style={{ backgroundColor: 'var(--color-brand-orange)' }}
             >
                 {children}
             </tr>

@@ -142,7 +142,7 @@ export default function PaymentChannelsModal({ isOpen, onClose, projectId }: Pay
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] flex flex-col relative shadow-2xl border border-gray-100">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col relative shadow-2xl border border-gray-100">
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -151,7 +151,7 @@ export default function PaymentChannelsModal({ isOpen, onClose, projectId }: Pay
                 </button>
 
                 <div className="flex justify-between items-center mb-6 pr-8">
-                    <h1 className="text-2xl font-bold text-gray-800">{t('title')}</h1>
+                    <h1 className="brand-heading text-2xl font-bold text-gray-800">{t('title')}</h1>
                     <Button onClick={() => {
                         setEditingChannel(null);
                         setFormData({ channelName: '' });

@@ -65,8 +65,8 @@ function MobileUploadContent() {
             .then(data => {
                 if (data.success) setTheme({
                     titulo: data.titulo || 'Subir Recibos',
-                    colorFondo1: data.colorFondo1 || '#7033ff',
-                    colorFondo2: data.colorFondo2 || '#a855f7',
+                    colorFondo1: data.colorFondo1 || '#3b3be8',
+                    colorFondo2: data.colorFondo2 || '#2823aa',
                     colorLetra: data.colorLetra || '#ffffff',
                     logo64: data.logo64 || null
                 });
@@ -74,8 +74,8 @@ function MobileUploadContent() {
             .catch(() => { });
     }, [uuid, projectId]);
 
-    const primary = theme?.colorFondo1 || '#7033ff';
-    const secondary = theme?.colorFondo2 || '#a855f7';
+    const primary = theme?.colorFondo1 || '#3b3be8';
+    const secondary = theme?.colorFondo2 || '#2823aa';
     const letra = theme?.colorLetra || '#ffffff';
 
     // ── Camera ────────────────────────────────────────────────────────────────

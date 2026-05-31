@@ -200,15 +200,16 @@ export default function POSInsertModal({ isOpen, onClose, onSave, isSaving, proj
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" 
-                     style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                    <div>
-                        <h2 className="text-2xl font-black flex items-center gap-2">
+                <div className="relative overflow-hidden p-6 border-b border-gray-100 flex justify-between items-center text-white"
+                     style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10">
+                        <h2 className="brand-heading text-2xl font-black flex items-center gap-2">
                             💳 Captura de Ventas POS
                         </h2>
                         <p className="text-sm opacity-90 font-medium">Reporte masivo o captura manual por platillo</p>
                     </div>
-                    <button onClick={onClose} className="hover:bg-white/20 rounded-full p-2 transition-all">✕</button>
+                    <button onClick={onClose} className="relative z-10 hover:bg-white/20 rounded-full p-2 transition-all">✕</button>
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col bg-gray-50/30">

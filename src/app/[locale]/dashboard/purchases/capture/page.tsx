@@ -826,7 +826,7 @@ export default function PurchasesCapturePage() {
                 <div
                     className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         color: colors.colorLetra
                     }}
                 >
@@ -918,7 +918,7 @@ export default function PurchasesCapturePage() {
                         {/* Header */}
                         <div
                             className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
-                            style={{ backgroundColor: colors.colorFondo1 }}
+                            style={{ backgroundColor: 'var(--color-brand-orange)' }}
                         >
                             <div className="flex flex-col gap-0.5 min-w-0">
                                 <h2
@@ -1542,7 +1542,7 @@ export default function PurchasesCapturePage() {
             {isProductModalOpen && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[600] p-4 backdrop-blur-md">
                     <div className="bg-white w-full max-w-lg rounded-2xl shadow-3xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0">
@@ -1653,7 +1653,7 @@ export default function PurchasesCapturePage() {
             {isNewProviderModalOpen && (
                 <div className="fixed inset-0 z-[510] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 transform animate-in zoom-in-95 duration-300">
-                        <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
+                        <div className="p-6 text-white flex justify-between items-center" style={{ backgroundColor: 'var(--color-brand-orange)' }}>
                             <h3 className="text-xl font-black tracking-tight">{isEditingProvider ? 'EDITAR PROVEEDOR' : 'NUEVO PROVEEDOR'}</h3>
                             <button onClick={() => setIsNewProviderModalOpen(false)} className="text-white/80 hover:text-white text-2xl font-bold transition-colors">×</button>
                         </div>

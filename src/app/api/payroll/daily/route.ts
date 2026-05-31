@@ -88,6 +88,40 @@ export async function POST(request: NextRequest) {
     }
 }
 
+export async function PUT(request: NextRequest) {
+    let connection;
+    try {
+        const body = await request.json();
+        const { projectId, branchId, day, month, year, employeeId, amount, paymentType } = body;
+        const type = paymentType || 'PAGO NOMINA';
+
+        if (!projectId || !branchId || !day || month === null || !year || !employeeId || amount === undefined) {
+            return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
+        }
+
+        const monthNum = month + 1; // Convert to 1-12 for SQL
+        connection = await getProjectConnection(projectId);
+
+        // Update the record with the exact new amount and type
+        await connection.query(
+            `UPDATE tblNomina 
+             SET Pago = ?, TipoPago = ?, FechaAct = NOW()
+             WHERE IdSucursal = ? AND Dia = ? AND Mes = ? AND Anio = ? AND IdUsuario = ?`,
+            [amount, type, branchId, day, monthNum, year, employeeId]
+        );
+
+        return NextResponse.json({
+            success: true,
+            message: 'Payroll updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating payroll:', error);
+        return NextResponse.json({ success: false, message: 'Error updating payroll' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
 export async function DELETE(request: NextRequest) {
     let connection;
     try {

@@ -110,10 +110,10 @@ export default function BranchInventoryDatesModal({ isOpen, onClose, branchId, b
     };
 
     const content = (
-        <div className={isTabMode ? "" : "bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col"}>
+        <div className={isTabMode ? "" : "bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] flex flex-col"}>
             {!isTabMode && (
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Inventarios/Ventas - {branchName}</h2>
+                    <h2 className="brand-heading text-lg font-bold">Inventarios/Ventas - {branchName}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
                 </div>
             )}

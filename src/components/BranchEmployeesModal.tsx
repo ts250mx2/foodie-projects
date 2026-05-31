@@ -126,10 +126,10 @@ export default function BranchEmployeesModal({ isOpen, onClose, branchId, branch
     if (!isOpen && !isTabMode) return null;
 
     const content = (
-        <div className={isTabMode ? "" : "bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"}>
+        <div className={isTabMode ? "" : "bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"}>
             {!isTabMode && (
                 <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">
+                    <h2 className="brand-heading text-lg font-bold text-gray-800">
                         {t('title')} - {branchName}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>

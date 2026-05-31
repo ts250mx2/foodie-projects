@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Menu, LogOut, ChevronRight, User } from 'lucide-react';
 
 interface HeaderProps {
@@ -92,12 +91,22 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
     const pathname = usePathname();
     const params = useParams();
     const locale = params.locale as string;
-    const { colors } = useTheme();
 
     const [userName, setUserName] = useState(initialUserName || '');
     const [projectLogo, setProjectLogo] = useState('');
     const [projectTitle, setProjectTitle] = useState('');
     const [projectName, setProjectName] = useState('');
+
+    const fetchProjectSettings = async (projectId: number) => {
+        try {
+            const response = await fetch(`/api/project-header?projectId=${projectId}`);
+            const data = await response.json();
+            if (data.success) {
+                setProjectTitle(data.titulo || '');
+                setProjectLogo(data.logo64 || '');
+            }
+        } catch { /* ignore */ }
+    };
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -125,17 +134,6 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
         return () => window.removeEventListener('project-logo-updated', handleLogoUpdate as EventListener);
     }, []);
 
-    const fetchProjectSettings = async (projectId: number) => {
-        try {
-            const response = await fetch(`/api/project-header?projectId=${projectId}`);
-            const data = await response.json();
-            if (data.success) {
-                setProjectTitle(data.titulo || '');
-                setProjectLogo(data.logo64 || '');
-            }
-        } catch { /* ignore */ }
-    };
-
     const handleLogout = () => {
         localStorage.removeItem('user');
         onLogout ? onLogout() : router.push('/');
@@ -147,9 +145,9 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
     return (
         <header
-            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 border-b bg-white shadow-sm"
-            style={{ 
-                borderColor: '#e2e8f0'
+            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 shadow-sm text-white"
+            style={{
+                backgroundColor: 'var(--color-brand-green)'
             }}
         >
             <div className="flex items-center justify-between gap-4">
@@ -157,13 +155,13 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={onToggleSidebar}
-                        className="shrink-0 p-2 rounded-lg hover:bg-slate-100 text-slate-650 hover:text-slate-800 transition-colors"
+                        className="shrink-0 p-2 rounded-lg text-white hover:text-white hover:bg-black/15 transition-colors"
                         aria-label="Toggle Sidebar"
                     >
                         <Menu size={20} />
                     </button>
 
-                    <div className="h-11 w-11 rounded-full bg-white border border-slate-200 shadow-sm overflow-hidden shrink-0">
+                    <div className="h-11 w-11 rounded-full bg-white border border-white/40 shadow-sm overflow-hidden shrink-0">
                         <img
                             src={projectLogo || '/images/foodie-guru-logo.png'}
                             alt="Logo"
@@ -174,13 +172,13 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                                 } else {
                                     (e.currentTarget as HTMLImageElement).style.display = 'none';
                                 }
-                            }}
+                             }}
                         />
                     </div>
 
                     <div className="flex flex-col min-w-0">
                         <span
-                            className="text-sm font-bold leading-tight truncate text-slate-800"
+                            className="text-sm font-bold leading-tight truncate text-white"
                         >
                             {displayTitle}
                         </span>
@@ -191,11 +189,11 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                                 {crumbs.map((crumb, i) => (
                                     <span key={i} className="flex items-center gap-1">
                                         {i > 0 && (
-                                            <ChevronRight size={10} className="text-slate-400" />
+                                            <ChevronRight size={10} className="text-white/80" />
                                         )}
                                         <Link
                                             href={crumb.href}
-                                            className="text-[11px] hover:underline transition-opacity opacity-75 hover:opacity-100 whitespace-nowrap text-slate-500 hover:text-slate-700"
+                                            className="text-[11px] hover:underline whitespace-nowrap text-white/95 hover:text-white"
                                         >
                                             {crumb.label}
                                         </Link>
@@ -203,9 +201,9 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                                 ))}
                                 {crumbs.length > 0 && (
                                     <>
-                                        <ChevronRight size={10} className="text-slate-400" />
+                                        <ChevronRight size={10} className="text-white/80" />
                                         <span
-                                            className="text-[11px] font-semibold whitespace-nowrap text-slate-700"
+                                            className="text-[11px] font-semibold whitespace-nowrap text-white"
                                         >
                                             {current}
                                         </span>
@@ -219,18 +217,18 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 {/* Right: usuario + logout */}
                 <div className="flex items-center gap-2 shrink-0">
                     <div
-                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-sm"
+                        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/15 border border-white/20 text-white text-sm"
                     >
-                        <User size={14} className="text-gray-400" />
+                        <User size={14} className="text-white/90" />
                         <span className="font-medium">{userName || 'Usuario'}</span>
                     </div>
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-black/15 hover:bg-black/25 border border-white/20 text-white hover:text-white transition-colors"
                         title={t('logout')}
                     >
-                        <LogOut size={15} className="text-gray-400" />
+                        <LogOut size={15} className="text-white/90" />
                         <span className="hidden sm:inline">{t('logout')}</span>
                     </button>
                 </div>

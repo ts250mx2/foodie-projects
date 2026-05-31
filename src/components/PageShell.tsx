@@ -67,25 +67,31 @@ export default function PageShell({
         <div className="flex flex-col min-h-full">
 
             {/* ── Page header (Floating Card) ─────────────────────────── */}
-            <div className="shrink-0 bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+            <div className="relative shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 overflow-hidden">
+
+                {/* Acento geométrico de marca (sutil, esquina derecha) */}
+                <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-[0.06]"
+                    style={{ backgroundColor: colors.colorFondo1 }}
+                />
 
                 {/* Left: icon + title + subtitle */}
-                <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                            {ResolvedIcon && (
-                                <ResolvedIcon
-                                    size={18}
-                                    className="shrink-0"
-                                    style={{ color: colors.colorFondo1 }}
-                                />
-                            )}
-                            <h1 className="text-[17px] font-semibold text-gray-900 leading-tight tracking-[-0.01em] truncate">
-                                {title}
-                            </h1>
+                <div className="relative z-10 flex items-center gap-3.5 min-w-0">
+                    {ResolvedIcon && (
+                        <div
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                            style={{ backgroundColor: 'var(--color-brand-yellow)' }}
+                        >
+                            <ResolvedIcon size={18} style={{ color: '#0a0a0a' }} />
                         </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                        <h1 className="brand-heading text-xl text-gray-900 truncate">
+                            {title}
+                        </h1>
                         {subtitle && (
-                            <p className="text-[12px] text-gray-400 mt-1 leading-tight truncate">
+                            <p className="text-[12px] text-gray-400 mt-0.5 leading-tight truncate">
                                 {subtitle}
                             </p>
                         )}
@@ -94,7 +100,7 @@ export default function PageShell({
 
                 {/* Right: action buttons */}
                 {actions && (
-                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <div className="relative z-10 flex items-center gap-2 shrink-0 flex-wrap">
                         {actions}
                     </div>
                 )}
@@ -143,7 +149,7 @@ export function StatCard({
     icon: Icon,
     trend,
     trendLabel,
-    color = '#7033ff',
+    color = '#3b3be8',
 }: {
     label: string;
     value: string | number;

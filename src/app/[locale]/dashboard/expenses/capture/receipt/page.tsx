@@ -131,7 +131,7 @@ export default function ReceiptCapturePage() {
 
     return (
         <PageShell title="Captura de Recibo" icon={Receipt} subtitle={t('subtitle')}>
-            <div className="flex flex-col bg-gray-50 max-w-md mx-auto">
+            <div className="flex flex-col max-w-md mx-auto">
 
             {!preview ? (
                 <div 

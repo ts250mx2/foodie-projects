@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface ThemeColors {
     colorFondo1: string;
@@ -13,10 +13,15 @@ interface ThemeContextType {
     setColors: (colors: ThemeColors) => void;
 }
 
+/**
+ * Identidad de marca Foodie Gurú (del PDF de propuesta de marca).
+ * Se removió la configuración de color primario por proyecto: ahora se usa
+ * SIEMPRE la paleta de marca para sidebar, headers y modales.
+ */
 const defaultColors: ThemeColors = {
-    colorFondo1: '#7033ff', // Primary
-    colorFondo2: '#0a0a0a', // Secondary
-    colorLetra: '#FFFFFF'   // White
+    colorFondo1: '#3b3be8', // Azul royal de marca (color primario)
+    colorFondo2: '#0a0a0a', // Negro de marca (secundario)
+    colorLetra: '#FFFFFF'   // Blanco
 };
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -27,36 +32,8 @@ const ThemeContext = createContext<ThemeContextType>({
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [colors, setColors] = useState<ThemeColors>(defaultColors);
 
-    useEffect(() => {
-        // Fetch project colors
-        const storedProject = localStorage.getItem('project');
-        if (storedProject) {
-            try {
-                const project = JSON.parse(storedProject);
-                if (project.idProyecto) {
-                    fetchProjectColors(project.idProyecto);
-                }
-            } catch (e) {
-                console.error('Error parsing project data', e);
-            }
-        }
-    }, []);
-
-    const fetchProjectColors = async (projectId: number) => {
-        try {
-            const response = await fetch(`/api/project-colors?projectId=${projectId}`);
-            const data = await response.json();
-            if (data.success) {
-                setColors({
-                    colorFondo1: data.colorFondo1 || defaultColors.colorFondo1,
-                    colorFondo2: data.colorFondo2 || defaultColors.colorFondo2,
-                    colorLetra: data.colorLetra || defaultColors.colorLetra
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching project colors:', error);
-        }
-    };
+    // Nota: la carga de colores por proyecto (fetchProjectColors) fue removida
+    // a propósito para aplicar la identidad de marca de forma consistente.
 
     return (
         <ThemeContext.Provider value={{ colors, setColors }}>

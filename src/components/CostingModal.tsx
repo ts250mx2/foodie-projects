@@ -1333,8 +1333,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         <div className={`fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[2px] ${isOpen ? '' : 'hidden'} ${zIndexClass}`}>
             <div className="bg-white w-[70vw] h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 fade-in duration-200">
                 {/* Compact Header */}
-                <div className="px-5 py-3" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
-                    <div className="flex justify-between items-center gap-4">
+                <div className="relative overflow-hidden px-5 py-3" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10 flex justify-between items-center gap-4">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                             {/* Product Type Label */}
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -1350,7 +1351,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                             </div>
 
                             {/* Product Name (Compact) */}
-                            <h1 className="text-lg font-bold leading-tight truncate">
+                            <h1 className="brand-heading text-lg font-bold leading-tight truncate">
                                 {product.Producto || 'Nuevo Producto'}
                             </h1>
                         </div>

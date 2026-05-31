@@ -548,6 +548,7 @@
         "employee": "Employee",
         "amount": "Payment Amount",
         "save": "Save",
+        "edit": "Edit",
         "cancel": "Cancel",
         "close": "Close",
         "total": "Total",

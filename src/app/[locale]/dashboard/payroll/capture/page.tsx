@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import PageShell from '@/components/PageShell';
-import { Banknote, X, Save, Plus, DollarSign, Users, Trash2, Gift, CreditCard, AlertTriangle, User } from 'lucide-react';
+import { Banknote, X, Save, Plus, DollarSign, Users, Trash2, Gift, CreditCard, AlertTriangle, User, Pencil, Check } from 'lucide-react';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell } from '@/components/ThemedGridHeader';
 
 interface Employee {
@@ -54,6 +54,13 @@ export default function PayrollCapturePage() {
     // Form state
     const [formData, setFormData] = useState({
         employeeId: '',
+        amount: '',
+        paymentType: 'PAGO NOMINA'
+    });
+
+    // Edit state
+    const [editingEmployeeId, setEditingEmployeeId] = useState<number | null>(null);
+    const [editFormData, setEditFormData] = useState({
         amount: '',
         paymentType: 'PAGO NOMINA'
     });
@@ -320,6 +327,67 @@ export default function PayrollCapturePage() {
         setFormData({ ...formData, amount: value });
     };
 
+    const handleStartEdit = (pay: PayrollEntry) => {
+        setEditingEmployeeId(pay.IdUsuario);
+        const absoluteAmount = Math.abs(pay.Pago);
+        setEditFormData({
+            amount: formatCurrency(absoluteAmount),
+            paymentType: pay.TipoPago || 'PAGO NOMINA'
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingEmployeeId(null);
+        setEditFormData({
+            amount: '',
+            paymentType: 'PAGO NOMINA'
+        });
+    };
+
+    const handleEditAmountBlur = () => {
+        const numericValue = parseFloat(editFormData.amount.replace(/[^0-9.-]+/g, '')) || 0;
+        setEditFormData({ ...editFormData, amount: formatCurrency(numericValue) });
+    };
+
+    const handleEditAmountFocus = () => {
+        const value = editFormData.amount.replace(/[^0-9.-]+/g, '');
+        setEditFormData({ ...editFormData, amount: value });
+    };
+
+    const handleSaveEdit = async (employeeId: number) => {
+        if (!selectedDate || !project || !selectedBranch || !editFormData.amount) return;
+
+        try {
+            const rawAmount = parseFloat(editFormData.amount.replace(/[^0-9.-]+/g, ''));
+            const finalAmount = editFormData.paymentType === 'PENALIZACION'
+                ? -Math.abs(rawAmount)
+                : Math.abs(rawAmount);
+
+            const response = await fetch('/api/payroll/daily', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    branchId: selectedBranch,
+                    day: selectedDate.getDate(),
+                    month: selectedDate.getMonth(),
+                    year: selectedDate.getFullYear(),
+                    employeeId,
+                    amount: finalAmount,
+                    paymentType: editFormData.paymentType
+                })
+            });
+
+            if (response.ok) {
+                setEditingEmployeeId(null);
+                await fetchDailyPayroll(selectedDate);
+                await fetchMonthlyPayroll();
+            }
+        } catch (error) {
+            console.error('Error updating payroll:', error);
+        }
+    };
+
     return (
         <PageShell
             title={t('title') || 'Captura de Nómina'}
@@ -367,7 +435,7 @@ export default function PayrollCapturePage() {
                 <div
                     className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         color: colors.colorLetra
                     }}
                 >
@@ -440,7 +508,7 @@ export default function PayrollCapturePage() {
                         {/* Header */}
                         <div
                             className="sticky top-0 z-20 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5 shrink-0"
-                            style={{ backgroundColor: colors.colorFondo1 }}
+                            style={{ backgroundColor: 'var(--color-brand-orange)' }}
                         >
                             <div className="flex flex-col gap-0.5 min-w-0">
                                 <h2 className="text-[15px] font-semibold leading-tight flex items-center gap-2" style={{ color: colors.colorLetra }}>
@@ -619,31 +687,95 @@ export default function PayrollCapturePage() {
                                         emptyMessage="Sin registros para este día"
                                         colSpan={4}
                                     >
-                                        {dailyPayroll.map((pay, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell>
-                                                    <span className="font-medium text-gray-900">{pay.Empleado}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-sm text-gray-600">{pay.TipoPago || 'Pago'}</span>
-                                                </TableCell>
-                                                <TableCell align="right">
-                                                    <span className={`font-bold ${pay.Pago < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
-                                                        {formatCurrency(pay.Pago)}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(pay.IdUsuario)}
-                                                        className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                                                        title="Eliminar"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {dailyPayroll.map((pay, idx) => {
+                                            const isEditing = editingEmployeeId === pay.IdUsuario;
+                                            return (
+                                                <TableRow key={idx}>
+                                                    <TableCell>
+                                                        <span className="font-medium text-gray-900">{pay.Empleado}</span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {isEditing ? (
+                                                            <select
+                                                                className="w-full p-1 bg-white border border-blue-200 rounded-lg text-sm outline-none font-semibold text-gray-700 transition-all"
+                                                                value={editFormData.paymentType}
+                                                                onChange={(e) => setEditFormData({ ...editFormData, paymentType: e.target.value })}
+                                                            >
+                                                                <option value="PAGO NOMINA">Pago</option>
+                                                                <option value="BONO">Bono</option>
+                                                                <option value="PRESTAMO">Préstamo</option>
+                                                                <option value="PENALIZACION">Penalización</option>
+                                                            </select>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-600">{pay.TipoPago || 'Pago'}</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        {isEditing ? (
+                                                            <input
+                                                                type="text"
+                                                                className={`w-28 p-1 bg-white border border-blue-200 rounded-lg text-sm text-right outline-none font-black transition-all ${editFormData.paymentType === 'PENALIZACION' ? 'text-rose-600' : 'text-gray-900'}`}
+                                                                value={editFormData.amount}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    if (/^[0-9.$,-]*$/.test(val)) {
+                                                                        setEditFormData({ ...editFormData, amount: val });
+                                                                    }
+                                                                }}
+                                                                onBlur={handleEditAmountBlur}
+                                                                onFocus={handleEditAmountFocus}
+                                                                required
+                                                            />
+                                                        ) : (
+                                                            <span className={`font-bold ${pay.Pago < 0 ? 'text-rose-600' : 'text-gray-900'}`}>
+                                                                {formatCurrency(pay.Pago)}
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        {isEditing ? (
+                                                            <div className="flex items-center justify-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveEdit(pay.IdUsuario)}
+                                                                    className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
+                                                                    title={tModal('save') || 'Guardar'}
+                                                                >
+                                                                    <Check size={16} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCancelEdit}
+                                                                    className="p-1.5 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors"
+                                                                    title={tModal('cancel') || 'Cancelar'}
+                                                                >
+                                                                    <X size={16} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center justify-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartEdit(pay)}
+                                                                    className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors"
+                                                                    title={tModal('edit') || 'Editar'}
+                                                                >
+                                                                    <Pencil size={16} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDelete(pay.IdUsuario)}
+                                                                    className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </table>
                             </div>

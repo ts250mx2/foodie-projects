@@ -453,7 +453,7 @@ export default function SalesCapturePage() {
             {/* Calendar */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                 {/* Header */}
-                <div className="grid grid-cols-7 gap-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                <div className="grid grid-cols-7 gap-0" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}>
                     {weekDays.map(day => (
                         <div key={day} className="py-4 px-2 text-center text-xs font-bold uppercase tracking-wider">
                             {t(`days.${day}`)}
@@ -525,7 +525,7 @@ export default function SalesCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
                         {/* Header */}
-                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}>
+                        <div className="px-6 pt-4 pb-0" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}>
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-0">

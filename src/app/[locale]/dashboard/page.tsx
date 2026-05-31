@@ -6,9 +6,10 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     Cell, PieChart, Pie, Legend
 } from 'recharts';
-import AiAgent from '@/components/dashboard/AiAgent';
 import PageShell from '@/components/PageShell';
-import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Branch {
     IdSucursal: number;
@@ -63,6 +64,11 @@ export default function DashboardPage() {
     const [lastInventoryYear, setLastInventoryYear] = useState<number | null>(null);
 
     const [isLoadingKpi, setIsLoadingKpi] = useState<boolean>(true);
+
+    // AI Summary modal
+    const [showAiSummary,   setShowAiSummary]   = useState(false);
+    const [aiSummaryText,   setAiSummaryText]   = useState('');
+    const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
 
     // KPI Detail state
     const [selectedKpi, setSelectedKpi] = useState<string | null>('sales');
@@ -139,6 +145,36 @@ export default function DashboardPage() {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             }
+        }
+    };
+
+    const handleAiSummary = async () => {
+        if (aiSummaryLoading) return;
+        setShowAiSummary(true);
+        setAiSummaryText('');
+        setAiSummaryLoading(true);
+        try {
+            const storedProject = JSON.parse(localStorage.getItem('project') || '{}');
+            const projectId = storedProject.idProyecto || storedProject.IdProyecto;
+            const branchObj  = branches.find(b => b.IdSucursal.toString() === selectedBranch);
+            const res = await fetch('/api/ai/dashboard-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    branchId: selectedBranch,
+                    month: selectedMonth,
+                    year: selectedYear,
+                    branchName: branchObj?.Sucursal || selectedBranch,
+                }),
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            setAiSummaryText(data.summary);
+        } catch (err: any) {
+            setAiSummaryText(`Error al generar el resumen: ${err.message}`);
+        } finally {
+            setAiSummaryLoading(false);
         }
     };
 
@@ -535,27 +571,6 @@ export default function DashboardPage() {
     const utilityPercent = 100 - totalActualPercent;
     const utilityAmount = totalSales - totalActualValue;
 
-    const dashboardDataContext = {
-        project,
-        period: { month: selectedMonth, year: selectedYear },
-        kpis: {
-            sales: { actual: totalSales, target: salesObjective },
-            payroll: { actual: totalPayroll, target: payrollObjective },
-            operatingExpense: { actual: totalOperatingExpense, target: operatingExpenseObjective },
-            rawMaterial: { actual: totalRawMaterial, target: rawMaterialObjective },
-            waste: { actual: totalWaste },
-            inventory: { 
-                actual: lastInventoryCost, 
-                date: lastInventoryDate,
-                day: lastInventoryDay,
-                month: lastInventoryMonth,
-                year: lastInventoryYear
-            }
-        },
-        branch: branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal || selectedBranch,
-        branchId: selectedBranch
-    };
-
     // Helper function for compact currency formatting
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('es-MX', {
@@ -594,13 +609,21 @@ export default function DashboardPage() {
                     <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium">
                         {years.map(year => <option key={year} value={year}>{year}</option>)}
                     </select>
+                    <button
+                        onClick={handleAiSummary}
+                        disabled={aiSummaryLoading || !selectedBranch}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Analizar todo el dashboard con Claude Opus 4.8"
+                    >
+                        <Sparkles size={14} className={aiSummaryLoading ? 'animate-spin' : ''} />
+                        {aiSummaryLoading ? 'Analizando...' : 'Resumir con IA'}
+                    </button>
                     <button onClick={toggleFullscreen} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors" title={isFullscreen ? 'Restaurar' : 'Maximizar'}>
                         {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                     </button>
                 </div>
             }
         >
-            <AiAgent dashboardData={dashboardDataContext} />
             {/* KPI Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 mt-4">
                 {/* Sales KPI Card */}
@@ -1755,6 +1778,73 @@ export default function DashboardPage() {
                 </div>
             )}
         </PageShell>
+
+        {/* ── AI Summary Modal ─────────────────────────────────────────── */}
+        {showAiSummary && (
+            <div className="fixed inset-0 z-[99998] flex items-center justify-center p-4" onClick={() => setShowAiSummary(false)}>
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                <div
+                    className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Modal header */}
+                    <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3 text-white">
+                            <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-lg">👨‍🍳</div>
+                            <div>
+                                <h2 className="font-black text-base">Resumen Ejecutivo con IA</h2>
+                                <p className="text-[10px] uppercase tracking-widest opacity-75 font-bold">
+                                    Análisis con Claude Opus 4.8 · {tPurchases(`months.${selectedMonth}`)} {selectedYear}
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowAiSummary(false)} className="p-2 rounded-xl hover:bg-white/10 text-white transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Modal body */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {aiSummaryLoading ? (
+                            <div className="flex flex-col items-center justify-center py-16 gap-4">
+                                <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center">
+                                    <Sparkles size={32} className="text-indigo-600 animate-pulse" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-slate-700">Analizando tu dashboard...</p>
+                                    <p className="text-sm text-slate-500 mt-1">Claude Opus 4.8 está revisando todos tus KPIs</p>
+                                </div>
+                                <div className="flex gap-1.5 mt-2">
+                                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
+                                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="prose prose-sm max-w-none prose-slate prose-headings:text-slate-800 prose-strong:text-indigo-700 prose-table:border prose-th:bg-slate-50 prose-th:p-2 prose-td:p-2 prose-p:leading-relaxed">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {aiSummaryText}
+                                </ReactMarkdown>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Modal footer */}
+                    {!aiSummaryLoading && aiSummaryText && (
+                        <div className="border-t border-slate-100 px-6 py-3 flex justify-between items-center bg-slate-50 shrink-0">
+                            <p className="text-[11px] text-slate-400 font-medium">Generado con Claude Opus 4.8 · Verifica cifras importantes</p>
+                            <button
+                                onClick={handleAiSummary}
+                                className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+                            >
+                                <Sparkles size={13} />
+                                Regenerar
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
         </div>
     );
 }

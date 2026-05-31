@@ -227,7 +227,7 @@ export default function ScheduleTimelineModal({
                 {/* Header */}
                 <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">{t('title')}</h2>
+                        <h2 className="brand-heading text-lg font-bold text-gray-800">{t('title')}</h2>
                         <p className="text-sm text-gray-500">Semana del {currentWeekStart.toLocaleDateString()} (15 min intervals)</p>
                     </div>
 

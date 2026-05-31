@@ -165,7 +165,7 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
     if (!isOpen && !isTabMode) return null;
 
     const content = (
-        <div className={isTabMode ? "" : "bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"}>
+        <div className={isTabMode ? "" : "bg-white rounded-2xl p-6 w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"}>
             <input
                 type="file"
                 ref={fileInputRef}
@@ -176,7 +176,7 @@ export default function BranchDocumentsModal({ isOpen, onClose, branchId, branch
 
             {!isTabMode && (
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">Documentos - {branchName}</h2>
+                    <h2 className="brand-heading text-lg font-bold text-gray-800">Documentos - {branchName}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
             )}

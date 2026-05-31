@@ -580,6 +580,8 @@
         "amount": "Monto",
         "select": "Seleccionar...",
         "save": "Guardar",
+        "edit": "Editar",
+        "cancel": "Cancelar",
         "total": "Total",
         "new": "Nuevo",
         "close": "Cerrar"

@@ -206,7 +206,7 @@ export default function ProductionCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         backgroundImage: 'none',
                         color: colors.colorLetra
                     }}

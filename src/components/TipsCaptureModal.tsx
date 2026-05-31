@@ -265,14 +265,15 @@ export default function TipsCaptureModal({ isOpen, onClose, date, branchId, proj
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                    <div>
-                        <h2 className="text-2xl font-black">{t('title')}</h2>
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white relative overflow-hidden" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10">
+                        <h2 className="brand-heading text-lg font-black">{t('title')}</h2>
                         <p className="text-sm font-medium opacity-90">{date.toLocaleDateString()}</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
+                        className="relative z-10 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-all font-bold text-xl"
                     >
                         ✕
                     </button>

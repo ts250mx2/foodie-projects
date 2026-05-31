@@ -579,7 +579,7 @@ export default function ExpensesCapturePage() {
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
     const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-    const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (exp.Gasto || 0), 0);
+    const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (parseFloat(exp.Total || exp.Gasto) || 0), 0);
 
     return (
         <PageShell title="Captura de Gastos" icon={CreditCard} actions={<div className="flex items-center gap-3 flex-wrap">
@@ -631,7 +631,7 @@ export default function ExpensesCapturePage() {
                 <div
                     className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         color: colors.colorLetra
                     }}
                 >
@@ -718,7 +718,7 @@ export default function ExpensesCapturePage() {
                         {/* Header */}
                         <div
                             className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
-                            style={{ backgroundColor: colors.colorFondo1 }}
+                            style={{ backgroundColor: 'var(--color-brand-orange)' }}
                         >
                             <div className="flex flex-col gap-0.5 min-w-0">
                                 <h2
@@ -1126,7 +1126,7 @@ export default function ExpensesCapturePage() {
             {isDetailModalOpen && activeExpense && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[520] p-4 backdrop-blur-sm shadow-2xl">
                     <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
                                 <h3 className="text-xl font-black flex items-center gap-2"><FileTextIcon size={24} /> {tDetailsModal('title')}</h3>
                                 <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-1">
@@ -1264,7 +1264,7 @@ export default function ExpensesCapturePage() {
             {isSupplierModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[510] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
                             <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Building2 size={24} /> Nuevo Proveedor</h3>
                             <button onClick={() => setIsSupplierModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all"><X size={20} strokeWidth={2} /></button>
                         </div>
@@ -1297,7 +1297,7 @@ export default function ExpensesCapturePage() {
             {isConceptModalOpen && (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[510] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
                             <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2"><Tag size={24} /> Nuevo Concepto</h3>
                             <button onClick={() => setIsConceptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-all"><X size={20} strokeWidth={2} /></button>
                         </div>

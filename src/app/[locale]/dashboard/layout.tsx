@@ -2,8 +2,10 @@
 
 import Header from '@/components/dashboard/Header';
 import Sidebar from '@/components/dashboard/Sidebar';
+import AiAgent from '@/components/dashboard/AiAgent';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ReactNode, useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
     children,
@@ -13,16 +15,15 @@ export default function DashboardLayout({
     params: Promise<{ locale: string }>
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const pathname = usePathname();
 
     useEffect(() => {
-        // Initialize date filters if not done in this session
         const initialized = sessionStorage.getItem('dateFiltersInitialized');
         if (!initialized) {
             const now = new Date();
             localStorage.setItem('lastSelectedMonth', now.getMonth().toString());
             localStorage.setItem('lastSelectedYear', now.getFullYear().toString());
-            
-            // Clean up old specific keys to ensure migration to unified keys
+
             const oldKeys = [
                 'dashboardSelectedMonth', 'dashboardSelectedYear',
                 'lastSelectedMonthInventory', 'lastSelectedYearInventory',
@@ -31,30 +32,31 @@ export default function DashboardLayout({
                 'lastSelectedMonthPayroll', 'lastSelectedYearPayroll'
             ];
             oldKeys.forEach(key => localStorage.removeItem(key));
-            
+
             sessionStorage.setItem('dateFiltersInitialized', 'true');
         }
     }, []);
 
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
-    };
+    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
+    // Don't show floating widget on the dedicated agent page
+    const isAgentePage = pathname?.includes('/dashboard/agente');
 
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-                {/* Header is fixed at top */}
-                <Header userName="" onToggleSidebar={toggleSidebar} /> {/* UserName is fetched inside Header from localStorage */}
+            <div className="min-h-screen bg-brand-cream flex flex-col">
+                <Header userName="" onToggleSidebar={toggleSidebar} />
 
                 <div className="flex flex-1 pt-16">
-                    {/* Sidebar is fixed at left */}
                     <Sidebar isCollapsed={isCollapsed} onExpand={() => setIsCollapsed(false)} />
 
-                    {/* Main Content Area */}
                     <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} px-8 pt-4 pb-8 transition-all duration-300`}>
                         {children}
                     </main>
                 </div>
+
+                {/* Floating agent on all pages except the dedicated agent page */}
+                {!isAgentePage && <AiAgent mode="floating" />}
             </div>
         </ThemeProvider>
     );

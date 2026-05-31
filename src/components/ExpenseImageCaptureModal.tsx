@@ -473,7 +473,7 @@ export default function ExpenseImageCaptureModal({
                 {/* Header */}
                 <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                        <h2 className="brand-heading text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
                             <span className="bg-red-600 text-white p-2 rounded-xl shadow-lg">📸</span>
                             {step === 'register' ? 'Confirmar gasto por imagen' : 'Captura de Gasto por Imagen'}
                         </h2>

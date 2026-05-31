@@ -97,11 +97,12 @@ export default function ProductionDetailModal({ isOpen, onClose, productionItem,
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[520]">
-            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
-                    <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2">
+                <div className="relative overflow-hidden flex justify-between items-center p-4 border-b border-gray-200 text-white rounded-t-lg" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10">
+                        <h2 className="brand-heading text-lg font-bold flex items-center gap-2">
                             <FileText size={20} /> Detalle de Producción
                         </h2>
                         <div className="text-sm opacity-90 mt-1">

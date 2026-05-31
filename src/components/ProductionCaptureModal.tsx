@@ -181,12 +181,13 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
             <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col shadow-2xl transition-all">
                 {/* Header */}
                 <div
-                    className="sticky top-0 z-20 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5 shrink-0"
-                    style={{ backgroundColor: colors.colorFondo1 }}
+                    className="relative overflow-hidden sticky top-0 z-20 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5 shrink-0"
+                    style={{ backgroundColor: 'var(--color-brand-orange)' }}
                 >
-                    <div className="flex flex-col gap-0.5 min-w-0">
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10 flex flex-col gap-0.5 min-w-0">
                         <h2
-                            className="text-[15px] font-semibold leading-tight flex items-center gap-2"
+                            className="brand-heading text-[15px] font-semibold leading-tight flex items-center gap-2"
                             style={{ color: colors.colorLetra }}
                         >
                             <ChefHat size={16} /> {t('title') || 'Captura de Producción'}
@@ -202,7 +203,7 @@ export default function ProductionCaptureModal({ isOpen, onClose, date, projectI
                     <button
                         onClick={onClose}
                         aria-label="Cerrar"
-                        className="shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
+                        className="relative z-10 shrink-0 mt-0.5 p-1.5 rounded-lg active:scale-95 transition-all duration-100 hover:bg-white/10"
                         style={{ color: colors.colorLetra }}
                     >
                         <X size={16} strokeWidth={2} />

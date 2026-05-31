@@ -582,7 +582,7 @@ export default function SchedulesPage() {
                         <thead>
                             <tr
                                 style={{
-                                    backgroundColor: colors.colorFondo1,
+                                    backgroundColor: 'var(--color-brand-orange)',
                                     backgroundImage: 'none',
                                     color: colors.colorLetra
                                 }}

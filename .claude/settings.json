@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"import json; d=json.load\\(open\\(r'C:\\\\Users\\\\Ruben\\\\Documents\\\\Antigravity Projects\\\\foodie-projects\\\\messages\\\\es.json', encoding='utf-8'\\)\\); print\\(json.dumps\\(d.get\\('Navigation', {}\\), indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Ruben\\\\Documents\\\\Antigravity Projects\\\\foodie-projects\\\\src\\\\app\\\\[locale]\\\\dashboard\\\\agente\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Ruben\\Documents\\Antigravity Projects\\foodie-projects\\src\\app\\[locale]\\dashboard"
     ]
   }
 }

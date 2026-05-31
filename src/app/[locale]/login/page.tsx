@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
-import BrandLogo from '@/components/BrandLogo';
 import AuthFooter from '@/components/AuthFooter';
-import { useTranslations } from 'next-intl';
+import GeoShape from '@/components/brand/GeoShape';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function LoginPage() {
-    const router = useRouter();
     const t = useTranslations('Auth');
+    const locale = useLocale();
     const [formData, setFormData] = useState({
         identifier: '',
         password: '',
@@ -42,7 +42,9 @@ export default function LoginPage() {
                     localStorage.setItem('project', JSON.stringify(data.project));
                 }
                 localStorage.setItem('user', JSON.stringify(data.user));
-                setTimeout(() => router.push('/dashboard'), 1000);
+                setTimeout(() => {
+                    window.location.href = `/${locale}/dashboard`;
+                }, 1000);
             } else {
                 // Map server error messages to translations if possible, or fallback
                 let errorMsg = data.message;
@@ -54,87 +56,149 @@ export default function LoginPage() {
 
                 if (data.errors) {
                     const newErrors: Record<string, string> = {};
-                    data.errors.forEach((error: any) => {
+                    data.errors.forEach((error: { path: (string | number)[]; message: string }) => {
                         newErrors[error.path[0]] = error.message;
                     });
                     setErrors(newErrors);
                 }
             }
-        } catch (error) {
+        } catch {
             setMessage(t('connectionError'));
         } finally {
             setIsLoading(false);
         }
     };
 
+    const isSuccess = message.includes('exitoso');
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-pink-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Logo/Title */}
-                <BrandLogo subtitle={t('loginTitle')} size="md" />
+        <div className="min-h-screen flex bg-brand-cream">
+            {/* ───────────────────── Panel de marca (desktop) ───────────────────── */}
+            <aside className="relative hidden lg:flex lg:w-1/2 overflow-hidden bg-brand-blue">
+                {/* Composición Bauhaus */}
+                <GeoShape variant="half-bottom" color="var(--color-brand-green)" size={360} className="absolute -top-12 -left-16" />
+                <GeoShape variant="donut" color="var(--color-brand-yellow)" size={96} ring={18} className="absolute top-20 right-24" />
+                <GeoShape variant="quarter-br" color="var(--color-brand-yellow)" size={200} className="absolute top-1/2 right-0 -translate-y-1/2" />
+                <GeoShape variant="circle" color="var(--color-brand-orange)" size={128} className="absolute bottom-28 left-24" />
+                <GeoShape variant="half-top" color="var(--color-brand-green)" size={280} className="absolute -bottom-12 right-12" />
 
-                {/* Login Card */}
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <Input
-                            label={t('identifier')}
-                            type="text"
-                            value={formData.identifier}
-                            onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                            error={errors.identifier}
-                            required
-                            placeholder={t('identifier')}
-                        />
+                {/* Contenido */}
+                <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
+                    <span className="brand-wordmark text-2xl text-white">
+                        Foodie Gurú<sup className="text-[0.5em] align-super">®</sup>
+                    </span>
 
-                        <Input
-                            label={t('password')}
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            error={errors.password}
-                            required
-                            placeholder="••••••••"
-                        />
-
-                        <div className="flex justify-end">
-                            <Link href="/forgot-password" className="text-sm text-primary-500 hover:text-primary-600 font-medium hover:underline">
-                                {t('forgotPassword') || '¿Olvidaste tu contraseña?'}
-                            </Link>
-                        </div>
-
-                        {message && (
-                            <div className={`p-4 rounded-lg ${message.includes('exitoso')
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                }`}>
-                                {message}
-                            </div>
-                        )}
-
-                        <Button type="submit" isLoading={isLoading} className="w-full">
-                            {t('submitLogin')}
-                        </Button>
-                    </form>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-gray-600 dark:text-gray-400">
-                            {t('noAccount')}{' '}
-                            <Link href="/register" className="text-primary-500 hover:text-primary-600 font-medium transition-colors">
-                                {t('registerLink')}
-                            </Link>
+                    <div>
+                        <h2 className="brand-display text-6xl xl:text-7xl text-white drop-shadow-sm">
+                            Ser<br />Restaurantero<br />es un arte
+                        </h2>
+                        <p className="mt-6 max-w-xs font-brand text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
+                            Para romper las reglas<br />hay que conocerlas
                         </p>
                     </div>
-                </div>
 
-                {/* Back to Home */}
-                <div className="mt-6 text-center">
-                    <Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">
-                        ← {t('backToHome')}
-                    </Link>
+                    <span className="font-brand text-[11px] font-medium uppercase tracking-[0.25em] text-white/60">
+                        Despacho de consultoría de restaurantes
+                    </span>
                 </div>
+            </aside>
 
-                <AuthFooter />
-            </div>
+            {/* ───────────────────── Panel del formulario ───────────────────── */}
+            <main className="relative flex w-full items-center justify-center overflow-hidden p-6 sm:p-10 lg:w-1/2">
+                {/* Acento geométrico (sutil, visible sobre todo en móvil) */}
+                <GeoShape variant="quarter-tr" color="var(--color-brand-yellow)" size={140} className="absolute right-0 top-0 opacity-90 lg:opacity-40" />
+                <GeoShape variant="circle" color="var(--color-brand-blue)" size={72} className="absolute bottom-8 left-8 opacity-80 lg:hidden" />
+
+                <div className="relative z-10 w-full max-w-md">
+                    {/* Encabezado / logo */}
+                    <div className="mb-8 flex flex-col items-center text-center">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md">
+                            <Image
+                                src="/images/foodie-guru-logo.png"
+                                alt="Foodie Gurú"
+                                width={48}
+                                height={48}
+                                priority
+                                className="object-contain"
+                            />
+                        </div>
+                        <h1 className="brand-display text-3xl text-brand-black">
+                            Bienvenido
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-500">{t('loginTitle')}</p>
+                    </div>
+
+                    {/* Tarjeta del formulario */}
+                    <div className="rounded-3xl border border-black/5 bg-white p-8 shadow-xl shadow-brand-blue/5">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <Input
+                                label={t('identifier')}
+                                type="text"
+                                value={formData.identifier}
+                                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                                error={errors.identifier}
+                                required
+                                placeholder={t('identifier')}
+                            />
+
+                            <Input
+                                label={t('password')}
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                error={errors.password}
+                                required
+                                placeholder="••••••••"
+                            />
+
+                            <div className="flex justify-end">
+                                <Link href="/forgot-password" className="text-sm font-medium text-brand-blue hover:underline">
+                                    {t('forgotPassword') || '¿Olvidaste tu contraseña?'}
+                                </Link>
+                            </div>
+
+                            {message && (
+                                <div
+                                    className={`rounded-xl p-4 text-sm font-medium ${
+                                        isSuccess
+                                            ? 'bg-brand-green/10 text-brand-green'
+                                            : 'bg-brand-orange/10 text-brand-orange'
+                                    }`}
+                                >
+                                    {message}
+                                </div>
+                            )}
+
+                            <Button
+                                type="submit"
+                                isLoading={isLoading}
+                                className="w-full !h-12 !rounded-xl !text-base font-bold uppercase tracking-wide"
+                                style={{ background: 'var(--color-brand-orange)', color: '#fff' }}
+                            >
+                                {t('submitLogin')}
+                            </Button>
+                        </form>
+
+                        <div className="mt-6 text-center">
+                            <p className="text-sm text-gray-600">
+                                {t('noAccount')}{' '}
+                                <Link href="/register" className="font-semibold text-brand-blue transition-colors hover:underline">
+                                    {t('registerLink')}
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Volver al inicio */}
+                    <div className="mt-6 text-center">
+                        <Link href="/" className="text-sm text-gray-500 transition-colors hover:text-brand-blue">
+                            ← {t('backToHome')}
+                        </Link>
+                    </div>
+
+                    <AuthFooter />
+                </div>
+            </main>
         </div>
     );
 }

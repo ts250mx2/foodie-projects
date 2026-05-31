@@ -44,7 +44,9 @@ import {
     Layers,
     Camera,
     Files,
+    Sparkles,
 } from 'lucide-react';
+import GeoShape from '@/components/brand/GeoShape';
 
 type MenuItem = {
     key: string;
@@ -219,7 +221,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                     title={isCollapsed ? t('dashboard') : ''}
                     className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
                         ${pathname === `/${locale}/dashboard`
-                            ? 'bg-white font-semibold shadow-md'
+                            ? 'bg-brand-cream font-semibold shadow-md'
                             : 'hover:bg-white/10 font-medium text-white/80 hover:text-white'
                         }
                         ${isCollapsed ? 'justify-center' : ''}
@@ -230,6 +232,32 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                 >
                     <LayoutDashboard size={18} className="shrink-0" />
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
+                </Link>
+
+                {/* Agente Foodie Guru link */}
+                <Link
+                    href={`/${locale}/dashboard/agente`}
+                    title={isCollapsed ? 'Agente Foodie Guru' : ''}
+                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
+                        ${pathname === `/${locale}/dashboard/agente`
+                            ? 'bg-brand-cream font-semibold shadow-md'
+                            : 'hover:bg-white/10 font-medium text-white/80 hover:text-white'
+                        }
+                        ${isCollapsed ? 'justify-center' : ''}
+                    `}
+                    style={{
+                        color: pathname === `/${locale}/dashboard/agente` ? colors.colorFondo1 : '#ffffff',
+                    }}
+                >
+                    <Sparkles size={18} className="shrink-0" />
+                    {!isCollapsed && (
+                        <span className="text-sm flex items-center gap-2">
+                            Agente Foodie Guru
+                            <span className="text-[9px] font-black uppercase tracking-widest bg-white/20 px-1.5 py-0.5 rounded-full">
+                                IA
+                            </span>
+                        </span>
+                    )}
                 </Link>
 
                 {/* Divisor */}
@@ -262,7 +290,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 <div className="flex items-center gap-3">
                                     <SectionIcon size={18} className="shrink-0" />
                                     {!isCollapsed && (
-                                        <span className="text-sm font-medium">{t(section.title)}</span>
+                                        <span className="text-sm font-brand font-bold uppercase tracking-wide">{t(section.title)}</span>
                                     )}
                                 </div>
                                 {!isCollapsed && (
@@ -274,7 +302,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                             </button>
 
                             {/* Items de la sección */}
-                            {!isCollapsed && (
+                             {!isCollapsed && (
                                 <div
                                     className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
                                 >
@@ -288,7 +316,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                         href={`/${locale}${item.href}`}
                                                         className={`relative flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-150
                                                             ${isActive
-                                                                ? 'bg-white font-semibold shadow-md'
+                                                                ? 'bg-brand-cream font-semibold shadow-md'
                                                                 : 'hover:bg-white/10 text-white/80 hover:text-white font-medium'
                                                             }
                                                         `}
@@ -312,11 +340,18 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
             {/* Footer: logo + copyright + links */}
             <div
-                className="shrink-0 px-3 py-2.5 border-t border-white/10"
+                className="relative shrink-0 overflow-hidden px-3 py-2.5 border-t border-white/10"
                 style={{ backgroundColor: colors.colorFondo1 }}
             >
+                {/* Acento Bauhaus de marca */}
+                <GeoShape
+                    variant="quarter-br"
+                    color="var(--color-brand-yellow)"
+                    size={60}
+                    className="absolute -bottom-1 -right-1 opacity-25"
+                />
                 {isCollapsed ? (
-                    <div className="flex justify-center" title="© Foodie Guru">
+                    <div className="relative z-10 flex justify-center" title="© Foodie Guru">
                         <Image
                             src="/images/foodie-guru-logo.png"
                             alt="Foodie Guru"
@@ -326,7 +361,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                         />
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2.5">
+                    <div className="relative z-10 flex items-center gap-2.5">
                         <Image
                             src="/images/foodie-guru-logo.png"
                             alt="Foodie Guru"

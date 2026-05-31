@@ -39,9 +39,9 @@ export default function ProductSearchModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-                <div className="bg-blue-500 text-white px-6 py-4 flex justify-between items-center">
-                    <h3 className="text-xl font-bold">{title}</h3>
+            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="text-white px-6 py-4 flex justify-between items-center" style={{ backgroundColor: 'var(--color-brand-orange)' }}>
+                    <h3 className="brand-heading text-lg font-bold">{title}</h3>
                     <button
                         onClick={onClose}
                         className="text-white hover:bg-white/20 rounded-full p-2"

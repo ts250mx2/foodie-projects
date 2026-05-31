@@ -1,231 +1,531 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { usePathname, useRouter, useParams } from 'next/navigation';
+import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight } from 'lucide-react';
 
 interface Message {
     role: 'user' | 'assistant';
     content: string;
-    sql?: string;
+    clarification?: { question: string; suggestions: string[] };
+    ts?: number;
 }
+
+type ClaudeModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001';
+
+const CLAUDE_MODELS: { id: ClaudeModel; label: string; badge: string }[] = [
+    { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6', badge: '⚡' },
+    { id: 'claude-opus-4-8',           label: 'Opus 4.8',   badge: '🧠' },
+    { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  badge: '🪶' },
+];
+
+const CHAT_STORAGE_KEY = 'foodie-guru-chat-v2';
 
 interface AiAgentProps {
-    dashboardData: any;
+    mode?: 'floating' | 'embedded';
+    dashboardData?: any;
 }
 
-const FoodieGuruIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-    <span className={className}>👨‍🍳</span>
-);
+// ─── Page suggestions ─────────────────────────────────────────────────────────
+const PAGE_SUGGESTIONS: Record<string, string[]> = {
+    '/dashboard/sales': [
+        '¿Cuáles son mis ventas por canal de venta este mes?',
+        '¿Qué forma de pago genera más venta?',
+        '¿Qué turno concentra más ventas?',
+        '¿Cuánta comisión acumulé en canales de venta este mes?',
+    ],
+    '/dashboard/expenses': [
+        '¿Cuáles son mis conceptos de gasto más altos?',
+        '¿Cuánto gasté en comisiones de canales de venta?',
+        '¿Cómo comparan mis gastos este mes vs el anterior?',
+    ],
+    '/dashboard/purchases': [
+        '¿Cuáles son mis proveedores con mayor gasto este mes?',
+        '¿Cuánto he invertido en compras este mes?',
+        '¿Qué productos compro más frecuentemente?',
+    ],
+    '/dashboard/inventories': [
+        '¿Qué productos tienen mayor consumo este mes?',
+        '¿Qué productos están por debajo del mínimo?',
+        '¿Cuál es el valor estimado de mi inventario?',
+    ],
+    '/dashboard/payroll': [
+        '¿Cuánto pagué de nómina este mes?',
+        '¿Cuál es mi costo de nómina por sucursal?',
+        '¿Qué empleados tienen mayor pago acumulado?',
+    ],
+    '/dashboard/production': [
+        '¿Cuáles son mis platillos más producidos este mes?',
+        '¿Cuál es el costo de materia prima de mi producción?',
+        '¿Qué recetas tienen mayor costo?',
+    ],
+    '/dashboard': [
+        '¿Cuánto vendimos este mes vs el mes pasado?',
+        '¿Cuáles son mis gastos más grandes este mes?',
+        '¿Cuál es mi utilidad estimada este mes?',
+        '¿Cómo va mi nómina vs ventas este mes?',
+    ],
+};
 
-export default function AiAgent({ dashboardData }: AiAgentProps) {
-    useEffect(() => {
-        console.log("AiAgent Mounted with data:", dashboardData);
-    }, [dashboardData]);
+function getPageSuggestions(pathname: string): string[] {
+    const segments = [
+        '/dashboard/sales', '/dashboard/expenses', '/dashboard/purchases',
+        '/dashboard/inventories', '/dashboard/payroll', '/dashboard/production',
+    ];
+    for (const seg of segments) {
+        if (pathname.includes(seg)) return PAGE_SUGGESTIONS[seg];
+    }
+    return PAGE_SUGGESTIONS['/dashboard'];
+}
 
-    const [isOpen, setIsOpen] = useState(false);
-    const [isMaximized, setIsMaximized] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [modelType, setModelType] = useState<'gpt-4o' | 'claude'>('gpt-4o');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+function getContextFromLocalStorage() {
+    if (typeof window === 'undefined') return {};
+    try {
+        const project  = JSON.parse(localStorage.getItem('project') || '{}');
+        const branchId = localStorage.getItem('dashboardSelectedBranch') || '';
+        const rawMonth = localStorage.getItem('lastSelectedMonth');
+        const rawYear  = localStorage.getItem('lastSelectedYear');
+        const now      = new Date();
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // Convert 0-indexed JS month → 1-indexed for DB
+        const dashboardMonth = rawMonth !== null
+            ? parseInt(rawMonth) + 1
+            : now.getMonth() + 1;
+        const dashboardYear = rawYear ? parseInt(rawYear) : now.getFullYear();
+
+        return {
+            project,
+            branchId,
+            dashboardMonth,   // 1-indexed, already ready for SQL
+            dashboardYear,
+            todayMonth: now.getMonth() + 1,  // 1-indexed
+            todayYear:  now.getFullYear(),
+            todayISO:   now.toISOString().split('T')[0],
+        };
+    } catch {
+        return {};
+    }
+}
+
+// ─── Typing animation ─────────────────────────────────────────────────────────
+function TypingIndicator() {
+    return (
+        <div className="flex items-center gap-1 px-1 py-0.5">
+            {[0, 1, 2].map(i => (
+                <span
+                    key={i}
+                    className="w-2 h-2 rounded-full bg-indigo-400"
+                    style={{ animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
+                />
+            ))}
+        </div>
+    );
+}
+
+// ─── ChatPanel ────────────────────────────────────────────────────────────────
+function ChatPanel({
+    messages, isLoading, input, setInput, handleSend,
+    model, setModel, onClear, onMaximize, onClose,
+    isMaximized, mode, suggestions, messagesEndRef,
+}: {
+    messages: Message[];
+    isLoading: boolean;
+    input: string;
+    setInput: (v: string) => void;
+    handleSend: (e: React.FormEvent) => void;
+    model: ClaudeModel;
+    setModel: (v: ClaudeModel) => void;
+    onClear: () => void;
+    onMaximize?: () => void;
+    onClose?: () => void;
+    isMaximized?: boolean;
+    mode: 'floating' | 'embedded';
+    suggestions: string[];
+    messagesEndRef: React.RefObject<HTMLDivElement | null>;
+}) {
+    const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
+
+    const sendSuggestion = (text: string) => {
+        setInput(text);
+        setTimeout(() => {
+            (document.getElementById('agent-chat-form') as HTMLFormElement)?.requestSubmit();
+        }, 0);
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isMaximized]);
+    return (
+        <div className="flex flex-col h-full overflow-hidden" style={{ background: '#f8f9fd' }}>
 
-    const handleSend = async (e: React.FormEvent) => {
+            {/* ── Header ───────────────────────────────────────────────────── */}
+            <div className="shrink-0 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%)' }}>
+                {/* decorative circles */}
+                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
+                <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/5" />
+
+                <div className="relative px-4 py-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className="relative">
+                            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
+                                👨‍🍳
+                            </div>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white/30" />
+                        </div>
+                        <div>
+                            <p className="text-white font-bold text-sm leading-tight">Agente Foodie Guru</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-white/60 text-[10px] font-medium">
+                                    {currentModelInfo.badge} {currentModelInfo.label}
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-white/30" />
+                                <span className="text-emerald-300 text-[10px] font-bold">En línea</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        {/* Model picker */}
+                        <select
+                            value={model}
+                            onChange={e => setModel(e.target.value as ClaudeModel)}
+                            className="text-[10px] font-bold bg-white/10 border border-white/20 text-white rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-white/20 transition-all"
+                        >
+                            {CLAUDE_MODELS.map(m => (
+                                <option key={m.id} value={m.id} className="text-slate-800 bg-white">
+                                    {m.badge} {m.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        <button onClick={onClear} title="Nueva conversación"
+                            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                            <Trash2 size={14} />
+                        </button>
+
+                        {onMaximize && (
+                            <button onClick={onMaximize} title={isMaximized ? 'Restaurar' : 'Maximizar'}
+                                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                                {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                            </button>
+                        )}
+
+                        {onClose && (
+                            <button onClick={onClose} title="Cerrar"
+                                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Messages area ─────────────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto scroll-smooth px-4 py-4 space-y-5">
+
+                {/* Empty state */}
+                {messages.length === 0 && (
+                    <div className="animate-in fade-in zoom-in-95 duration-500 pt-4">
+                        {/* Hero */}
+                        <div className="text-center mb-6">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-4 shadow-lg"
+                                style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)' }}>
+                                <span className="text-4xl">👨‍🍳</span>
+                            </div>
+                            <h3 className="font-black text-slate-800 text-base">"Tu éxito se cocina aquí"</h3>
+                            <p className="text-slate-500 text-xs mt-2 leading-relaxed max-w-xs mx-auto">
+                                Soy tu consultor de rentabilidad restaurantera con acceso en tiempo real a tus datos.
+                                Pregúntame cualquier cosa.
+                            </p>
+                        </div>
+
+                        {/* Suggestions */}
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">
+                                Sugerencias para esta sección
+                            </p>
+                            {suggestions.map((s, i) => (
+                                <button key={i} onClick={() => sendSuggestion(s)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-700 text-sm font-medium transition-all duration-150 shadow-sm hover:shadow-md group text-left">
+                                    <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-400 shrink-0 transition-colors" />
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Info pill */}
+                        <div className="flex items-center justify-center gap-2 mt-6">
+                            <Sparkles size={11} className="text-indigo-400" />
+                            <span className="text-[10px] text-slate-400 font-medium">
+                                Potenciado por Claude AI · {currentModelInfo.label}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Messages */}
+                {messages.map((msg, idx) => (
+                    <div key={idx} className={`flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`flex gap-2.5 max-w-[88%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                            {/* Avatar */}
+                            {msg.role === 'assistant' && (
+                                <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm"
+                                    style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)' }}>
+                                    👨‍🍳
+                                </div>
+                            )}
+
+                            {/* Bubble */}
+                            <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                                msg.role === 'user'
+                                    ? 'text-white rounded-tr-sm font-medium'
+                                    : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm'
+                            }`}
+                            style={msg.role === 'user' ? {
+                                background: 'linear-gradient(135deg, #4f46e5, #6d28d9)',
+                            } : {}}>
+                                {msg.role === 'assistant' ? (
+                                    <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-indigo-700 prose-strong:font-bold prose-table:text-xs prose-table:border-collapse prose-th:bg-indigo-50 prose-th:text-indigo-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-indigo-100 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-indigo-700">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {msg.content}
+                                        </ReactMarkdown>
+                                    </div>
+                                ) : msg.content}
+                            </div>
+                        </div>
+
+                        {/* Clarification chips */}
+                        {msg.role === 'assistant' && msg.clarification?.suggestions && (
+                            <div className="ml-9 flex flex-wrap gap-2">
+                                {msg.clarification.suggestions.map((s, si) => (
+                                    <button key={si} onClick={() => sendSuggestion(s)}
+                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95"
+                                        style={{ borderColor: '#c7d2fe', background: '#eef2ff', color: '#4338ca' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#e0e7ff'; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#eef2ff'; }}>
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+                {/* Loading */}
+                {isLoading && (
+                    <div className="flex items-start gap-2.5 animate-in fade-in duration-300">
+                        <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-sm shadow-sm"
+                            style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)' }}>
+                            👨‍🍳
+                        </div>
+                        <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                            <TypingIndicator />
+                        </div>
+                    </div>
+                )}
+
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* ── Input ─────────────────────────────────────────────────────── */}
+            <div className="shrink-0 px-4 pb-4 pt-2 bg-white/80 backdrop-blur-sm border-t border-slate-100">
+                <form id="agent-chat-form" onSubmit={handleSend}>
+                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-indigo-400 focus-within:shadow-md focus-within:shadow-indigo-100/50 transition-all">
+                        <Bot size={16} className="text-slate-300 shrink-0" />
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            placeholder="Pregunta sobre tu negocio..."
+                            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none font-medium min-w-0"
+                            disabled={isLoading}
+                        />
+                        <button type="submit" disabled={isLoading || !input.trim()}
+                            className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={!isLoading && input.trim()
+                                ? { background: 'linear-gradient(135deg, #4f46e5, #6d28d9)', color: 'white' }
+                                : { background: '#f1f5f9', color: '#94a3b8' }}>
+                            <Send size={14} />
+                        </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
+                        Puede cometer errores · Verifica cifras importantes
+                    </p>
+                </form>
+            </div>
+
+            <style jsx global>{`
+                @keyframes bounce {
+                    0%, 60%, 100% { transform: translateY(0); }
+                    30% { transform: translateY(-6px); }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentProps) {
+    const pathname = usePathname();
+    const router   = useRouter();
+    const params   = useParams();
+    const locale   = (params?.locale as string) || 'es';
+
+    const [isOpen,      setIsOpen]      = useState(false);
+    const [isMaximized, setIsMaximized] = useState(false);
+    const [messages,    setMessages]    = useState<Message[]>([]);
+    const [input,       setInput]       = useState('');
+    const [isLoading,   setIsLoading]   = useState(false);
+    const [model,       setModel]       = useState<ClaudeModel>('claude-sonnet-4-6');
+    const [hydrated,    setHydrated]    = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // ── Load persisted conversation ────────────────────────────────────────
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed.messages)) setMessages(parsed.messages);
+                if (CLAUDE_MODELS.some(m => m.id === parsed.model)) setModel(parsed.model);
+            }
+        } catch { }
+        setHydrated(true);
+    }, []);
+
+    // ── Persist conversation on change ────────────────────────────────────
+    useEffect(() => {
+        if (!hydrated) return;
+        try {
+            if (messages.length > 0) {
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ messages, model }));
+            } else {
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+            }
+        } catch { }
+    }, [messages, model, hydrated]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isOpen, isMaximized]);
+
+    const suggestions = getPageSuggestions(pathname || '');
+
+    const handleSend = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
 
-        const userMsg: Message = { role: 'user', content: input };
+        const userMsg: Message = { role: 'user', content: input, ts: Date.now() };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
         try {
-            const projectId = dashboardData.project?.idProyecto || dashboardData.project?.IdProyecto;
-            
-            const response = await fetch('/api/ai/chat', {
+            const ctx = dashboardData || getContextFromLocalStorage();
+            const projectId =
+                dashboardData?.project?.idProyecto ||
+                dashboardData?.project?.IdProyecto ||
+                (ctx as any)?.project?.idProyecto  ||
+                (ctx as any)?.project?.IdProyecto;
+
+            const res  = await fetch('/api/ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    messages: [...messages, userMsg],
-                    modelType,
-                    context: dashboardData,
-                    projectId: projectId
-                })
+                    messages: [...messages, userMsg].map(({ role, content }) => ({ role, content })),
+                    model,
+                    context: { ...ctx, currentPage: pathname },
+                    projectId,
+                }),
             });
-
-            const data = await response.json();
+            const data = await res.json();
             if (data.error) throw new Error(data.error);
 
             if (data.executedSql) {
-                console.log("------------------------------------------");
-                console.log("🔍 FOODIE GURU - SQL EJECUTADO:");
+                console.groupCollapsed('🔍 Foodie Guru – SQL');
                 console.log(data.executedSql);
-                console.log("------------------------------------------");
+                console.groupEnd();
             }
 
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: data.content
-            }]);
-        } catch (error: any) {
-            setMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: `Lo siento, ocurrió un error: ${error.message}. Verifica que las API Keys estén configuradas en el .env.` 
+            if (data.clarification) {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: data.clarification.question,
+                    clarification: data.clarification,
+                    ts: Date.now(),
+                }]);
+            } else {
+                setMessages(prev => [...prev, { role: 'assistant', content: data.content, ts: Date.now() }]);
+            }
+        } catch (err: any) {
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `Lo siento, ocurrió un error: ${err.message}`,
+                ts: Date.now(),
             }]);
         } finally {
             setIsLoading(false);
         }
+    }, [input, isLoading, messages, model, pathname, dashboardData]);
+
+    const handleClear = () => {
+        setMessages([]);
+        localStorage.removeItem(CHAT_STORAGE_KEY);
     };
 
+    const sharedProps = {
+        messages, isLoading, input, setInput, handleSend,
+        model, setModel, onClear: handleClear, suggestions, messagesEndRef,
+    };
+
+    // ── EMBEDDED ──────────────────────────────────────────────────────────
+    if (mode === 'embedded') {
+        return (
+            <div className="h-full w-full rounded-2xl overflow-hidden shadow-xl border border-slate-200/80">
+                <ChatPanel {...sharedProps} mode="embedded" />
+            </div>
+        );
+    }
+
+    // ── FLOATING ──────────────────────────────────────────────────────────
+    const hasMessages = messages.length > 0;
+
     return (
-        <div className="fixed bottom-10 right-10 z-[99999]" style={{ display: 'block' }}>
-            {/* Floating Button */}
+        <div className="fixed bottom-6 right-6 z-[99999]">
+            {/* FAB button */}
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group ring-4 ring-indigo-50"
-                >
-                    <FoodieGuruIcon className="text-3xl group-hover:rotate-12 transition-transform duration-300" />
+                <button onClick={() => setIsOpen(true)}
+                    className="group relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
+                    style={{ background: 'linear-gradient(135deg, #4f46e5, #6d28d9)' }}
+                    title="Agente Foodie Guru">
+                    <span className="text-2xl group-hover:scale-110 transition-transform duration-200">👨‍🍳</span>
+                    {/* unread dot */}
+                    {hasMessages && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center">
+                            {messages.filter(m => m.role === 'assistant').length > 9
+                                ? '9+' : messages.filter(m => m.role === 'assistant').length || ''}
+                        </span>
+                    )}
+                    {/* pulse ring */}
+                    <span className="absolute inset-0 rounded-2xl ring-4 ring-indigo-300/40 animate-ping" style={{ animationDuration: '3s' }} />
                 </button>
             )}
 
-            {/* Chat Window */}
+            {/* Chat window */}
             {isOpen && (
-                <div className={`absolute bottom-0 right-0 bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${isMaximized ? 'w-[80vw] h-[85vh] max-w-5xl' : 'w-[400px] h-[600px]'} animate-in slide-in-from-bottom-5`}>
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4 flex justify-between items-center text-white shadow-lg">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl shadow-inner border border-white/10 overflow-hidden">
-                                <FoodieGuruIcon />
-                            </div>
-                            <div>
-                                <h3 className="font-black text-sm md:text-base flex items-center gap-2" style={{ color: 'white' }}>
-                                    Foodie Guru
-                                    <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                </h3>
-                                <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'white' }}>Inteligencia Gastronómica</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                            <select 
-                                value={modelType}
-                                onChange={(e) => setModelType(e.target.value as any)}
-                                className="bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-[10px] outline-none hover:bg-white/20 transition-all font-bold cursor-pointer"
-                                style={{ color: 'white' }}
-                            >
-                                <option value="gpt-4o" className="text-slate-800">GPT-4o</option>
-                                <option value="claude" className="text-slate-800">Claude 3.5</option>
-                            </select>
-
-                            <button
-                                onClick={() => setMessages([])}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                                title="Borrar Chat"
-                                style={{ color: 'white' }}
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-
-                            <button
-                                onClick={() => setIsMaximized(!isMaximized)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                                title={isMaximized ? "Restaurar" : "Maximizar"}
-                                style={{ color: 'white' }}
-                            >
-                                {isMaximized ? (
-                                    <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
-                                ) : (
-                                    <svg className="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
-                                )}
-                            </button>
-
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                                style={{ color: 'white' }}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/50 scroll-smooth">
-                        {messages.length === 0 && (
-                            <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
-                                <div className="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-indigo-100/50 overflow-hidden">
-                                    <span className="text-5xl">👨‍🍳</span>
-                                </div>
-                                <h4 className="text-slate-800 font-black text-xl italic">"Tu éxito se cocina aquí"</h4>
-                                <p className="text-slate-500 text-sm mt-3 px-8 leading-relaxed max-w-sm mx-auto">
-                                    Soy tu **Foodie Guru**, experto en rentabilidad y análisis de datos restauranteros.
-                                </p>
-                                <div className="mt-8 flex flex-wrap justify-center gap-2 px-4 italic opacity-40 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-900">
-                                    <span>Ventas</span> • <span>Optimización</span> • <span>Estrategia</span>
-                                </div>
-                            </div>
-                        )}
-                        {messages.map((msg, idx) => (
-                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm transition-all hover:shadow-md ${
-                                    msg.role === 'user' 
-                                        ? 'bg-indigo-600 text-white font-bold rounded-br-none' 
-                                        : 'bg-white text-slate-800 border border-slate-100 rounded-bl-none font-medium'
-                                }`}>
-                                    {msg.role === 'assistant' ? (
-                                        <div className="prose prose-sm max-w-none prose-slate prose-p:leading-relaxed prose-table:border prose-table:rounded-lg prose-th:bg-slate-50 prose-th:p-2 prose-td:p-2">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {msg.content}
-                                            </ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        msg.content
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div className="flex justify-start animate-in fade-in duration-300">
-                                <div className="bg-white p-4 rounded-2xl rounded-bl-none shadow-sm flex gap-1 border border-slate-100">
-                                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
-                                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                                    <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="p-4 bg-white border-t border-slate-100">
-                        <form onSubmit={handleSend} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Pregunta lo que quieras..."
-                                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className={`px-4 rounded-xl transition-all flex items-center justify-center ${isLoading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-lg shadow-indigo-200'}`}
-                            >
-                                <svg className="w-5 h-5 rotate-90 transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                            </button>
-                        </form>
-                    </div>
+                <div className={`absolute bottom-0 right-0 rounded-3xl overflow-hidden border border-white/20 shadow-2xl transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 zoom-in-95 ${
+                    isMaximized
+                        ? 'w-[82vw] h-[88vh] max-w-5xl'
+                        : 'w-[400px] h-[620px]'
+                }`}
+                style={{ boxShadow: '0 32px 64px -12px rgba(79,70,229,0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}>
+                    <ChatPanel
+                        {...sharedProps}
+                        onMaximize={() => setIsMaximized(v => !v)}
+                        onClose={() => { setIsOpen(false); setIsMaximized(false); }}
+                        isMaximized={isMaximized}
+                        mode="floating"
+                    />
                 </div>
             )}
         </div>

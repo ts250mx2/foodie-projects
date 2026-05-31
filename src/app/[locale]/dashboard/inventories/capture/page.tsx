@@ -570,7 +570,7 @@ export default function InventoryCapturePage() {
                 <div
                     className="sticky top-0 z-10 grid grid-cols-7 gap-0 px-4 py-4 shadow-sm flex-shrink-0"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         color: colors.colorLetra
                     }}
                 >
@@ -649,7 +649,7 @@ export default function InventoryCapturePage() {
                         {/* Header */}
                         <div
                             className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
-                            style={{ backgroundColor: colors.colorFondo1 }}
+                            style={{ backgroundColor: 'var(--color-brand-orange)' }}
                         >
                             <div className="flex flex-col min-w-0">
                                 <h2 className="text-[15px] font-semibold" style={{ color: colors.colorLetra }}>

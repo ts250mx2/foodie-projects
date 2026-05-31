@@ -121,31 +121,39 @@ export default function BaseModal({
                 style={{ maxHeight: '90vh' }}
             >
                 {/* ── Header ──────────────────────────────────────────── */}
-                <div 
-                    className={`shrink-0 flex items-stretch border-b ${
-                        headerVariant === 'primary' 
-                            ? 'border-black/5' 
+                <div
+                    className={`relative shrink-0 flex items-stretch overflow-hidden border-b ${
+                        headerVariant === 'primary'
+                            ? 'border-black/5'
                             : 'border-gray-100'
                     }`}
                     style={{
-                        backgroundColor: headerVariant === 'primary' ? colors.colorFondo1 : undefined
+                        backgroundColor: headerVariant === 'primary' ? 'var(--color-brand-orange)' : undefined
                     }}
                 >
+                    {/* Acento geométrico Bauhaus (solo header primary) */}
+                    {headerVariant === 'primary' && (
+                        <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10"
+                        />
+                    )}
+
                     {/* Accent bar */}
                     {headerVariant !== 'primary' && (
                         <div
                             className="w-[3px] shrink-0"
                             style={{
-                                backgroundColor: colors.colorFondo1,
+                                backgroundColor: 'var(--color-brand-orange)',
                             }}
                         />
                     )}
 
                     {/* Title + close */}
-                    <div className="flex-1 flex items-start justify-between px-5 py-4 gap-4 min-w-0">
+                    <div className="relative z-10 flex-1 flex items-start justify-between px-5 py-4 gap-4 min-w-0">
                         <div className="flex flex-col gap-0.5 min-w-0">
-                            <h2 
-                                className="text-[15px] font-semibold leading-tight truncate"
+                            <h2
+                                className="brand-heading text-lg leading-tight truncate"
                                 style={{
                                     color: headerVariant === 'primary' ? colors.colorLetra : undefined
                                 }}

@@ -3,7 +3,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/navigation';
 import { ToastProvider } from '@/contexts/ToastContext';
-import { Inter } from 'next/font/google';
+import { Inter, Anton, Archivo } from 'next/font/google';
 import "../globals.css";
 
 const inter = Inter({
@@ -11,6 +11,22 @@ const inter = Inter({
   variable: '--font-inter',
   display: 'swap',
   weight: ['400', '500', '600', '700'],
+});
+
+// Foodie Gurú — titulares display (condensado pesado)
+const anton = Anton({
+  subsets: ['latin'],
+  variable: '--font-anton',
+  display: 'swap',
+  weight: ['400'],
+});
+
+// Foodie Gurú — wordmark / subtítulos de marca (variable + itálica)
+const archivo = Archivo({
+  subsets: ['latin'],
+  variable: '--font-archivo',
+  display: 'swap',
+  style: ['normal', 'italic'],
 });
 
 export const viewport = {
@@ -47,8 +63,8 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={inter.variable}>
-      <body className={`${inter.className} antialiased bg-gray-50 text-gray-900`}>
+    <html lang={locale} className={`${inter.variable} ${anton.variable} ${archivo.variable}`}>
+      <body className={`${inter.className} antialiased bg-brand-cream text-gray-900`}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ToastProvider>
             {children}

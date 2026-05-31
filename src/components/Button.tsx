@@ -61,33 +61,33 @@ export default function Button({
     let vStyle: React.CSSProperties = {};
 
     switch (variant) {
-        /* ── Gradient (llamativo) ── */
+        /* ── Amarillo de marca (llamativo) ── */
         case 'primary':
             cls = [
-                'text-white',
-                'shadow-[0_1px_2px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.12)]',
-                'hover:shadow-[0_2px_6px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.12)]',
-                'hover:brightness-[1.06]',
+                'font-semibold',
+                'shadow-[0_1px_2px_rgba(0,0,0,0.15)]',
+                'hover:shadow-[0_2px_6px_rgba(0,0,0,0.18)]',
+                'hover:brightness-[1.04]',
                 'active:brightness-95 active:shadow-none active:scale-[0.98]',
             ].join(' ');
             vStyle = {
-                background: `linear-gradient(160deg, ${colors.colorFondo1} 0%, ${colors.colorFondo2} 100%)`,
-                color: colors.colorLetra,
+                backgroundColor: 'var(--color-brand-yellow)',
+                color: '#0a0a0a',
             };
             break;
 
-        /* ── Sólido limpio (sin gradiente) ── */
+        /* ── Sólido amarillo de marca ── */
         case 'solid':
             cls = [
-                'text-white font-semibold',
+                'font-semibold',
                 'shadow-[0_1px_3px_rgba(0,0,0,0.18)]',
-                'hover:opacity-[0.88]',
+                'hover:brightness-[1.04]',
                 'hover:shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
-                'active:opacity-100 active:scale-[0.97] active:shadow-none',
+                'active:brightness-95 active:scale-[0.97] active:shadow-none',
             ].join(' ');
             vStyle = {
-                backgroundColor: colors.colorFondo1,
-                color: colors.colorLetra,
+                backgroundColor: 'var(--color-brand-yellow)',
+                color: '#0a0a0a',
             };
             break;
 
@@ -141,8 +141,8 @@ export default function Button({
 
     /* Color de la caja del ícono según la variante */
     const iconBoxBg: Record<ButtonVariant, string> = {
-        primary:   'bg-white/25',
-        solid:     'bg-white/25',
+        primary:   'bg-black/10',
+        solid:     'bg-black/10',
         danger:    'bg-white/20',
         outline:   'bg-current/10',
         secondary: 'bg-gray-100',   // gris sobre blanco

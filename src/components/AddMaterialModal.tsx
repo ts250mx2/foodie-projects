@@ -108,19 +108,20 @@ export default function AddMaterialModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
                 {/* Header - Themed Style */}
                 <div
-                    className="px-6 py-4 flex justify-between items-center sticky top-0 z-10"
-                    style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
+                    className="relative overflow-hidden px-6 py-4 flex justify-between items-center sticky top-0 z-10"
+                    style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}
                 >
-                    <h3 className="text-lg font-bold flex items-center gap-2">
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <h3 className="brand-heading relative z-10 text-lg font-bold flex items-center gap-2">
                         {productType === 0 ? <Carrot size={20} /> : <UtensilsCrossed size={20} />}
                         {productType === 0 ? 'Agregar Materia Prima' : 'Agregar Insumo/Producto'}
                     </h3>
                     <button
                         onClick={onClose}
-                        className="shrink-0 p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white"
+                        className="relative z-10 shrink-0 p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white"
                         title="Cerrar"
                     >
                         <X size={20} strokeWidth={2} />

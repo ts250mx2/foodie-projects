@@ -136,16 +136,17 @@ export default function MenuSectionsModal({ isOpen, onClose, projectId }: MenuSe
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
                 {/* Header */}
-                <div 
-                    className="px-6 py-4 flex justify-between items-center shrink-0 border-b border-black/5"
-                    style={{ backgroundColor: colors.colorFondo1, color: colors.colorLetra }}
+                <div
+                    className="relative overflow-hidden px-6 py-4 flex justify-between items-center shrink-0 border-b border-black/5"
+                    style={{ backgroundColor: 'var(--color-brand-orange)', color: colors.colorLetra }}
                 >
-                    <h2 className="text-xl font-bold">{t('title')}</h2>
-                    <button 
-                        onClick={onClose} 
-                        className="hover:bg-white/20 p-2 rounded-full transition-colors"
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <h2 className="brand-heading relative z-10 text-lg font-bold">{t('title')}</h2>
+                    <button
+                        onClick={onClose}
+                        className="relative z-10 hover:bg-white/20 p-2 rounded-full transition-colors"
                         style={{ color: colors.colorLetra }}
                     >
                         ✕

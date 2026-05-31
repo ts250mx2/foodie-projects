@@ -243,10 +243,10 @@ export default function BulkScheduleModal({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex-1">
-                        <h2 className="text-xl font-bold text-gray-800">
+                        <h2 className="brand-heading text-lg font-bold text-gray-800">
                             {t('title')} - {selectedDate.toLocaleDateString()}
                             <div className="text-xs font-normal text-primary-600 mt-2 line-clamp-2 bg-primary-50 p-2 rounded-md border border-primary-100">
                                 {selectedNames}

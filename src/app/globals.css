@@ -13,17 +13,18 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
 
-  --color-primary-50: #f0ebff;
-  --color-primary-100: #e4daff;
-  --color-primary-200: #cdb9ff;
-  --color-primary-300: #b08dff;
-  --color-primary-400: #935afb;
-  --color-primary-500: #7033ff;
-  --color-primary-600: #6222eb;
-  --color-primary-700: #5314c7;
-  --color-primary-800: #4411a0;
-  --color-primary-900: #381081;
-  --color-primary-950: #21075a;
+  /* Primario = Azul royal de marca Foodie Gurú (antes morado configurable) */
+  --color-primary-50: #eef0fe;
+  --color-primary-100: #e0e3fd;
+  --color-primary-200: #c6cbfb;
+  --color-primary-300: #a2a8f8;
+  --color-primary-400: #7a79f2;
+  --color-primary-500: #3b3be8;
+  --color-primary-600: #2f2cd1;
+  --color-primary-700: #2823aa;
+  --color-primary-800: #221f8a;
+  --color-primary-900: #20206d;
+  --color-primary-950: #15153f;
 
   --color-secondary-50: #f6f6f6;
   --color-secondary-100: #e7e7e7;
@@ -36,6 +37,19 @@
   --color-secondary-800: #454545;
   --color-secondary-900: #3d3d3d;
   --color-secondary-950: #0a0a0a;
+
+  /* ── Foodie Gurú — Paleta de marca ──────────────────────────── */
+  --color-brand-blue:   #3b3be8;
+  --color-brand-green:  #34b14a;
+  --color-brand-yellow: #f8e14c;
+  --color-brand-orange: #f4481e;
+  --color-brand-purple: #7033ff;
+  --color-brand-cream:  #f5f0e2;
+  --color-brand-black:  #0a0a0a;
+
+  /* ── Tipografía display de marca ────────────────────────────── */
+  --font-display: var(--font-anton), 'Arial Narrow', system-ui, sans-serif;
+  --font-brand:   var(--font-archivo), var(--font-inter), system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,6 +93,31 @@ body {
   font-size: 0.8125rem;   /* 13px */
   font-weight: 400;
   line-height: 1.4;
+}
+
+/* ── Foodie Gurú — Titulares display (estilo marca) ─────────────────────── */
+.brand-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  line-height: 0.9;
+  font-weight: 400;        /* Anton es de un solo peso */
+}
+/* Wordmark "FOODIE GURÚ" — pesado e itálico */
+.brand-wordmark {
+  font-family: var(--font-brand);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+/* Encabezados de UI (headers de página y modales) — display ajustado a tamaños chicos */
+.brand-heading {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  font-weight: 400;        /* Anton es de un solo peso */
 }
 
 /* Numerales tabulares — precios, cantidades, fechas */

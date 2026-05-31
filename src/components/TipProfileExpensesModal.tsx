@@ -87,10 +87,10 @@ export default function TipProfileExpensesModal({ isOpen, onClose, profileId, pr
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">Egresos - {profileName}</h2>
+                        <h2 className="brand-heading text-lg font-bold text-gray-800">Egresos - {profileName}</h2>
                         <p className="text-sm text-gray-500">Configuración de descuentos por concepto</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">

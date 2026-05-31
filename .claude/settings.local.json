@@ -33,7 +33,8 @@
       "Bash(grep -E \"page\\\\.tsx|\\\\.tsx$\")",
       "Bash(Find 'src' -name \"*.tsx\" -type f)",
       "Bash(xargs grep -l \"text-center.*py-.*Cargando\\\\|isLoading.*<div\")",
-      "Bash(xargs grep -l \"LoadingSpinner message=\")"
+      "Bash(xargs grep -l \"LoadingSpinner message=\")",
+      "Bash(git push *)"
     ]
   }
 }

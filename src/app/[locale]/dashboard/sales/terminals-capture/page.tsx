@@ -371,7 +371,7 @@ export default function SalesTerminalsCapturePage() {
                 <div
                     className="grid grid-cols-7"
                     style={{
-                        backgroundColor: colors.colorFondo1,
+                        backgroundColor: 'var(--color-brand-orange)',
                         backgroundImage: 'none',
                         color: colors.colorLetra
                     }}
@@ -449,7 +449,7 @@ export default function SalesTerminalsCapturePage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
                         {/* Header */}
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}>
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center text-white" style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}>
                             <div>
                                 <h2 className="text-2xl font-black">{t('title')}</h2>
                                 <p className="text-sm font-medium opacity-90">{selectedDate.toLocaleDateString()}</p>

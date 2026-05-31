@@ -165,15 +165,16 @@ export default function InventoryMaxMinComparisonModal({
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
             <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100">
                 {/* Header */}
-                <div 
-                    className="px-6 py-4 text-white flex justify-between items-center"
-                    style={{ backgroundColor: colors.colorFondo1, backgroundImage: 'none', color: colors.colorLetra }}
+                <div
+                    className="relative overflow-hidden px-6 py-4 text-white flex justify-between items-center"
+                    style={{ backgroundColor: 'var(--color-brand-orange)', backgroundImage: 'none', color: colors.colorLetra }}
                 >
-                    <div>
-                        <h2 className="text-xl font-black uppercase tracking-tight">{t('title')}</h2>
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
+                    <div className="relative z-10">
+                        <h2 className="brand-heading text-lg font-black uppercase tracking-tight">{t('title')}</h2>
                         <p className="text-xs opacity-80 font-bold">{dateLabel}</p>
                     </div>
-                    <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors">✕</button>
+                    <button onClick={onClose} className="relative z-10 hover:bg-white/20 p-2 rounded-full transition-colors">✕</button>
                 </div>
 
                 {/* Actions */}
