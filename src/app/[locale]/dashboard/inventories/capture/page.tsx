@@ -645,7 +645,7 @@ export default function InventoryCapturePage() {
             {/* Excel-like Inventory Modal */}
             {isModalOpen && selectedDate && (
                 <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
-                    <div className="relative w-full bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-5xl" style={{ maxHeight: '90vh' }}>
+                    <div className="relative w-[95vw] max-w-7xl bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[90vh]" style={{ maxHeight: '90vh' }}>
                         {/* Header */}
                         <div
                             className="shrink-0 flex items-start justify-between px-5 py-4 gap-4 border-b border-black/5"
@@ -743,8 +743,8 @@ export default function InventoryCapturePage() {
 
                                     {/* Products Table */}
                                     {!collapsedCategories[categoria] && (
-                                        <div className="border border-gray-200 rounded-b-lg overflow-hidden">
-                                            <table className="min-w-full table-fixed">
+                                        <div className="border border-gray-200 rounded-b-lg overflow-x-auto custom-scrollbar">
+                                            <table className="w-full table-fixed min-w-[900px]">
                                                 <thead className="bg-gray-50 sticky top-0 z-10">
                                                     <tr>
                                                         <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[5%]">Foto</th>
