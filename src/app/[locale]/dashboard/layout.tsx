@@ -50,7 +50,11 @@ export default function DashboardLayout({
                 <div className="flex flex-1 pt-16">
                     <Sidebar isCollapsed={isCollapsed} onExpand={() => setIsCollapsed(false)} />
 
-                    <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} px-8 pt-4 pb-8 transition-all duration-300`}>
+                    <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300 ${
+                        isAgentePage 
+                            ? 'p-0 h-[calc(100vh-4rem)] overflow-hidden' 
+                            : 'px-8 pt-4 pb-8'
+                    }`}>
                         {children}
                     </main>
                 </div>

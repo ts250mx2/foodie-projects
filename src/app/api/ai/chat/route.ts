@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getProjectConnection } from '@/lib/dynamic-db';
+import { DATABASE_SCHEMA } from '@/lib/ai/schema';
+import { buildProjectCatalog } from '@/lib/ai/catalog';
 
 const MAX_TURNS = 12;
 
@@ -19,62 +21,9 @@ async function executeQuery(connection: any, sql: string): Promise<any[]> {
     return rows as any[];
 }
 
-// ─── Schema completo ───────────────────────────────────────────────────────────
-const DATABASE_SCHEMA = `
-VENTAS — REGLA CRÍTICA: nunca uses tblVentas, esa tabla está ignorada.
-  • Ventas por CANAL DE VENTA (Rappi, Uber Eats, DiDi Food, local, etc.)
-      → tblVentasCanalesVenta v JOIN tblCanalesVenta c ON v.IdCanalVenta = c.IdCanalVenta
-        Columnas: v.Dia, v.Mes, v.Anio, v.IdTurno, v.IdSucursal, v.Venta, c.CanalVenta, c.Comision
-  • Ventas por FORMA DE PAGO / TERMINAL (efectivo, tarjeta débito, tarjeta crédito, etc.)
-      → tblVentasTerminales v JOIN tblTerminales t ON v.IdTerminal = t.IdTerminal
-        Columnas: v.Dia, v.Mes, v.Anio, v.IdTurno, v.IdSucursal, v.Venta, t.Terminal, t.Comision
-  • Para TOTAL de ventas: suma ambas tablas y usa el mayor valor
-    (el negocio puede registrar en canales, terminales, o ambos)
-
-GASTOS:
-  tblGastos: IdGasto, IdProveedor(-2=canal venta,-1=sin proveedor), FechaGasto, Dia, Mes, Anio,
-             IdConceptoGasto, Total, FechaAct, IdSucursal, ConceptoGasto, Status(0=activo), NumeroFactura
-  tblDetalleGastos: IdDetalleGasto, IdGasto, Concepto, Cantidad, Costo, Status, FechaAct
-  tblConceptosGastos: IdConceptoGasto, ConceptoGasto, Status
-
-COMPRAS:
-  tblCompras: IdCompra, ConceptoCompra, FechaCompra, IdProveedor, NumeroFactura, Status(0=activo),
-              Subtotal, Iva, Total, IdFormaPago, FormaPago, IdSucursal
-  tblDetalleCompras: IdDetalleCompra, IdCompra, IdProducto, Producto, Cantidad, Precio, Iva, Total, Codigo
-
-INVENTARIO:
-  tblInventarios: IdProducto, Dia, Mes, Anio, FechaInventario, Cantidad, Precio, FechaAct, Consumo
-  tblConfiguracionesMeses: Mes, Anio, ProyeccionVentas, IdSucursal
-
-PRODUCTOS — SIEMPRE usa vlProductos, nunca tblProductos directamente:
-  vlProductos: IdProducto, Producto, IdCategoria, Categoria, IdPresentacion, Presentacion, Precio
-  tblProductosKits: IdProductoPadre, IdProductoHijo, Cantidad (recetas/sub-recetas)
-
-NÓMINA Y PROPINAS:
-  tblNomina: IdNomina, Dia, Mes, Anio, IdUsuario(=IdEmpleado), Pago, FechaAct, IdSucursal
-  tblPropinasEmpleados: IdPropinaEmpleado, IdEmpleado, IdSucursal, IdTurno, Dia, Mes, Anio,
-                        IdPerfilPropina, Venta, Porcentaje, Monto, MontoPropina
-  tblPerfilesPropinas: IdPerfilPropina, PerfilPropina, EsActivo, Status
-
-EMPLEADOS Y TURNOS:
-  tblEmpleados: IdEmpleado, Empleado, IdPuesto, IdSucursal, Status(0=activo)
-  tblPuestos: IdPuesto, Puesto, Status
-  tblTurnos: IdTurno, Turno, HoraInicio, HoraFin, Status, IdSucursal
-  tblSucursalesEmpleados: IdSucursal, IdEmpleado
-
-SUCURSALES Y COSTOS:
-  tblSucursales: IdSucursal, Sucursal, Status
-  tblSucursalesCostos: IdSucursal, Mes, Anio, ObjetivoVentas, CostoMateriaPrima, CostoNomina
-  tblProveedores: IdProveedor, Proveedor, RFC, Status
-  tblCategorias: IdCategoria, Categoria, Status
-
-RELACIONES CLAVE:
-  tblVentasCanalesVenta.IdCanalVenta  → tblCanalesVenta  (CanalVenta, Comision %)
-  tblVentasTerminales.IdTerminal      → tblTerminales    (Terminal, Comision %)
-  tblNomina.IdUsuario                 = tblEmpleados.IdEmpleado
-  tblGastos con IdProveedor=-2        → gasto de comisión/impuesto generado por canal de venta
-  tblCompras.IdProveedor              → tblProveedores
-`;
+// El esquema de BD (estructura, igual para todos los proyectos) se importa de
+// '@/lib/ai/schema'. El catálogo dinámico del proyecto (valores reales +
+// convención de mes detectada en vivo) se arma con buildProjectCatalog().
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
 const AGENT_TOOLS: any[] = [
@@ -87,8 +36,10 @@ REGLAS OBLIGATORIAS:
 - Formas de pago/terminales: tblVentasTerminales JOIN tblTerminales
 - Productos: SIEMPRE vlProductos, nunca tblProductos
 - MySQL: LIMIT obligatorio. Nunca TOP.
-- Meses en BD: 1-12. El contexto JS puede traer 0-11, suma +1.
-- Status=0 = activo/vigente en gastos, compras, empleados.
+- MES: NO es 1-12 en todas las tablas. Respeta la "CONVENCIÓN DE MES (detectada en vivo)"
+  del catálogo del proyecto (ventas suelen ser 0-11; gastos/inventarios 1-12; nómina varía).
+- Status=2 = anulado/eliminado: filtra "Status <> 2" en gastos, compras, etc.
+- Usa los IDs reales del catálogo del proyecto (canales, terminales, turnos, sucursales).
 Puedes encadenar múltiples llamadas para explorar antes de responder.`,
         input_schema: {
             type: 'object',
@@ -132,7 +83,10 @@ CUÁNDO NO USARLA:
 ];
 
 // ─── System prompt ────────────────────────────────────────────────────────────
-function buildSystemPrompt(context: any): string {
+// Devuelve bloques de contenido. El primero (estable: rol + esquema + catálogo +
+// reglas) lleva cache_control para que Anthropic lo cachee (5 min). El segundo
+// (volátil: saludo + período + contexto) cambia por request y no se cachea.
+function buildSystemPrompt(context: any, projectCatalog: string): Anthropic.TextBlockParam[] {
     const now = new Date();
     const h   = now.getHours();
     const greeting = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
@@ -151,19 +105,29 @@ function buildSystemPrompt(context: any): string {
     const monthNames = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
                         'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+    const prevTodayMonth = todayMonth === 1 ? 12 : todayMonth - 1;
+    const prevTodayYear  = todayMonth === 1 ? todayYear - 1 : todayYear;
+
+    // Los meses aquí son CALENDARIO (1-12). El agente DEBE convertirlos a la
+    // convención de cada tabla usando el bloque "CONVENCIÓN DE MES" del catálogo.
     const periodBlock = `
 PERÍODO Y CONTEXTO — LEE ESTO PRIMERO ANTES DE CUALQUIER CONSULTA:
   • HOY es ${now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} (${now.toISOString().split('T')[0]})
-  • Mes REAL de hoy:         ${monthNames[todayMonth]} ${todayYear}  (Mes=${todayMonth} en BD)
-  • Mes SELECCIONADO en dashboard: ${monthNames[Number(dashMonth)]} ${dashYear}  (Mes=${dashMonth} en BD)
-  • Mes ANTERIOR al seleccionado:  ${monthNames[prevMonth]} ${prevYear}  (Mes=${prevMonth} en BD)
+  • Mes REAL de hoy:               ${monthNames[todayMonth]} ${todayYear}  (mes calendario ${todayMonth})
+  • Mes SELECCIONADO en dashboard: ${monthNames[Number(dashMonth)]} ${dashYear}  (mes calendario ${dashMonth})
+  • Mes ANTERIOR al seleccionado:  ${monthNames[prevMonth]} ${prevYear}  (mes calendario ${prevMonth})
   • Sucursal activa (IdSucursal):  ${branchId || '(no seleccionada)'}
 
-CÓMO INTERPRETAR EL PERÍODO EN LAS PREGUNTAS:
-  - "este mes" / "mes actual" / "el mes" → usa Mes=${todayMonth} AND Anio=${todayYear} (hoy real)
-  - "el mes del dashboard" / "el período seleccionado" → usa Mes=${dashMonth} AND Anio=${dashYear}
-  - "mes pasado" / "mes anterior" → mes anterior al MES REAL DE HOY = Mes=${todayMonth === 1 ? 12 : todayMonth - 1} AND Anio=${todayMonth === 1 ? todayYear - 1 : todayYear}
-  - Si el usuario dice "compara este mes vs el mes pasado" → compara ${monthNames[todayMonth]} ${todayYear} vs ${monthNames[todayMonth === 1 ? 12 : todayMonth - 1]} ${todayMonth === 1 ? todayYear - 1 : todayYear}
+⚠️ Los números de mes de arriba son CALENDARIO (Enero=1 … Diciembre=12).
+ANTES de escribir un WHERE, conviértelos a la convención de la tabla según el
+bloque "CONVENCIÓN DE MES (detectada en vivo)" del catálogo del proyecto
+(p. ej. en ventas 0-11 restas 1; en gastos 1-12 lo dejas igual).
+
+CÓMO INTERPRETAR EL PERÍODO EN LAS PREGUNTAS (en meses calendario):
+  - "este mes" / "mes actual" / "el mes" → ${monthNames[todayMonth]} ${todayYear} (calendario ${todayMonth})
+  - "el mes del dashboard" / "el período seleccionado" → ${monthNames[Number(dashMonth)]} ${dashYear} (calendario ${dashMonth})
+  - "mes pasado" / "mes anterior" → ${monthNames[prevTodayMonth]} ${prevTodayYear} (calendario ${prevTodayMonth})
+  - "compara este mes vs el mes pasado" → compara ${monthNames[todayMonth]} ${todayYear} vs ${monthNames[prevTodayMonth]} ${prevTodayYear}
   - Si el período sigue siendo ambiguo, usa ask_clarification.
   - NUNCA asumas que el mes seleccionado en el dashboard = mes actual si ya conoces la fecha de hoy.
 `;
@@ -172,45 +136,61 @@ CÓMO INTERPRETAR EL PERÍODO EN LAS PREGUNTAS:
         ? `Sucursal activa: ${branchId || 'no seleccionada'} | Página: ${context.currentPage || ''}`
         : '';
 
-    return `Eres el AGENTE FOODIE GURU — consultor experto en rentabilidad y operaciones de restaurantes y negocios de alimentos. Combinas el conocimiento de un chef ejecutivo, un contador restaurantero y un consultor de negocios gastronómicos con 20 años de experiencia en México.
-
-${greeting}.
-
-${periodBlock}
-${ctxExtra}
+    // ── Bloque ESTABLE (cacheable): rol + esquema + catálogo + cómo trabajas +
+    //    estilo + benchmarks + reglas. No incluye fecha/hora ni saludo. ──────
+    const stable = `Eres el AGENTE FOODIE GURU — consultor experto en rentabilidad y operaciones de restaurantes y negocios de alimentos. Combinas el conocimiento de un chef ejecutivo, un contador restaurantero y un consultor de negocios gastronómicos con 20 años de experiencia en México.
 
 ${DATABASE_SCHEMA}
 
+${projectCatalog}
+
 ══════════════════════════════════════════
-CÓMO TRABAJAS — AGENTE AGENTICO POTENTE
+CÓMO TRABAJAS
 ══════════════════════════════════════════
-1. PIENSA primero. ¿Tienes suficiente contexto para responder (período, sucursal)?
-   - Si el contexto activo tiene branchId, month, year → ÚSALOS directamente. No preguntes.
-   - Si no hay contexto de período → usa ask_clarification con opciones de período.
-   - Si la pregunta es ambigua → propón la interpretación más probable, avanza y menciona tu asunción.
+1. PIENSA primero. ¿Tienes suficiente contexto (período, sucursal)?
+   - Si el bloque CONTEXTO ya trae sucursal y período → ÚSALOS. No preguntes.
+   - Si falta el período y no es deducible → usa ask_clarification con opciones.
+   - Si es ambiguo pero hay una lectura clara → asume la más probable, avanza y dilo en una frase.
 
-2. CONSULTA datos reales. Nunca inventes cifras. Siempre usa query_database.
-   - Haz consultas exploratorias si necesitas descubrir IDs, nombres de canales, turnos, etc.
-   - Encadena múltiples queries: primero exploratorio → luego específico.
-   - Si una query regresa vacío, ajusta filtros y vuelve a intentar.
+2. CONSULTA datos reales. Nunca inventes cifras. Usa query_database.
+   - Explora si necesitas descubrir IDs/nombres (aunque el catálogo ya trae los principales).
+   - Encadena queries: exploratorio → específico.
+   - Si una query sale vacía, sospecha de la convención de mes y reintenta con el offset correcto antes de decir "no hay datos".
 
-3. ANALIZA como experto. No solo reportas datos — interpretas, comparas con benchmarks y das contexto.
+3. ANALIZA como experto. No solo reportas — interpretas, comparas vs benchmark/mes anterior, y señalas lo accionable.
 
-4. RESPONDE con estructura cuando sea relevante:
+══════════════════════════════════════════
+ESTILO DE RESPUESTA (clave para sonar como consultor, no como reporte)
+══════════════════════════════════════════
+REGISTRO: profesional pero humano, como un consultor senior que conoce el negocio.
+Directo y cálido. Nunca robótico ni corporativo acartonado.
 
-**📊 Datos**
-[Tabla Markdown con cifras clave]
+LONGITUD: CORTA por defecto — 2 a 4 oraciones para preguntas de datos simples.
+Extiéndete solo si piden análisis profundo o una comparativa amplia.
 
-**💡 Hallazgos**
-- [Hallazgo con dato + comparación vs benchmark o mes anterior]
+FORMATO:
+- Métricas INLINE en el texto, en **negritas**. No las escondas en listas.
+  BIEN: "Vendiste **$182,400** en mayo, **8% arriba** de abril. El comedor jala
+  el grueso (**$120K**); Uber ya pesa **$28K**, pero con 35% de comisión se te
+  van **$9,800** en cargos."
+  EVITA: "• Total: $X  • Comedor: $Y" para datos básicos.
+- Usa tablas Markdown SOLO cuando compares varias filas/períodos (top productos,
+  mes vs mes, sucursal vs sucursal). La UI las renderiza bien.
+- NO uses encabezados rígidos tipo "📊 Datos / 💡 Hallazgos / ✅ Sugerencias".
+  Teje el hallazgo y la recomendación dentro de la prosa.
 
-**✅ Sugerencias**
-- [Acción concreta y específica]
+NO HAGAS:
+✗ No repitas la pregunta al inicio.
+✗ No digas "voy a consultar..." ni "permíteme..." — actúa y responde directo.
+✗ No cierres siempre con "¿quieres profundizar?". Ofrece un siguiente paso solo
+  si de verdad aporta, en una frase natural.
 
-**❓ Preguntas sugeridas**
-- ¿[Pregunta de seguimiento relevante]?
-
-(Para respuestas simples omite las secciones y responde directo)
+SÍ HAZ:
+✓ Respuesta directa, prosa fluida, cifras clave en **negritas**.
+✓ Si ves algo anómalo o una oportunidad (comisión delivery alta, food cost
+  elevado, producto bajo mínimo, caída fuerte), menciónalo en una frase con el dato.
+✓ Para preguntas NO de datos (saludo, concepto, opinión), responde como Claude
+  normal, conversacional, sin ejecutar herramientas.
 
 ══════════════════════════════════════════
 BENCHMARKS DE LA INDUSTRIA RESTAURANTERA MEXICANA
@@ -220,21 +200,71 @@ BENCHMARKS DE LA INDUSTRIA RESTAURANTERA MEXICANA
 - Prime cost (food+labor):       ideal <60%    |  >65% = zona de pérdida
 - Gastos operativos:             ideal 10-15%
 - Utilidad operativa:            saludable 15-25%
-- Comisión delivery Rappi/Uber:  25-30% del pedido — impacto CRÍTICO en márgenes
+- Comisión delivery Rappi/Uber:  25-35% del pedido — impacto CRÍTICO en márgenes
 - Ticket promedio QSR:           $120-$180 MXN  |  Casual dining: $250-$450 MXN
 - Merma aceptable:               <3% del inventario
 
 REGLAS ADICIONALES:
 - Responde SIEMPRE en español.
 - Formatea montos como moneda MXN ($12,345.00).
-- Usa tablas Markdown para datos comparativos o listas.
-- NUNCA expongas nombres técnicos de tablas al usuario.
+- NUNCA expongas nombres técnicos de tablas/columnas al usuario.
 - NUNCA digas "no tengo acceso a datos" sin antes intentar al menos una query.
-- Si hay sucursal activa (branchId), filtra SIEMPRE por IdSucursal=${branchId}.
-- Los meses en la BD son 1-12. Ya están convertidos en el bloque PERÍODO arriba.
-- Si ves comisiones de canales delivery altas (>25%), menciona el impacto en rentabilidad.
-- Al comparar meses, SIEMPRE menciona los nombres de los meses en tu respuesta (ej. "Mayo vs Abril").
-`;
+- Si hay sucursal activa (ver CONTEXTO abajo), filtra SIEMPRE por su IdSucursal.
+- MES: convierte SIEMPRE el mes calendario a la convención de cada tabla (ver
+  "CONVENCIÓN DE MES" del catálogo). Es el error #1 — verifícalo antes de filtrar.
+- Si ves comisiones de delivery altas (>25%), menciona el impacto en rentabilidad.
+- Al comparar meses, SIEMPRE menciona los nombres (ej. "Mayo vs Abril").`;
+
+    // ── Bloque VOLÁTIL (no cacheable): fecha/hora, saludo, período, contexto ──
+    const volatile = `${greeting}.
+
+${periodBlock}
+
+CONTEXTO ACTIVO: ${ctxExtra || '(sin contexto adicional)'}`;
+
+    return [
+        { type: 'text', text: stable, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: volatile },
+    ];
+}
+
+// ─── Fallback de modelo ─────────────────────────────────────────────────────
+// Si el modelo elegido falla por sobrecarga/crédito/rate-limit, degradamos al
+// siguiente de la cadena en vez de romper la conversación.
+const MODEL_FALLBACKS: Record<string, string[]> = {
+    'claude-opus-4-8':           ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+    'claude-sonnet-4-6':         ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+    'claude-haiku-4-5-20251001': ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
+};
+
+function shouldFallback(err: any): boolean {
+    const status = err?.status;
+    const msg = String(err?.message || '').toLowerCase();
+    if ([429, 500, 502, 503, 529].includes(status)) return true;
+    return ['overloaded', 'credit', 'rate limit', 'billing'].some(s => msg.includes(s));
+}
+
+async function createMessageWithFallback(
+    anthropic: Anthropic,
+    params: Omit<Anthropic.MessageCreateParamsNonStreaming, 'model'>,
+    primaryModel: string,
+): Promise<{ response: Anthropic.Message; modelUsed: string }> {
+    const chain = MODEL_FALLBACKS[primaryModel] || [primaryModel];
+    let lastErr: any;
+    for (let i = 0; i < chain.length; i++) {
+        try {
+            const response = await anthropic.messages.create({ ...params, model: chain[i] });
+            return { response, modelUsed: chain[i] };
+        } catch (err) {
+            lastErr = err;
+            if (i < chain.length - 1 && shouldFallback(err)) {
+                console.warn(`[ai/chat] modelo ${chain[i]} falló (${(err as any)?.status ?? ''}); probando ${chain[i + 1]}`);
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastErr;
 }
 
 // ─── POST Handler ─────────────────────────────────────────────────────────────
@@ -259,7 +289,16 @@ export async function POST(req: Request) {
 
         connection = await getProjectConnection(projectId);
 
-        const systemPrompt = buildSystemPrompt(context || {});
+        // Catálogo dinámico del proyecto: dimensiones reales + convención de mes
+        // detectada en vivo. Si falla, seguimos con el esquema estático.
+        let projectCatalog = '';
+        try {
+            projectCatalog = await buildProjectCatalog(connection, String(projectId));
+        } catch (e) {
+            console.error('No se pudo construir el catálogo del proyecto:', e);
+        }
+
+        const systemPrompt = buildSystemPrompt(context || {}, projectCatalog);
         const executedSql: string[] = [];
 
         const conversationMessages: { role: 'user' | 'assistant'; content: any }[] = messages.map((m: any) => ({
@@ -267,20 +306,21 @@ export async function POST(req: Request) {
             content: m.content,
         }));
 
-        let turns     = 0;
-        let finalText = '';
+        let turns       = 0;
+        let finalText   = '';
+        let activeModel = resolvedModel;
 
         while (turns < MAX_TURNS) {
             turns++;
 
-            const resp = await anthropic.messages.create({
-                model:      resolvedModel,
+            const { response: resp, modelUsed } = await createMessageWithFallback(anthropic, {
                 max_tokens: 8192,
                 system:     systemPrompt,
                 tools:      AGENT_TOOLS,
                 tool_choice: { type: 'auto' },
                 messages:   conversationMessages,
-            });
+            }, activeModel);
+            activeModel = modelUsed; // si degradó, sigue con ese modelo el resto del loop
 
             // Collect text from this turn
             const textBlock = resp.content.find((c: any) => c.type === 'text');
@@ -300,7 +340,7 @@ export async function POST(req: Request) {
                         question:    input.question    || '¿Qué período te gustaría analizar?',
                         suggestions: input.suggestions || [],
                     },
-                    modelUsed: resolvedModel,
+                    modelUsed: activeModel,
                     executedSql: executedSql.join(';\n'),
                 });
             }
@@ -339,7 +379,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             content:    finalText,
-            modelUsed:  resolvedModel,
+            modelUsed:  activeModel,
             executedSql: executedSql.join(';\n'),
         });
 

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -111,13 +112,17 @@ function getContextFromLocalStorage() {
 
 // ─── Typing animation ─────────────────────────────────────────────────────────
 function TypingIndicator() {
+    const { colors } = useTheme();
     return (
         <div className="flex items-center gap-1 px-1 py-0.5">
             {[0, 1, 2].map(i => (
                 <span
                     key={i}
-                    className="w-2 h-2 rounded-full bg-indigo-400"
-                    style={{ animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                        backgroundColor: colors.colorFondo1,
+                        animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`
+                    }}
                 />
             ))}
         </div>
@@ -145,7 +150,9 @@ function ChatPanel({
     suggestions: string[];
     messagesEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
+    const { colors } = useTheme();
     const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
+    const [isInputFocused, setIsInputFocused] = useState(false);
 
     const sendSuggestion = (text: string) => {
         setInput(text);
@@ -155,107 +162,199 @@ function ChatPanel({
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden" style={{ background: '#f8f9fd' }}>
+        <div className="flex flex-col h-full overflow-hidden" style={{ background: '#fcfbfa' }}>
 
             {/* ── Header ───────────────────────────────────────────────────── */}
-            <div className="shrink-0 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%)' }}>
-                {/* decorative circles */}
-                <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
-                <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/5" />
+            {mode === 'floating' ? (
+                <div className="shrink-0 relative overflow-hidden text-white" 
+                     style={{ 
+                          background: 'linear-gradient(135deg, var(--color-brand-orange, #f4481e) 0%, #db340a 100%)'
+                      }}>
+                    {/* decorative glowing circles */}
+                    <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />
+                    <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5 blur-md pointer-events-none" />
 
-                <div className="relative px-4 py-3.5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="relative px-4 py-3.5 flex items-center justify-between text-white z-10">
+                        <div className="flex items-center gap-3">
+                            {/* Avatar */}
+                            <div className="relative">
+                                <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
+                                    👨‍🍳
+                                </div>
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white/30 animate-pulse" />
+                            </div>
+                            <div>
+                                <h1 className="text-white brand-heading text-sm leading-none tracking-wider">Agente Foodie Gurú</h1>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-white text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded">
+                                        {currentModelInfo.badge} {currentModelInfo.label}
+                                    </span>
+                                    <span className="w-1 h-1 rounded-full bg-white/40" />
+                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-0.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" style={{ animationDuration: '2s' }} />
+                                        En línea
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            {/* Model picker */}
+                            <select
+                                value={model}
+                                onChange={e => setModel(e.target.value as ClaudeModel)}
+                                className="text-[10px] font-bold bg-white border border-slate-200 text-slate-800 rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-slate-50 transition-all shadow-sm"
+                            >
+                                {CLAUDE_MODELS.map(m => (
+                                    <option key={m.id} value={m.id} className="text-slate-800 bg-white">
+                                        {m.badge} {m.label}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button onClick={onClear} title="Nueva conversación"
+                                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                <Trash2 size={14} />
+                            </button>
+
+                            {onMaximize && (
+                                <button onClick={onMaximize} title="Maximizar en pantalla completa"
+                                    className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                    <Maximize2 size={14} />
+                                </button>
+                            )}
+
+                            {onClose && (
+                                <button onClick={onClose} title="Cerrar"
+                                    className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                /* Embedded header with brand orange background, white text, and rich brand information */
+                <div className="shrink-0 flex items-center justify-between px-5 py-4 text-white relative overflow-hidden" 
+                     style={{ 
+                          backgroundColor: 'var(--color-brand-orange, #f4481e)' 
+                      }}>
+                    {/* decorative circles */}
+                    <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5" />
+                    <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
+
+                    <div className="relative flex items-center gap-3.5 z-10">
                         {/* Avatar */}
                         <div className="relative">
-                            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
+                            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
                                 👨‍🍳
                             </div>
                             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white/30" />
                         </div>
                         <div>
-                            <p className="text-white font-bold text-sm leading-tight">Agente Foodie Guru</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-white/60 text-[10px] font-medium">
-                                    {currentModelInfo.badge} {currentModelInfo.label}
+                            <h1 className="text-white font-black text-base leading-tight tracking-wide">Agente Foodie Guru</h1>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-emerald-200 text-xs font-black flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" />
+                                    En línea
                                 </span>
                                 <span className="w-1 h-1 rounded-full bg-white/30" />
-                                <span className="text-emerald-300 text-[10px] font-bold">En línea</span>
+                                <span className="text-white/80 text-xs font-semibold">
+                                    Tu consultor de rentabilidad en tiempo real
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="relative flex items-center gap-4 z-10">
                         {/* Model picker */}
-                        <select
-                            value={model}
-                            onChange={e => setModel(e.target.value as ClaudeModel)}
-                            className="text-[10px] font-bold bg-white/10 border border-white/20 text-white rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-white/20 transition-all"
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-white/90 font-bold uppercase tracking-wider">Modelo:</span>
+                            <select
+                                value={model}
+                                onChange={e => setModel(e.target.value as ClaudeModel)}
+                                className="text-xs font-semibold bg-white border border-gray-200 text-gray-700 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                {CLAUDE_MODELS.map(m => (
+                                    <option key={m.id} value={m.id} className="text-slate-800 bg-white">
+                                        {m.badge} {m.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Divider */}
+                        <span className="h-5 w-px bg-white/20" />
+
+                        {/* Clear button */}
+                        <button
+                            onClick={onClear}
+                            title="Nueva conversación"
+                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all active:scale-[0.98] shadow-sm"
                         >
-                            {CLAUDE_MODELS.map(m => (
-                                <option key={m.id} value={m.id} className="text-slate-800 bg-white">
-                                    {m.badge} {m.label}
-                                </option>
-                            ))}
-                        </select>
-
-                        <button onClick={onClear} title="Nueva conversación"
-                            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                            <Trash2 size={14} />
+                            <Trash2 size={13} className="text-white" />
+                            <span>Limpiar Chat</span>
                         </button>
-
-                        {onMaximize && (
-                            <button onClick={onMaximize} title={isMaximized ? 'Restaurar' : 'Maximizar'}
-                                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                                {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                            </button>
-                        )}
-
-                        {onClose && (
-                            <button onClick={onClose} title="Cerrar"
-                                className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                                <X size={16} />
-                            </button>
-                        )}
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* ── Messages area ─────────────────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto scroll-smooth px-4 py-4 space-y-5">
+            {/* ── Messages area with brand pattern background ───────────────── */}
+            <div className="flex-1 overflow-y-auto scroll-smooth px-5 py-5 space-y-5"
+                 style={{ 
+                     backgroundColor: '#fdfcfb',
+                     backgroundImage: 'radial-gradient(rgba(244, 72, 30, 0.04) 1.2px, transparent 1.2px)',
+                     backgroundSize: '20px 20px'
+                 }}>
 
                 {/* Empty state */}
                 {messages.length === 0 && (
-                    <div className="animate-in fade-in zoom-in-95 duration-500 pt-4">
-                        {/* Hero */}
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-4 shadow-lg"
-                                style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)' }}>
-                                <span className="text-4xl">👨‍🍳</span>
+                    <div className="animate-in fade-in zoom-in-95 duration-500 pt-2">
+                        {/* Beautiful welcoming card */}
+                        <div className="bg-white/90 backdrop-blur-md border border-slate-100/80 rounded-3xl p-6 shadow-sm max-w-sm mx-auto mb-6 text-center">
+                            <div className="relative inline-flex mb-4">
+                                {/* Glow effect behind avatar */}
+                                <div className="absolute inset-0 bg-amber-400/20 rounded-3xl blur-xl animate-pulse" />
+                                <div className="relative w-16 h-16 rounded-3xl bg-amber-50/50 border border-brand-yellow/40 flex items-center justify-center text-3xl shadow-md animate-float">
+                                    👨‍🍳
+                                </div>
                             </div>
-                            <h3 className="font-black text-slate-800 text-base">"Tu éxito se cocina aquí"</h3>
-                            <p className="text-slate-500 text-xs mt-2 leading-relaxed max-w-xs mx-auto">
-                                Soy tu consultor de rentabilidad restaurantera con acceso en tiempo real a tus datos.
-                                Pregúntame cualquier cosa.
+                            <h3 className="brand-heading text-lg text-slate-800 leading-tight mb-2 tracking-wider">
+                                ¡Hola! Soy Foodie Guru
+                            </h3>
+                            <p className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto font-medium">
+                                Tu consultor de rentabilidad restaurantera en tiempo real. 
+                                ¿En qué te puedo ayudar hoy a mejorar tus números?
                             </p>
                         </div>
 
                         {/* Suggestions */}
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">
+                        <div className="space-y-2.5 max-w-md mx-auto">
+                            <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 px-2 mb-2">
                                 Sugerencias para esta sección
                             </p>
                             {suggestions.map((s, i) => (
                                 <button key={i} onClick={() => sendSuggestion(s)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/60 text-slate-700 hover:text-indigo-700 text-sm font-medium transition-all duration-150 shadow-sm hover:shadow-md group text-left">
-                                    <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-400 shrink-0 transition-colors" />
-                                    {s}
+                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-700 text-sm font-semibold transition-all duration-350 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:translate-x-1 group text-left"
+                                    style={{
+                                        borderLeft: '4px solid var(--color-brand-orange, #f4481e)'
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.borderColor = 'rgba(244, 72, 30, 0.3)';
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                    }}
+                                >
+                                    <span className="group-hover:text-brand-orange transition-colors duration-200 pr-2">{s}</span>
+                                    <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-orange group-hover:translate-x-0.5 transition-all shrink-0" />
                                 </button>
                             ))}
                         </div>
 
                         {/* Info pill */}
                         <div className="flex items-center justify-center gap-2 mt-6">
-                            <Sparkles size={11} className="text-indigo-400" />
+                            <Sparkles size={11} className="text-amber-500" />
                             <span className="text-[10px] text-slate-400 font-medium">
                                 Potenciado por Claude AI · {currentModelInfo.label}
                             </span>
@@ -269,23 +368,26 @@ function ChatPanel({
                         <div className={`flex gap-2.5 max-w-[88%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                             {/* Avatar */}
                             {msg.role === 'assistant' && (
-                                <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm"
-                                    style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)' }}>
+                                <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
+                                    style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
                                     👨‍🍳
                                 </div>
                             )}
 
                             {/* Bubble */}
-                            <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                            <div className={`rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-200 ${
                                 msg.role === 'user'
-                                    ? 'text-white rounded-tr-sm font-medium'
-                                    : 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm'
+                                    ? 'font-semibold hover:shadow-md'
+                                    : 'bg-white border border-slate-150/70 text-slate-800 rounded-tl-sm hover:shadow-md'
                             }`}
                             style={msg.role === 'user' ? {
-                                background: 'linear-gradient(135deg, #4f46e5, #6d28d9)',
+                                background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)',
+                                color: '#0a0a0a',
+                                borderRadius: '20px 20px 4px 20px',
+                                boxShadow: '0 4px 14px -4px rgba(248, 225, 76, 0.4)'
                             } : {}}>
                                 {msg.role === 'assistant' ? (
-                                    <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-indigo-700 prose-strong:font-bold prose-table:text-xs prose-table:border-collapse prose-th:bg-indigo-50 prose-th:text-indigo-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-indigo-100 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-indigo-700">
+                                    <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                             {msg.content}
                                         </ReactMarkdown>
@@ -299,10 +401,18 @@ function ChatPanel({
                             <div className="ml-9 flex flex-wrap gap-2">
                                 {msg.clarification.suggestions.map((s, si) => (
                                     <button key={si} onClick={() => sendSuggestion(s)}
-                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95"
-                                        style={{ borderColor: '#c7d2fe', background: '#eef2ff', color: '#4338ca' }}
-                                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#e0e7ff'; }}
-                                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#eef2ff'; }}>
+                                        className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all active:scale-95 shadow-sm"
+                                        style={{
+                                            borderColor: `${colors?.colorFondo1 || '#3b3be8'}30`,
+                                            background: `${colors?.colorFondo1 || '#3b3be8'}08`,
+                                            color: colors?.colorFondo1 || '#3b3be8'
+                                        }}
+                                        onMouseEnter={e => {
+                                            (e.currentTarget as HTMLButtonElement).style.background = `${colors?.colorFondo1 || '#3b3be8'}18`;
+                                        }}
+                                        onMouseLeave={e => {
+                                            (e.currentTarget as HTMLButtonElement).style.background = `${colors?.colorFondo1 || '#3b3be8'}08`;
+                                        }}>
                                         {s}
                                     </button>
                                 ))}
@@ -314,8 +424,8 @@ function ChatPanel({
                 {/* Loading */}
                 {isLoading && (
                     <div className="flex items-start gap-2.5 animate-in fade-in duration-300">
-                        <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-sm shadow-sm"
-                            style={{ background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)' }}>
+                        <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
+                            style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
                             👨‍🍳
                         </div>
                         <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
@@ -328,23 +438,35 @@ function ChatPanel({
             </div>
 
             {/* ── Input ─────────────────────────────────────────────────────── */}
-            <div className="shrink-0 px-4 pb-4 pt-2 bg-white/80 backdrop-blur-sm border-t border-slate-100">
+            <div className="shrink-0 px-5 pb-5 pt-3 bg-white border-t border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.015)]">
                 <form id="agent-chat-form" onSubmit={handleSend}>
-                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm focus-within:border-indigo-400 focus-within:shadow-md focus-within:shadow-indigo-100/50 transition-all">
-                        <Bot size={16} className="text-slate-300 shrink-0" />
+                    <div 
+                        className="flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300 shadow-sm"
+                        style={{
+                            border: `1px solid ${isInputFocused ? 'var(--color-brand-orange, #f4481e)' : '#e2e8f0'}`,
+                            boxShadow: isInputFocused ? '0 0 0 4px rgba(244, 72, 30, 0.15)' : 'none',
+                            backgroundColor: isInputFocused ? '#ffffff' : '#f8fafc'
+                        }}
+                    >
+                        <Bot size={18} className={`transition-colors duration-300 ${isInputFocused ? 'text-brand-orange' : 'text-slate-400'}`} style={isInputFocused ? { color: 'var(--color-brand-orange)' } : { color: '#94a3b8' }} />
                         <input
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}
+                            onFocus={() => setIsInputFocused(true)}
+                            onBlur={() => setIsInputFocused(false)}
                             placeholder="Pregunta sobre tu negocio..."
                             className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none font-medium min-w-0"
                             disabled={isLoading}
                         />
                         <button type="submit" disabled={isLoading || !input.trim()}
-                            className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-brand-yellow/10 hover:shadow-brand-yellow/25 hover:-translate-y-0.5 active:translate-y-0"
                             style={!isLoading && input.trim()
-                                ? { background: 'linear-gradient(135deg, #4f46e5, #6d28d9)', color: 'white' }
-                                : { background: '#f1f5f9', color: '#94a3b8' }}>
+                                ? { 
+                                    background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)', 
+                                    color: '#0a0a0a' 
+                                  }
+                                : { backgroundColor: '#e2e8f0', color: '#94a3b8', boxShadow: 'none' }}>
                             <Send size={14} />
                         </button>
                     </div>
@@ -364,6 +486,7 @@ function ChatPanel({
     );
 }
 
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentProps) {
     const pathname = usePathname();
@@ -372,7 +495,6 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     const locale   = (params?.locale as string) || 'es';
 
     const [isOpen,      setIsOpen]      = useState(false);
-    const [isMaximized, setIsMaximized] = useState(false);
     const [messages,    setMessages]    = useState<Message[]>([]);
     const [input,       setInput]       = useState('');
     const [isLoading,   setIsLoading]   = useState(false);
@@ -407,7 +529,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isOpen, isMaximized]);
+    }, [messages, isOpen]);
 
     const suggestions = getPageSuggestions(pathname || '');
 
@@ -481,7 +603,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     // ── EMBEDDED ──────────────────────────────────────────────────────────
     if (mode === 'embedded') {
         return (
-            <div className="h-full w-full rounded-2xl overflow-hidden shadow-xl border border-slate-200/80">
+            <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200/50">
                 <ChatPanel {...sharedProps} mode="embedded" />
             </div>
         );
@@ -489,6 +611,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
 
     // ── FLOATING ──────────────────────────────────────────────────────────
     const hasMessages = messages.length > 0;
+    const { colors } = useTheme();
 
     return (
         <div className="fixed bottom-6 right-6 z-[99999]">
@@ -496,7 +619,10 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             {!isOpen && (
                 <button onClick={() => setIsOpen(true)}
                     className="group relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
-                    style={{ background: 'linear-gradient(135deg, #4f46e5, #6d28d9)' }}
+                    style={{ 
+                        backgroundColor: 'var(--color-brand-orange, #f4481e)',
+                        backgroundImage: 'none'
+                    }}
                     title="Agente Foodie Guru">
                     <span className="text-2xl group-hover:scale-110 transition-transform duration-200">👨‍🍳</span>
                     {/* unread dot */}
@@ -507,23 +633,21 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                         </span>
                     )}
                     {/* pulse ring */}
-                    <span className="absolute inset-0 rounded-2xl ring-4 ring-indigo-300/40 animate-ping" style={{ animationDuration: '3s' }} />
+                    <span className="absolute inset-0 rounded-2xl animate-ping" style={{ boxShadow: `0 0 0 4px var(--color-brand-orange, #f4481e)40`, animationDuration: '3s' }} />
                 </button>
             )}
 
             {/* Chat window */}
             {isOpen && (
-                <div className={`absolute bottom-0 right-0 rounded-3xl overflow-hidden border border-white/20 shadow-2xl transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 zoom-in-95 ${
-                    isMaximized
-                        ? 'w-[82vw] h-[88vh] max-w-5xl'
-                        : 'w-[400px] h-[620px]'
-                }`}
+                <div className="absolute bottom-0 right-0 rounded-3xl overflow-hidden border border-white/20 shadow-2xl transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 zoom-in-95 w-[400px] h-[620px]"
                 style={{ boxShadow: '0 32px 64px -12px rgba(79,70,229,0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}>
                     <ChatPanel
                         {...sharedProps}
-                        onMaximize={() => setIsMaximized(v => !v)}
-                        onClose={() => { setIsOpen(false); setIsMaximized(false); }}
-                        isMaximized={isMaximized}
+                        onMaximize={() => {
+                            router.push(`/${locale}/dashboard/agente`);
+                            setIsOpen(false);
+                        }}
+                        onClose={() => { setIsOpen(false); }}
                         mode="floating"
                     />
                 </div>
