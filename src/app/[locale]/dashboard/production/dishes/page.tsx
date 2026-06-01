@@ -213,17 +213,7 @@ export default function DishesPage() {
                                     )}
                                 </div>
                             </ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell
-                                className="cursor-pointer hover:opacity-80"
-                                onClick={() => handleSort('Codigo')}
-                            >
-                                <div className="flex items-center gap-1">
-                                    {t('code')}
-                                    {sortConfig?.key === 'Codigo' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                            </ThemedGridHeaderCell>
+
                             <ThemedGridHeaderCell
                                 className="cursor-pointer hover:opacity-80"
                                 onClick={() => handleSort('SeccionMenu')}
@@ -331,9 +321,7 @@ export default function DishesPage() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {dish.Codigo}
-                                    </td>
+
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {dish.SeccionMenu || '-'}
                                     </td>
