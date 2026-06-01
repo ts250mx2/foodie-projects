@@ -254,63 +254,6 @@ export default function ProjectSettingsPage() {
                             />
                         </div>
                     </div>
-
-                    {/* Color Pickers */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Fondo 1</label>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="color"
-                                    value={projectData.ColorFondo1}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorFondo1: e.target.value })}
-                                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer"
-                                />
-                                <input
-                                    type="text"
-                                    value={projectData.ColorFondo1}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorFondo1: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Fondo 2</label>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="color"
-                                    value={projectData.ColorFondo2}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorFondo2: e.target.value })}
-                                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer"
-                                />
-                                <input
-                                    type="text"
-                                    value={projectData.ColorFondo2}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorFondo2: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Color Letra</label>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="color"
-                                    value={projectData.ColorLetra}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorLetra: e.target.value })}
-                                    className="h-10 w-20 rounded border border-gray-300 cursor-pointer"
-                                />
-                                <input
-                                    type="text"
-                                    value={projectData.ColorLetra}
-                                    onChange={(e) => setProjectData({ ...projectData, ColorLetra: e.target.value })}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                                />
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* User Settings Card */}
