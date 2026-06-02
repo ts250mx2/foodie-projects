@@ -1,11 +1,40 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight } from 'lucide-react';
+import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, FileDown, ArrowUpRight } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import AgentChart from '@/components/dashboard/AgentChart';
+
+// Botones de navegación que el agente embebe como ```nav {json}```.
+function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
+    let items: { label: string; path: string; reason?: string }[] = [];
+    try { const p = JSON.parse(json); items = Array.isArray(p.items) ? p.items : []; } catch { return null; }
+    if (!items.length) return null;
+    return (
+        <div className="not-prose flex flex-wrap gap-2 my-2">
+            {items.map((it, i) => (
+                <button key={i} onClick={() => it.path && onNavigate(it.path)} title={it.reason}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 hover:brightness-95"
+                    style={{ borderColor: '#f4481e40', background: '#f4481e0d', color: '#c2410c' }}>
+                    <ArrowUpRight size={13} />
+                    {it.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+// Durante el streaming, oculta un bloque cercado (```chart / ```nav) aún sin
+// cerrar para no mostrar JSON crudo; el bloque aparece cuando se completa.
+function hideIncompleteFence(text: string): string {
+    const fences = (text.match(/```/g) || []).length;
+    if (fences % 2 === 0) return text;          // todo cerrado
+    const idx = text.lastIndexOf('```');
+    return text.slice(0, idx).trimEnd();
+}
 
 interface Message {
     role: 'user' | 'assistant';
@@ -134,6 +163,7 @@ function ChatPanel({
     messages, isLoading, input, setInput, handleSend,
     model, setModel, onClear, onMaximize, onClose,
     isMaximized, mode, suggestions, messagesEndRef,
+    streamingText, streamPhase, onNavigate,
 }: {
     messages: Message[];
     isLoading: boolean;
@@ -149,16 +179,48 @@ function ChatPanel({
     mode: 'floating' | 'embedded';
     suggestions: string[];
     messagesEndRef: React.RefObject<HTMLDivElement | null>;
+    streamingText?: string | null;
+    streamPhase?: string | null;
+    onNavigate: (path: string) => void;
 }) {
     const { colors } = useTheme();
     const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
     const [isInputFocused, setIsInputFocused] = useState(false);
+
+    // Render de Markdown: intercepta ```chart (gráfica) y ```nav (botones).
+    const mdComponents = useMemo(() => ({
+        pre({ children }: any) {
+            const child = Array.isArray(children) ? children[0] : children;
+            const cls: string = child?.props?.className || '';
+            const kids = child?.props?.children;
+            const raw = (Array.isArray(kids) ? kids.join('') : String(kids ?? '')).replace(/\n$/, '');
+            if (cls.includes('language-chart')) return <AgentChart json={raw} />;
+            if (cls.includes('language-nav')) return <NavButtons json={raw} onNavigate={onNavigate} />;
+            return <pre>{children}</pre>;
+        },
+    }), [onNavigate]);
 
     const sendSuggestion = (text: string) => {
         setInput(text);
         setTimeout(() => {
             (document.getElementById('agent-chat-form') as HTMLFormElement)?.requestSubmit();
         }, 0);
+    };
+
+    // Exporta una respuesta del asistente a PDF. Carga jsPDF en demanda (lazy)
+    // para no inflar el bundle inicial del dashboard.
+    const exportMsg = async (idx: number) => {
+        const msg = messages[idx];
+        if (!msg || msg.role !== 'assistant' || !msg.content) return;
+        const prev = messages[idx - 1];
+        const question = prev && prev.role === 'user' ? prev.content : undefined;
+        const modelLabel = CLAUDE_MODELS.find(m => m.id === model)?.label;
+        try {
+            const { generateAnswerPDF } = await import('@/utils/generateAnswerPDF');
+            generateAnswerPDF(msg.content, { question, model: modelLabel });
+        } catch (err) {
+            console.error('No se pudo generar el PDF:', err);
+        }
     };
 
     return (
@@ -378,7 +440,7 @@ function ChatPanel({
                             <div className={`rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-200 ${
                                 msg.role === 'user'
                                     ? 'font-semibold hover:shadow-md'
-                                    : 'bg-white border border-slate-150/70 text-slate-800 rounded-tl-sm hover:shadow-md'
+                                    : 'bg-white text-slate-800 rounded-tl-sm hover:shadow-md'
                             }`}
                             style={msg.role === 'user' ? {
                                 background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)',
@@ -388,13 +450,25 @@ function ChatPanel({
                             } : {}}>
                                 {msg.role === 'assistant' ? (
                                     <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
                                             {msg.content}
                                         </ReactMarkdown>
                                     </div>
                                 ) : msg.content}
                             </div>
                         </div>
+
+                        {/* Export PDF — solo respuestas de análisis (no aclaraciones) */}
+                        {msg.role === 'assistant' && !msg.clarification && msg.content?.trim() && (
+                            <button
+                                onClick={() => exportMsg(idx)}
+                                title="Exportar esta respuesta a PDF"
+                                className="ml-9 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95"
+                            >
+                                <FileDown size={12} />
+                                Exportar PDF
+                            </button>
+                        )}
 
                         {/* Clarification chips */}
                         {msg.role === 'assistant' && msg.clarification?.suggestions && (
@@ -421,15 +495,41 @@ function ChatPanel({
                     </div>
                 ))}
 
-                {/* Loading */}
-                {isLoading && (
-                    <div className="flex items-start gap-2.5 animate-in fade-in duration-300">
+                {/* Streaming bubble — el texto del asistente mientras llega */}
+                {typeof streamingText === 'string' && streamingText.length > 0 && (
+                    <div className="flex gap-2.5 max-w-[88%] items-start animate-in fade-in duration-200">
+                        <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
+                            style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
+                            👨‍🍳
+                        </div>
+                        <div className="bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+                            <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                                    {hideIncompleteFence(streamingText)}
+                                </ReactMarkdown>
+                            </div>
+                            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle rounded-sm animate-pulse"
+                                style={{ backgroundColor: colors?.colorFondo1 || '#f4481e' }} />
+                        </div>
+                    </div>
+                )}
+
+                {/* Loading / fase — solo antes del primer token o entre consultas */}
+                {isLoading && !(typeof streamingText === 'string' && streamingText.length > 0) && (
+                    <div className="flex items-center gap-2.5 animate-in fade-in duration-300">
                         <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
                             style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
                             👨‍🍳
                         </div>
-                        <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                        <div className="flex items-center gap-2 bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                             <TypingIndicator />
+                            {streamPhase && streamPhase !== 'writing' && (
+                                <span className="text-[11px] font-semibold text-slate-400">
+                                    {streamPhase === 'querying' ? 'Consultando tus datos…'
+                                        : streamPhase === 'analyzing' ? 'Analizando…'
+                                        : 'Pensando…'}
+                                </span>
+                            )}
                         </div>
                     </div>
                 )}
@@ -494,12 +594,14 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     const params   = useParams();
     const locale   = (params?.locale as string) || 'es';
 
-    const [isOpen,      setIsOpen]      = useState(false);
-    const [messages,    setMessages]    = useState<Message[]>([]);
-    const [input,       setInput]       = useState('');
-    const [isLoading,   setIsLoading]   = useState(false);
-    const [model,       setModel]       = useState<ClaudeModel>('claude-sonnet-4-6');
-    const [hydrated,    setHydrated]    = useState(false);
+    const [isOpen,        setIsOpen]        = useState(false);
+    const [messages,      setMessages]      = useState<Message[]>([]);
+    const [input,         setInput]         = useState('');
+    const [isLoading,     setIsLoading]     = useState(false);
+    const [model,         setModel]         = useState<ClaudeModel>('claude-sonnet-4-6');
+    const [hydrated,      setHydrated]      = useState(false);
+    const [streamingText, setStreamingText] = useState<string | null>(null);
+    const [streamPhase,   setStreamPhase]   = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // ── Load persisted conversation ────────────────────────────────────────
@@ -529,7 +631,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isOpen]);
+    }, [messages, isOpen, streamingText]);
 
     const suggestions = getPageSuggestions(pathname || '');
 
@@ -541,6 +643,11 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
+        setStreamPhase('thinking');
+        setStreamingText(null);
+
+        let streamed   = '';   // texto acumulado del turno final (fuente de verdad)
+        let committed  = false; // ya volcamos el texto a un mensaje permanente
 
         try {
             const ctx = dashboardData || getContextFromLocalStorage();
@@ -550,7 +657,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                 (ctx as any)?.project?.idProyecto  ||
                 (ctx as any)?.project?.IdProyecto;
 
-            const res  = await fetch('/api/ai/chat', {
+            const res = await fetch('/api/ai/chat?stream=true', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -560,32 +667,98 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                     projectId,
                 }),
             });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
 
-            if (data.executedSql) {
-                console.groupCollapsed('🔍 Foodie Guru – SQL');
-                console.log(data.executedSql);
-                console.groupEnd();
+            if (!res.ok || !res.body) {
+                throw new Error('No se pudo conectar con el agente.');
             }
 
-            if (data.clarification) {
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: data.clarification.question,
-                    clarification: data.clarification,
-                    ts: Date.now(),
-                }]);
-            } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.content, ts: Date.now() }]);
+            const reader  = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let stop   = false;
+
+            while (!stop) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+
+                const frames = buffer.split('\n\n');
+                buffer = frames.pop() || '';
+
+                for (const frame of frames) {
+                    const dataLine = frame.split('\n').find(l => l.startsWith('data:'));
+                    if (!dataLine) continue;
+                    let evt: any;
+                    try { evt = JSON.parse(dataLine.slice(5).trim()); } catch { continue; }
+
+                    switch (evt.type) {
+                        case 'status':
+                            setStreamPhase(evt.phase);
+                            break;
+                        case 'text':
+                            streamed += evt.delta;
+                            setStreamingText(streamed);
+                            break;
+                        case 'reset':
+                            streamed = '';
+                            setStreamingText('');
+                            break;
+                        case 'clarification':
+                            streamed = '';
+                            committed = true;
+                            setStreamingText(null);
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: evt.question,
+                                clarification: { question: evt.question, suggestions: evt.suggestions || [] },
+                                ts: Date.now(),
+                            }]);
+                            break;
+                        case 'done':
+                            if (!committed) {
+                                const finalContent = streamed || evt.content || '';
+                                if (finalContent) {
+                                    setMessages(prev => [...prev, { role: 'assistant', content: finalContent, ts: Date.now() }]);
+                                }
+                                committed = true;
+                            }
+                            setStreamingText(null);
+                            if (evt.executedSql) {
+                                console.groupCollapsed('🔍 Foodie Guru – SQL');
+                                console.log(evt.executedSql);
+                                console.groupEnd();
+                            }
+                            stop = true;
+                            break;
+                        case 'error':
+                            committed = true;
+                            setStreamingText(null);
+                            setMessages(prev => [...prev, {
+                                role: 'assistant',
+                                content: `Lo siento, ocurrió un error: ${evt.message || 'desconocido'}`,
+                                ts: Date.now(),
+                            }]);
+                            stop = true;
+                            break;
+                    }
+                }
+            }
+
+            // Si el stream se cortó sin 'done' pero alcanzamos a recibir texto.
+            if (!committed && streamed) {
+                setMessages(prev => [...prev, { role: 'assistant', content: streamed, ts: Date.now() }]);
             }
         } catch (err: any) {
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: `Lo siento, ocurrió un error: ${err.message}`,
-                ts: Date.now(),
-            }]);
+            if (!committed) {
+                setMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: `Lo siento, ocurrió un error: ${err.message}`,
+                    ts: Date.now(),
+                }]);
+            }
         } finally {
+            setStreamingText(null);
+            setStreamPhase(null);
             setIsLoading(false);
         }
     }, [input, isLoading, messages, model, pathname, dashboardData]);
@@ -595,9 +768,17 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         localStorage.removeItem(CHAT_STORAGE_KEY);
     };
 
+    // Navega a una pantalla del dashboard (desde un bloque ```nav del agente).
+    const handleNavigate = useCallback((path: string) => {
+        if (!path?.startsWith('/')) return;
+        router.push(`/${locale}${path}`);
+        setIsOpen(false); // cierra el widget flotante; en modo embedded no aplica
+    }, [router, locale]);
+
     const sharedProps = {
         messages, isLoading, input, setInput, handleSend,
         model, setModel, onClear: handleClear, suggestions, messagesEndRef,
+        streamingText, streamPhase, onNavigate: handleNavigate,
     };
 
     // ── EMBEDDED ──────────────────────────────────────────────────────────
