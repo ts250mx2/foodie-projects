@@ -43,3 +43,8 @@ next-env.d.ts
 # uploads
 /public/uploads/
 /public/images/logos/null.png
+
+# Local debug and scratch directories
+/scratch/
+/api-debug.log
+
