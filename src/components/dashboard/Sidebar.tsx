@@ -249,7 +249,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                         color: pathname === `/${locale}/dashboard/agente` ? colors.colorFondo1 : '#ffffff',
                     }}
                 >
-                    <Sparkles size={18} className="shrink-0" />
+                    <span className="text-base shrink-0 select-none w-[18px] h-[18px] flex items-center justify-center leading-none">👨‍🍳</span>
                     {!isCollapsed && (
                         <span className="text-sm flex items-center gap-2">
                             Agente Foodie Guru

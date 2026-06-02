@@ -10,7 +10,7 @@ import AgentChart from '@/components/dashboard/AgentChart';
 import PageShell from '@/components/PageShell';
 
 // Botones de navegación que el agente embebe como ```nav {json}```.
-function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
+export function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
     let items: { label: string; path: string; reason?: string }[] = [];
     try { const p = JSON.parse(json); items = Array.isArray(p.items) ? p.items : []; } catch { return null; }
     if (!items.length) return null;
@@ -729,7 +729,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             <PageShell
                 title={locale === 'es' ? 'Agente Foodie Gurú' : 'Foodie Guru Agent'}
                 subtitle={locale === 'es' ? 'Tu consultor de rentabilidad en tiempo real' : 'Your real-time profitability consultant'}
-                icon={Bot}
+                icon="👨‍🍳"
                 actions={
                     <button
                         onClick={handleClear}

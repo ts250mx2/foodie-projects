@@ -13,7 +13,7 @@ import {
 interface PageShellProps {
     title: string;
     subtitle?: string;
-    icon?: React.ElementType;
+    icon?: React.ElementType | string;
     actions?: React.ReactNode;
     children: React.ReactNode;
     className?: string;
@@ -83,7 +83,11 @@ export default function PageShell({
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                             style={{ backgroundColor: 'var(--color-brand-yellow)' }}
                         >
-                            <ResolvedIcon size={18} style={{ color: '#0a0a0a' }} />
+                            {typeof ResolvedIcon === 'string' ? (
+                                <span className="text-xl">{ResolvedIcon}</span>
+                            ) : (
+                                <ResolvedIcon size={18} style={{ color: '#0a0a0a' }} />
+                            )}
                         </div>
                     )}
                     <div className="flex flex-col min-w-0">
