@@ -770,7 +770,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     // ── EMBEDDED ──────────────────────────────────────────────────────────
     if (mode === 'embedded') {
         return (
-            <div className="h-full w-full rounded-2xl overflow-hidden border border-slate-200/50">
+            <div className="h-full w-full rounded-none overflow-hidden border-none">
                 <ChatPanel {...sharedProps} mode="embedded" />
             </div>
         );

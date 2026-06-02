@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { DATABASE_SCHEMA } from '@/lib/ai/schema';
 import { buildProjectCatalog } from '@/lib/ai/catalog';
+import { createSseStream, SSE_HEADERS } from '@/lib/ai/sse';
 
 const MAX_TURNS = 12;
 
@@ -19,6 +20,36 @@ async function executeQuery(connection: any, sql: string): Promise<any[]> {
     }
     const [rows] = await connection.execute(sql);
     return rows as any[];
+}
+
+// Ejecuta todos los query_database de un turno y devuelve los tool_result.
+// Acumula el SQL ejecutado en `executedSql` (efecto colateral, compartido).
+async function runToolBlocks(
+    connection: any, content: any[], executedSql: string[]
+): Promise<any[]> {
+    const toolResults: any[] = [];
+    for (const block of content) {
+        if (block.type !== 'tool_use') continue;
+        const sql = (block.input as any)?.sql || '';
+        if (sql) executedSql.push(sql);
+        try {
+            const rows = await executeQuery(connection, sql);
+            const resultStr = JSON.stringify(rows);
+            toolResults.push({
+                type:        'tool_result',
+                tool_use_id: block.id,
+                content:     resultStr.length > 12000 ? resultStr.slice(0, 12000) + '…]' : resultStr,
+            });
+        } catch (err: any) {
+            toolResults.push({
+                type:        'tool_result',
+                tool_use_id: block.id,
+                content:     JSON.stringify({ error: err.message }),
+                is_error:    true,
+            });
+        }
+    }
+    return toolResults;
 }
 
 // El esquema de BD (estructura, igual para todos los proyectos) se importa de
@@ -193,6 +224,58 @@ SÍ HAZ:
   normal, conversacional, sin ejecutar herramientas.
 
 ══════════════════════════════════════════
+GRÁFICAS (opcional, cuando ayudan a ver los datos)
+══════════════════════════════════════════
+Cuando una gráfica ayude a entender datos comparativos —varias categorías,
+evolución en el tiempo o distribución/participación— incluye UN bloque de
+gráfica ADEMÁS de tu texto. Usa este formato EXACTO (bloque cercado \`\`\`chart
+con un JSON en una sola línea):
+
+\`\`\`chart
+{"type":"bar","title":"Ventas por canal (mayo 2026)","format":"currency","data":[{"name":"Comedor","value":1382567},{"name":"Uber","value":111322},{"name":"Rappi","value":61777}]}
+\`\`\`
+
+REGLAS DE LA GRÁFICA:
+- "type": "bar" (comparar categorías), "line" (evolución temporal), "pie" (distribución/% participación).
+- "format": "currency" (MXN), "number" o "percent".
+- Para comparar DOS series (ej. mayo vs abril) agrega "value2" a cada punto y "seriesLabels":["Mayo","Abril"].
+- Máximo ~12 puntos. Nombres cortos. Los valores son números crudos (sin $, sin comas, sin %).
+- Pon la gráfica DESPUÉS de tu texto de análisis — nunca en lugar del texto.
+- NO la uses para un solo dato ni para preguntas conceptuales.
+- No anuncies "aquí está la gráfica"; simplemente inclúyela al final.
+
+══════════════════════════════════════════
+PANTALLAS DEL DASHBOARD (guiar al usuario)
+══════════════════════════════════════════
+Cuando al usuario le sirva ABRIR una pantalla del sistema —para ver el detalle,
+profundizar o capturar/corregir datos— incluye al FINAL un bloque \`\`\`nav con 1 a
+3 destinos. Formato EXACTO (JSON en una sola línea):
+
+\`\`\`nav
+{"items":[{"label":"Ver ventas por canal","path":"/dashboard/sales/channels","reason":"desglose y comisiones"}]}
+\`\`\`
+
+PANTALLAS DISPONIBLES (usa EXACTAMENTE estos paths, sin prefijo de idioma):
+- /dashboard — Resumen general (ventas, gastos, nómina, utilidad estimada)
+- /dashboard/sales — Ventas (resumen)
+- /dashboard/sales/channels — Ventas por canal (comedor, delivery) y comisiones
+- /dashboard/sales/terminals — Ventas por forma de pago / terminal
+- /dashboard/expenses — Gastos operativos
+- /dashboard/purchases — Compras de insumos
+- /dashboard/purchases/suppliers — Proveedores
+- /dashboard/inventories — Inventario
+- /dashboard/inventories/min-max — Productos vs máximos/mínimos (bajo mínimo)
+- /dashboard/payroll — Nómina
+- /dashboard/production — Producción
+- /dashboard/production/dishes — Platillos y costeo (alertas de costo)
+- /dashboard/config/break-even — Punto de equilibrio
+
+REGLAS DE NAVEGACIÓN:
+- Úsalo SOLO cuando navegar aporte de verdad (no en cada respuesta).
+- Máximo 3 destinos; "path" debe ser uno EXACTO de la lista.
+- Ponlo al final, sin anunciarlo. Puede ir junto con una gráfica.
+
+══════════════════════════════════════════
 BENCHMARKS DE LA INDUSTRIA RESTAURANTERA MEXICANA
 ══════════════════════════════════════════
 - Food cost (compras/ventas):    ideal 28-35%  |  >38% = alerta roja
@@ -306,6 +389,86 @@ export async function POST(req: Request) {
             content: m.content,
         }));
 
+        // ── BRANCH STREAMING (SSE) ────────────────────────────────────────────
+        const useStreaming = new URL(req.url).searchParams.get('stream') === 'true';
+        if (useStreaming) {
+            const ownedConn = connection;
+            connection = null; // el stream cierra la conexión; evita doble-cierre en finally
+            const stream = createSseStream(async (emit) => {
+                try {
+                    let turns       = 0;
+                    let finalText   = '';
+                    let activeModel = resolvedModel;
+                    emit({ type: 'status', phase: 'thinking' });
+
+                    while (turns < MAX_TURNS) {
+                        turns++;
+                        const msgStream = anthropic.messages.stream({
+                            model:       activeModel,
+                            max_tokens:  8192,
+                            system:      systemPrompt,
+                            tools:       AGENT_TOOLS,
+                            tool_choice: { type: 'auto' },
+                            messages:    conversationMessages,
+                        });
+
+                        let turnText  = '';
+                        let sawTool   = false;
+                        let resetSent = false;
+                        for await (const ev of msgStream) {
+                            if (ev.type === 'content_block_start' && (ev as any).content_block?.type === 'tool_use') {
+                                sawTool = true;
+                                // Si el modelo emitió preámbulo antes de la tool, bórralo en el cliente.
+                                if (turnText && !resetSent) { emit({ type: 'reset' }); resetSent = true; turnText = ''; }
+                            } else if (ev.type === 'content_block_delta' && (ev as any).delta?.type === 'text_delta') {
+                                if (!sawTool) {
+                                    const t = (ev as any).delta.text as string;
+                                    turnText += t;
+                                    emit({ type: 'text', delta: t });
+                                }
+                            }
+                        }
+
+                        const finalMessage = await msgStream.finalMessage();
+
+                        // Turno final (sin tools): el texto ya se transmitió.
+                        if (finalMessage.stop_reason !== 'tool_use') {
+                            const tb = finalMessage.content.find((c: any) => c.type === 'text') as any;
+                            finalText = turnText || tb?.text || '';
+                            break;
+                        }
+
+                        // ask_clarification → evento terminal
+                        const clar = finalMessage.content.find(
+                            (c: any) => c.type === 'tool_use' && c.name === 'ask_clarification'
+                        ) as any;
+                        if (clar) {
+                            emit({
+                                type: 'clarification',
+                                question:    clar.input?.question || '¿Qué período te gustaría analizar?',
+                                suggestions: clar.input?.suggestions || [],
+                            });
+                            emit({ type: 'done', modelUsed: activeModel, executedSql: executedSql.join(';\n') });
+                            return;
+                        }
+
+                        // query_database → ejecuta y realimenta
+                        emit({ type: 'status', phase: 'querying' });
+                        conversationMessages.push({ role: 'assistant', content: finalMessage.content });
+                        const toolResults = await runToolBlocks(ownedConn, finalMessage.content, executedSql);
+                        conversationMessages.push({ role: 'user', content: toolResults });
+                        emit({ type: 'status', phase: 'analyzing' });
+                    }
+
+                    emit({ type: 'done', content: finalText, modelUsed: activeModel, executedSql: executedSql.join(';\n') });
+                } finally {
+                    try { await ownedConn.end(); } catch { /* noop */ }
+                }
+            });
+            return new Response(stream, { headers: SSE_HEADERS });
+        }
+
+        // ── BRANCH NO-STREAMING (JSON, back-compat) ───────────────────────────
         let turns       = 0;
         let finalText   = '';
         let activeModel = resolvedModel;
@@ -347,33 +510,7 @@ export async function POST(req: Request) {
 
             // Process all query_database tool calls
             conversationMessages.push({ role: 'assistant', content: resp.content });
-
-            const toolResults: any[] = [];
-            for (const block of resp.content) {
-                if (block.type !== 'tool_use') continue;
-
-                const sql = (block.input as any)?.sql || '';
-                if (sql) executedSql.push(sql);
-
-                try {
-                    const rows = await executeQuery(connection, sql);
-                    // Cap result size to avoid token overflow
-                    const resultStr = JSON.stringify(rows);
-                    toolResults.push({
-                        type:        'tool_result',
-                        tool_use_id: block.id,
-                        content:     resultStr.length > 12000 ? resultStr.slice(0, 12000) + '…]' : resultStr,
-                    });
-                } catch (err: any) {
-                    toolResults.push({
-                        type:        'tool_result',
-                        tool_use_id: block.id,
-                        content:     JSON.stringify({ error: err.message }),
-                        is_error:    true,
-                    });
-                }
-            }
-
+            const toolResults = await runToolBlocks(connection, resp.content, executedSql);
             conversationMessages.push({ role: 'user', content: toolResults });
         }
 
