@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, FileDown, ArrowUpRight } from 'lucide-react';
+import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, FileDown, ArrowUpRight, Link2, Check } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import AgentChart from '@/components/dashboard/AgentChart';
 import PageShell from '@/components/PageShell';
@@ -164,7 +164,7 @@ function ChatPanel({
     messages, isLoading, input, setInput, handleSend,
     model, setModel, onClear, onMaximize, onClose,
     isMaximized, mode, suggestions, messagesEndRef,
-    streamingText, streamPhase, onNavigate,
+    streamingText, streamPhase, onNavigate, onShare,
 }: {
     messages: Message[];
     isLoading: boolean;
@@ -183,6 +183,7 @@ function ChatPanel({
     streamingText?: string | null;
     streamPhase?: string | null;
     onNavigate: (path: string) => void;
+    onShare: (content: string, question?: string) => Promise<string | null>;
 }) {
     const { colors } = useTheme();
     const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
@@ -221,6 +222,25 @@ function ChatPanel({
             generateAnswerPDF(msg.content, { question, model: modelLabel });
         } catch (err) {
             console.error('No se pudo generar el PDF:', err);
+        }
+    };
+
+    // Genera una liga compartible de la respuesta y la copia al portapapeles.
+    const [shareState, setShareState] = useState<{ idx: number; status: 'loading' | 'done' | 'error' } | null>(null);
+    const shareMsg = async (idx: number) => {
+        const msg = messages[idx];
+        if (!msg || msg.role !== 'assistant' || !msg.content) return;
+        const prev = messages[idx - 1];
+        const question = prev && prev.role === 'user' ? prev.content : undefined;
+        setShareState({ idx, status: 'loading' });
+        const url = await onShare(msg.content, question);
+        if (url) {
+            try { await navigator.clipboard.writeText(url); } catch { /* sin permiso de clipboard */ }
+            setShareState({ idx, status: 'done' });
+            setTimeout(() => setShareState(s => (s?.idx === idx ? null : s)), 2500);
+        } else {
+            setShareState({ idx, status: 'error' });
+            setTimeout(() => setShareState(s => (s?.idx === idx ? null : s)), 2500);
         }
     };
 
@@ -381,16 +401,32 @@ function ChatPanel({
                             </div>
                         </div>
 
-                        {/* Export PDF — solo respuestas de análisis (no aclaraciones) */}
+                        {/* Acciones — solo respuestas de análisis (no aclaraciones) */}
                         {msg.role === 'assistant' && !msg.clarification && msg.content?.trim() && (
-                            <button
-                                onClick={() => exportMsg(idx)}
-                                title="Exportar esta respuesta a PDF"
-                                className="ml-9 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95"
-                            >
-                                <FileDown size={12} />
-                                Exportar PDF
-                            </button>
+                            <div className="ml-9 flex items-center gap-1.5">
+                                <button
+                                    onClick={() => exportMsg(idx)}
+                                    title="Exportar esta respuesta a PDF"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95"
+                                >
+                                    <FileDown size={12} />
+                                    Exportar PDF
+                                </button>
+                                <button
+                                    onClick={() => shareMsg(idx)}
+                                    disabled={shareState?.idx === idx && shareState.status === 'loading'}
+                                    title="Crear una liga para compartir (ej. por WhatsApp)"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95 disabled:opacity-60"
+                                >
+                                    {shareState?.idx === idx && shareState.status === 'done'
+                                        ? (<><Check size={12} className="text-emerald-500" /> ¡Liga copiada!</>)
+                                        : shareState?.idx === idx && shareState.status === 'loading'
+                                        ? (<><Link2 size={12} /> Creando…</>)
+                                        : shareState?.idx === idx && shareState.status === 'error'
+                                        ? (<><X size={12} className="text-red-500" /> Error</>)
+                                        : (<><Link2 size={12} /> Compartir liga</>)}
+                                </button>
+                            </div>
                         )}
 
                         {/* Clarification chips */}
@@ -717,10 +753,38 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         setIsOpen(false); // cierra el widget flotante; en modo embedded no aplica
     }, [router, locale]);
 
+    // Crea una liga compartible (abrible por WhatsApp) de una respuesta y
+    // devuelve la URL para copiarla al portapapeles.
+    const handleShare = useCallback(async (content: string, question?: string): Promise<string | null> => {
+        try {
+            const ctx = dashboardData || getContextFromLocalStorage();
+            const projectId =
+                dashboardData?.project?.idProyecto ||
+                dashboardData?.project?.IdProyecto ||
+                (ctx as any)?.project?.idProyecto ||
+                (ctx as any)?.project?.IdProyecto;
+            const res = await fetch('/api/ai/share', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content,
+                    question,
+                    projectId,
+                    model: CLAUDE_MODELS.find(m => m.id === model)?.label,
+                    branchName: (ctx as any)?.branchName,
+                }),
+            });
+            const data = await res.json();
+            return data?.url || null;
+        } catch {
+            return null;
+        }
+    }, [dashboardData, model]);
+
     const sharedProps = {
         messages, isLoading, input, setInput, handleSend,
         model, setModel, onClear: handleClear, suggestions, messagesEndRef,
-        streamingText, streamPhase, onNavigate: handleNavigate,
+        streamingText, streamPhase, onNavigate: handleNavigate, onShare: handleShare,
     };
 
     // ── EMBEDDED ──────────────────────────────────────────────────────────
