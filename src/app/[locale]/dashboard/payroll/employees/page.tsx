@@ -602,229 +602,227 @@ export default function EmployeesPage() {
 
                         {/* Modal Content */}
                         <div className="flex-1 overflow-y-auto p-6 bg-white">
-                            <form onSubmit={handleSubmit} className="h-full flex flex-col">
-                                {activeTab === 'general' && (
-                                    <div className="space-y-4 max-w-4xl mx-auto w-full">
-                                        <div className="flex gap-6 items-start">
-                                            <div className="flex-1 space-y-4">
-                                                <Input
-                                                    label={t('employeeName')}
-                                                    value={formData.name}
-                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    required
-                                                />
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                            {t('position')}
-                                                        </label>
-                                                        <select
-                                                            value={formData.positionId}
-                                                            onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
-                                                        >
-                                                            <option value="">{t('selectPosition')}</option>
-                                                            {positions.map(pos => {
-                                                                const superscriptMap: { [key: number]: string } = {
-                                                                    1: '¹',
-                                                                    2: '²',
-                                                                    3: '³'
-                                                                };
-                                                                const exponent = pos.IdTipoPuesto ? (superscriptMap[pos.IdTipoPuesto] || pos.IdTipoPuesto.toString()) : '';
-                                                                return (
-                                                                    <option key={pos.IdPuesto} value={pos.IdPuesto.toString()}>
-                                                                        {pos.ImagenTipoPuesto} {pos.Puesto} {exponent}
+                            {activeTab === 'documents' && editingEmployee ? (
+                                <div className="flex-1 min-h-[400px]">
+                                    <EmployeeDocumentsModal
+                                        isOpen={true}
+                                        onClose={() => { }}
+                                        employeeId={editingEmployee.IdEmpleado}
+                                        employeeName={editingEmployee.Empleado}
+                                        projectId={project?.idProyecto || 0}
+                                        isTabMode={true}
+                                    />
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmit} className="h-full flex flex-col">
+                                    {activeTab === 'general' && (
+                                        <div className="space-y-4 max-w-4xl mx-auto w-full">
+                                            <div className="flex gap-6 items-start">
+                                                <div className="flex-1 space-y-4">
+                                                    <Input
+                                                        label={t('employeeName')}
+                                                        value={formData.name}
+                                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                        required
+                                                    />
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                {t('position')}
+                                                            </label>
+                                                            <select
+                                                                value={formData.positionId}
+                                                                onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                                                            >
+                                                                <option value="">{t('selectPosition')}</option>
+                                                                {positions.map(pos => {
+                                                                    const superscriptMap: { [key: number]: string } = {
+                                                                        1: '¹',
+                                                                        2: '²',
+                                                                        3: '³'
+                                                                    };
+                                                                    const exponent = pos.IdTipoPuesto ? (superscriptMap[pos.IdTipoPuesto] || pos.IdTipoPuesto.toString()) : '';
+                                                                    return (
+                                                                        <option key={pos.IdPuesto} value={pos.IdPuesto.toString()}>
+                                                                            {pos.ImagenTipoPuesto} {pos.Puesto} {exponent}
+                                                                        </option>
+                                                                    );
+                                                                })}
+                                                            </select>
+                                                            <div className="mt-1 flex gap-3 text-[10px] text-gray-500 font-medium">
+                                                                <span><span className="text-primary-500">1</span> Cocina</span>
+                                                                <span><span className="text-primary-500">2</span> Servicio</span>
+                                                                <span><span className="text-primary-500">3</span> Administración</span>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                {t('branch')}
+                                                            </label>
+                                                            <select
+                                                                value={formData.branchId}
+                                                                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                                                            >
+                                                                <option value="">{t('selectBranch')}</option>
+                                                                {branches.map(branch => (
+                                                                    <option key={branch.IdSucursal} value={branch.IdSucursal.toString()}>
+                                                                        {branch.Sucursal}
                                                                     </option>
-                                                                );
-                                                            })}
-                                                        </select>
-                                                        <div className="mt-1 flex gap-3 text-[10px] text-gray-500 font-medium">
-                                                            <span><span className="text-primary-500">1</span> Cocina</span>
-                                                            <span><span className="text-primary-500">2</span> Servicio</span>
-                                                            <span><span className="text-primary-500">3</span> Administración</span>
+                                                                ))}
+                                                            </select>
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                            {t('branch')}
-                                                        </label>
-                                                        <select
-                                                            value={formData.branchId}
-                                                            onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white text-sm"
-                                                        >
-                                                            <option value="">{t('selectBranch')}</option>
-                                                            {branches.map(branch => (
-                                                                <option key={branch.IdSucursal} value={branch.IdSucursal.toString()}>
-                                                                    {branch.Sucursal}
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <Input
+                                                            label={t('phone')}
+                                                            value={formData.phone}
+                                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                        />
+                                                        <Input
+                                                            label={t('email')}
+                                                            value={formData.email}
+                                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                            type="email"
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <Input
+                                                            label={formData.branchId ? (branches.find(b => b.IdSucursal === parseInt(formData.branchId))?.TipoNomina === 1 ? 'Sueldo Por Hora' : 'Sueldo Por Turno') : 'Sueldo'}
+                                                            value={formData.salary}
+                                                            onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                                                            type="number"
+                                                            step="0.01"
+                                                        />
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <Input
-                                                        label={t('phone')}
-                                                        value={formData.phone}
-                                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                    />
-                                                    <Input
-                                                        label={t('email')}
-                                                        value={formData.email}
-                                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                        type="email"
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <Input
-                                                        label={formData.branchId ? (branches.find(b => b.IdSucursal === parseInt(formData.branchId))?.TipoNomina === 1 ? 'Sueldo Por Hora' : 'Sueldo Por Turno') : 'Sueldo'}
-                                                        value={formData.salary}
-                                                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                                                        type="number"
-                                                        step="0.01"
-                                                    />
+
+                                                <div className="w-48 space-y-2">
+                                                    <label className="block text-sm font-medium text-gray-700">{t('photo')}</label>
+                                                    <div className="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative group">
+                                                        {formData.photo ? (
+                                                            <>
+                                                                <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFormData({ ...formData, photo: null })}
+                                                                    className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-600 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <X size={16} />
+                                                                </button>
+                                                            </>
+                                                        ) : isWebcamActive ? (
+                                                            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs text-center px-4">Arrastra una imagen o usa la cámara</span>
+                                                        )}
+                                                        <canvas ref={canvasRef} className="hidden" width={400} height={400} />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            onClick={isWebcamActive ? takeSnapshot : startWebcam}
+                                                            variant={isWebcamActive ? "solid" : "secondary"}
+                                                            size="sm"
+                                                            className="flex-1"
+                                                        >
+                                                            {isWebcamActive ? 'Capturar' : 'Cámara'}
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="flex-1"
+                                                        >
+                                                            Subir
+                                                        </Button>
+                                                        <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="w-48 space-y-2">
-                                                <label className="block text-sm font-medium text-gray-700">{t('photo')}</label>
-                                                <div className="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative group">
-                                                    {formData.photo ? (
-                                                        <>
-                                                            <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                                            <div className="mt-4">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {t('address')}
+                                                </label>
+                                                <textarea
+                                                    value={formData.address}
+                                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                                                    rows={3}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'access' && (
+                                        <div className="space-y-6 max-w-4xl mx-auto w-full py-4">
+                                            <div className="grid grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Credenciales</h3>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            Usuario
+                                                        </label>
+                                                        <div className="flex items-center gap-0">
+                                                            <input
+                                                                type="text"
+                                                                value={formData.username}
+                                                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                                                                placeholder="usuario"
+                                                            />
+                                                            <div className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-500 text-xs font-medium min-w-[120px] flex items-center justify-center">
+                                                                @{projectDomain}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 mt-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <span className="text-sm font-bold text-gray-800 block">Es Administrador</span>
+                                                                <span className="text-[10px] text-gray-500 mt-0.5 block italic">Otorga permisos elevados al usuario</span>
+                                                            </div>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setFormData({ ...formData, photo: null })}
-                                                                className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-600 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
+                                                                className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-primary-500' : 'bg-gray-200'}`}
                                                             >
-                                                                <X size={16} />
+                                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isAdmin ? 'translate-x-7' : 'translate-x-1'}`} />
                                                             </button>
-                                                        </>
-                                                    ) : isWebcamActive ? (
-                                                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="text-gray-400 text-xs text-center px-4">Arrastra una imagen o usa la cámara</span>
-                                                    )}
-                                                    <canvas ref={canvasRef} className="hidden" width={400} height={400} />
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        type="button"
-                                                        onClick={isWebcamActive ? takeSnapshot : startWebcam}
-                                                        variant={isWebcamActive ? "solid" : "secondary"}
-                                                        size="sm"
-                                                        className="flex-1"
-                                                    >
-                                                        {isWebcamActive ? 'Capturar' : 'Cámara'}
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        onClick={() => fileInputRef.current?.click()}
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        className="flex-1"
-                                                    >
-                                                        Subir
-                                                    </Button>
-                                                    <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('address')}
-                                            </label>
-                                            <textarea
-                                                value={formData.address}
-                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                                                rows={3}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {activeTab === 'access' && (
-                                    <div className="space-y-6 max-w-4xl mx-auto w-full py-4">
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-4">
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Credenciales</h3>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        Usuario
-                                                    </label>
-                                                    <div className="flex items-center gap-0">
-                                                        <input
-                                                            type="text"
-                                                            value={formData.username}
-                                                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                                                            placeholder="usuario"
-                                                        />
-                                                        <div className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-md text-gray-500 text-xs font-medium min-w-[120px] flex items-center justify-center">
-                                                            @{projectDomain}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 mt-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <span className="text-sm font-bold text-gray-800 block">Es Administrador</span>
-                                                            <span className="text-[10px] text-gray-500 mt-0.5 block italic">Otorga permisos elevados al usuario</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setFormData({ ...formData, isAdmin: !formData.isAdmin })}
-                                                            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${formData.isAdmin ? 'bg-primary-500' : 'bg-gray-200'}`}
-                                                        >
-                                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isAdmin ? 'translate-x-7' : 'translate-x-1'}`} />
-                                                        </button>
+                                                <div className="space-y-4">
+                                                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Seguridad</h3>
+                                                    <Input
+                                                        label="Contraseña"
+                                                        type="password"
+                                                        value={formData.password}
+                                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                        placeholder="••••••••"
+                                                        className="text-sm"
+                                                    />
+                                                    <Input
+                                                        label="Repetir Contraseña"
+                                                        type="password"
+                                                        value={formData.repeatPassword}
+                                                        onChange={(e) => setFormData({ ...formData, repeatPassword: e.target.value })}
+                                                        placeholder="••••••••"
+                                                        className="text-sm"
+                                                    />
+                                                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded text-[11px] text-yellow-700 leading-relaxed">
+                                                        <strong>Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div className="space-y-4">
-                                                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b pb-2">Seguridad</h3>
-                                                <Input
-                                                    label="Contraseña"
-                                                    type="password"
-                                                    value={formData.password}
-                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                    placeholder="••••••••"
-                                                    className="text-sm"
-                                                />
-                                                <Input
-                                                    label="Repetir Contraseña"
-                                                    type="password"
-                                                    value={formData.repeatPassword}
-                                                    onChange={(e) => setFormData({ ...formData, repeatPassword: e.target.value })}
-                                                    placeholder="••••••••"
-                                                    className="text-sm"
-                                                />
-                                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded text-[11px] text-yellow-700 leading-relaxed">
-                                                    <strong>Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
-                                                </div>
-                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {activeTab === 'documents' && editingEmployee && (
-                                    <div className="flex-1 min-h-[400px]">
-                                        <EmployeeDocumentsModal
-                                            isOpen={true}
-                                            onClose={() => { }}
-                                            employeeId={editingEmployee.IdEmpleado}
-                                            employeeName={editingEmployee.Empleado}
-                                            projectId={project?.idProyecto || 0}
-                                            isTabMode={true}
-                                        />
-                                    </div>
-                                )}
-
-                                {activeTab !== 'documents' && (
                                     <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-2">
                                         <Button
                                             type="button"
@@ -841,8 +839,8 @@ export default function EmployeesPage() {
                                             {t('save')}
                                         </Button>
                                     </div>
-                                )}
-                            </form>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>

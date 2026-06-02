@@ -85,6 +85,7 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
     // --- Create Document (Metadata Only) ---
     const handleAddDocument = async (e: React.FormEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!formData.documentTypeId) return;
 
         setIsSaving(true);
@@ -137,27 +138,31 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                const base64 = (reader.result as string).split(',')[1];
-                const fullBase64 = reader.result as string; // Keep prefix for immediate UI update if needed
+                try {
+                    const base64 = (reader.result as string).split(',')[1];
+                    const response = await fetch(`/api/employees/${employeeId}/documents`, {
+                        method: 'PUT', // Using PUT for updates
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            projectId,
+                            documentId: docId,
+                            originalFileName: file.name,
+                            fileBase64: base64
+                        })
+                    });
 
-                const response = await fetch(`/api/employees/${employeeId}/documents`, {
-                    method: 'PUT', // Using PUT for updates
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        projectId,
-                        documentId: docId,
-                        originalFileName: file.name,
-                        fileBase64: base64
-                    })
-                });
-
-                if (response.ok) {
-                    await fetchDocuments();
-                } else {
-                    alert('Error al subir el archivo');
+                    if (response.ok) {
+                        await fetchDocuments();
+                    } else {
+                        alert('Error al subir el archivo');
+                    }
+                } catch (err) {
+                    console.error('Error in reader onload:', err);
+                    alert('Error al procesar o subir el archivo');
+                } finally {
+                    setUploadingDocId(null);
+                    setIsUploading(false);
                 }
-                setUploadingDocId(null);
-                setIsUploading(false);
             };
         } catch (error) {
             console.error('Error uploading file:', error);
@@ -224,7 +229,7 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
             {!isTabMode && (
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="brand-heading text-lg font-bold text-gray-800">Documentos - {employeeName}</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
             )}
 
@@ -305,14 +310,16 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
                                                 {(doc.ArchivoDocumento || doc.RutaArchivo) ? (
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
-                                                            onClick={() => handleDownload(doc)}
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                                                             className="text-blue-600 hover:underline text-[10px] flex items-center gap-1"
                                                             title={doc.NombreArchivo || 'Ver Archivo'}
                                                         >
                                                             📎 Ver
                                                         </button>
                                                         <button
-                                                            onClick={() => handleFileSelect(doc.IdEmpleadoDocumento)}
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleFileSelect(doc.IdEmpleadoDocumento); }}
                                                             className="text-gray-400 hover:text-blue-600 text-[10px] border rounded px-1"
                                                             disabled={isUploading}
                                                             title="Cambiar Archivo"
@@ -322,7 +329,8 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
                                                     </div>
                                                 ) : (
                                                     <button
-                                                        onClick={() => handleFileSelect(doc.IdEmpleadoDocumento)}
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleFileSelect(doc.IdEmpleadoDocumento); }}
                                                         className="text-green-600 hover:text-green-800 text-[10px] border border-green-200 bg-green-50 rounded px-2 py-1 flex items-center gap-1 mx-auto"
                                                         disabled={isUploading}
                                                     >
@@ -335,7 +343,8 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <button
-                                                    onClick={() => handleDelete(doc.IdEmpleadoDocumento)}
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(doc.IdEmpleadoDocumento); }}
                                                     className="text-lg hover:scale-125 transition-transform text-red-500"
                                                     title="Eliminar"
                                                 >
@@ -355,7 +364,8 @@ export default function EmployeeDocumentsModal({ isOpen, onClose, employeeId, em
                 !isTabMode && (
                     <div className="flex justify-end mt-4 pt-4 border-t">
                         <button
-                            onClick={onClose}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onClose(); }}
                             className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
                         >
                             Cerrar
