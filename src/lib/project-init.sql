@@ -228,12 +228,23 @@ CREATE TABLE IF NOT EXISTS `tblEmpleados` (
   PRIMARY KEY (`IdEmpleado`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 
+CREATE TABLE IF NOT EXISTS `tblTiposDocumentos` (
+  `IdTipoDocumento` int NOT NULL AUTO_INCREMENT,
+  `TipoDocumento` varchar(45) DEFAULT NULL,
+  `Status` int DEFAULT '0',
+  `FechaAct` datetime DEFAULT NULL,
+  PRIMARY KEY (`IdTipoDocumento`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+
 CREATE TABLE IF NOT EXISTS `tblEmpleadosDocumentos` (
   `IdEmpleadoDocumento` int NOT NULL AUTO_INCREMENT,
   `IdEmpleado` int NOT NULL,
+  `IdTipoDocumento` int DEFAULT NULL,
   `Documento` varchar(255) DEFAULT NULL,
   `Comentarios` text DEFAULT NULL,
+  `ArchivoDocumento` longtext DEFAULT NULL,
   `RutaArchivo` varchar(500) DEFAULT NULL,
+  `NombreArchivo` varchar(255) DEFAULT NULL,
   `FechaAct` datetime DEFAULT NULL,
   PRIMARY KEY (`IdEmpleadoDocumento`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
@@ -335,7 +346,9 @@ CREATE TABLE IF NOT EXISTS `tblSucursalesDocumentos` (
   `IdSucursal` int NOT NULL,
   `Documento` varchar(255) DEFAULT NULL,
   `Comentarios` text DEFAULT NULL,
+  `ArchivoDocumento` longtext DEFAULT NULL,
   `RutaArchivo` varchar(500) DEFAULT NULL,
+  `NombreArchivo` varchar(255) DEFAULT NULL,
   `FechaAct` datetime DEFAULT NULL,
   PRIMARY KEY (`IdSucursalDocumento`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
