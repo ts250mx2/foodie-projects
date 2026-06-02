@@ -7,6 +7,7 @@ import { usePathname, useRouter, useParams } from 'next/navigation';
 import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, FileDown, ArrowUpRight } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import AgentChart from '@/components/dashboard/AgentChart';
+import PageShell from '@/components/PageShell';
 
 // Botones de navegación que el agente embebe como ```nav {json}```.
 function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
@@ -227,7 +228,7 @@ function ChatPanel({
         <div className="flex flex-col h-full overflow-hidden" style={{ background: '#fcfbfa' }}>
 
             {/* ── Header ───────────────────────────────────────────────────── */}
-            {mode === 'floating' ? (
+            {mode === 'floating' && (
                 <div className="shrink-0 relative overflow-hidden text-white" 
                      style={{ 
                           background: 'linear-gradient(135deg, var(--color-brand-orange, #f4481e) 0%, #db340a 100%)'
@@ -276,51 +277,6 @@ function ChatPanel({
                                 </button>
                             )}
                         </div>
-                    </div>
-                </div>
-            ) : (
-                /* Embedded header with brand orange background, white text, and rich brand information */
-                <div className="shrink-0 flex items-center justify-between px-5 py-4 text-white relative overflow-hidden" 
-                     style={{ 
-                          backgroundColor: 'var(--color-brand-orange, #f4481e)' 
-                      }}>
-                    {/* decorative circles */}
-                    <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5" />
-                    <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
-
-                    <div className="relative flex items-center gap-3.5 z-10">
-                        {/* Avatar with yellow background accent from PDF */}
-                        <div className="relative">
-                            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-yellow,#f8e14c)] flex items-center justify-center text-xl shadow-lg border border-white/20">
-                                👨‍🍳
-                            </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white/30" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
-                        </div>
-                        <div>
-                            <h1 className="text-white brand-heading text-lg leading-none tracking-wider">Agente Foodie Gurú</h1>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-emerald-200 text-xs font-black flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
-                                    En línea
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-white/30" />
-                                <span className="text-white/80 text-xs font-semibold">
-                                    Tu consultor de rentabilidad en tiempo real
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative flex items-center gap-4 z-10">
-                        {/* Clear button */}
-                        <button
-                            onClick={onClear}
-                            title="Nueva conversación"
-                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-all active:scale-[0.98] shadow-sm"
-                        >
-                            <Trash2 size={13} className="text-white" />
-                            <span>Limpiar Chat</span>
-                        </button>
                     </div>
                 </div>
             )}
@@ -770,9 +726,26 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     // ── EMBEDDED ──────────────────────────────────────────────────────────
     if (mode === 'embedded') {
         return (
-            <div className="h-full w-full rounded-none overflow-hidden border-none">
-                <ChatPanel {...sharedProps} mode="embedded" />
-            </div>
+            <PageShell
+                title={locale === 'es' ? 'Agente Foodie Gurú' : 'Foodie Guru Agent'}
+                subtitle={locale === 'es' ? 'Tu consultor de rentabilidad en tiempo real' : 'Your real-time profitability consultant'}
+                icon={Bot}
+                actions={
+                    <button
+                        onClick={handleClear}
+                        title={locale === 'es' ? 'Nueva conversación' : 'New conversation'}
+                        className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all active:scale-[0.98] shadow-sm"
+                    >
+                        <Trash2 size={13} className="text-gray-500" />
+                        <span>{locale === 'es' ? 'Limpiar Chat' : 'Clear Chat'}</span>
+                    </button>
+                }
+                className="flex-1 min-h-0 flex flex-col"
+            >
+                <div className="flex-1 bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden flex flex-col min-h-0">
+                    <ChatPanel {...sharedProps} mode="embedded" />
+                </div>
+            </PageShell>
         );
     }
 

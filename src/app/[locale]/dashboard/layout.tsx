@@ -52,7 +52,7 @@ export default function DashboardLayout({
 
                     <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300 ${
                         isAgentePage 
-                            ? 'p-0 h-[calc(100vh-4rem)] overflow-hidden' 
+                            ? 'px-8 pt-4 pb-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden' 
                             : 'px-8 pt-4 pb-8'
                     }`}>
                         {children}
