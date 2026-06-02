@@ -238,22 +238,18 @@ function ChatPanel({
 
                     <div className="relative px-4 py-3.5 flex items-center justify-between text-white z-10">
                         <div className="flex items-center gap-3">
-                            {/* Avatar */}
+                            {/* Avatar with yellow background accent from PDF */}
                             <div className="relative">
-                                <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
+                                <div className="w-10 h-10 rounded-2xl bg-[var(--color-brand-yellow,#f8e14c)] flex items-center justify-center text-xl shadow-lg border border-white/20">
                                     👨‍🍳
                                 </div>
-                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white/30 animate-pulse" />
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white/30" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
                             </div>
                             <div>
                                 <h1 className="text-white brand-heading text-sm leading-none tracking-wider">Agente Foodie Gurú</h1>
                                 <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-white text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded">
-                                        {currentModelInfo.badge} {currentModelInfo.label}
-                                    </span>
-                                    <span className="w-1 h-1 rounded-full bg-white/40" />
-                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-0.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" style={{ animationDuration: '2s' }} />
+                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)', animationDuration: '2s' }} />
                                         En línea
                                     </span>
                                 </div>
@@ -261,19 +257,6 @@ function ChatPanel({
                         </div>
 
                         <div className="flex items-center gap-1">
-                            {/* Model picker */}
-                            <select
-                                value={model}
-                                onChange={e => setModel(e.target.value as ClaudeModel)}
-                                className="text-[10px] font-bold bg-white border border-slate-200 text-slate-800 rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-slate-50 transition-all shadow-sm"
-                            >
-                                {CLAUDE_MODELS.map(m => (
-                                    <option key={m.id} value={m.id} className="text-slate-800 bg-white">
-                                        {m.badge} {m.label}
-                                    </option>
-                                ))}
-                            </select>
-
                             <button onClick={onClear} title="Nueva conversación"
                                 className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
                                 <Trash2 size={14} />
@@ -306,18 +289,18 @@ function ChatPanel({
                     <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
 
                     <div className="relative flex items-center gap-3.5 z-10">
-                        {/* Avatar */}
+                        {/* Avatar with yellow background accent from PDF */}
                         <div className="relative">
-                            <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center text-xl shadow-lg">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-yellow,#f8e14c)] flex items-center justify-center text-xl shadow-lg border border-white/20">
                                 👨‍🍳
                             </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white/30" />
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white/30" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
                         </div>
                         <div>
-                            <h1 className="text-white font-black text-base leading-tight tracking-wide">Agente Foodie Guru</h1>
+                            <h1 className="text-white brand-heading text-lg leading-none tracking-wider">Agente Foodie Gurú</h1>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-emerald-200 text-xs font-black flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-ping" />
+                                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
                                     En línea
                                 </span>
                                 <span className="w-1 h-1 rounded-full bg-white/30" />
@@ -329,25 +312,6 @@ function ChatPanel({
                     </div>
 
                     <div className="relative flex items-center gap-4 z-10">
-                        {/* Model picker */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-white/90 font-bold uppercase tracking-wider">Modelo:</span>
-                            <select
-                                value={model}
-                                onChange={e => setModel(e.target.value as ClaudeModel)}
-                                className="text-xs font-semibold bg-white border border-gray-200 text-gray-700 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-gray-50 transition-all shadow-sm"
-                            >
-                                {CLAUDE_MODELS.map(m => (
-                                    <option key={m.id} value={m.id} className="text-slate-800 bg-white">
-                                        {m.badge} {m.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Divider */}
-                        <span className="h-5 w-px bg-white/20" />
-
                         {/* Clear button */}
                         <button
                             onClick={onClear}
@@ -440,14 +404,17 @@ function ChatPanel({
                             <div className={`rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-200 ${
                                 msg.role === 'user'
                                     ? 'font-semibold hover:shadow-md'
-                                    : 'bg-white text-slate-800 rounded-tl-sm hover:shadow-md'
+                                    : 'border text-slate-800 rounded-tl-sm hover:shadow-md'
                             }`}
                             style={msg.role === 'user' ? {
                                 background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)',
                                 color: '#0a0a0a',
                                 borderRadius: '20px 20px 4px 20px',
                                 boxShadow: '0 4px 14px -4px rgba(248, 225, 76, 0.4)'
-                            } : {}}>
+                            } : {
+                                backgroundColor: 'rgba(245, 240, 226, 0.65)',
+                                borderColor: 'rgba(226, 232, 240, 0.5)'
+                            }}>
                                 {msg.role === 'assistant' ? (
                                     <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -537,9 +504,28 @@ function ChatPanel({
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input ─────────────────────────────────────────────────────── */}
-            <div className="shrink-0 px-5 pb-5 pt-3 bg-white border-t border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.015)]">
-                <form id="agent-chat-form" onSubmit={handleSend}>
+            {/* ── Input & Controls ─────────────────────────────────────────── */}
+            <div className="shrink-0 px-5 pb-5 pt-3 bg-white border-t border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.015)] flex flex-col gap-2.5">
+                
+                {/* Model Selector Bar */}
+                <div className="flex items-center justify-between text-slate-400 text-[10px] font-extrabold uppercase tracking-wider pb-1.5 px-1 border-b border-slate-50">
+                    <span>Modelo de Inteligencia Artificial:</span>
+                    <div className="relative">
+                        <select
+                            value={model}
+                            onChange={e => setModel(e.target.value as ClaudeModel)}
+                            className="text-[10px] font-bold bg-slate-50 border border-slate-150 text-slate-700 rounded-lg px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm"
+                        >
+                            {CLAUDE_MODELS.map(m => (
+                                <option key={m.id} value={m.id} className="text-slate-800 bg-white">
+                                    {m.badge} {m.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                <form id="agent-chat-form" onSubmit={handleSend} className="w-full">
                     <div 
                         className="flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300 shadow-sm"
                         style={{
