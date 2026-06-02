@@ -552,7 +552,7 @@ export default function EmployeesPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-gray-200">
                         {/* Header */}
-                        <div className="px-5 py-3 flex justify-between items-start gap-4" style={{ backgroundColor: colors?.colorFondo1 || '#000', color: colors?.colorLetra || '#fff' }}>
+                        <div className="px-5 py-3 flex justify-between items-start gap-4" style={{ backgroundColor: 'var(--color-brand-orange)', color: colors?.colorLetra || '#fff' }}>
                             <div className="flex-1 min-w-0">
                                 <h2 className="text-[15px] font-semibold leading-tight truncate">{editingEmployee ? editingEmployee.Empleado : t('addEmployee')}</h2>
                                 <p className="text-[12px] leading-tight mt-1" style={{ opacity: 0.8 }}>
