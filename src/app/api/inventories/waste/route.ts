@@ -20,6 +20,13 @@ export async function GET(request: NextRequest) {
         const monthNum = parseInt(month) + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
+        // Ensure Motivo column exists
+        try {
+            await connection.query(`ALTER TABLE tblMermas ADD COLUMN Motivo varchar(255) DEFAULT NULL`);
+        } catch (e) {
+            // Ignore if already exists
+        }
+
         // Fetch waste records for the month/year/branch
         const [rows] = await connection.query(
             `SELECT m.*, v.Producto, v.UnidadMedidaInventario
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, branchId, day, month, year, productId, quantity, price } = body;
+        const { projectId, branchId, day, month, year, productId, quantity, price, motivo } = body;
 
         if (!projectId || !branchId || day === undefined || month === null || !year || !productId || quantity === undefined || price === undefined) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -54,13 +61,20 @@ export async function POST(request: NextRequest) {
         const monthNum = month + 1; // Convert to 1-12 for SQL
         connection = await getProjectConnection(projectId);
 
+        // Ensure Motivo column exists
+        try {
+            await connection.query(`ALTER TABLE tblMermas ADD COLUMN Motivo varchar(255) DEFAULT NULL`);
+        } catch (e) {
+            // Ignore if already exists
+        }
+
         // Insert or update waste record
         // Assuming unique key on (IdSucursal, Dia, Mes, Anio, IdProducto)
         await connection.query(
-            `INSERT INTO tblMermas (IdSucursal, Dia, Mes, Anio, IdProducto, Cantidad, Precio, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, Now())
-             ON DUPLICATE KEY UPDATE Cantidad = ?, Precio = ?, FechaAct = Now()`,
-            [branchId, day, monthNum, year, productId, quantity, price, quantity, price]
+            `INSERT INTO tblMermas (IdSucursal, Dia, Mes, Anio, IdProducto, Cantidad, Precio, Motivo, FechaAct)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, Now())
+             ON DUPLICATE KEY UPDATE Cantidad = ?, Precio = ?, Motivo = ?, FechaAct = Now()`,
+            [branchId, day, monthNum, year, productId, quantity, price, motivo || null, quantity, price, motivo || null]
         );
 
         return NextResponse.json({ success: true, message: 'Waste record saved successfully' });

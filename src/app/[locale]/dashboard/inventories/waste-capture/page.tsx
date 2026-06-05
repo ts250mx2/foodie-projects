@@ -35,6 +35,7 @@ interface WasteRecord {
     Precio: number;
     Producto: string;
     UnidadMedidaInventario: string;
+    Motivo?: string;
 }
 
 export default function WasteCapturePage() {
@@ -60,6 +61,7 @@ export default function WasteCapturePage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [quantity, setQuantity] = useState('');
+    const [motivo, setMotivo] = useState('');
     
     // UI state
     const [isLoading, setIsLoading] = useState(false);
@@ -162,6 +164,7 @@ export default function WasteCapturePage() {
         setIsModalOpen(true);
         setSelectedProductId('');
         setQuantity('');
+        setMotivo('');
         setSearchTerm('');
     };
 
@@ -187,7 +190,8 @@ export default function WasteCapturePage() {
                     year: selectedDate.getFullYear(),
                     productId: parseInt(selectedProductId),
                     quantity: parseFloat(quantity),
-                    price: price
+                    price: price,
+                    motivo: motivo
                 })
             });
 
@@ -195,6 +199,7 @@ export default function WasteCapturePage() {
                 fetchMonthlyWaste();
                 setSelectedProductId('');
                 setQuantity('');
+                setMotivo('');
                 setSearchTerm('');
             }
         } catch (error) {
@@ -463,6 +468,16 @@ export default function WasteCapturePage() {
                                     )}
                                 </div>
 
+                                <div className="flex-1 min-w-[200px]">
+                                    <input
+                                        type="text"
+                                        placeholder="Motivo (ej: Vencido, roto)"
+                                        className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
+                                        value={motivo}
+                                        onChange={(e) => setMotivo(e.target.value)}
+                                    />
+                                </div>
+
                                 <Button type="submit" disabled={!selectedProductId} size="sm">
                                     {t('save')}
                                 </Button>
@@ -474,6 +489,7 @@ export default function WasteCapturePage() {
                                     <thead className="bg-gray-50 sticky top-0 z-10">
                                         <tr className="border-b border-gray-200">
                                             <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('product')}</th>
+                                            <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Motivo</th>
                                             <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('quantity')}</th>
                                             <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('unit')}</th>
                                             <th className="px-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('price')}</th>
@@ -484,7 +500,7 @@ export default function WasteCapturePage() {
                                     <tbody className="divide-y divide-gray-50">
                                         {wasteRecords.filter(r => r.Dia === selectedDate.getDate()).length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-5 py-20 text-center text-gray-400 font-bold italic">
+                                                <td colSpan={7} className="px-5 py-20 text-center text-gray-400 font-bold italic">
                                                     {t('noRecords')}
                                                 </td>
                                             </tr>
@@ -492,6 +508,7 @@ export default function WasteCapturePage() {
                                             wasteRecords.filter(r => r.Dia === selectedDate.getDate()).map((record, idx) => (
                                                 <tr key={idx} className="border-t border-gray-50 hover:bg-gray-50/60 transition-colors">
                                                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{record.Producto}</td>
+                                                    <td className="px-5 py-3 text-sm text-gray-500 italic truncate max-w-[200px]" title={record.Motivo}>{record.Motivo || '-'}</td>
                                                     <td className="px-5 py-3 text-center text-sm text-gray-900">{record.Cantidad}</td>
                                                     <td className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase">{record.UnidadMedidaInventario}</td>
                                                     <td className="px-5 py-3 text-right text-sm text-gray-600">${record.Precio.toFixed(2)}</td>
