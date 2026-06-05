@@ -396,30 +396,40 @@ export default function WasteCapturePage() {
                             </button>
                         </div>
 
-                        {/* Sub-header with search and actions */}
-                        <div className="shrink-0 px-5 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-                            <div className="relative flex-1 min-w-[200px]">
-                                <Search size={14} className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
-                                <input
-                                    type="text"
-                                    placeholder={t('searchProduct')}
-                                    className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
-                                    value={selectedProduct ? selectedProduct.Producto : searchTerm}
-                                    onChange={(e) => {
-                                        setSearchTerm(e.target.value);
-                                        if (selectedProduct) setSelectedProductId('');
-                                    }}
-                                />
-                            </div>
-                        </div>
-
                         {/* Modal Content */}
                         <div className="flex-1 overflow-y-auto flex flex-col p-6 gap-6">
                             {/* Capture Form */}
                             <form onSubmit={saveWaste} className="flex flex-col md:flex-row gap-4 bg-gray-50/50 border border-gray-100 rounded-xl p-5 items-end">
-                                <div className="flex-1 relative">
+                                {/* Product Search */}
+                                <div className="flex-[2] min-w-[240px] relative">
+                                    <label className="text-[10px] font-bold text-gray-600 uppercase mb-1.5 block">Producto</label>
+                                    <div className="relative">
+                                        <Search size={14} className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+                                        <input
+                                            type="text"
+                                            placeholder={t('searchProduct')}
+                                            className="w-full h-9 pl-9 pr-8 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
+                                            value={selectedProduct ? selectedProduct.Producto : searchTerm}
+                                            onChange={(e) => {
+                                                setSearchTerm(e.target.value);
+                                                if (selectedProduct) setSelectedProductId('');
+                                            }}
+                                        />
+                                        {selectedProduct && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedProductId('');
+                                                    setSearchTerm('');
+                                                }}
+                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
                                     {!selectedProductId && searchTerm && filteredProducts.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden divide-y divide-gray-50">
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl z-[60] max-h-60 overflow-y-auto overflow-x-hidden divide-y divide-gray-50">
                                             {filteredProducts.map(p => (
                                                 <div
                                                     key={p.IdProducto}
@@ -451,34 +461,40 @@ export default function WasteCapturePage() {
                                     )}
                                 </div>
                                 
-                                <div className="flex items-end gap-2">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="Cantidad"
-                                        className="w-24 h-9 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 text-center"
-                                        value={quantity}
-                                        onChange={(e) => setQuantity(e.target.value)}
-                                        required
-                                    />
-                                    {selectedProduct && (
-                                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
-                                            {selectedProduct.UnidadMedidaInventario}
-                                        </span>
-                                    )}
+                                {/* Cantidad with unit appended inside */}
+                                <div className="w-36 flex-shrink-0">
+                                    <label className="text-[10px] font-bold text-gray-600 uppercase mb-1.5 block">Cantidad</label>
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 text-right pr-14 font-medium"
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            required
+                                        />
+                                        {selectedProduct && (
+                                            <span className="absolute right-2.5 text-[10px] font-black text-gray-400 uppercase pointer-events-none truncate max-w-[44px]" title={selectedProduct.UnidadMedidaInventario}>
+                                                {selectedProduct.UnidadMedidaInventario}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="flex-1 min-w-[200px]">
+                                {/* Motivo */}
+                                <div className="flex-[3] min-w-[200px]">
+                                    <label className="text-[10px] font-bold text-gray-600 uppercase mb-1.5 block">Motivo de la merma</label>
                                     <input
                                         type="text"
-                                        placeholder="Motivo (ej: Vencido, roto)"
+                                        placeholder="Ej: Producto caducado, roto, mal estado"
                                         className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30 bg-white"
                                         value={motivo}
                                         onChange={(e) => setMotivo(e.target.value)}
                                     />
                                 </div>
 
-                                <Button type="submit" disabled={!selectedProductId} size="sm">
+                                <Button type="submit" disabled={!selectedProductId} size="sm" className="h-9 font-bold uppercase tracking-wider text-xs px-4 flex-shrink-0">
                                     {t('save')}
                                 </Button>
                             </form>
