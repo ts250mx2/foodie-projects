@@ -160,10 +160,23 @@ export default function BreakEvenPage() {
         }
     }, [fixedExpenses.length]);
 
-    useEffect(() => {
-        const calculatedAvg = volume > 0 ? monthlySales / volume : 0;
-        setAvgTicket(calculatedAvg);
-    }, [monthlySales, volume]);
+    const handleSalesChange = (val: number) => {
+        setMonthlySales(val);
+        const newAvg = volume > 0 ? val / volume : 0;
+        setAvgTicket(newAvg);
+    };
+
+    const handleVolumeChange = (val: number) => {
+        setVolume(val);
+        const newAvg = val > 0 ? monthlySales / val : 0;
+        setAvgTicket(newAvg);
+    };
+
+    const handleAvgTicketChange = (val: number) => {
+        setAvgTicket(val);
+        const newVol = val > 0 ? monthlySales / val : 0;
+        setVolume(newVol);
+    };
 
     const chartData = useMemo(() => {
         const points = [];
@@ -264,12 +277,13 @@ export default function BreakEvenPage() {
                 const vol = data.data.VolumenTickets || 0;
                 setVolume(vol);
                 setMonthlySales(price * vol);
+                setAvgTicket(price);
                 setRawMaterial(data.data.CostoMateriaPrima || 0);
                 setPackaging(data.data.Empaque || 0);
                 setFixedExpenses(data.data.fixedExpenses || []);
                 setRepresentativeProducts(data.data.representativeProducts || []);
             } else {
-                setMonthlySales(0); setVolume(0); setRawMaterial(0); setPackaging(0); setFixedExpenses([]);
+                setMonthlySales(0); setVolume(0); setAvgTicket(0); setRawMaterial(0); setPackaging(0); setFixedExpenses([]);
                 setRepresentativeProducts([]);
             }
         } catch (error) {
@@ -308,6 +322,7 @@ export default function BreakEvenPage() {
                 const vol = data.data.VolumenTickets || 0;
                 setVolume(vol);
                 setMonthlySales(price * vol);
+                setAvgTicket(price);
                 setRawMaterial(data.data.CostoMateriaPrima || 0);
                 setPackaging(data.data.Empaque || 0);
                 setFixedExpenses(data.data.fixedExpenses || []);
@@ -376,7 +391,7 @@ export default function BreakEvenPage() {
                 handleSave(true);
             }
         };
-    }, [monthlySales, volume, rawMaterial, packaging, fixedExpenses, representativeProducts]);
+    }, [monthlySales, volume, avgTicket, rawMaterial, packaging, fixedExpenses, representativeProducts]);
 
     const flushSave = () => {
         if (autoSaveTimerRef.current) {
@@ -461,8 +476,8 @@ export default function BreakEvenPage() {
                 head: [['RESUMEN DE VENTAS Y COSTOS VARIABLES', 'VALOR']],
                 body: [
                     ['Ventas Totales Proyectadas', formatCurrency(avgSalesAmount || 0)],
-                    ['Precio Ticket Promedio', formatCurrency(avgTicket || 0)],
-                    ['Volumen Mensual Tickets', (volume || 0).toString()],
+                    ['Ticket Promedio por Persona', formatCurrency(avgTicket || 0)],
+                    ['Personas Atendidas en el Mes', (volume || 0).toString()],
                     ['Materia Prima (Unitario)', formatCurrency(avgRawMaterial || 0)],
                     ['Empaque (Unitario)', formatCurrency(avgPackaging || 0)],
                     ['Suma Costos Variables', formatCurrency(sumVariableCosts || 0)],
@@ -495,9 +510,9 @@ export default function BreakEvenPage() {
                 startY: currentY,
                 head: [['RESULTADO: PUNTO DE EQUILIBRIO', 'OBJETIVO']],
                 body: [
-                    ['Tickets Necesarios (Mensual)', Math.ceil(breakEvenUnits || 0).toLocaleString() + ' Unidades'],
+                    ['Personas Requeridas (Mensual)', Math.ceil(breakEvenUnits || 0).toLocaleString() + ' Personas'],
                     ['Venta Mensual Necesaria', formatCurrency(breakEvenDollars || 0)],
-                    ['Tickets Necesarios (Diario)', Math.ceil(dailyBreakEvenUnits || 0).toLocaleString() + ' Unidades'],
+                    ['Personas Requeridas (Diario)', Math.ceil(dailyBreakEvenUnits || 0).toLocaleString() + ' Personas'],
                     ['Venta Diaria Necesaria', formatCurrency(dailyBreakEvenDollars || 0)],
                 ],
                 theme: 'grid',
@@ -580,10 +595,10 @@ export default function BreakEvenPage() {
                         <div className="p-6 space-y-4">
                             <div>
                                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2 block">Ventas Totales Mensuales</label>
-                                <PriceInput value={monthlySales} onChange={setMonthlySales} onBlur={flushSave} />
+                                <PriceInput value={monthlySales} onChange={handleSalesChange} onBlur={flushSave} />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2 block">Volumen de Tickets</label>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2 block">Personas atendidas en el mes</label>
                                 <div className="flex items-center bg-white border-2 border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
                                     <div className="pl-3 pr-1 py-2.5 flex items-center bg-gray-50 border-r border-gray-200">
                                         <span className="text-sm font-bold text-gray-900">#</span>
@@ -591,15 +606,15 @@ export default function BreakEvenPage() {
                                     <input
                                         type="number"
                                         value={volume}
-                                        onChange={e => setVolume(parseFloat(e.target.value) || 0)}
+                                        onChange={e => handleVolumeChange(parseFloat(e.target.value) || 0)}
                                         onBlur={flushSave}
                                         className="w-full px-3 py-2.5 outline-none text-sm font-bold text-gray-900 text-right bg-transparent"
                                     />
                                 </div>
                             </div>
-                            <div className="pt-2 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
-                                <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-1">Ticket Promedio</p>
-                                <p className="text-lg font-black" style={{ color: colors.colorFondo1 }}>{formatCurrency(avgTicket)}</p>
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2 block">Ticket Promedio por Persona</label>
+                                <PriceInput value={avgTicket} onChange={handleAvgTicketChange} onBlur={flushSave} color="indigo" />
                             </div>
                         </div>
                     </div>
@@ -737,9 +752,9 @@ export default function BreakEvenPage() {
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">Tickets Diarios</p>
+                                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">Personas Diarias</p>
                                     <p className="text-2xl font-black text-gray-900">{Math.ceil(dailyBreakEvenUnits).toLocaleString()}</p>
-                                    <p className="text-[11px] text-gray-500 mt-1">unidades/día</p>
+                                    <p className="text-[11px] text-gray-500 mt-1">personas/día</p>
                                 </div>
                                 <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                                     <p className="text-xs font-bold text-emerald-700 uppercase mb-2">Venta Diaria</p>
@@ -747,9 +762,9 @@ export default function BreakEvenPage() {
                                     <p className="text-[11px] text-emerald-600/70 mt-1">requerido</p>
                                 </div>
                                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">Tickets Mensuales</p>
+                                    <p className="text-xs font-bold text-gray-600 uppercase mb-2">Personas Mensuales</p>
                                     <p className="text-2xl font-black text-gray-900">{Math.ceil(breakEvenUnits).toLocaleString()}</p>
-                                    <p className="text-[11px] text-gray-500 mt-1">unidades/mes</p>
+                                    <p className="text-[11px] text-gray-500 mt-1">personas/mes</p>
                                 </div>
                                 <div className="p-4 rounded-lg border-2" style={{ backgroundColor: `${colors.colorFondo1}10`, borderColor: `${colors.colorFondo1}30` }}>
                                     <p className="text-xs font-bold uppercase mb-2" style={{ color: colors.colorFondo1 }}>Venta Mensual</p>
