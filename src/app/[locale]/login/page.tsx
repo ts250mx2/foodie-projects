@@ -107,7 +107,7 @@ export default function LoginPage() {
                             Ser<br />Restaurantero<br />es un arte
                         </h2>
                         <p className="font-brand mt-6 text-base xl:text-lg font-bold uppercase tracking-wide leading-snug" style={{ color: 'rgba(255,255,255,0.95)' }}>
-                            Para romper las reglas<br />primero hay que conocerlas.
+                            ADMINISTRADOR MASTER DE RESTAURANTES
                         </p>
                     </div>
 
