@@ -19,7 +19,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import PageShell from '@/components/PageShell';
-import { TrendingUp, BarChart3, Package, Building2, Target, Download, Save, RotateCcw, X, Trash2, Plus } from 'lucide-react';
+import { TrendingUp, BarChart3, Package, Building2, Target, Download, Save, RotateCcw, X, Trash2, Plus, Search, Check, ListPlus, Loader2 } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -119,6 +119,14 @@ export default function BreakEvenPage() {
     const [isFullExpensesModalOpen, setIsFullExpensesModalOpen] = useState(false);
     const [isFullProductsModalOpen, setIsFullProductsModalOpen] = useState(false);
 
+    // Selector de conceptos de gasto (con sugerencia del mes anterior inmediato)
+    const [isConceptsModalOpen, setIsConceptsModalOpen] = useState(false);
+    const [concepts, setConcepts] = useState<{ concepto: string; monto: number; movimientos: number }[]>([]);
+    const [conceptsLoading, setConceptsLoading] = useState(false);
+    const [conceptSearch, setConceptSearch] = useState('');
+    const [selectedConcepts, setSelectedConcepts] = useState<Set<string>>(new Set());
+    const [prevPeriod, setPrevPeriod] = useState<{ m: number; y: number } | null>(null);
+
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
@@ -167,14 +175,15 @@ export default function BreakEvenPage() {
     };
 
     const handleVolumeChange = (val: number) => {
-        setVolume(val);
-        const newAvg = val > 0 ? monthlySales / val : 0;
+        const intVal = Math.round(val);
+        setVolume(intVal);
+        const newAvg = intVal > 0 ? monthlySales / intVal : 0;
         setAvgTicket(newAvg);
     };
 
     const handleAvgTicketChange = (val: number) => {
         setAvgTicket(val);
-        const newVol = val > 0 ? monthlySales / val : 0;
+        const newVol = val > 0 ? Math.round(monthlySales / val) : 0;
         setVolume(newVol);
     };
 
@@ -274,7 +283,7 @@ export default function BreakEvenPage() {
             const data = await response.json();
             if (data.success && data.data) {
                 const price = data.data.PrecioTicket || 0;
-                const vol = data.data.VolumenTickets || 0;
+                const vol = Math.round(data.data.VolumenTickets || 0);
                 setVolume(vol);
                 setMonthlySales(price * vol);
                 setAvgTicket(price);
@@ -319,7 +328,7 @@ export default function BreakEvenPage() {
             const data = await response.json();
             if (data.success && data.data) {
                 const price = data.data.PrecioTicket || 0;
-                const vol = data.data.VolumenTickets || 0;
+                const vol = Math.round(data.data.VolumenTickets || 0);
                 setVolume(vol);
                 setMonthlySales(price * vol);
                 setAvgTicket(price);
@@ -403,6 +412,46 @@ export default function BreakEvenPage() {
 
     const handleAddExpense = () => setFixedExpenses([...fixedExpenses, { ConceptoGasto: '', Monto: 0 }]);
     const handleDeleteExpense = (index: number) => setFixedExpenses(fixedExpenses.filter((_, i) => i !== index));
+
+    // Abre el selector de conceptos y trae el gasto del mes anterior inmediato.
+    const openConceptsModal = async () => {
+        setIsConceptsModalOpen(true);
+        setSelectedConcepts(new Set());
+        setConceptSearch('');
+        if (!project?.idProyecto || !selectedBranch) { setConcepts([]); return; }
+        setConceptsLoading(true);
+        try {
+            const params = new URLSearchParams({
+                projectId: project.idProyecto, branchId: selectedBranch,
+                month: (selectedMonth + 1).toString(), year: selectedYear.toString(),
+            });
+            const res = await fetch(`/api/config/break-even/expense-concepts?${params}`);
+            const data = await res.json();
+            if (data.success) { setConcepts(data.concepts || []); setPrevPeriod({ m: data.prevMonth, y: data.prevYear }); }
+            else setConcepts([]);
+        } catch { setConcepts([]); }
+        finally { setConceptsLoading(false); }
+    };
+
+    const toggleConcept = (c: string) => setSelectedConcepts(prev => {
+        const next = new Set(prev);
+        if (next.has(c)) next.delete(c); else next.add(c);
+        return next;
+    });
+
+    // Agrega los conceptos seleccionados como gastos fijos, con el monto sugerido
+    // (lo gastado en ese concepto el mes anterior inmediato). Evita duplicados.
+    const addSelectedConcepts = () => {
+        const existing = new Set(fixedExpenses.map(e => (e.ConceptoGasto || '').trim().toLowerCase()));
+        const toAdd = concepts
+            .filter(c => selectedConcepts.has(c.concepto) && !existing.has(c.concepto.trim().toLowerCase()))
+            .map(c => ({ ConceptoGasto: c.concepto, Monto: Math.round((c.monto || 0) * 100) / 100 }));
+        if (toAdd.length) setFixedExpenses(prev => [...prev, ...toAdd]);
+        setIsConceptsModalOpen(false);
+    };
+
+    const filteredConcepts = concepts.filter(c => c.concepto.toLowerCase().includes(conceptSearch.trim().toLowerCase()));
+    const prevLabel = prevPeriod ? `${tProd(`months.${prevPeriod.m - 1}`)} ${prevPeriod.y}` : '';
     const handleUpdateExpense = (index: number, field: keyof FixedExpense, value: any) => {
         const newExpenses = [...fixedExpenses];
         newExpenses[index] = { ...newExpenses[index], [field]: value };
@@ -605,8 +654,9 @@ export default function BreakEvenPage() {
                                     </div>
                                     <input
                                         type="number"
+                                        step="1"
                                         value={volume}
-                                        onChange={e => handleVolumeChange(parseFloat(e.target.value) || 0)}
+                                        onChange={e => handleVolumeChange(parseInt(e.target.value) || 0)}
                                         onBlur={flushSave}
                                         className="w-full px-3 py-2.5 outline-none text-sm font-bold text-gray-900 text-right bg-transparent"
                                     />
@@ -695,14 +745,14 @@ export default function BreakEvenPage() {
                                     </span>
                                 )}
                             </div>
-                            <Button
-                                onClick={handleAddExpense}
-                                variant="solid"
-                                size="sm"
-                                leftIcon={Plus}
-                            >
-                                Agregar
-                            </Button>
+                            <div className="flex gap-1.5">
+                                <Button onClick={handleAddExpense} variant="outline" size="sm" leftIcon={Plus}>
+                                    Manual
+                                </Button>
+                                <Button onClick={openConceptsModal} variant="solid" size="sm" leftIcon={ListPlus}>
+                                    Agregar
+                                </Button>
+                            </div>
                         </div>
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
@@ -821,6 +871,76 @@ export default function BreakEvenPage() {
                             >
                                 Agregar Producto
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Selector de conceptos de gasto */}
+            {isConceptsModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setIsConceptsModalOpen(false)}>
+                    <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-gray-200 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <ListPlus size={18} /> Agregar gastos fijos por concepto
+                                </h3>
+                                {prevLabel && <p className="text-xs text-gray-500 mt-1">Monto sugerido = lo gastado el mes anterior ({prevLabel})</p>}
+                            </div>
+                            <button onClick={() => setIsConceptsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"><X size={20} /></button>
+                        </div>
+
+                        {/* Buscador */}
+                        <div className="px-6 pt-4 flex-shrink-0">
+                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 focus-within:border-gray-400">
+                                <Search size={16} className="text-gray-400" />
+                                <input value={conceptSearch} onChange={e => setConceptSearch(e.target.value)} placeholder="Buscar concepto…" autoFocus
+                                    className="w-full py-2.5 bg-transparent outline-none text-sm text-gray-800 placeholder:text-gray-400" />
+                            </div>
+                        </div>
+
+                        {/* Lista seleccionable */}
+                        <div className="px-6 py-3 overflow-y-auto flex-1">
+                            {conceptsLoading ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-400 py-12"><Loader2 size={18} className="animate-spin" /> Cargando conceptos…</div>
+                            ) : filteredConcepts.length === 0 ? (
+                                <div className="text-center text-gray-400 py-12 text-sm">No hay conceptos que coincidan.</div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    {filteredConcepts.map(c => {
+                                        const sel = selectedConcepts.has(c.concepto);
+                                        const already = fixedExpenses.some(e => (e.ConceptoGasto || '').trim().toLowerCase() === c.concepto.trim().toLowerCase());
+                                        return (
+                                            <button key={c.concepto} onClick={() => toggleConcept(c.concepto)} disabled={already}
+                                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${already ? 'opacity-40 cursor-not-allowed border-gray-100 bg-gray-50' : sel ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                                <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${sel ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'}`}>
+                                                    {sel && <Check size={13} className="text-white" />}
+                                                </span>
+                                                <span className="flex-1 min-w-0">
+                                                    <span className="block text-sm font-bold text-gray-800 truncate">
+                                                        {c.concepto}{already && <span className="text-[10px] text-gray-400 font-semibold ml-1">(ya agregado)</span>}
+                                                    </span>
+                                                </span>
+                                                <span className="text-right flex-shrink-0">
+                                                    <span className="block text-sm font-black text-gray-900">{formatCurrency(c.monto)}</span>
+                                                    <span className="block text-[10px] text-gray-400">{c.monto > 0 ? prevLabel : 'sin gasto previo'}</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 flex-shrink-0">
+                            <span className="text-xs font-bold text-gray-600">{selectedConcepts.size} seleccionado(s)</span>
+                            <div className="flex gap-2">
+                                <Button onClick={() => setIsConceptsModalOpen(false)} variant="outline" size="sm">Cancelar</Button>
+                                <Button onClick={addSelectedConcepts} disabled={selectedConcepts.size === 0} variant="solid" size="sm" leftIcon={Plus}>
+                                    Agregar {selectedConcepts.size > 0 ? `(${selectedConcepts.size})` : ''}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
