@@ -1,10 +1,14 @@
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import Button from '@/components/Button';
-import AuthFooter from '@/components/AuthFooter';
 import GeoShape from '@/components/brand/GeoShape';
+
+// Paleta fija (igual que en login/page.tsx)
+const BLUE   = '#3b3be8';
+const GREEN  = '#34b14a';
+const ORANGE = '#f4481e';
+const YELLOW = '#f8e14c';
+const CREAM  = '#f5efe1';
 
 export default function LandingPage() {
   const t = useTranslations('HomePage');
@@ -12,133 +16,151 @@ export default function LandingPage() {
   const features = [
     {
       key: 'management',
-      bg: 'var(--color-brand-blue)',
-      accent: 'var(--color-brand-yellow)',
+      bg: BLUE,
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       ),
     },
     {
       key: 'analytics',
-      bg: 'var(--color-brand-green)',
-      accent: 'var(--color-brand-blue)',
+      bg: GREEN,
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       ),
     },
     {
       key: 'support',
-      bg: 'var(--color-brand-orange)',
-      accent: 'var(--color-brand-yellow)',
+      bg: ORANGE,
       icon: (
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
       ),
     },
   ] as const;
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden bg-brand-cream">
-      {/* ───────────────────── Acentos Bauhaus de fondo ───────────────────── */}
-      <GeoShape variant="half-bottom" color="var(--color-brand-green)" size={420} className="absolute -top-24 -left-24 opacity-90" />
-      <GeoShape variant="circle" color="var(--color-brand-blue)" size={120} className="absolute top-32 right-[12%] opacity-90 hidden md:block" />
-      <GeoShape variant="donut" color="var(--color-brand-orange)" size={110} ring={20} className="absolute top-1/2 left-[6%] opacity-90 hidden lg:block" />
-      <GeoShape variant="quarter-tr" color="var(--color-brand-yellow)" size={240} className="absolute top-0 right-0 opacity-90" />
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: CREAM }}>
 
-      {/* ───────────────────── Header ───────────────────── */}
-      <header className="absolute top-0 z-20 flex w-full items-center justify-between p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-md">
-            <Image
-              src="/images/foodie-guru-logo.png"
-              alt="Foodie Gurú"
-              width={32}
-              height={32}
-              priority
-              className="object-contain"
-            />
-          </div>
-          <span className="brand-wordmark text-xl text-brand-black hidden sm:inline">
-            Foodie Gurú<sup className="text-[0.5em] align-super">®</sup>
+      {/* ═══════════════════════ HERO (fondo naranja, 42% alto) ═══════════════════════ */}
+      <section className="relative overflow-hidden flex flex-col items-center justify-center text-center"
+        style={{ backgroundColor: ORANGE, height: '42%' }}>
+
+        {/* ── Logo top-left ── */}
+        <div className="absolute top-0 left-0 z-20 rounded-br-[3.5rem] px-8 py-4 shadow-md flex items-center justify-center"
+          style={{ backgroundColor: CREAM }}>
+          <Image
+            src="/images/foodie-solutions-logo.png"
+            alt="Foodie Solutions"
+            width={130}
+            height={52}
+            priority
+            className="h-auto object-contain"
+          />
+        </div>
+
+        {/* ── Badge pill top-center ── */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <span className="font-brand inline-block rounded-full bg-black px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white">
+            Ser restaurantero es un arte
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <LanguageSwitcher />
-          <Link href="/login">
-            <Button
-              tabIndex={-1}
-              className="!rounded-xl font-bold uppercase tracking-wide"
-              style={{ background: 'var(--color-brand-orange)', color: '#fff' }}
-            >
-              {t('login')}
-            </Button>
-          </Link>
+        {/* ── Formas geométricas IZQUIERDA ── */}
+        {/* Semicírculo azul (mitad derecha visible) */}
+        <div className="pointer-events-none absolute z-10 hidden lg:block"
+          style={{ left: '-90px', top: '50%', transform: 'translateY(-50%)' }}>
+          <GeoShape variant="half-right" color={BLUE} size={200} />
         </div>
-      </header>
+        {/* Cuarto de círculo amarillo — delante del azul, abajo */}
+        <div className="pointer-events-none absolute z-10 hidden lg:block"
+          style={{ left: '22px', bottom: '10px' }}>
+          <GeoShape variant="quarter-tr" color={YELLOW} size={100} />
+        </div>
 
-      {/* ───────────────────── Hero ───────────────────── */}
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center p-4 pt-32 text-center">
-        <span className="brand-wordmark mb-5 inline-block rounded-full bg-brand-black px-4 py-1.5 text-xs tracking-wide text-brand-cream">
-          Ser restaurantero es un arte
-        </span>
+        {/* ── Formas geométricas DERECHA ── */}
+        {/* Cuadro azul en la esquina superior derecha con el semicírculo (25%) amarillo adentro */}
+        <div className="pointer-events-none absolute top-0 right-0 z-10 hidden lg:block w-[160px] h-[160px] overflow-hidden"
+          style={{ backgroundColor: BLUE }}>
+          <GeoShape variant="quarter-bl" color={YELLOW} size={130} className="absolute top-0 right-0" />
+        </div>
 
-        <h1 className="brand-display mx-auto max-w-4xl text-5xl text-brand-black md:text-7xl xl:text-8xl">
-          {t('title')}
-        </h1>
+        {/* ── Texto hero ── */}
+        <div className="relative z-20 px-6 mt-8">
+          <h1 className="brand-display text-4xl md:text-5xl xl:text-6xl 2xl:text-7xl text-white leading-tight mt-2 whitespace-pre-line" style={{ color: '#ffffff' }}>
+            {t('title')}
+          </h1>
+          <p className="font-brand mt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white md:text-xs" style={{ color: '#ffffff' }}>
+            {t('subtitle')}
+          </p>
+        </div>
+      </section>
 
-        <p className="mx-auto mt-6 mb-10 max-w-2xl text-lg leading-relaxed text-gray-600 md:text-xl">
-          {t('subtitle')}
-        </p>
+      {/* ═══════════════════════ BOTTOM (fondo crema, 52% alto) ═══════════════════════ */}
+      <section className="relative flex-[1_1_52%] flex flex-col items-center justify-between px-6 pt-5 pb-2 overflow-hidden"
+        style={{ backgroundColor: CREAM }}>
 
-        <Link href="/login">
-          <Button
-            tabIndex={-1}
-            size="lg"
-            className="!h-12 !rounded-xl !px-8 !text-base font-bold uppercase tracking-wide"
-            style={{ background: 'var(--color-brand-blue)', color: '#fff' }}
-          >
+        {/* Cuarto verde — esquina inferior izquierda */}
+        <div className="pointer-events-none absolute bottom-0 left-0 z-0 hidden lg:block">
+          <GeoShape variant="quarter-tr" color={GREEN} size={140} />
+        </div>
+
+        {/* Botón INGRESAR */}
+        <Link href="/login" className="relative z-10">
+          <span className="font-brand inline-block rounded-full px-8 py-2.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg transition hover:opacity-90"
+            style={{ backgroundColor: BLUE, color: '#ffffff' }}>
             {t('login')} →
-          </Button>
+          </span>
         </Link>
 
-        {/* ───────────────────── Features ───────────────────── */}
-        <div className="mt-20 grid w-full max-w-6xl grid-cols-1 gap-6 px-4 md:grid-cols-3">
+        {/* Feature cards (compactas para no rebasar altura) */}
+        <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4 my-auto">
           {features.map((f) => (
             <div
               key={f.key}
-              className="group relative overflow-hidden rounded-3xl p-8 text-left shadow-xl transition-transform duration-300 hover:-translate-y-2"
-              style={{ background: f.bg }}
+              className="group relative overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform duration-300 hover:-translate-y-0.5"
+              style={{ backgroundColor: f.bg }}
             >
-              {/* Acento geométrico de la tarjeta */}
-              <GeoShape
-                variant="quarter-br"
-                color={f.accent}
-                size={120}
-                className="absolute -bottom-2 -right-2 opacity-90 transition-transform duration-500 group-hover:scale-110"
-              />
-
-              <div className="relative z-10">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-                  <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {f.icon}
-                  </svg>
-                </div>
-                <h3 className="brand-display mb-2 text-2xl text-white">
-                  {t(`features.${f.key}`)}
-                </h3>
-                <p className="text-sm leading-relaxed text-white/85">
-                  {t(`features.${f.key}Desc`)}
-                </p>
+              <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#ffffff' }}>
+                  {f.icon}
+                </svg>
               </div>
+              <h3 className="brand-display mb-1 text-base md:text-lg text-white" style={{ color: '#ffffff' }}>
+                {t(`features.${f.key}`)}
+              </h3>
+              <p className="text-[12px] leading-normal text-white" style={{ color: '#ffffff' }}>
+                {t(`features.${f.key}Desc`)}
+              </p>
             </div>
           ))}
         </div>
-      </main>
 
-      {/* ───────────────────── Footer ───────────────────── */}
-      <div className="relative z-10 p-6">
-        <AuthFooter />
-      </div>
+        {/* Powered by — esquina inferior derecha (muy compacto) */}
+        <div className="relative z-10 self-end text-right" style={{ transform: 'translateY(-2px)' }}>
+          <p className="font-brand text-[8px] font-bold uppercase tracking-widest text-gray-400">
+            Powered by:
+          </p>
+          <Image
+            src="/images/foodie-guru-logo.png"
+            alt="Foodie Gurú"
+            width={75}
+            height={32}
+            className="ml-auto h-auto object-contain"
+          />
+          <p className="font-brand text-[8px] font-bold uppercase tracking-widest text-gray-400 mt-0.5" style={{ color: '#9ca3af' }}>
+            Despacho de consultoría de restaurantes
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════════════ FOOTER azul (6% alto) ═══════════════════════ */}
+      <footer className="py-2.5 flex items-center justify-center" style={{ backgroundColor: BLUE, height: '6%' }}>
+        <p className="font-brand text-center text-[10px] font-bold uppercase tracking-widest text-white">
+          Derechos reservados Foodie Gurú Consulting 2026.
+        </p>
+      </footer>
     </div>
   );
 }

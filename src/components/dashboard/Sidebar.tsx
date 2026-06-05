@@ -53,6 +53,7 @@ type MenuItem = {
     href: string;
     icon: React.ElementType;
     emoji: string;
+    label?: string; // etiqueta directa (omite i18n) para items nuevos
 };
 
 type MenuSection = {
@@ -60,6 +61,7 @@ type MenuSection = {
     icon: React.ElementType;
     emoji: string;
     items: MenuItem[];
+    label?: string; // etiqueta directa (omite i18n) para secciones nuevas
 };
 
 interface SidebarProps {
@@ -68,6 +70,16 @@ interface SidebarProps {
 }
 
 const menuItems: MenuSection[] = [
+    {
+        title: 'reportsAI',
+        label: 'Reportes IA',
+        icon: TrendingUp,
+        emoji: '📊',
+        items: [
+            { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo', icon: Sparkles, emoji: '🤖' },
+            { key: 'myReports', label: 'Mis Reportes', href: '/dashboard/reportes', icon: Layers, emoji: '📁' },
+        ],
+    },
     {
         title: 'configuration',
         icon: Settings,
@@ -185,8 +197,8 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
         ...section,
         items: section.items.filter(item =>
             searchTerm === '' ||
-            t(item.key).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t(section.title).toLowerCase().includes(searchTerm.toLowerCase())
+            (item.label ?? t(item.key)).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (section.label ?? t(section.title)).toLowerCase().includes(searchTerm.toLowerCase())
         ),
     })).filter(s => s.items.length > 0);
 
@@ -280,7 +292,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                         toggleSection(section.title);
                                     }
                                 }}
-                                title={isCollapsed ? t(section.title) : ''}
+                                title={isCollapsed ? (section.label ?? t(section.title)) : ''}
                                 className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-white/85 hover:text-white hover:bg-white/10
                                     ${hasActiveChild && !isOpen ? 'bg-white/18 font-semibold text-white' : 'font-medium'}
                                     ${isCollapsed ? 'justify-center' : 'justify-between'}
@@ -290,7 +302,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 <div className="flex items-center gap-3">
                                     <SectionIcon size={18} className="shrink-0" />
                                     {!isCollapsed && (
-                                        <span className="text-sm font-brand font-bold uppercase tracking-wide">{t(section.title)}</span>
+                                        <span className="text-sm font-brand font-bold uppercase tracking-wide">{(section.label ?? t(section.title))}</span>
                                     )}
                                 </div>
                                 {!isCollapsed && (
@@ -325,7 +337,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                         }}
                                                     >
                                                         <ItemIcon size={14} className="shrink-0" />
-                                                        <span>{t(item.key)}</span>
+                                                        <span>{(item.label ?? t(item.key))}</span>
                                                     </Link>
                                                 </li>
                                             );

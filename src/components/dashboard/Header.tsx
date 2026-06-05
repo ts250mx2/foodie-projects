@@ -145,7 +145,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
     return (
         <header
-            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 shadow-sm text-white"
+            className="fixed top-0 left-0 right-0 h-16 z-50 flex flex-col justify-center px-4 shadow-sm text-white overflow-visible"
             style={{
                 backgroundColor: 'var(--color-brand-green)'
             }}
@@ -161,7 +161,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                         <Menu size={20} />
                     </button>
 
-                    <div className="h-11 w-11 rounded-full bg-white border border-white/40 shadow-sm overflow-hidden shrink-0">
+                    <div className="h-[58px] w-[58px] rounded-full bg-white border-2 border-white/80 shadow-xl overflow-hidden shrink-0 relative z-10" style={{ marginTop: '4px', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>
                         <img
                             src={projectLogo || '/images/foodie-guru-logo.png'}
                             alt="Logo"
@@ -225,10 +225,11 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg bg-black/15 hover:bg-black/25 border border-white/20 text-white hover:text-white transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold rounded-lg border border-yellow-300/60 transition-colors hover:brightness-110"
+                        style={{ backgroundColor: 'var(--color-brand-yellow)', color: '#0a0a0a' }}
                         title={t('logout')}
                     >
-                        <LogOut size={15} className="text-white/90" />
+                        <LogOut size={15} />
                         <span className="hidden sm:inline">{t('logout')}</span>
                     </button>
                 </div>

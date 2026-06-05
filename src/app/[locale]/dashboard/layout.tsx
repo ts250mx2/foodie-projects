@@ -39,8 +39,10 @@ export default function DashboardLayout({
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
-    // Don't show floating widget on the dedicated agent page
+    // Páginas de pantalla completa (sin scroll del main): agente y consola de reportes.
     const isAgentePage = pathname?.includes('/dashboard/agente');
+    const isConsolePage = pathname?.includes('/dashboard/reportes/nuevo');
+    const isFullBleed = isAgentePage || isConsolePage;
 
     return (
         <ThemeProvider>
@@ -51,16 +53,16 @@ export default function DashboardLayout({
                     <Sidebar isCollapsed={isCollapsed} onExpand={() => setIsCollapsed(false)} />
 
                     <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300 ${
-                        isAgentePage 
-                            ? 'px-8 pt-4 pb-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden' 
+                        isFullBleed
+                            ? `${isConsolePage ? 'p-0' : 'px-8 pt-4 pb-6'} h-[calc(100vh-4rem)] flex flex-col overflow-hidden`
                             : 'px-8 pt-4 pb-8'
                     }`}>
                         {children}
                     </main>
                 </div>
 
-                {/* Floating agent on all pages except the dedicated agent page */}
-                {!isAgentePage && <AiAgent mode="floating" />}
+                {/* Floating agent en todas las páginas excepto agente y consola */}
+                {!isFullBleed && <AiAgent mode="floating" />}
             </div>
         </ThemeProvider>
     );
