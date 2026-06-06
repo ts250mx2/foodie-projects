@@ -14,28 +14,50 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
-        // Construct dynamic origin for default callbacks if not provided
-        const origin = request.headers.get('origin') || 'http://localhost:3006';
+        // Construct dynamic origin — prefer Referer header, fallback to x-forwarded-host
+        const referer = request.headers.get('referer');
+        const forwardedHost = request.headers.get('x-forwarded-host');
+        const host = request.headers.get('host') || 'localhost:3006';
+        const proto = host.includes('localhost') ? 'http' : 'https';
+
+        let origin: string;
+        if (referer) {
+            const refererUrl = new URL(referer);
+            origin = refererUrl.origin;
+        } else if (forwardedHost) {
+            origin = `https://${forwardedHost}`;
+        } else {
+            origin = `${proto}://${host}`;
+        }
+
+        // Determine the dashboard path from body-provided URLs or build dynamically
+        const resolvedSuccessUrl = successUrl || `${origin}/es/dashboard?payment=success`;
+        const resolvedFailureUrl = failureUrl || `${origin}/es/dashboard?payment=failure`;
+        const resolvedPendingUrl = pendingUrl || `${origin}/es/dashboard?payment=pending`;
+
+        // Whether origin is localhost — MP does not support auto_return for non-public URLs
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
 
         // Payment preferences details
-        const paymentData = {
+        const paymentData: Record<string, any> = {
             items: [
                 {
                     id: "foodie-guru-monthly-sub",
                     title: "Suscripción Mensual Foodie Guru",
                     description: "Acceso Premium a la plataforma de Foodie Guru",
                     quantity: 1,
-                    unit_price: 499.00, // Monto por defecto: $499 MXN
+                    unit_price: 499.00,
                     currency_id: "MXN",
                     category_id: "services"
                 }
             ],
             back_urls: {
-                success: successUrl || `${origin}/dashboard?payment=success`,
-                failure: failureUrl || `${origin}/dashboard?payment=failure`,
-                pending: pendingUrl || `${origin}/dashboard?payment=pending`
+                success: resolvedSuccessUrl,
+                failure: resolvedFailureUrl,
+                pending: resolvedPendingUrl
             },
-            auto_return: "approved",
+            // auto_return requires a publicly reachable success URL — skip for localhost
+            ...(isLocalhost ? {} : { auto_return: "approved" }),
             metadata: {
                 user_id: userId,
                 project_id: projectId
