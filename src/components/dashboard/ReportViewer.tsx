@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Lightbulb, Table2, BarChart3, LineChart, PieChart, Gauge, FileText, FileSpreadsheet } from 'lucide-react';
+import { FcComboChart, FcDataSheet, FcBarChart, FcLineChart, FcPieChart, FcDocument, FcIdea } from 'react-icons/fc';
+import type { IconType } from 'react-icons';
 import AgentChart from '@/components/dashboard/AgentChart';
+import { exportElementToPdf } from '@/utils/exportElementToPdf';
 
 interface ReportColumn { key: string; label?: string; role: string; format?: string }
 interface ReportDefinition {
@@ -42,17 +44,18 @@ function csvCell(v: any): string {
     return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-const VIZ_OPTS: { id: Viz; label: string; icon: any }[] = [
-    { id: 'kpi', label: 'KPIs', icon: Gauge },
-    { id: 'table', label: 'Tabla', icon: Table2 },
-    { id: 'bar', label: 'Barras', icon: BarChart3 },
-    { id: 'line', label: 'Línea', icon: LineChart },
-    { id: 'pie', label: 'Pastel', icon: PieChart },
+const VIZ_OPTS: { id: Viz; label: string; icon: IconType }[] = [
+    { id: 'kpi', label: 'KPIs', icon: FcComboChart },
+    { id: 'table', label: 'Tabla', icon: FcDataSheet },
+    { id: 'bar', label: 'Barras', icon: FcBarChart },
+    { id: 'line', label: 'Línea', icon: FcLineChart },
+    { id: 'pie', label: 'Pastel', icon: FcPieChart },
 ];
 
 export default function ReportViewer({ definition, rows }: { definition: ReportDefinition; rows: any[] }) {
     const [viz, setViz] = useState<Viz>(definition.visualization || 'table');
     const [exporting, setExporting] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     const cols: ReportColumn[] = definition.expectedColumns?.length
         ? definition.expectedColumns
@@ -93,38 +96,19 @@ export default function ReportViewer({ definition, rows }: { definition: ReportD
         downloadBlob('﻿' + [header, ...body].join('\r\n'), 'text/csv;charset=utf-8', `${slugify(definition.title)}.csv`);
     };
 
+    // PDF de TODA la página (gráficas incluidas): captura el contenido renderizado.
     const exportPdf = async () => {
+        if (!contentRef.current) return;
         setExporting(true);
         try {
-            const { jsPDF } = await import('jspdf');
-            const autoTable = (await import('jspdf-autotable')).default;
-            const doc = new jsPDF();
-            doc.setFontSize(15); doc.setTextColor(20);
-            doc.text(definition.title, 14, 16);
-            let y = 22;
-            if (definition.description) {
-                doc.setFontSize(10); doc.setTextColor(120);
-                const lines = doc.splitTextToSize(definition.description, 180);
-                doc.text(lines, 14, y); y += lines.length * 5 + 2;
-            }
-            autoTable(doc, {
-                startY: y,
-                head: [cols.map(c => c.label || c.key)],
-                body: rows.map(r => cols.map(c => fmtValue(r[c.key], c.format))),
-                styles: { fontSize: 8, cellPadding: 2 },
-                headStyles: { fillColor: [244, 72, 30], textColor: 255, fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [250, 248, 246] },
-            });
-            doc.save(`${slugify(definition.title)}.pdf`);
+            await exportElementToPdf(contentRef.current, `${slugify(definition.title)}.pdf`);
+        } catch (err) {
+            console.error('No se pudo generar el PDF:', err);
         } finally { setExporting(false); }
     };
 
     return (
         <div className="space-y-4">
-            {definition.description && (
-                <p className="text-sm text-slate-500 -mt-1">{definition.description}</p>
-            )}
-
             {/* Toolbar: selector de visualización + exportar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="inline-flex items-center gap-1 bg-slate-100 rounded-xl p-1">
@@ -144,14 +128,21 @@ export default function ReportViewer({ definition, rows }: { definition: ReportD
                 <div className="inline-flex items-center gap-2">
                     <button onClick={exportCsv} disabled={rows.length === 0}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                        <FileSpreadsheet size={14} /> CSV
+                        <FcDataSheet size={15} /> CSV
                     </button>
                     <button onClick={exportPdf} disabled={rows.length === 0 || exporting}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                        <FileText size={14} /> {exporting ? 'Generando…' : 'PDF'}
+                        <FcDocument size={15} /> {exporting ? 'Generando…' : 'PDF'}
                     </button>
                 </div>
             </div>
+
+            {/* Contenido capturable para el PDF (título + KPIs + gráfica + hallazgos + tabla) */}
+            <div ref={contentRef} className="space-y-4 bg-white rounded-2xl p-4 border border-slate-100">
+                <div>
+                    <h2 className="text-xl font-black text-slate-800 leading-tight">{definition.title}</h2>
+                    {definition.description && <p className="text-sm text-slate-500 mt-0.5">{definition.description}</p>}
+                </div>
 
             {/* KPIs (tarjetas de número único) */}
             {effectiveViz === 'kpi' && (
@@ -177,7 +168,7 @@ export default function ReportViewer({ definition, rows }: { definition: ReportD
             {definition.insights?.length > 0 && (
                 <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-4">
                     <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-amber-700 mb-2">
-                        <Lightbulb size={14} /> Hallazgos
+                        <FcIdea size={16} /> Hallazgos
                     </p>
                     <div className="space-y-2">
                         {definition.insights.map((ins, i) => (
@@ -216,6 +207,7 @@ export default function ReportViewer({ definition, rows }: { definition: ReportD
                     </table>
                 </div>
                 {rows.length === 0 && <div className="text-center text-slate-400 py-10 text-sm">El reporte no devolvió filas.</div>}
+            </div>
             </div>
         </div>
     );

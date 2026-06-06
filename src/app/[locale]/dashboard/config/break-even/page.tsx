@@ -19,7 +19,8 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import PageShell from '@/components/PageShell';
-import { TrendingUp, BarChart3, Package, Building2, Target, Download, Save, RotateCcw, X, Trash2, Plus, Search, Check, ListPlus, Loader2 } from 'lucide-react';
+import { TrendingUp, BarChart3, Download, Save, RotateCcw, X, Plus, Check, ListPlus, Loader2 } from 'lucide-react';
+import { FcComboChart, FcPackage, FcDepartment, FcSalesPerformance, FcCurrencyExchange, FcSearch, FcFullTrash } from 'react-icons/fc';
 
 interface Branch {
     IdSucursal: number;
@@ -126,6 +127,13 @@ export default function BreakEvenPage() {
     const [conceptSearch, setConceptSearch] = useState('');
     const [selectedConcepts, setSelectedConcepts] = useState<Set<string>>(new Set());
     const [prevPeriod, setPrevPeriod] = useState<{ m: number; y: number } | null>(null);
+
+    // Selector de platillos (tblProductos IdTipoProducto=1) con su costo de receta
+    const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+    const [pickProducts, setPickProducts] = useState<{ idProducto: number; producto: string; codigo: string; materiaPrima: number; empaque: number }[]>([]);
+    const [pickProductsLoading, setPickProductsLoading] = useState(false);
+    const [productSearch, setProductSearch] = useState('');
+    const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
 
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -452,6 +460,40 @@ export default function BreakEvenPage() {
 
     const filteredConcepts = concepts.filter(c => c.concepto.toLowerCase().includes(conceptSearch.trim().toLowerCase()));
     const prevLabel = prevPeriod ? `${tProd(`months.${prevPeriod.m - 1}`)} ${prevPeriod.y}` : '';
+
+    // Abre el selector de platillos y trae su costo (materia prima + empaque) desde la receta.
+    const openProductPicker = async () => {
+        setIsProductPickerOpen(true);
+        setSelectedProductIds(new Set());
+        setProductSearch('');
+        if (!project?.idProyecto) { setPickProducts([]); return; }
+        setPickProductsLoading(true);
+        try {
+            const res = await fetch(`/api/config/break-even/products?projectId=${project.idProyecto}`);
+            const data = await res.json();
+            setPickProducts(data.success ? (data.products || []) : []);
+        } catch { setPickProducts([]); }
+        finally { setPickProductsLoading(false); }
+    };
+
+    const toggleProduct = (id: number) => setSelectedProductIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
+
+    // Agrega los platillos seleccionados como productos representativos, con su materia
+    // prima y empaque asignados. Evita duplicados por nombre.
+    const addSelectedProducts = () => {
+        const existing = new Set(representativeProducts.map((p: any) => (p.NombreProducto || '').trim().toLowerCase()));
+        const toAdd = pickProducts
+            .filter(p => selectedProductIds.has(p.idProducto) && !existing.has(p.producto.trim().toLowerCase()))
+            .map(p => ({ NombreProducto: p.producto, CostoMateriaPrima: p.materiaPrima, Empaque: p.empaque }));
+        if (toAdd.length) setRepresentativeProducts(prev => [...prev, ...toAdd]);
+        setIsProductPickerOpen(false);
+    };
+
+    const filteredPickProducts = pickProducts.filter(p => (p.producto + ' ' + p.codigo).toLowerCase().includes(productSearch.trim().toLowerCase()));
     const handleUpdateExpense = (index: number, field: keyof FixedExpense, value: any) => {
         const newExpenses = [...fixedExpenses];
         newExpenses[index] = { ...newExpenses[index], [field]: value };
@@ -638,7 +680,7 @@ export default function BreakEvenPage() {
                     {/* VENTAS Y VOLUMEN */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
                         <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-50/50 border-b border-blue-200 flex items-center gap-3">
-                            <BarChart3 size={20} style={{ color: colors.colorFondo1 }} />
+                            <FcComboChart size={22} />
                             <h2 className="text-sm font-bold uppercase tracking-wide text-gray-900">Ventas & Volumen</h2>
                         </div>
                         <div className="p-6 space-y-4">
@@ -673,7 +715,7 @@ export default function BreakEvenPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
                         <div className="px-6 py-4 bg-gradient-to-r from-orange-50 to-orange-50/50 border-b border-orange-200 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <Package size={20} className="text-orange-600" />
+                                <FcPackage size={22} />
                                 <h2 className="text-sm font-bold uppercase tracking-wide text-gray-900">Costos Variables</h2>
                                 {representativeProducts.length > 0 && (
                                     <span className="text-xs font-bold bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">
@@ -681,14 +723,14 @@ export default function BreakEvenPage() {
                                     </span>
                                 )}
                             </div>
-                            <Button
-                                onClick={() => setIsProductModalOpen(true)}
-                                variant="solid"
-                                size="sm"
-                                leftIcon={Plus}
-                            >
-                                Agregar
-                            </Button>
+                            <div className="flex gap-1.5">
+                                <Button onClick={() => setIsProductModalOpen(true)} variant="outline" size="sm" leftIcon={Plus}>
+                                    Manual
+                                </Button>
+                                <Button onClick={openProductPicker} variant="solid" size="sm" leftIcon={ListPlus}>
+                                    Agregar
+                                </Button>
+                            </div>
                         </div>
                         <div className="p-6 space-y-4">
                             {representativeProducts.length > 0 && (
@@ -700,7 +742,7 @@ export default function BreakEvenPage() {
                                                 <p className="text-[11px] text-gray-600">MP: {formatCurrency(p.CostoMateriaPrima)} • E: {formatCurrency(p.Empaque)}</p>
                                             </div>
                                             <button onClick={() => handleDeleteProduct(idx)} className="p-1.5 text-orange-300 hover:text-red-600 hover:bg-red-50 rounded transition-all">
-                                                <Trash2 size={16} />
+                                                <FcFullTrash size={17} />
                                             </button>
                                         </div>
                                     ))}
@@ -737,7 +779,7 @@ export default function BreakEvenPage() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all lg:col-span-2">
                         <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-50/50 border-b border-gray-200 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <Building2 size={20} className="text-gray-700" />
+                                <FcDepartment size={22} />
                                 <h2 className="text-sm font-bold uppercase tracking-wide text-gray-900">Gastos Fijos</h2>
                                 {fixedExpenses.length > 0 && (
                                     <span className="text-xs font-bold bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full">
@@ -775,7 +817,7 @@ export default function BreakEvenPage() {
                                             <PriceInput value={exp.Monto} onChange={(v: any) => handleUpdateExpense(idx, 'Monto', v)} onBlur={flushSave} />
                                         </div>
                                         <button onClick={() => handleDeleteExpense(idx)} className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition-all opacity-0 group-hover:opacity-100 flex-shrink-0">
-                                            <Trash2 size={16} />
+                                            <FcFullTrash size={17} />
                                         </button>
                                     </div>
                                 ))}
@@ -796,7 +838,7 @@ export default function BreakEvenPage() {
                     {/* PUNTO DE EQUILIBRIO */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all lg:col-span-2">
                         <div className="px-6 py-4 bg-gradient-to-r from-emerald-50 to-emerald-50/50 border-b border-emerald-200 flex items-center gap-3">
-                            <Target size={20} className="text-emerald-600" />
+                            <FcSalesPerformance size={22} />
                             <h2 className="text-sm font-bold uppercase tracking-wide text-gray-900">Análisis: Punto de Equilibrio</h2>
                         </div>
                         <div className="p-6">
@@ -883,7 +925,7 @@ export default function BreakEvenPage() {
                         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                    <ListPlus size={18} /> Agregar gastos fijos por concepto
+                                    <FcCurrencyExchange size={20} /> Agregar gastos fijos por concepto
                                 </h3>
                                 {prevLabel && <p className="text-xs text-gray-500 mt-1">Monto sugerido = lo gastado el mes anterior ({prevLabel})</p>}
                             </div>
@@ -893,7 +935,7 @@ export default function BreakEvenPage() {
                         {/* Buscador */}
                         <div className="px-6 pt-4 flex-shrink-0">
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 focus-within:border-gray-400">
-                                <Search size={16} className="text-gray-400" />
+                                <FcSearch size={16} />
                                 <input value={conceptSearch} onChange={e => setConceptSearch(e.target.value)} placeholder="Buscar concepto…" autoFocus
                                     className="w-full py-2.5 bg-transparent outline-none text-sm text-gray-800 placeholder:text-gray-400" />
                             </div>
@@ -946,6 +988,77 @@ export default function BreakEvenPage() {
                 </div>
             )}
 
+            {/* Selector de platillos (costos variables) */}
+            {isProductPickerOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setIsProductPickerOpen(false)}>
+                    <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden border border-gray-200 flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 bg-orange-50 border-b border-orange-200 flex justify-between items-center flex-shrink-0">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <FcPackage size={20} /> Agregar platillos a costos variables
+                                </h3>
+                                <p className="text-xs text-gray-500 mt-1">Costo de materia prima y empaque tomado de la receta de cada platillo</p>
+                            </div>
+                            <button onClick={() => setIsProductPickerOpen(false)} className="p-1 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded transition-all"><X size={20} /></button>
+                        </div>
+
+                        {/* Buscador */}
+                        <div className="px-6 pt-4 flex-shrink-0">
+                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 focus-within:border-orange-400">
+                                <FcSearch size={16} />
+                                <input value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Buscar platillo o código…" autoFocus
+                                    className="w-full py-2.5 bg-transparent outline-none text-sm text-gray-800 placeholder:text-gray-400" />
+                            </div>
+                        </div>
+
+                        {/* Lista seleccionable */}
+                        <div className="px-6 py-3 overflow-y-auto flex-1">
+                            {pickProductsLoading ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-400 py-12"><Loader2 size={18} className="animate-spin" /> Cargando platillos…</div>
+                            ) : filteredPickProducts.length === 0 ? (
+                                <div className="text-center text-gray-400 py-12 text-sm">No hay platillos que coincidan.</div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    {filteredPickProducts.map(p => {
+                                        const sel = selectedProductIds.has(p.idProducto);
+                                        const already = representativeProducts.some((rp: any) => (rp.NombreProducto || '').trim().toLowerCase() === p.producto.trim().toLowerCase());
+                                        return (
+                                            <button key={p.idProducto} onClick={() => toggleProduct(p.idProducto)} disabled={already}
+                                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${already ? 'opacity-40 cursor-not-allowed border-gray-100 bg-gray-50' : sel ? 'border-orange-300 bg-orange-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                                                <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${sel ? 'bg-orange-500 border-orange-500' : 'border-gray-300'}`}>
+                                                    {sel && <Check size={13} className="text-white" />}
+                                                </span>
+                                                <span className="flex-1 min-w-0">
+                                                    <span className="block text-sm font-bold text-gray-800 truncate">
+                                                        {p.producto}{already && <span className="text-[10px] text-gray-400 font-semibold ml-1">(ya agregado)</span>}
+                                                    </span>
+                                                    <span className="block text-[11px] text-gray-500">MP: {formatCurrency(p.materiaPrima)} • Empaque: {formatCurrency(p.empaque)}</span>
+                                                </span>
+                                                <span className="text-right flex-shrink-0">
+                                                    <span className="block text-sm font-black text-orange-600">{formatCurrency(p.materiaPrima + p.empaque)}</span>
+                                                    <span className="block text-[10px] text-gray-400">costo unit.</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 flex-shrink-0">
+                            <span className="text-xs font-bold text-gray-600">{selectedProductIds.size} seleccionado(s)</span>
+                            <div className="flex gap-2">
+                                <Button onClick={() => setIsProductPickerOpen(false)} variant="outline" size="sm">Cancelar</Button>
+                                <Button onClick={addSelectedProducts} disabled={selectedProductIds.size === 0} variant="solid" size="sm" leftIcon={Plus}>
+                                    Agregar {selectedProductIds.size > 0 ? `(${selectedProductIds.size})` : ''}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Chart Modal */}
             {isChartModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -953,7 +1066,7 @@ export default function BreakEvenPage() {
                         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
-                                    <BarChart3 size={18} />
+                                    <FcComboChart size={20} />
                                     Gráfica de Punto de Equilibrio
                                 </h3>
                                 <p className="text-xs text-gray-600 mt-1">{tProd(`months.${selectedMonth}`)} {selectedYear}</p>

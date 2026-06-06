@@ -165,6 +165,31 @@ export async function moveReport(conn: Connection, id: number, idCarpeta: number
     await conn.query(`UPDATE tblAgentReports SET IdCarpeta = ? WHERE IdReporte = ?`, [idCarpeta, id]);
 }
 
+export interface ReportUpdate {
+    titulo?: string;
+    descripcion?: string | null;
+    visualization?: ReportViz;
+}
+
+// Edita los metadatos de un reporte (título / descripción / visualización). Mantiene
+// sincronizados las columnas y el JSON de la definición (que el visor relee).
+export async function updateReport(conn: Connection, id: number, upd: ReportUpdate): Promise<void> {
+    await ensureReportsTable(conn);
+    const rec = await getReport(conn, id);
+    if (!rec) throw new Error('Reporte no encontrado');
+    const def = rec.definition;
+    if (upd.titulo !== undefined) def.title = String(upd.titulo).trim().slice(0, 300) || def.title;
+    if (upd.descripcion !== undefined) def.description = upd.descripcion ? String(upd.descripcion).slice(0, 1000) : undefined;
+    if (upd.visualization && (['table', 'bar', 'line', 'pie', 'kpi'] as string[]).includes(upd.visualization)) {
+        def.visualization = upd.visualization;
+    }
+    const json = JSON.stringify(def).slice(0, 200000);
+    await conn.query(
+        `UPDATE tblAgentReports SET Titulo = ?, Descripcion = ?, Visualization = ?, DefinicionJson = ? WHERE IdReporte = ?`,
+        [def.title.slice(0, 300), (def.description || '').slice(0, 1000) || null, def.visualization || 'table', json, id]
+    );
+}
+
 // ──────────────────────────────── Carpetas ────────────────────────────────
 
 export async function listFolders(conn: Connection): Promise<FolderItem[]> {

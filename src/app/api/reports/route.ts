@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { listReports, deleteReport, moveReport } from '@/lib/ai/reports-store';
+import { listReports, deleteReport, moveReport, updateReport } from '@/lib/ai/reports-store';
 
 // GET /api/reports?projectId=  → lista de reportes del proyecto
 export async function GET(req: Request) {
@@ -19,15 +19,23 @@ export async function GET(req: Request) {
     }
 }
 
-// PATCH /api/reports  { projectId, id, idCarpeta }  → mueve un reporte a una carpeta (o null)
+// PATCH /api/reports  { projectId, id, idCarpeta?, titulo?, descripcion?, visualization? }
+// Mueve un reporte a una carpeta (idCarpeta, null = sin carpeta) y/o edita sus metadatos.
 export async function PATCH(req: Request) {
     let conn: any = null;
     try {
-        const { projectId, id, idCarpeta } = await req.json();
+        const body = await req.json();
+        const { projectId, id, idCarpeta, titulo, descripcion, visualization } = body;
         if (!projectId || !id) return NextResponse.json({ error: 'projectId e id requeridos' }, { status: 400 });
-        const target = idCarpeta === null || idCarpeta === undefined || idCarpeta === '' ? null : Number(idCarpeta);
         conn = await getProjectConnection(projectId);
-        await moveReport(conn, Number(id), target);
+
+        if (titulo !== undefined || descripcion !== undefined || visualization !== undefined) {
+            await updateReport(conn, Number(id), { titulo, descripcion, visualization });
+        }
+        if (idCarpeta !== undefined) {
+            const target = idCarpeta === null || idCarpeta === '' ? null : Number(idCarpeta);
+            await moveReport(conn, Number(id), target);
+        }
         return NextResponse.json({ ok: true });
     } catch (e: any) {
         console.error('reports PATCH error:', e);
