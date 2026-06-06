@@ -47,6 +47,56 @@ import {
     Sparkles,
 } from 'lucide-react';
 import GeoShape from '@/components/brand/GeoShape';
+import {
+    FcComboChart, FcSettings, FcCurrencyExchange, FcPackage, FcShop, FcMoneyTransfer,
+    FcConferenceCall, FcReadingEbook, FcDocument, FcSearch, FcOpenedFolder, FcProcess,
+    FcDepartment, FcBusinessman, FcRules, FcRuler, FcEmptyTrash, FcFlowChart, FcMindMap,
+    FcCalendar, FcIdea, FcAddRow, FcFolder, FcAddImage, FcCommandLine, FcDataSheet,
+} from 'react-icons/fc';
+import type { IconType } from 'react-icons';
+
+// Mapa lucide → Flat Color Icon. Donde hay equivalente, en el sidebar se pinta el fc
+// dentro de un chip claro (los fc son a color y necesitan fondo claro para resaltar
+// sobre el fondo de color del menú). Los que no tienen equivalente caen al lucide blanco.
+const FC_MAP = new Map<React.ElementType, IconType>([
+    [LayoutDashboard, FcComboChart],
+    [Sparkles, FcCommandLine],
+    [Layers, FcFolder],
+    [Settings, FcSettings],
+    [FolderOpen, FcOpenedFolder],
+    [Rocket, FcProcess],
+    [MapPin, FcDepartment],
+    [UserCheck, FcBusinessman],
+    [Receipt, FcRules],
+    [TrendingUp, FcComboChart],
+    [DollarSign, FcCurrencyExchange],
+    [Store, FcShop],
+    [Calculator, FcMoneyTransfer],
+    [Package, FcPackage],
+    [Tag, FcPackage],
+    [ClipboardList, FcDataSheet],
+    [Scale, FcRuler],
+    [Trash2, FcEmptyTrash],
+    [ShoppingCart, FcShop],
+    [Truck, FcDepartment],
+    [FileText, FcDocument],
+    [PenLine, FcAddRow],
+    [CreditCard, FcMoneyTransfer],
+    [LightbulbIcon, FcIdea],
+    [Scissors, FcCurrencyExchange],
+    [Users, FcConferenceCall],
+    [CalendarDays, FcCalendar],
+    [Banknote, FcMoneyTransfer],
+    [ChefHat, FcReadingEbook],
+    [Book, FcReadingEbook],
+    [UtensilsCrossed, FcPackage],
+    [Flame, FcFlowChart],
+    [Zap, FcMindMap],
+    [ScanText, FcDocument],
+    [Search, FcSearch],
+    [Camera, FcAddImage],
+    [Files, FcDocument],
+]);
 
 type MenuItem = {
     key: string;
@@ -242,7 +292,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                         color: pathname === `/${locale}/dashboard` ? colors.colorFondo1 : '#ffffff',
                     }}
                 >
-                    <LayoutDashboard size={18} className="shrink-0" />
+                    <span className="flex h-7 w-7 items-center justify-center shrink-0"><FcComboChart size={18} /></span>
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
@@ -261,7 +311,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                         color: pathname === `/${locale}/dashboard/agente` ? colors.colorFondo1 : '#ffffff',
                     }}
                 >
-                    <span className="text-base shrink-0 select-none w-[18px] h-[18px] flex items-center justify-center leading-none">👨‍🍳</span>
+                    <span className="flex h-7 w-7 items-center justify-center shrink-0 text-lg leading-none select-none">👨‍🍳</span>
                     {!isCollapsed && (
                         <span className="text-sm flex items-center gap-2">
                             Agente Foodie Guru
@@ -300,7 +350,9 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                 style={{ color: '#ffffff' }}
                             >
                                 <div className="flex items-center gap-3">
-                                    <SectionIcon size={18} className="shrink-0" />
+                                    {(() => { const Fc = FC_MAP.get(section.icon); return Fc
+                                        ? <span className="flex h-7 w-7 items-center justify-center shrink-0"><Fc size={18} /></span>
+                                        : <SectionIcon size={18} className="shrink-0" />; })()}
                                     {!isCollapsed && (
                                         <span className="text-sm font-brand font-bold uppercase tracking-wide">{(section.label ?? t(section.title))}</span>
                                     )}
@@ -336,7 +388,9 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
                                                             color: isActive ? colors.colorFondo1 : '#ffffff',
                                                         }}
                                                     >
-                                                        <ItemIcon size={14} className="shrink-0" />
+                                                        {(() => { const Fc = FC_MAP.get(item.icon); return Fc
+                                                            ? <span className="flex h-5 w-5 items-center justify-center shrink-0"><Fc size={14} /></span>
+                                                            : <ItemIcon size={14} className="shrink-0" />; })()}
                                                         <span>{(item.label ?? t(item.key))}</span>
                                                     </Link>
                                                 </li>
