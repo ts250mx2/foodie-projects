@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, FileDown, ArrowUpRight, Link2, Check } from 'lucide-react';
+import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, ArrowUpRight, Link2, Check, Loader2, ChefHat } from 'lucide-react';
+import { FcDocument } from 'react-icons/fc';
 import { useTheme } from '@/contexts/ThemeContext';
 import AgentChart from '@/components/dashboard/AgentChart';
 import PageShell from '@/components/PageShell';
@@ -209,19 +210,23 @@ function ChatPanel({
         }, 0);
     };
 
-    // Exporta una respuesta del asistente a PDF. Carga jsPDF en demanda (lazy)
-    // para no inflar el bundle inicial del dashboard.
+    // Exporta una respuesta del asistente a PDF capturando el render REAL del mensaje
+    // (gráficas incluidas). Carga el util en demanda para no inflar el bundle inicial.
+    const [exportingIdx, setExportingIdx] = useState<number | null>(null);
     const exportMsg = async (idx: number) => {
         const msg = messages[idx];
         if (!msg || msg.role !== 'assistant' || !msg.content) return;
-        const prev = messages[idx - 1];
-        const question = prev && prev.role === 'user' ? prev.content : undefined;
-        const modelLabel = CLAUDE_MODELS.find(m => m.id === model)?.label;
+        const el = document.getElementById(`agent-msg-${idx}`);
+        if (!el) return;
+        setExportingIdx(idx);
         try {
-            const { generateAnswerPDF } = await import('@/utils/generateAnswerPDF');
-            generateAnswerPDF(msg.content, { question, model: modelLabel });
+            const { exportElementToPdf } = await import('@/utils/exportElementToPdf');
+            const stamp = new Date().toISOString().slice(0, 10);
+            await exportElementToPdf(el, `foodie-guru-analisis-${stamp}.pdf`);
         } catch (err) {
             console.error('No se pudo generar el PDF:', err);
+        } finally {
+            setExportingIdx(null);
         }
     };
 
@@ -392,7 +397,7 @@ function ChatPanel({
                                 borderColor: 'rgba(226, 232, 240, 0.5)'
                             }}>
                                 {msg.role === 'assistant' ? (
-                                    <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
+                                    <div id={`agent-msg-${idx}`} className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
                                             {msg.content}
                                         </ReactMarkdown>
@@ -406,11 +411,13 @@ function ChatPanel({
                             <div className="ml-9 flex items-center gap-1.5">
                                 <button
                                     onClick={() => exportMsg(idx)}
-                                    title="Exportar esta respuesta a PDF"
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95"
+                                    disabled={exportingIdx === idx}
+                                    title="Exportar esta respuesta a PDF (con gráficas)"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all active:scale-95 disabled:opacity-60"
                                 >
-                                    <FileDown size={12} />
-                                    Exportar PDF
+                                    {exportingIdx === idx
+                                        ? <><Loader2 size={12} className="animate-spin" /> Generando…</>
+                                        : <><FcDocument size={14} /> Exportar PDF</>}
                                 </button>
                                 <button
                                     onClick={() => shareMsg(idx)}
@@ -793,7 +800,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             <PageShell
                 title={locale === 'es' ? 'Agente Foodie Gurú' : 'Foodie Guru Agent'}
                 subtitle={locale === 'es' ? 'Tu consultor de rentabilidad en tiempo real' : 'Your real-time profitability consultant'}
-                icon="👨‍🍳"
+                icon={ChefHat}
                 actions={
                     <button
                         onClick={handleClear}
