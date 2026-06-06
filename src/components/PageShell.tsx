@@ -2,13 +2,92 @@
 
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
-import { 
-    FolderOpen, Rocket, MapPin, UserCheck, Receipt, TrendingUp,
-    Store, Calculator, Tag, ClipboardList, Scale, Trash2,
-    Truck, FileText, PenLine, Lightbulb as LightbulbIcon, Scissors,
-    CalendarDays, Banknote, Book, UtensilsCrossed, Flame, Zap,
-    Camera, Files
+import {
+    LayoutDashboard,
+    Settings,
+    DollarSign,
+    Package,
+    ShoppingCart,
+    CreditCard,
+    Users,
+    ChefHat,
+    ScanText,
+    Search,
+    FolderOpen,
+    Rocket,
+    MapPin,
+    UserCheck,
+    Receipt,
+    TrendingUp,
+    Store,
+    Calculator,
+    Tag,
+    ClipboardList,
+    Scale,
+    Trash2,
+    Truck,
+    FileText,
+    Scissors,
+    UtensilsCrossed,
+    Flame,
+    Zap,
+    CalendarDays,
+    Banknote,
+    Lightbulb as LightbulbIcon,
+    PenLine,
+    Book,
+    Layers,
+    Camera,
+    Files,
+    Sparkles,
 } from 'lucide-react';
+import {
+    FcComboChart, FcSettings, FcCurrencyExchange, FcPackage, FcShop, FcMoneyTransfer,
+    FcConferenceCall, FcReadingEbook, FcDocument, FcSearch, FcOpenedFolder, FcProcess,
+    FcDepartment, FcBusinessman, FcRules, FcRuler, FcEmptyTrash, FcFlowChart, FcMindMap,
+    FcCalendar, FcIdea, FcAddRow, FcFolder, FcAddImage, FcCommandLine, FcDataSheet,
+} from 'react-icons/fc';
+import type { IconType } from 'react-icons';
+
+const FC_MAP = new Map<React.ElementType, IconType>([
+    [LayoutDashboard, FcComboChart],
+    [Sparkles, FcCommandLine],
+    [Layers, FcFolder],
+    [Settings, FcSettings],
+    [FolderOpen, FcOpenedFolder],
+    [Rocket, FcProcess],
+    [MapPin, FcDepartment],
+    [UserCheck, FcBusinessman],
+    [Receipt, FcRules],
+    [TrendingUp, FcComboChart],
+    [DollarSign, FcCurrencyExchange],
+    [Store, FcShop],
+    [Calculator, FcMoneyTransfer],
+    [Package, FcPackage],
+    [Tag, FcPackage],
+    [ClipboardList, FcDataSheet],
+    [Scale, FcRuler],
+    [Trash2, FcEmptyTrash],
+    [ShoppingCart, FcShop],
+    [Truck, FcDepartment],
+    [FileText, FcDocument],
+    [PenLine, FcAddRow],
+    [CreditCard, FcMoneyTransfer],
+    [LightbulbIcon, FcIdea],
+    [Scissors, FcCurrencyExchange],
+    [Users, FcConferenceCall],
+    [CalendarDays, FcCalendar],
+    [Banknote, FcMoneyTransfer],
+    [ChefHat, FcReadingEbook],
+    [Book, FcReadingEbook],
+    [UtensilsCrossed, FcPackage],
+    [Flame, FcFlowChart],
+    [Zap, FcMindMap],
+    [ScanText, FcDocument],
+    [Search, FcSearch],
+    [Camera, FcAddImage],
+    [Files, FcDocument],
+]);
 
 interface PageShellProps {
     title: string;
@@ -79,15 +158,17 @@ export default function PageShell({
                 {/* Left: icon + title + subtitle */}
                 <div className="relative z-10 flex items-center gap-3.5 min-w-0">
                     {ResolvedIcon && (
-                        <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                            style={{ backgroundColor: 'var(--color-brand-yellow)' }}
-                        >
-                            {typeof ResolvedIcon === 'string' ? (
-                                <span className="text-xl">{ResolvedIcon}</span>
-                            ) : (
-                                <ResolvedIcon size={18} style={{ color: '#0a0a0a' }} />
-                            )}
+                        <div className="flex shrink-0 items-center justify-center text-3xl select-none mr-1">
+                            {(() => {
+                                if (typeof ResolvedIcon === 'string') {
+                                    return <span>{ResolvedIcon}</span>;
+                                }
+                                const FcIcon = FC_MAP.get(ResolvedIcon);
+                                if (FcIcon) {
+                                    return <FcIcon size={28} />;
+                                }
+                                return <ResolvedIcon size={26} style={{ color: colors.colorFondo1 }} />;
+                            })()}
                         </div>
                     )}
                     <div className="flex flex-col min-w-0">
