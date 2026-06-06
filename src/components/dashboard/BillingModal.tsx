@@ -21,6 +21,13 @@ function BillingModalContent({ isOpen, onClose }: BillingModalProps) {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'pending'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [sdkLoaded, setSdkLoaded] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<'1m' | '3m' | '12m'>('1m');
+
+    const plans = {
+        '1m':  { label: '1 Mes',    price: 1249, unitPrice: 1249,   saving: null,                    title: 'Suscripción 1 Mes Foodie Guru' },
+        '3m':  { label: '3 Meses',  price: 3149, unitPrice: 1049.67, saving: 'Ahorras $598 MXN',      title: 'Suscripción 3 Meses Foodie Guru' },
+        '12m': { label: '12 Meses', price: 9999, unitPrice: 833.25,  saving: 'Ahorras $4,989 MXN',   title: 'Suscripción Anual Foodie Guru' },
+    } as const;
 
     // Read payment status from URL on mount/update
     useEffect(() => {
@@ -112,6 +119,8 @@ function BillingModalContent({ isOpen, onClose }: BillingModalProps) {
             const failureUrl = `${origin}${returnPath}?payment=failure`;
             const pendingUrl = `${origin}${returnPath}?payment=pending`;
 
+            const plan = plans[selectedPlan];
+
             // Call preference creation API
             const response = await fetch('/api/billing/create-preference', {
                 method: 'POST',
@@ -123,7 +132,9 @@ function BillingModalContent({ isOpen, onClose }: BillingModalProps) {
                     projectId,
                     successUrl,
                     failureUrl,
-                    pendingUrl
+                    pendingUrl,
+                    planTitle: plan.title,
+                    planPrice: plan.price
                 })
             });
 
@@ -241,45 +252,79 @@ function BillingModalContent({ isOpen, onClose }: BillingModalProps) {
 
                 {status === 'idle' && (
                     <div className="w-full animate-in fade-in duration-300">
-                        {/* Premium Card */}
-                        <div className="border border-green-200 rounded-2xl bg-green-50/50 p-6 mb-6">
-                            <div className="flex justify-between items-start mb-4">
+                        {/* Plan Selector */}
+                        <div className="grid grid-cols-3 gap-2 mb-5">
+                            {(Object.entries(plans) as [keyof typeof plans, typeof plans[keyof typeof plans]][]).map(([key, plan]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setSelectedPlan(key)}
+                                    className={`relative flex flex-col items-center rounded-xl border-2 p-3 transition-all cursor-pointer ${
+                                        selectedPlan === key
+                                            ? 'border-green-500 bg-green-50 shadow-sm'
+                                            : 'border-gray-200 bg-white hover:border-green-300'
+                                    }`}
+                                >
+                                    {plan.saving && (
+                                        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                                            Popular
+                                        </span>
+                                    )}
+                                    <span className={`text-xs font-semibold mb-1 ${ selectedPlan === key ? 'text-green-700' : 'text-gray-500' }`}>
+                                        {plan.label}
+                                    </span>
+                                    <span className={`text-base font-black ${ selectedPlan === key ? 'text-green-700' : 'text-gray-800' }`}>
+                                        ${plan.price.toLocaleString()}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 mt-0.5">
+                                        ${plan.unitPrice.toLocaleString('es-MX', { maximumFractionDigits: 0 })}/mes
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Selected plan detail */}
+                        <div className="border border-green-200 rounded-2xl bg-green-50/50 p-5 mb-5">
+                            <div className="flex justify-between items-center mb-3">
                                 <div>
                                     <span className="text-xs font-extrabold uppercase tracking-wider bg-green-100 text-green-800 px-2.5 py-1 rounded-full">
                                         Premium
                                     </span>
-                                    <h3 className="text-lg font-bold text-gray-900 mt-2">
-                                        Plan Mensual Foodie Guru
+                                    <h3 className="text-base font-bold text-gray-900 mt-2">
+                                        {plans[selectedPlan].title}
                                     </h3>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-2xl font-black text-green-700">$499 MXN</div>
-                                    <div className="text-xs text-gray-500">al mes</div>
+                                    <div className="text-2xl font-black text-green-700">
+                                        ${plans[selectedPlan].price.toLocaleString()} <span className="text-sm font-normal text-gray-500">MXN</span>
+                                    </div>
+                                    {plans[selectedPlan].saving && (
+                                        <div className="text-xs font-semibold text-green-600 mt-0.5">{plans[selectedPlan].saving}</div>
+                                    )}
                                 </div>
                             </div>
 
-                            <ul className="space-y-2.5 text-sm text-gray-600 border-t border-green-100 pt-4">
+                            <ul className="space-y-2 text-sm text-gray-600 border-t border-green-100 pt-3">
                                 <li className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-green-600 shrink-0" />
+                                    <ShieldCheck size={15} className="text-green-600 shrink-0" />
                                     <span>Control completo de Inventarios y Mermas</span>
                                 </li>
                                 <li className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-green-600 shrink-0" />
-                                    <span>Acceso ilimitado a digitalización OCR de facturas</span>
+                                    <ShieldCheck size={15} className="text-green-600 shrink-0" />
+                                    <span>Digitalización OCR de facturas ilimitada</span>
                                 </li>
                                 <li className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-green-600 shrink-0" />
+                                    <ShieldCheck size={15} className="text-green-600 shrink-0" />
                                     <span>Reportes e Inteligencia de Negocio con IA</span>
                                 </li>
                                 <li className="flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-green-600 shrink-0" />
+                                    <ShieldCheck size={15} className="text-green-600 shrink-0" />
                                     <span>Soporte prioritario e integraciones activas</span>
                                 </li>
                             </ul>
                         </div>
 
-                        {/* Payment instructions / Action */}
-                        <div className="flex flex-col gap-4">
+                        {/* Payment Action */}
+                        <div className="flex flex-col gap-3">
                             <Button
                                 variant="solid"
                                 size="lg"
@@ -289,7 +334,10 @@ function BillingModalContent({ isOpen, onClose }: BillingModalProps) {
                                 onClick={handlePay}
                                 disabled={!sdkLoaded}
                             >
-                                {!sdkLoaded ? 'Cargando pasarela...' : 'Pagar con Mercado Pago'}
+                                {!sdkLoaded
+                                    ? 'Cargando pasarela...'
+                                    : `Pagar $${plans[selectedPlan].price.toLocaleString()} MXN`
+                                }
                             </Button>
 
                             <div className="flex justify-center items-center gap-1.5 text-xs text-gray-400">

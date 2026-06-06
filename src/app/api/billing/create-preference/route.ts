@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { userId, projectId, successUrl, failureUrl, pendingUrl } = body;
+        const { userId, projectId, successUrl, failureUrl, pendingUrl, planTitle, planPrice } = body;
 
         const accessToken = process.env.MP_ACCESS_TOKEN;
         if (!accessToken) {
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
         const paymentData: Record<string, any> = {
             items: [
                 {
-                    id: "foodie-guru-monthly-sub",
-                    title: "Suscripción Mensual Foodie Guru",
+                    id: "foodie-guru-sub",
+                    title: planTitle || "Suscripción Mensual Foodie Guru",
                     description: "Acceso Premium a la plataforma de Foodie Guru",
                     quantity: 1,
-                    unit_price: 499.00,
+                    unit_price: planPrice || 1249.00,
                     currency_id: "MXN",
                     category_id: "services"
                 }
