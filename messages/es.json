@@ -1245,5 +1245,9 @@
         "successAdd": "Orden de compra creada exitosamente",
         "errorAdd": "Error al crear la orden de compra",
         "confirmFinish": "¿Estás seguro de finalizar la orden? Esto vinculará los productos al proveedor."
+    },
+    "Billing": {
+        "title": "Suscripción Premium",
+        "subtitle": "Activa o renueva tu cuenta Foodie Guru"
     }
 }

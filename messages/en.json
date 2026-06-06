@@ -1055,5 +1055,9 @@
         "successAdd": "Purchase order created successfully",
         "errorAdd": "Error creating purchase order",
         "confirmFinish": "Are you sure you want to finish the order? This will link the products to the provider."
+    },
+    "Billing": {
+        "title": "Premium Subscription",
+        "subtitle": "Activate or renew your Foodie Guru account"
     }
 }

@@ -4,7 +4,9 @@ import { useTranslations } from 'next-intl';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, LogOut, ChevronRight, User } from 'lucide-react';
+import { Menu, LogOut, ChevronRight, User, CreditCard } from 'lucide-react';
+import BillingModal from './BillingModal';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 interface HeaderProps {
     userName: string;
@@ -93,6 +95,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
     const locale = params.locale as string;
 
     const [userName, setUserName] = useState(initialUserName || '');
+    const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
     const [projectLogo, setProjectLogo] = useState('');
     const [projectTitle, setProjectTitle] = useState('');
     const [projectName, setProjectName] = useState('');
@@ -132,6 +135,13 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
         };
         window.addEventListener('project-logo-updated', handleLogoUpdate as EventListener);
         return () => window.removeEventListener('project-logo-updated', handleLogoUpdate as EventListener);
+    }, []);
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        if (queryParams.get('payment')) {
+            setIsBillingModalOpen(true);
+        }
     }, []);
 
     const handleLogout = () => {
@@ -216,6 +226,17 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
 
                 {/* Right: usuario + logout */}
                 <div className="flex items-center gap-2 shrink-0">
+                    <LanguageSwitcher className="hidden sm:block text-white" />
+
+                    <button
+                        onClick={() => setIsBillingModalOpen(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold rounded-lg border border-white/20 transition-all hover:bg-white/10 active:scale-95 text-white"
+                        title="Pagar Suscripción"
+                    >
+                        <CreditCard size={15} />
+                        <span className="hidden md:inline">Pagar</span>
+                    </button>
+
                     <div
                         className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/15 border border-white/20 text-white text-sm"
                     >
@@ -234,6 +255,11 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                     </button>
                 </div>
             </div>
+
+            <BillingModal
+                isOpen={isBillingModalOpen}
+                onClose={() => setIsBillingModalOpen(false)}
+            />
         </header>
     );
 }

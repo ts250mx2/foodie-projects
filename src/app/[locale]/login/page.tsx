@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import AuthFooter from '@/components/AuthFooter';
 import GeoShape from '@/components/brand/GeoShape';
 import { useTranslations, useLocale } from 'next-intl';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // Paleta del PDF (hex explícitos: los vars --color-brand-green/orange están cruzados en globals.css)
 const BLUE = '#3b3be8';
@@ -71,6 +72,11 @@ export default function LoginPage() {
 
     return (
         <div className="relative min-h-screen flex overflow-hidden" style={{ backgroundColor: CREAM }}>
+            {/* ── Language Switcher top-right ── */}
+            <div className="absolute top-4 right-4 z-30 text-gray-800">
+                <LanguageSwitcher />
+            </div>
+
             {/* ── Logo top-left ── */}
             <div className="absolute top-0 left-0 z-30 rounded-br-[3.5rem] px-8 py-5 shadow-md flex items-center justify-center"
                 style={{ backgroundColor: CREAM }}>

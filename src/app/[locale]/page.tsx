@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import GeoShape from '@/components/brand/GeoShape';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // Paleta fija (igual que en login/page.tsx)
 const BLUE   = '#3b3be8';
@@ -46,6 +47,11 @@ export default function LandingPage() {
       {/* ═══════════════════════ HERO (fondo naranja, 42% alto) ═══════════════════════ */}
       <section className="relative overflow-hidden flex flex-col items-center justify-center text-center"
         style={{ backgroundColor: ORANGE, height: '42%' }}>
+
+        {/* ── Language Switcher top-right ── */}
+        <div className="absolute top-4 right-4 z-20 text-white">
+          <LanguageSwitcher />
+        </div>
 
         {/* ── Logo top-left ── */}
         <div className="absolute top-0 left-0 z-20 rounded-br-[3.5rem] px-8 py-4 shadow-md flex items-center justify-center"
