@@ -43,7 +43,7 @@ function OCRDocumentsContent() {
     // Processing State
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [processingDoc, setProcessingDoc] = useState<any>(null);
-    const [ocrModel, setOcrModel] = useState<'claude-opus-4-6' | 'gpt-4o'>('gpt-4o');
+    const [ocrModel, setOcrModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
     const [ocrType, setOcrType] = useState<'gasto' | 'compra'>('gasto');
     const [isProcessing, setIsProcessing] = useState(false);
     const [ocrResult, setOcrResult] = useState<any>(null);
@@ -912,17 +912,21 @@ function OCRDocumentsContent() {
                                         <div className="space-y-3">
                                             <label className="text-xs font-bold text-gray-500 uppercase">Modelo de IA</label>
                                             <div className="flex gap-2">
-                                                {['gpt-4o', 'claude-opus-4-6'].map(m => (
+                                                {[
+                                                    { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
+                                                    { id: 'claude-opus-4-8', label: 'Opus 4.8' },
+                                                    { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' }
+                                                ].map(m => (
                                                     <button
-                                                        key={m}
-                                                        onClick={() => setOcrModel(m as any)}
+                                                        key={m.id}
+                                                        onClick={() => setOcrModel(m.id as any)}
                                                         className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all border-2 ${
-                                                            ocrModel === m 
+                                                            ocrModel === m.id 
                                                             ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm' 
                                                             : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300'
                                                         }`}
                                                     >
-                                                        {m === 'gpt-4o' ? '🤖 GPT-4o' : '🧠 Claude'}
+                                                        {m.label}
                                                     </button>
                                                 ))}
                                             </div>

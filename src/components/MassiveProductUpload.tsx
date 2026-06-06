@@ -36,7 +36,7 @@ export default function MassiveProductUpload({
     const [isDragging, setIsDragging] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isOcrMode, setIsOcrMode] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'gpt-4o'>('claude-sonnet-4-6');
+    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
     const [ocrPreviews, setOcrPreviews] = useState<string[]>([]);
     const [ocrFiles, setOcrFiles] = useState<File[]>([]);
     const [allCategories, setAllCategories] = useState<{ IdCategoria: number, Categoria: string, ImagenCategoria?: string }[]>([]);
@@ -501,26 +501,23 @@ export default function MassiveProductUpload({
                                 <div className="flex flex-col gap-1 items-end">
                                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
                                     <div className="flex items-center gap-2 bg-slate-50 rounded-xl p-1 border border-slate-100 shadow-inner">
-                                        <button
-                                            onClick={() => setSelectedModel('claude-sonnet-4-6')}
-                                            className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
-                                                selectedModel === 'claude-sonnet-4-6' 
-                                                ? 'bg-white text-indigo-600 shadow-sm' 
-                                                : 'text-slate-400 hover:text-slate-600'
-                                            }`}
-                                        >
-                                            CLAUDE 3.5
-                                        </button>
-                                        <button
-                                            onClick={() => setSelectedModel('gpt-4o')}
-                                            className={`px-4 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
-                                                selectedModel === 'gpt-4o' 
-                                                ? 'bg-white text-indigo-600 shadow-sm' 
-                                                : 'text-slate-400 hover:text-slate-600'
-                                            }`}
-                                        >
-                                            GPT-4o
-                                        </button>
+                                        {[
+                                            { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
+                                            { id: 'claude-opus-4-8', label: 'Opus 4.8' },
+                                            { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' }
+                                        ].map((m) => (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => setSelectedModel(m.id as any)}
+                                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black tracking-tight transition-all ${
+                                                    selectedModel === m.id 
+                                                    ? 'bg-white text-indigo-600 shadow-sm' 
+                                                    : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                            >
+                                                {m.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

@@ -27,6 +27,7 @@ function ReceiptCaptureContent() {
     const [selectedConceptId, setSelectedConceptId] = useState('');
     const [amount, setAmount] = useState('');
     const [reference, setReference] = useState('');
+    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +64,7 @@ function ReceiptCaptureContent() {
         try {
             const formData = new FormData();
             formData.append('image', image);
+            formData.append('model', selectedModel);
 
             const response = await fetch('/api/expenses/process-receipt', {
                 method: 'POST',
@@ -130,6 +132,20 @@ function ReceiptCaptureContent() {
                 <h1 className="text-2xl font-black text-gray-800">Captura de Gasto</h1>
                 <p className="text-gray-500 text-sm">{t('subtitle')}</p>
             </header>
+
+            {/* Model Selector */}
+            <div className="mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Modelo de IA</span>
+                <select 
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value as any)}
+                    className="bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                >
+                    <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+                    <option value="claude-opus-4-8">Opus 4.8</option>
+                    <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+                </select>
+            </div>
 
             {!preview ? (
                 <div 

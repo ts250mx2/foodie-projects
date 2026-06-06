@@ -56,7 +56,7 @@ export default function PurchaseImageCaptureModal({
     const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'gpt-4o' | 'claude-sonnet-4-6'>('claude-sonnet-4-6');
+    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
     
     // Camera state
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -553,11 +553,17 @@ export default function PurchaseImageCaptureModal({
                         <p className="text-xs text-slate-400 font-medium mt-1">Digitaliza facturas con IA de última generación</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex flex-col gap-1 items-end">
+                        <div className="flex flex-col gap-1 items-end">
                             <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
-                            <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-1.5 border border-slate-100 shadow-sm text-[9px] font-black text-indigo-600 shadow-inner">
-                                CLAUDE 3.5
-                            </div>
+                            <select 
+                                value={selectedModel}
+                                onChange={(e) => setSelectedModel(e.target.value as any)}
+                                className="bg-white rounded-xl px-3 py-1 border border-slate-200 shadow-sm text-[10px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                            >
+                                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+                                <option value="claude-opus-4-8">Opus 4.8</option>
+                                <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+                            </select>
                         </div>
                         <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">✕</button>
                     </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const OCR_PROMPT = 'Analyze these receipt images. Extract the provider name, the total amount, the ticket/receipt number (if available), the date of the receipt (YYYY-MM-DD), and a detailed list of concepts/items with their quantity and price. For each concept, also try to extract any product code or SKU if visible. Return ONLY a JSON object with this structure: {"provider": "NAME", "total": 0.00, "ticketNumber": "12345", "date": "2024-03-19", "concepts": [{"description": "Item Name", "code": "SKU123", "quantity": 1, "price": 0.00, "total": 0.00}]}. Ensure numeric values are numbers, not strings. IMPORTANT: Close the JSON object correctly, do not leave it truncated.';
 
-async function processWithClaude(files: File[]): Promise<string> {
+async function processWithClaude(files: File[], modelName: string): Promise<string> {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured in .env');
 
@@ -41,7 +41,7 @@ async function processWithClaude(files: File[]): Promise<string> {
             'content-type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: modelName,
             max_tokens: 4096,
             messages: [{
                 role: 'user',
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const files = formData.getAll('image') as File[];
-        const model = (formData.get('model') as string) || 'claude-opus-4-6';
+        const model = (formData.get('model') as string) || 'claude-sonnet-4-6';
 
         if (!files || files.length === 0) {
             return NextResponse.json({ success: false, message: 'No images provided' }, { status: 400 });
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         if (model === 'gpt-4o') {
             content = await processWithGPT4o(files);
         } else {
-            content = await processWithClaude(files);
+            content = await processWithClaude(files, model);
         }
 
         // Extract JSON from response
