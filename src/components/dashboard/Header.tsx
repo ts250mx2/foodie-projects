@@ -161,7 +161,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                         <Menu size={20} />
                     </button>
 
-                    <div className="h-[58px] w-[58px] rounded-full bg-white border-2 border-white/80 shadow-xl overflow-hidden shrink-0 relative z-10" style={{ marginTop: '-4px', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>
+                    <div className="h-[58px] w-[58px] rounded-full bg-white border-2 border-white/80 shadow-xl overflow-hidden shrink-0 relative z-10" style={{ marginTop: '-2px', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}>
                         <img
                             src={projectLogo || '/images/foodie-guru-logo.png'}
                             alt="Logo"
