@@ -281,7 +281,7 @@ export default function PurchaseImageCaptureModal({
                 // Auto-link provider
                 if (extracted.provider) {
                     const matchedProvider = ocrRelationships.providers.find(
-                        (p: any) => p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
+                        (p: any) => p.ProveedorOCR && p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
                     );
                     if (matchedProvider) setRegProviderId(matchedProvider.IdProveedor.toString());
                 }
@@ -290,7 +290,7 @@ export default function PurchaseImageCaptureModal({
                 const conceptsWithAudit = extracted.concepts.map((c: any) => {
                     // 1. Try to find in manual relationships
                     const matchedRelationship = ocrRelationships.products.find(
-                        (p: any) => p.ProductoOCR.toLowerCase() === c.description.toLowerCase()
+                        (p: any) => p.ProductoOCR && c.description && p.ProductoOCR.toLowerCase() === c.description.toLowerCase()
                     );
                     
                     let productId = null;
@@ -303,7 +303,7 @@ export default function PurchaseImageCaptureModal({
                     } else {
                         // 2. Try direct match by Product Name (Producto)
                         const directMatch = allProducts.find(
-                            p => p.Producto.toLowerCase() === c.description.toLowerCase()
+                            p => p.Producto && c.description && p.Producto.toLowerCase() === c.description.toLowerCase()
                         );
                         if (directMatch) {
                             productId = directMatch.IdProducto;
@@ -311,7 +311,7 @@ export default function PurchaseImageCaptureModal({
                         } else {
                             // 3. Try match by Code (Codigo)
                             const codeMatch = allProducts.find(
-                                p => p.Codigo && p.Codigo.toLowerCase() === c.description.toLowerCase()
+                                p => p.Codigo && c.description && p.Codigo.toLowerCase() === c.description.toLowerCase()
                             );
                             if (codeMatch) {
                                 productId = codeMatch.IdProducto;
@@ -857,7 +857,7 @@ export default function PurchaseImageCaptureModal({
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                             />
                             <div className="max-h-60 overflow-auto divide-y divide-slate-50 border border-slate-50 rounded-xl bg-slate-50/30">
-                                {allProducts.filter(p => p.Producto.toLowerCase().includes(productSearchTerm.toLowerCase()) || p.Codigo.toLowerCase().includes(productSearchTerm.toLowerCase())).map(p => (
+                                {allProducts.filter(p => (p.Producto || '').toLowerCase().includes(productSearchTerm.toLowerCase()) || (p.Codigo || '').toLowerCase().includes(productSearchTerm.toLowerCase())).map(p => (
                                     <button key={p.IdProducto} onClick={() => handleLinkProduct(p)} className="w-full text-left px-4 py-3 hover:bg-white hover:text-indigo-600 transition-colors text-xs font-bold text-slate-600">
                                         {p.Codigo} - {p.Producto}
                                     </button>

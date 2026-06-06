@@ -247,7 +247,7 @@ function OCRDocumentsContent() {
                 // 1. Provider Linkage
                 if (extracted.provider) {
                     const matchedProvider = ocrRelationships.providers.find(
-                        (p: any) => p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
+                        (p: any) => p.ProveedorOCR && p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
                     );
                     if (matchedProvider) {
                         setSelectedProviderId(matchedProvider.IdProveedor.toString());
@@ -259,7 +259,7 @@ function OCRDocumentsContent() {
                 // 2. Product Linkage + Audit setup
                 const conceptsWithAudit = extracted.concepts.map((c: any) => {
                     const matchedProduct = ocrRelationships.products.find(
-                        (p: any) => p.ProductoOCR.toLowerCase() === c.description.toLowerCase()
+                        (p: any) => p.ProductoOCR && c.description && p.ProductoOCR.toLowerCase() === c.description.toLowerCase()
                     );
                     
                     let productId = null;
@@ -673,7 +673,7 @@ function OCRDocumentsContent() {
     };
 
     const filteredDocuments = documents.filter(doc => 
-        doc.DocumentoOCR.toLowerCase().includes(searchTerm.toLowerCase())
+        (doc.DocumentoOCR || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const qrValue = typeof window !== 'undefined' && project
@@ -1346,7 +1346,7 @@ function OCRDocumentsContent() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {providers.filter(p => 
-                                        p.Proveedor.toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
+                                        (p.Proveedor || '').toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
                                         (p.RFC || '').toLowerCase().includes(providerSearchTerm.toLowerCase()) ||
                                         (p.CorreoElectronico || '').toLowerCase().includes(providerSearchTerm.toLowerCase())
                                     ).map(p => (
@@ -1438,7 +1438,7 @@ function OCRDocumentsContent() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {products.filter(p => 
-                                        p.Producto.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                                        (p.Producto || '').toLowerCase().includes(productSearchTerm.toLowerCase()) ||
                                         (p.Codigo || '').toLowerCase().includes(productSearchTerm.toLowerCase())
                                     ).map(p => (
                                         <tr key={p.IdProducto} className="group hover:bg-blue-50 transition-colors">

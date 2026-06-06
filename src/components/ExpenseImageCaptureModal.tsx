@@ -281,7 +281,7 @@ export default function ExpenseImageCaptureModal({
                 // Auto-link provider
                 if (extracted.provider) {
                     const matchedProvider = ocrRelationships.providers.find(
-                        (p: any) => p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
+                        (p: any) => p.ProveedorOCR && p.ProveedorOCR.toLowerCase() === extracted.provider.toLowerCase()
                     );
                     if (matchedProvider) setRegProviderId(matchedProvider.IdProveedor.toString());
                 }
