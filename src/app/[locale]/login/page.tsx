@@ -43,7 +43,21 @@ export default function LoginPage() {
             if (data.success) {
                 setMessage(t('loginSuccess'));
                 if (data.project) localStorage.setItem('project', JSON.stringify(data.project));
-                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Agregamos isEmployee e isAdmin al objeto user
+                const userObj = {
+                    ...data.user,
+                    isEmployee: data.isEmployee || false
+                };
+                localStorage.setItem('user', JSON.stringify(userObj));
+                
+                // Guardamos permisos
+                if (data.permissions) {
+                    localStorage.setItem('permissions', JSON.stringify(data.permissions));
+                } else {
+                    localStorage.removeItem('permissions');
+                }
+
                 setTimeout(() => { window.location.href = `/${locale}/dashboard`; }, 1000);
             } else {
                 let errorMsg = data.message;

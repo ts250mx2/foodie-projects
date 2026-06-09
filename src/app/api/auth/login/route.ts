@@ -3,6 +3,8 @@ import pool from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { RowDataPacket } from 'mysql2';
+import { getProjectConnection } from '@/lib/dynamic-db';
+import { getPermissions } from '@/lib/permissions';
 
 // Validation schema
 const loginSchema = z.object({
@@ -34,6 +36,69 @@ export async function POST(request: NextRequest) {
         const { identifier, password } = validatedData;
 
         console.log("Valida 1");
+
+        // --- EMPLOYEE LOGIN LOGIC ---
+        // If identifier contains an @, it could be an employee login
+        if (identifier.includes('@')) {
+            const parts = identifier.split('@');
+            if (parts.length === 2) {
+                const domain = parts[1];
+                
+                // Query master db for the project matching this domain
+                const [projectRows] = await pool.query(
+                    'SELECT IdProyecto, Proyecto, BaseDatos, Servidor, UsarioBD, PasswdBD FROM tblProyectos WHERE DominioFG = ?',
+                    [domain]
+                ) as any[];
+
+                if (projectRows.length > 0) {
+                    const project = projectRows[0];
+                    let connection;
+                    
+                    try {
+                        connection = await getProjectConnection(project.IdProyecto);
+                        
+                        // Check tblEmpleados using plain text password matching
+                        const [empRows] = await connection.query(
+                            'SELECT IdEmpleado, Empleado, CorreoElectronico, EsAdministrador FROM tblEmpleados WHERE Login = ? AND Passwd = ? AND Status = 0',
+                            [identifier, password]
+                        ) as any[];
+
+                        if (empRows.length > 0) {
+                            const employee = empRows[0];
+                            const permissions = await getPermissions(connection, employee.IdEmpleado);
+                            
+                            return NextResponse.json({
+                                success: true,
+                                message: 'Login exitoso (Empleado)',
+                                isEmployee: true,
+                                user: {
+                                    idUsuario: employee.IdEmpleado, // Mapping ID for frontend consistency
+                                    nombreUsuario: employee.Empleado,
+                                    correoElectronico: employee.CorreoElectronico || identifier,
+                                    isAdmin: employee.EsAdministrador === 1
+                                },
+                                project: {
+                                    idProyecto: project.IdProyecto,
+                                    nombre: project.Proyecto,
+                                    baseDatos: project.BaseDatos,
+                                    servidor: project.Servidor,
+                                    usuarioBD: project.UsarioBD,
+                                    passwdBD: project.PasswdBD
+                                },
+                                permissions
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error during employee login database connection:', err);
+                        // If connection fails, it will drop down to regular user check or error
+                    } finally {
+                        if (connection) await connection.end();
+                    }
+                }
+            }
+        }
+        // --- END EMPLOYEE LOGIN LOGIC ---
+
         // Query user by email OR phone
         // Query user and project details by email OR phone
         const [rows] = await pool.query(

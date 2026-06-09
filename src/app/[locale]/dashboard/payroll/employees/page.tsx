@@ -12,6 +12,7 @@ import MassiveEmployeeUpload from '@/components/MassiveEmployeeUpload';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableRow, TableCell, TableBody, RowActionButton } from '@/components/ThemedGridHeader';
 import { Search, Pencil, Trash2, User, Plus, Upload, FileText, X, UserCircle, Lock, FileCheck } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PERMISSION_MENU, ALL_MENU_KEYS } from '@/lib/menu';
 
 interface Employee {
     IdEmpleado: number;
@@ -86,7 +87,8 @@ export default function EmployeesPage() {
         password: '',
         repeatPassword: '',
         isAdmin: false,
-        salary: ''
+        salary: '',
+        permissions: {} as Record<string, boolean>
     });
     const { colors } = useTheme();
     const [projectDomain, setProjectDomain] = useState('');
@@ -204,7 +206,8 @@ export default function EmployeesPage() {
                     username: formData.username,
                     password: formData.password,
                     isAdmin: formData.isAdmin,
-                    salary: formData.salary ? parseFloat(formData.salary) : 0
+                    salary: formData.salary ? parseFloat(formData.salary) : 0,
+                    permissions: formData.permissions
                 })
             });
 
@@ -213,7 +216,7 @@ export default function EmployeesPage() {
                 setIsModalOpen(false);
                 setFormData({
                     name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
-                    username: '', password: '', repeatPassword: '', isAdmin: false, salary: ''
+                    username: '', password: '', repeatPassword: '', isAdmin: false, salary: '', permissions: {}
                 });
                 setEditingEmployee(null);
                 setActiveTab('general');
@@ -223,6 +226,21 @@ export default function EmployeesPage() {
             console.error('Error saving employee:', error);
         }
     };
+
+    // ── Permisos de menú ──
+    const togglePerm = (key: string) => setFormData(prev => ({
+        ...prev, permissions: { ...prev.permissions, [key]: !prev.permissions[key] }
+    }));
+    const setSectionPerms = (keys: string[], value: boolean) => setFormData(prev => {
+        const next = { ...prev.permissions };
+        keys.forEach(k => { next[k] = value; });
+        return { ...prev, permissions: next };
+    });
+    const setAllPerms = (value: boolean) => setFormData(prev => {
+        const next: Record<string, boolean> = {};
+        ALL_MENU_KEYS.forEach(k => { next[k] = value; });
+        return { ...prev, permissions: next };
+    });
 
     const handleDelete = async () => {
         if (!editingEmployee) return;
@@ -245,14 +263,15 @@ export default function EmployeesPage() {
         setEditingEmployee(employee);
 
         // Fetch access data
-        let accessData = { username: '', isAdmin: false };
+        let accessData = { username: '', isAdmin: false, permissions: {} as Record<string, boolean> };
         try {
             const response = await fetch(`/api/employees/${employee.IdEmpleado}/access?projectId=${project.idProyecto}`);
             const data = await response.json();
             if (data.success) {
                 accessData = {
                     username: data.username || '',
-                    isAdmin: data.isAdmin || false
+                    isAdmin: data.isAdmin || false,
+                    permissions: data.permissions || {}
                 };
             }
         } catch (error) {
@@ -271,7 +290,8 @@ export default function EmployeesPage() {
             password: '',
             repeatPassword: '',
             isAdmin: accessData.isAdmin,
-            salary: employee.Sueldo?.toString() || ''
+            salary: employee.Sueldo?.toString() || '',
+            permissions: accessData.permissions
         });
         setActiveTab('general');
         setIsModalOpen(true);
@@ -416,7 +436,7 @@ export default function EmployeesPage() {
                         setEditingEmployee(null);
                         setFormData({
                             name: '', positionId: '', branchId: '', phone: '', email: '', address: '', photo: null,
-                            username: '', password: '', repeatPassword: '', isAdmin: false, salary: ''
+                            username: '', password: '', repeatPassword: '', isAdmin: false, salary: '', permissions: {}
                         });
                         setActiveTab('general');
                         setIsModalOpen(true);
@@ -818,6 +838,48 @@ export default function EmployeesPage() {
                                                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-100 rounded text-[11px] text-yellow-700 leading-relaxed">
                                                         <strong>Nota:</strong> Si el empleado ya existe, deja la contraseña en blanco para mantener la actual.
                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Permisos de menú (dinámico desde el menú) */}
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between border-b pb-2">
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Permisos de Menú</h3>
+                                                        <p className="text-[11px] text-gray-500 mt-0.5">Marca a qué menús tendrá acceso este usuario</p>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button type="button" onClick={() => setAllPerms(true)} className="text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded">Marcar todo</button>
+                                                        <button type="button" onClick={() => setAllPerms(false)} className="text-[11px] font-bold text-gray-500 hover:bg-gray-100 px-2 py-1 rounded">Quitar todo</button>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {PERMISSION_MENU.map(section => {
+                                                        const keys = section.items.map(i => i.key);
+                                                        const allChecked = keys.every(k => formData.permissions[k]);
+                                                        const someChecked = keys.some(k => formData.permissions[k]);
+                                                        return (
+                                                            <div key={section.key} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
+                                                                <label className="flex items-center gap-2 cursor-pointer pb-2 border-b border-gray-200">
+                                                                    <input type="checkbox" checked={allChecked}
+                                                                        ref={el => { if (el) el.indeterminate = !allChecked && someChecked; }}
+                                                                        onChange={() => setSectionPerms(keys, !allChecked)}
+                                                                        className="h-4 w-4 rounded accent-orange-600" />
+                                                                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">{section.label}</span>
+                                                                </label>
+                                                                <div className="mt-2 space-y-1.5 pl-1">
+                                                                    {section.items.map(item => (
+                                                                        <label key={item.key} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900">
+                                                                            <input type="checkbox" checked={!!formData.permissions[item.key]}
+                                                                                onChange={() => togglePerm(item.key)}
+                                                                                className="h-4 w-4 rounded accent-orange-600" />
+                                                                            {item.label}
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>

@@ -162,6 +162,19 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
     const locale = params.locale as string;
     const { colors } = useTheme();
     const [searchTerm, setSearchTerm] = useState('');
+    const [user, setUser] = useState<any>(null);
+    const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) setUser(JSON.parse(userStr));
+            const permStr = localStorage.getItem('permissions');
+            if (permStr) setPermissions(JSON.parse(permStr));
+        } catch (e) {
+            console.error('Error loading permissions:', e);
+        }
+    }, []);
 
     // Determinar qué sección contiene la ruta activa
     const getActiveSection = () => {
@@ -195,11 +208,16 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
     const filteredSections = menuItems.map(section => ({
         ...section,
-        items: section.items.filter(item =>
-            searchTerm === '' ||
-            (item.label ?? t(item.key)).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (section.label ?? t(section.title)).toLowerCase().includes(searchTerm.toLowerCase())
-        ),
+        items: section.items.filter(item => {
+            // Check permissions first
+            const isAuthorized = !user?.isEmployee || user?.isAdmin || permissions[item.key] === true;
+            if (!isAuthorized) return false;
+
+            // Then check search term
+            return searchTerm === '' ||
+                (item.label ?? t(item.key)).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (section.label ?? t(section.title)).toLowerCase().includes(searchTerm.toLowerCase());
+        }),
     })).filter(s => s.items.length > 0);
 
     return (

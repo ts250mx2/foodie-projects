@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { ResultSetHeader } from 'mysql2';
-import mysql from 'mysql2/promise';
-import bcrypt from 'bcryptjs';
+import pool from '@/lib/db';
+import { savePermissions } from '@/lib/permissions';
 
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     let connection;
-    let foodieProjectsConnection;
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin, salary } = body;
+        const { projectId, name, positionId, branchId, phone, email, address, photo, username, password, isAdmin, salary, permissions } = body;
 
         if (!projectId || !name) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -33,38 +31,30 @@ export async function PUT(
             return NextResponse.json({ success: false, message: 'Employee not found' }, { status: 404 });
         }
 
-        // 2. Update Access Data if provided
+        // 2. Update Access Data if provided (dominio desde la BD maestra vía pool)
         if (username) {
-            foodieProjectsConnection = await mysql.createConnection({
-                host: process.env.DB_HOST || 'localhost',
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASSWORD || '',
-                database: 'BDFoodieProjects'
-            });
-
-            const [projectRows]: any = await foodieProjectsConnection.query(
+            const [projectRows]: any = await pool.query(
                 'SELECT DominioFG FROM tblProyectos WHERE IdProyecto = ?',
                 [projectId]
             );
+            const domain = projectRows.length > 0 ? (projectRows[0].DominioFG || '') : '';
+            const fullLogin = `${username}@${domain}`;
 
-            if (projectRows.length > 0) {
-                const domain = projectRows[0].DominioFG;
-                const fullLogin = `${username}@${domain}`;
-
-                if (password) {
-                    const hashedPassword = await bcrypt.hash(password, 10);
-                    await connection.query(
-                        'UPDATE tblEmpleados SET Login = ?, Passwd = ?, EsAdministrador = ? WHERE IdEmpleado = ?',
-                        [fullLogin, hashedPassword, isAdmin ? 1 : 0, id]
-                    );
-                } else {
-                    await connection.query(
-                        'UPDATE tblEmpleados SET Login = ?, EsAdministrador = ? WHERE IdEmpleado = ?',
-                        [fullLogin, isAdmin ? 1 : 0, id]
-                    );
-                }
+            if (password) {
+                await connection.query(
+                    'UPDATE tblEmpleados SET Login = ?, Passwd = ?, EsAdministrador = ? WHERE IdEmpleado = ?',
+                    [fullLogin, password, isAdmin ? 1 : 0, id]
+                );
+            } else {
+                await connection.query(
+                    'UPDATE tblEmpleados SET Login = ?, EsAdministrador = ? WHERE IdEmpleado = ?',
+                    [fullLogin, isAdmin ? 1 : 0, id]
+                );
             }
         }
+
+        // 3. Guardar permisos de menú si se enviaron
+        await savePermissions(connection, Number(id), permissions);
 
         return NextResponse.json({
             success: true,
@@ -75,7 +65,6 @@ export async function PUT(
         return NextResponse.json({ success: false, message: 'Error updating employee' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
-        if (foodieProjectsConnection) await foodieProjectsConnection.end();
     }
 }
 

@@ -80,6 +80,42 @@ async function ensureDocumentTablesAndColumns(connection: Connection) {
 }
 
 /**
+ * Asegura el esquema de accesos y permisos por empleado en la BD del proyecto:
+ *  - columnas Login / Passwd / EsAdministrador en tblEmpleados (acceso del empleado);
+ *  - tabla tblEmpleadosPermisos (permisos de menú por empleado).
+ * Idempotente: se aplica en CADA BD de proyecto la primera vez que se conecta.
+ */
+export async function ensureAccessAndPermissions(connection: Connection) {
+    try {
+        const [empCols]: any = await connection.query('SHOW COLUMNS FROM tblEmpleados');
+        const empNames = empCols.map((c: any) => c.Field);
+        if (!empNames.includes('Login')) {
+            await connection.query('ALTER TABLE tblEmpleados ADD COLUMN Login VARCHAR(150) NULL');
+        }
+        if (!empNames.includes('Passwd')) {
+            await connection.query('ALTER TABLE tblEmpleados ADD COLUMN Passwd VARCHAR(255) NULL');
+        }
+        if (!empNames.includes('EsAdministrador')) {
+            await connection.query('ALTER TABLE tblEmpleados ADD COLUMN EsAdministrador TINYINT NOT NULL DEFAULT 0');
+        }
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblEmpleadosPermisos\` (
+              \`IdPermiso\` int NOT NULL AUTO_INCREMENT,
+              \`IdEmpleado\` int NOT NULL,
+              \`MenuKey\` varchar(80) NOT NULL,
+              \`Permitido\` tinyint NOT NULL DEFAULT 0,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdPermiso\`),
+              UNIQUE KEY \`uq_empleado_menu\` (\`IdEmpleado\`, \`MenuKey\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+    } catch (e) {
+        console.error('Error ensuring access/permissions schema:', e);
+    }
+}
+
+/**
  * Creates a connection to the project-specific database.
  * 
  * @param projectId The ID of the project to connect to.
@@ -116,9 +152,10 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
 
         await connection.query("SET time_zone = '-06:00'");
 
-        // 3. Ensure document schemas if not already verified in this session
+        // 3. Ensure document + acceso/permisos schemas if not verified this session
         if (!verifiedProjects.has(projectId)) {
             await ensureDocumentTablesAndColumns(connection);
+            await ensureAccessAndPermissions(connection);
             verifiedProjects.add(projectId);
         }
 

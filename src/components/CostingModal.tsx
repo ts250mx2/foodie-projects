@@ -314,7 +314,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [editedQuantities, setEditedQuantities] = useState<Record<number, number>>({});
+    const [editedQuantities, setEditedQuantities] = useState<Record<number, string>>({});
     const [editedPrices, setEditedPrices] = useState<Record<number, number>>({});
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -709,10 +709,11 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         }
     };
 
-    const handleQuantityChange = (idProductoHijo: number, value: number) => {
+    const handleQuantityChange = (idProductoHijo: number, value: string) => {
         setEditedQuantities(prev => ({ ...prev, [idProductoHijo]: value }));
+        const numValue = parseFloat(value) || 0;
         setKitItems(prev => prev.map(item =>
-            item.IdProductoHijo === idProductoHijo ? { ...item, Cantidad: value } : item
+            item.IdProductoHijo === idProductoHijo ? { ...item, Cantidad: numValue } : item
         ));
         setHasUnsavedChanges(true);
     };
@@ -755,12 +756,12 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         };
 
         setKitItems(prev => [...prev, finalItem]);
-        setEditedQuantities(prev => ({ ...prev, [selectedProduct.IdProducto]: 0 }));
+        setEditedQuantities(prev => ({ ...prev, [selectedProduct.IdProducto]: '0' }));
 
         // Auto-save new item
         const kitsPayload = [...kitItems, finalItem].map(item => ({
             idProductoHijo: item.IdProductoHijo,
-            cantidad: item.IdProductoHijo === finalItem.IdProductoHijo ? 0 : (editedQuantities[item.IdProductoHijo] ?? item.Cantidad)
+            cantidad: item.IdProductoHijo === finalItem.IdProductoHijo ? 0 : (editedQuantities[item.IdProductoHijo] !== undefined ? (parseFloat(editedQuantities[item.IdProductoHijo]) || 0) : item.Cantidad)
         }));
         saveKitsPayload(kitsPayload);
         setHasUnsavedChanges(true);
@@ -821,7 +822,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     const handleQuantityBlur = () => {
         const kitsPayload = kitItems.map(item => ({
             idProductoHijo: item.IdProductoHijo,
-            cantidad: editedQuantities[item.IdProductoHijo] ?? item.Cantidad
+            cantidad: editedQuantities[item.IdProductoHijo] !== undefined ? (parseFloat(editedQuantities[item.IdProductoHijo]) || 0) : item.Cantidad
         }));
         saveKitsPayload(kitsPayload);
     };
@@ -844,7 +845,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
             // 1. Save Kit Items
             const kits = kitItems.map(item => ({
                 idProductoHijo: item.IdProductoHijo,
-                cantidad: editedQuantities[item.IdProductoHijo] ?? item.Cantidad
+                cantidad: editedQuantities[item.IdProductoHijo] !== undefined ? (parseFloat(editedQuantities[item.IdProductoHijo]) || 0) : item.Cantidad
             }));
 
             const costingPromise = fetch('/api/production/costing', {
@@ -1216,7 +1217,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     );
 
     const totalCost = kitItems.reduce((sum, item) => {
-        const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
+        const rawCantidad = editedQuantities[item.IdProductoHijo];
+        const cantidad = rawCantidad !== undefined ? (parseFloat(rawCantidad) || 0) : item.Cantidad;
         const costoUnitario = item.Costo || 0;
         return sum + (cantidad * costoUnitario);
     }, 0);
@@ -1244,7 +1246,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
             // Calculate Totals / Header Values from State
             const calculatedTotalCost = kitItems.reduce((sum, item) => {
-                const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
+                const rawCantidad = editedQuantities[item.IdProductoHijo];
+                const cantidad = rawCantidad !== undefined ? (parseFloat(rawCantidad) || 0) : item.Cantidad;
                 const costoUnitario = item.Costo || 0;
                 return sum + (cantidad * costoUnitario);
             }, 0);
@@ -1273,7 +1276,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
             // Map Kit Items to PDF format
             const pdfKitItems = kitItems.map(item => {
-                const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
+                const rawCantidad = editedQuantities[item.IdProductoHijo];
+                const cantidad = rawCantidad !== undefined ? (parseFloat(rawCantidad) || 0) : item.Cantidad;
                 const costoUnitario = item.Costo || 0;
 
                 return {
@@ -2828,7 +2832,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                     Object.keys(groupedItems).sort().map(category => {
                                                         const items = groupedItems[category];
                                                         const categorySubtotal = items.reduce((sum, item) => {
-                                                            const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
+                                                            const rawCantidad = editedQuantities[item.IdProductoHijo];
+                                                            const cantidad = rawCantidad !== undefined ? (parseFloat(rawCantidad) || 0) : item.Cantidad;
                                                             const costoUnitario = item.Costo || 0;
                                                             return sum + (cantidad * costoUnitario);
                                                         }, 0);
@@ -2858,7 +2863,9 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                         colSpan={7}
                                                                     >
                                                                         {items.map(item => {
-                                                                            const cantidad = editedQuantities[item.IdProductoHijo] ?? item.Cantidad;
+                                                                            const rawCantidad = editedQuantities[item.IdProductoHijo];
+                                                                            const cantidad = rawCantidad !== undefined ? (parseFloat(rawCantidad) || 0) : item.Cantidad;
+                                                                            const displayValue = rawCantidad !== undefined ? rawCantidad : (item.Cantidad === 0 ? '' : item.Cantidad.toString());
 
                                                                             const costoUnitario = item.Costo || 0;
                                                                             const total = cantidad * costoUnitario;
@@ -2869,11 +2876,18 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                                     <TableCell>{item.Producto}</TableCell>
                                                                                     <TableCell align="center">
                                                                                         <input
-                                                                                            type="number"
-                                                                                            step="0.01"
-                                                                                            value={cantidad === 0 ? '' : cantidad}
-                                                                                            onChange={(e) => handleQuantityChange(item.IdProductoHijo, parseFloat(e.target.value) || 0)}
-                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                                            type="text"
+                                                                                            inputMode="decimal"
+                                                                                            value={displayValue}
+                                                                                            onChange={(e) => {
+                                                                                                let val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                                if ((val.match(/\./g) || []).length > 1) {
+                                                                                                    val = val.substring(0, val.lastIndexOf('.'));
+                                                                                                }
+                                                                                                handleQuantityChange(item.IdProductoHijo, val);
+                                                                                            }}
+                                                                                            onBlur={handleQuantityBlur}
+                                                                                            className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:ring-primary-500 focus:border-primary-500 outline-none"
                                                                                         />
                                                                                     </TableCell>
                                                                                     <TableCell muted align="center">{item.UnidadMedidaRecetario || item.PresentacionInventario || '-'}</TableCell>

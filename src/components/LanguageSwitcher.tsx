@@ -27,9 +27,12 @@ export default function LanguageSwitcher({ className = '' }: LanguageSwitcherPro
                 defaultValue={locale}
                 onChange={onSelectChange}
                 disabled={isPending}
-                className="appearance-none bg-white/10 backdrop-blur-sm border border-white/20 text-current px-3 py-1.5 pr-7 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 hover:bg-white/20 transition-colors cursor-pointer text-sm"
+                className="appearance-none border-none px-3 py-1.5 pr-7 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 hover:brightness-110 transition-all cursor-pointer text-sm font-bold tracking-wide"
                 style={{
-                    colorScheme: 'auto',
+                    backgroundColor: '#f4481e',
+                    color: '#ffffff',
+                    WebkitTextFillColor: '#ffffff',
+                    colorScheme: 'light',
                     WebkitAppearance: 'none',
                     MozAppearance: 'none'
                 }}
@@ -41,7 +44,7 @@ export default function LanguageSwitcher({ className = '' }: LanguageSwitcherPro
                 <option value="pt" className="text-gray-900 bg-white">🇵🇹 Português</option>
                 <option value="it" className="text-gray-900 bg-white">🇮🇹 Italiano</option>
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-1.5 pointer-events-none text-current opacity-80">
+            <div className="absolute inset-y-0 right-0 flex items-center px-1.5 pointer-events-none text-white opacity-90">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
