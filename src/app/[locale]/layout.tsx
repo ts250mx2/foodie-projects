@@ -35,11 +35,24 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: '#34b14a',
 };
 
 export const metadata = {
-  title: 'Foodie Guru',
-  description: 'Enterprise Food Management Portal',
+  title: 'Foodie Gurú',
+  description: 'Administrador master de restaurantes',
+  applicationName: 'Foodie Gurú',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default' as const,
+    title: 'Foodie Gurú',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    shortcut: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
   formatDetection: {
     telephone: false,
     address: false,

@@ -130,9 +130,9 @@ export default function PageShell({
                     </div>
                 </div>
 
-                {/* Right: action buttons */}
+                {/* Right: action buttons (toolbar deslizable en móvil) */}
                 {actions && (
-                    <div className="relative z-10 flex items-center gap-2 shrink-0 flex-wrap">
+                    <div className="relative z-10 flex items-center gap-2 shrink-0 flex-wrap max-sm:w-full max-sm:flex-nowrap max-sm:shrink max-sm:overflow-x-auto max-sm:pb-1">
                         {actions}
                     </div>
                 )}

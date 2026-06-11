@@ -66,6 +66,7 @@ type MenuSection = {
 
 interface SidebarProps {
     isCollapsed?: boolean;
+    mobileOpen?: boolean;
     onExpand?: () => void;
 }
 
@@ -155,7 +156,7 @@ const menuItems: MenuSection[] = [
 
 ];
 
-export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps) {
+export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExpand }: SidebarProps) {
     const t = useTranslations('Navigation');
     const params = useParams();
     const pathname = usePathname();
@@ -222,7 +223,7 @@ export default function Sidebar({ isCollapsed = false, onExpand }: SidebarProps)
 
     return (
         <aside
-            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] z-40 transition-all duration-300 flex flex-col`}
+            className={`fixed top-16 left-0 ${isCollapsed ? 'w-[68px]' : 'w-64'} h-[calc(100vh-4rem)] z-40 transition-transform duration-300 flex flex-col ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
             style={{
                 backgroundColor: colors.colorFondo1,
                 backgroundImage: 'none',

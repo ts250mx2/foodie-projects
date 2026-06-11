@@ -186,16 +186,16 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                         />
                     </div>
 
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 overflow-hidden">
                         <span
                             className="text-sm font-bold leading-tight truncate text-white"
                         >
                             {displayTitle}
                         </span>
 
-                        {/* Breadcrumb — solo cuando no es la home del dashboard */}
+                        {/* Breadcrumb — solo cuando no es la home del dashboard (oculto en móvil) */}
                         {!isDashboardHome && (
-                            <nav className="flex items-center gap-1" aria-label="Breadcrumb">
+                            <nav className="hidden sm:flex items-center gap-1 min-w-0 overflow-hidden" aria-label="Breadcrumb">
                                 {crumbs.map((crumb, i) => (
                                     <span key={i} className="flex items-center gap-1">
                                         {i > 0 && (

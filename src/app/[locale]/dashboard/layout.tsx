@@ -15,7 +15,21 @@ export default function DashboardLayout({
     params: Promise<{ locale: string }>
 }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const pathname = usePathname();
+
+    // Detecta móvil (< lg) para alternar entre colapsar (desktop) y drawer (móvil)
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 1023px)');
+        const apply = () => setIsMobile(mq.matches);
+        apply();
+        mq.addEventListener('change', apply);
+        return () => mq.removeEventListener('change', apply);
+    }, []);
+
+    // Cierra el drawer móvil al navegar
+    useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
     useEffect(() => {
         const initialized = sessionStorage.getItem('dateFiltersInitialized');
@@ -37,7 +51,11 @@ export default function DashboardLayout({
         }
     }, []);
 
-    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+    // En móvil el botón abre/cierra el drawer; en desktop colapsa la barra.
+    const toggleSidebar = () => {
+        if (isMobile) setMobileNavOpen(o => !o);
+        else setIsCollapsed(c => !c);
+    };
 
     // Páginas de pantalla completa (sin scroll del main): agente y consola de reportes.
     const isAgentePage = pathname?.includes('/dashboard/agente');
@@ -46,16 +64,29 @@ export default function DashboardLayout({
 
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-brand-cream flex flex-col">
+            <div className="min-h-screen bg-brand-cream flex flex-col overflow-x-hidden">
                 <Header userName="" onToggleSidebar={toggleSidebar} />
 
                 <div className="flex flex-1 pt-16">
-                    <Sidebar isCollapsed={isCollapsed} onExpand={() => setIsCollapsed(false)} />
+                    <Sidebar
+                        isCollapsed={isMobile ? false : isCollapsed}
+                        mobileOpen={mobileNavOpen}
+                        onExpand={() => setIsCollapsed(false)}
+                    />
 
-                    <main className={`flex-1 ${isCollapsed ? 'ml-20' : 'ml-64'} transition-all duration-300 ${
+                    {/* Backdrop del drawer en móvil */}
+                    {mobileNavOpen && (
+                        <div
+                            className="fixed inset-0 top-16 z-30 bg-black/40 lg:hidden"
+                            onClick={() => setMobileNavOpen(false)}
+                            aria-hidden
+                        />
+                    )}
+
+                    <main className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'} ${
                         isFullBleed
-                            ? `${isConsolePage ? 'p-0' : 'px-8 pt-4 pb-6'} h-[calc(100vh-4rem)] flex flex-col overflow-hidden`
-                            : 'px-8 pt-4 pb-8'
+                            ? `${isConsolePage ? 'p-0' : 'px-4 sm:px-8 pt-4 pb-6'} h-[calc(100vh-4rem)] flex flex-col overflow-hidden`
+                            : 'px-4 sm:px-8 pt-4 pb-8 overflow-x-clip'
                     }`}>
                         {children}
                     </main>
