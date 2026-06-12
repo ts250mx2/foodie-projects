@@ -15,9 +15,9 @@ import { reportToMarkdown, reportHasContent, AgentReport } from '@/lib/ai/report
  * chat. Para datos tabulares emite un bloque `report` que se guarda como liga
  * compartible y se anexa al mensaje (texto corto + 📊 link al detalle).
  *
- * Multi-tenant: resuelve el proyecto por el número (tblUsuarios.Telefono →
- * tblProyectosUsuarios → tblProyectos). Si el número tiene varios proyectos,
- * devuelve un menú y recuerda la elección.
+ * Multi-tenant: resuelve el proyecto por el número en tblProyectosTelefonos
+ * (IdProyecto → tblProyectos → BD del proyecto). Si el número tiene varios
+ * proyectos, devuelve un menú y recuerda la elección.
  *
  * Body: { question, from_phone, projectId?, reset?, timestamp? }
  * Auth: header X-API-Key === WHATSAPP_API_KEY.
@@ -81,15 +81,17 @@ async function clearActiveProject(phone: string): Promise<void> {
 }
 
 // ─── Lookup de proyectos por número ────────────────────────────────────────────
+// El número que envía la pregunta se mapea en BDFoodieProjects.tblProyectosTelefonos
+// (la pantalla "WhatsApp's" de cada proyecto). El IdProyecto asignado decide a qué BD
+// se conecta el agente para responder. Un mismo número puede estar en varios proyectos.
 async function findProjectsForPhone(phone: string): Promise<PhoneProject[]> {
     const tail = last10(phone);
     if (tail.length < 8) return [];
     const [rows] = await pool.query<any[]>(
         `SELECT DISTINCT p.IdProyecto, p.Proyecto, p.UUID AS projectUuid
-         FROM tblUsuarios u
-         JOIN tblProyectosUsuarios pu ON u.IdUsuario = pu.IdUsuario
-         JOIN tblProyectos p ON pu.IdProyecto = p.IdProyecto
-         WHERE ${normPhoneSql('u.Telefono')} = ? AND COALESCE(p.Status,0) <> 2
+         FROM tblProyectosTelefonos t
+         JOIN tblProyectos p ON t.IdProyecto = p.IdProyecto
+         WHERE ${normPhoneSql('t.Telefono')} = ? AND COALESCE(p.Status,0) <> 2
          ORDER BY p.Proyecto ASC`,
         [tail]
     );

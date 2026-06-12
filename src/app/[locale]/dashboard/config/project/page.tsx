@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import PageShell from '@/components/PageShell';
+import WhatsappPhonesModal from '@/components/WhatsappPhonesModal';
+import { FaWhatsapp } from 'react-icons/fa';
 import { Settings } from 'lucide-react';
 
 interface ProjectSettings {
@@ -43,6 +45,7 @@ export default function ProjectSettingsPage() {
     const [project, setProject] = useState<any>(null);
     const [user, setUser] = useState<any>(null);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [waOpen, setWaOpen] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -170,7 +173,14 @@ export default function ProjectSettingsPage() {
     }
 
     return (
-        <PageShell title="Configuración del Proyecto" icon={Settings}>
+        <PageShell title="Configuración del Proyecto" icon={Settings}
+            actions={
+                <button type="button" onClick={() => setWaOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-bold text-sm shadow-sm active:scale-95 transition-all"
+                    style={{ backgroundColor: '#25D366' }}>
+                    <FaWhatsapp size={18} /> WhatsApp&apos;s
+                </button>
+            }>
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Project Settings Card */}
                 <div className="bg-white rounded-lg shadow p-6 space-y-6">
@@ -303,6 +313,8 @@ export default function ProjectSettingsPage() {
                     </Button>
                 </div>
             </form>
+
+            <WhatsappPhonesModal isOpen={waOpen} onClose={() => setWaOpen(false)} />
         </PageShell>
     );
 }

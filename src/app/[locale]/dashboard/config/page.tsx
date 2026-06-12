@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageShell from '@/components/PageShell';
-import { 
+import {
     Settings,
     FolderOpen,
     Rocket,
@@ -13,7 +13,7 @@ import {
     UserCheck,
     Receipt,
     TrendingUp,
-    ChevronRight 
+    ChevronRight
 } from 'lucide-react';
 
 export default function ConfigDashboardPage() {
