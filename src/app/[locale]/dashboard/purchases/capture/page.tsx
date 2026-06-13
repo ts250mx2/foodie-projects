@@ -157,6 +157,7 @@ export default function PurchasesCapturePage() {
     const [previewFile, setPreviewFile] = useState<{ content: string, name: string, type: string } | null>(null);
     const [uploadingPurchaseKey, setUploadingPurchaseKey] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const modalContentRef = useRef<HTMLDivElement>(null);
 
 
     // Generate years
@@ -579,6 +580,11 @@ export default function PurchasesCapturePage() {
         setSelectedProvider(null);
         setPaymentChannelSearch('');
         setSelectedPaymentChannel(null);
+
+        // Auto scroll to top of modal content to show the form
+        setTimeout(() => {
+            modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 50);
     };
 
     const handleEditPurchase = (purchase: Purchase) => {
@@ -605,6 +611,11 @@ export default function PurchasesCapturePage() {
             setSelectedPaymentChannel(paymentChannel);
             setPaymentChannelSearch(paymentChannel.CanalPago);
         }
+
+        // Auto scroll to top of modal content to show the form
+        setTimeout(() => {
+            modalContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 50);
     };
 
     const handleSaveProvider = async () => {
@@ -988,7 +999,7 @@ export default function PurchasesCapturePage() {
                         )}
 
                         {/* Content: Form + Table */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div ref={modalContentRef} className="flex-1 overflow-y-auto">
                             {/* Purchase Form */}
                             {isFormOpen && (
                                 <form onSubmit={handleSubmit} className="shrink-0 px-6 py-5 bg-gray-50/50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
