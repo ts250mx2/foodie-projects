@@ -1,18 +1,10 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePathname, useParams } from 'next/navigation';
 import React from 'react';
+import { getModuleTheme } from '@/lib/menu-items';
 import {
-    LayoutDashboard,
-    Settings,
-    DollarSign,
-    Package,
-    ShoppingCart,
-    CreditCard,
-    Users,
-    ChefHat,
-    ScanText,
-    Search,
     FolderOpen,
     Rocket,
     MapPin,
@@ -20,26 +12,16 @@ import {
     Receipt,
     TrendingUp,
     Store,
-    Calculator,
     Tag,
-    ClipboardList,
     Scale,
     Trash2,
     Truck,
     FileText,
-    Scissors,
     UtensilsCrossed,
-    Flame,
-    Zap,
     CalendarDays,
     Banknote,
-    Lightbulb as LightbulbIcon,
-    PenLine,
     Book,
-    Layers,
     Camera,
-    Files,
-    Sparkles,
 } from 'lucide-react';
 interface PageShellProps {
     title: string;
@@ -91,20 +73,31 @@ export default function PageShell({
     noPadding = false,
 }: PageShellProps) {
     const { colors } = useTheme();
+    const pathname = usePathname();
+    const params = useParams();
+    const locale = params?.locale as string | undefined;
 
-    const ResolvedIcon = Icon || getIconByTitle(title);
+    // Ruta sin locale (/es/dashboard/... → /dashboard/...) para identificar el módulo
+    const path = locale && pathname?.startsWith(`/${locale}/`) ? pathname.slice(locale.length + 1) : pathname ?? '';
+    const moduleTheme = getModuleTheme(path);
+
+    // El icono del menú manda; si la página no está en el menú, usa el suyo
+    const ResolvedIcon = moduleTheme?.icon || Icon || getIconByTitle(title);
 
     return (
         <div className="flex flex-col min-h-full">
 
             {/* ── Page header (Floating Card) ─────────────────────────── */}
-            <div className="relative shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 overflow-hidden">
+            <div
+                className={`relative shrink-0 rounded-2xl border shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0 overflow-hidden ${moduleTheme ? 'border-transparent' : 'bg-white border-gray-200'}`}
+                style={moduleTheme ? { backgroundColor: moduleTheme.color } : undefined}
+            >
 
                 {/* Acento geométrico de marca (sutil, esquina derecha) */}
                 <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-[0.06]"
-                    style={{ backgroundColor: colors.colorFondo1 }}
+                    className={`pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full ${moduleTheme ? 'bg-white opacity-[0.12]' : 'opacity-[0.06]'}`}
+                    style={moduleTheme ? undefined : { backgroundColor: colors.colorFondo1 }}
                 />
 
                 {/* Left: icon + title + subtitle */}
@@ -114,16 +107,22 @@ export default function PageShell({
                             {typeof ResolvedIcon === 'string' ? (
                                 <span className="text-3xl select-none">{ResolvedIcon}</span>
                             ) : (
-                                <ResolvedIcon size={26} style={{ color: colors.colorFondo1 }} />
+                                <ResolvedIcon size={26} style={{ color: moduleTheme ? '#ffffff' : colors.colorFondo1 }} />
                             )}
                         </div>
                     )}
                     <div className="flex flex-col min-w-0">
-                        <h1 className="brand-heading text-xl text-gray-900 truncate">
+                        <h1
+                            className={`brand-heading text-xl truncate ${moduleTheme ? '' : 'text-gray-900'}`}
+                            style={moduleTheme ? { color: '#ffffff' } : undefined}
+                        >
                             {title}
                         </h1>
                         {subtitle && (
-                            <p className="text-[12px] text-gray-400 mt-0.5 leading-tight truncate">
+                            <p
+                                className={`text-[12px] mt-0.5 leading-tight truncate ${moduleTheme ? '' : 'text-gray-400'}`}
+                                style={moduleTheme ? { color: '#ffffff' } : undefined}
+                            >
                                 {subtitle}
                             </p>
                         )}
@@ -132,7 +131,7 @@ export default function PageShell({
 
                 {/* Right: action buttons (toolbar deslizable en móvil) */}
                 {actions && (
-                    <div className="relative z-10 flex items-center gap-2 shrink-0 flex-wrap max-sm:w-full max-sm:flex-nowrap max-sm:shrink max-sm:overflow-x-auto max-sm:pb-1">
+                    <div className={`relative z-10 flex items-center gap-2 shrink-0 flex-wrap max-sm:w-full max-sm:flex-nowrap max-sm:shrink max-sm:overflow-x-auto max-sm:pb-1 ${moduleTheme ? 'module-header-actions' : ''}`}>
                         {actions}
                     </div>
                 )}

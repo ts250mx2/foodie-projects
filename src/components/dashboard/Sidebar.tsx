@@ -6,155 +6,29 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import {
-    LayoutDashboard,
-    Settings,
-    DollarSign,
-    Package,
-    ShoppingCart,
-    CreditCard,
-    Users,
-    ChefHat,
-    ScanText,
-    Search,
-    ChevronDown,
-    FolderOpen,
-    Rocket,
-    MapPin,
-    UserCheck,
-    Receipt,
-    TrendingUp,
-    Store,
-    Calculator,
-    Tag,
-    ClipboardList,
-    Scale,
-    Trash2,
-    Truck,
-    FileText,
-    Scissors,
-    UtensilsCrossed,
-    Flame,
-    Zap,
-    CalendarDays,
-    Banknote,
-    LightbulbIcon,
-    PenLine,
-    Book,
-    Layers,
-    Camera,
-    Files,
-    Sparkles,
-} from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import GeoShape from '@/components/brand/GeoShape';
+import { menuItems, DASHBOARD_LINK, AGENT_LINK } from '@/lib/menu-items';
 
-type MenuItem = {
-    key: string;
-    href: string;
-    icon: React.ElementType;
-    emoji: string;
-    label?: string; // etiqueta directa (omite i18n) para items nuevos
-};
-
-type MenuSection = {
-    title: string;
-    icon: React.ElementType;
-    emoji: string;
-    items: MenuItem[];
-    label?: string; // etiqueta directa (omite i18n) para secciones nuevas
-};
+// Burbuja de color por módulo (estilo Notion/Monday): cuadrito redondeado de
+// color sólido con el icono lucide blanco adentro, para que el menú sea
+// colorido sin perder legibilidad sobre el azul del sidebar.
+function IconBubble({ icon: Icon, color, small = false }: { icon: React.ElementType; color: string; small?: boolean }) {
+    return (
+        <span
+            className={`${small ? 'w-6 h-6 rounded-md' : 'w-7 h-7 rounded-lg'} shrink-0 grid place-items-center shadow-sm`}
+            style={{ backgroundColor: color }}
+        >
+            <Icon size={small ? 13 : 15} className="text-white" strokeWidth={2.25} />
+        </span>
+    );
+}
 
 interface SidebarProps {
     isCollapsed?: boolean;
     mobileOpen?: boolean;
     onExpand?: () => void;
 }
-
-const menuItems: MenuSection[] = [
-    {
-        title: 'reportsAI',
-        label: 'Reportes IA',
-        icon: TrendingUp,
-        emoji: '📊',
-        items: [
-            { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo', icon: Sparkles, emoji: '🤖' },
-            { key: 'myReports', label: 'Mis Reportes', href: '/dashboard/reportes', icon: Layers, emoji: '📁' },
-        ],
-    },
-    {
-        title: 'configuration',
-        icon: Settings,
-        emoji: '⚙️',
-        items: [
-            { key: 'project', href: '/dashboard/config/project', icon: FolderOpen, emoji: '📁' },
-            { key: 'initialLoad', href: '/dashboard/config/initial-load', icon: Rocket, emoji: '🚀' },
-            { key: 'branches', href: '/dashboard/settings/branches', icon: MapPin, emoji: '📍' },
-            { key: 'employees', href: '/dashboard/payroll/employees', icon: UserCheck, emoji: '🧑‍💼' },
-            { key: 'taxes', href: '/dashboard/config/taxes', icon: Receipt, emoji: '🧾' },
-            { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', icon: TrendingUp, emoji: '📈' },
-        ],
-    },
-    {
-        title: 'sales',
-        icon: DollarSign,
-        emoji: '💰',
-        items: [
-            { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
-            { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
-        ],
-    },
-    {
-        title: 'inventories',
-        icon: Package,
-        emoji: '📦',
-        items: [
-            { key: 'products', href: '/dashboard/inventories/products', icon: Tag, emoji: '🏷️' },
-            { key: 'inventoryCapture', href: '/dashboard/inventories/capture', icon: ClipboardList, emoji: '📋' },
-            { key: 'minMax', href: '/dashboard/inventories/min-max', icon: Scale, emoji: '⚖️' },
-            { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', icon: Trash2, emoji: '🗑️' },
-        ],
-    },
-    {
-        title: 'purchases',
-        icon: ShoppingCart,
-        emoji: '🛒',
-        items: [
-            { key: 'suppliers', href: '/dashboard/purchases/suppliers', icon: Truck, emoji: '🚚' },
-            { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', icon: FileText, emoji: '📄' },
-            { key: 'purchasesCapture', href: '/dashboard/purchases/capture', icon: PenLine, emoji: '📝' },
-        ],
-    },
-    {
-        title: 'expenses',
-        icon: CreditCard,
-        emoji: '💳',
-        items: [
-            { key: 'expenseConcepts', href: '/dashboard/expenses/concepts', icon: LightbulbIcon, emoji: '💡' },
-            { key: 'expensesCapture', href: '/dashboard/expenses/capture', icon: Scissors, emoji: '✂️' },
-        ],
-    },
-    {
-        title: 'payroll',
-        icon: Users,
-        emoji: '👥',
-        items: [
-            { key: 'schedules', href: '/dashboard/payroll/schedules', icon: CalendarDays, emoji: '📅' },
-            { key: 'payrollCapture', href: '/dashboard/payroll/capture', icon: Banknote, emoji: '💵' },
-        ],
-    },
-    {
-        title: 'production',
-        icon: ChefHat,
-        emoji: '👨‍🍳',
-        items: [
-            { key: 'subRecipes', href: '/dashboard/production/sub-recipes', icon: Book, emoji: '📖' },
-            { key: 'dishes', href: '/dashboard/production/dishes', icon: UtensilsCrossed, emoji: '🍲' },
-            { key: 'productionCapture', href: '/dashboard/production/capture', icon: Flame, emoji: '🔥' },
-            { key: 'materialExplosion', href: '/dashboard/production/material-explosion', icon: Zap, emoji: '⚡' },
-        ],
-    },
-
-];
 
 export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExpand }: SidebarProps) {
     const t = useTranslations('Navigation');
@@ -250,7 +124,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                 <Link
                     href={`/${locale}/dashboard`}
                     title={isCollapsed ? t('dashboard') : ''}
-                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 mb-1
                         ${pathname === `/${locale}/dashboard`
                             ? 'bg-brand-cream font-semibold shadow-md'
                             : 'hover:bg-white/10 font-medium text-white/80 hover:text-white'
@@ -261,7 +135,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                         color: pathname === `/${locale}/dashboard` ? colors.colorFondo1 : '#ffffff',
                     }}
                 >
-                    <LayoutDashboard size={18} className="shrink-0" />
+                    <IconBubble icon={DASHBOARD_LINK.icon} color={DASHBOARD_LINK.color} />
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
@@ -269,7 +143,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                 <Link
                     href={`/${locale}/dashboard/agente`}
                     title={isCollapsed ? 'Agente Foodie Guru' : ''}
-                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 mb-1
                         ${pathname === `/${locale}/dashboard/agente`
                             ? 'bg-brand-cream font-semibold shadow-md'
                             : 'hover:bg-white/10 font-medium text-white/80 hover:text-white'
@@ -280,7 +154,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                         color: pathname === `/${locale}/dashboard/agente` ? colors.colorFondo1 : '#ffffff',
                     }}
                 >
-                    <ChefHat size={18} className="shrink-0" />
+                    <IconBubble icon={AGENT_LINK.icon} color={AGENT_LINK.color} />
                     {!isCollapsed && (
                         <span className="text-sm flex items-center gap-2">
                             Agente Foodie Guru
@@ -312,14 +186,14 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                                     }
                                 }}
                                 title={isCollapsed ? (section.label ?? t(section.title)) : ''}
-                                className={`w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group text-white/85 hover:text-white hover:bg-white/10
+                                className={`w-full flex items-center px-3 py-2 rounded-xl transition-all duration-150 group text-white/85 hover:text-white hover:bg-white/10
                                     ${hasActiveChild && !isOpen ? 'bg-white/18 font-semibold text-white' : 'font-medium'}
                                     ${isCollapsed ? 'justify-center' : 'justify-between'}
                                   `}
                                 style={{ color: '#ffffff' }}
                             >
                                 <div className="flex items-center gap-3">
-                                    <SectionIcon size={18} className="shrink-0" />
+                                    <IconBubble icon={SectionIcon} color={section.color} />
                                     {!isCollapsed && (
                                         <span className="text-sm font-brand font-bold uppercase tracking-wide">{(section.label ?? t(section.title))}</span>
                                     )}
@@ -345,7 +219,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                                                 <li key={item.key}>
                                                     <Link
                                                         href={`/${locale}${item.href}`}
-                                                        className={`relative flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-all duration-150
+                                                        className={`relative flex items-center gap-2.5 px-3 py-1.5 text-sm rounded-lg transition-all duration-150
                                                             ${isActive
                                                                 ? 'bg-brand-cream font-semibold shadow-md'
                                                                 : 'hover:bg-white/10 text-white/80 hover:text-white font-medium'
@@ -355,7 +229,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                                                             color: isActive ? colors.colorFondo1 : '#ffffff',
                                                         }}
                                                     >
-                                                        <ItemIcon size={14} className="shrink-0" />
+                                                        <IconBubble icon={ItemIcon} color={section.color} small />
                                                         <span>{(item.label ?? t(item.key))}</span>
                                                     </Link>
                                                 </li>

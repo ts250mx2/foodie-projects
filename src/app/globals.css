@@ -331,3 +331,47 @@ select option {
 .badge-yellow { background: #fef9c3; color: #854d0e; }
 .badge-gray   { background: #f3f4f6; color: #374151; }
 .badge-blue   { background: #dbeafe; color: #1e40af; }
+
+/* ── Header de módulo (PageShell): controles en vidrio con letra blanca ──
+   Los botones/selects/inputs que las páginas pasan en `actions` traen sus
+   propios estilos (blanco/gris/inline). Sobre el fondo de color del módulo
+   se uniforman a "glass": translúcido blanco + letra blanca, como el menú.
+   Excepción: botones con background inline (CTAs amarillos de marca)
+   conservan su color, ya contrastan solos. */
+.module-header-actions button:not([style*="background"]),
+.module-header-actions select,
+.module-header-actions input,
+.module-header-actions a {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+/* El texto/iconos pueden vivir en spans/svg internos que no heredan */
+.module-header-actions :is(button:not([style*="background"]), a) *,
+.module-header-actions :is(button:not([style*="background"]), a) svg {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.module-header-actions button:not([style*="background"]):hover,
+.module-header-actions select:hover,
+.module-header-actions a:hover {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+}
+.module-header-actions :is(button, select, input, a):focus {
+  outline: none;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) !important;
+}
+.module-header-actions input::placeholder {
+  color: rgba(255, 255, 255, 0.75) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.75) !important;
+}
+/* El desplegable nativo del select se pinta sobre blanco: texto oscuro
+   (va al final para ganarle al text-fill blanco heredado del select) */
+.module-header-actions option {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  -webkit-text-fill-color: #111827 !important;
+}
