@@ -340,7 +340,6 @@ select option {
    conservan su color, ya contrastan solos. */
 .module-header-actions button:not([style*="background"]),
 .module-header-actions select,
-.module-header-actions input,
 .module-header-actions a {
   background-color: rgba(255, 255, 255, 0.16) !important;
   background-image: none !important;
@@ -359,14 +358,26 @@ select option {
 .module-header-actions a:hover {
   background-color: rgba(255, 255, 255, 0.28) !important;
 }
-.module-header-actions :is(button, select, input, a):focus {
+.module-header-actions :is(button, select, a):focus {
   outline: none;
   border-color: #ffffff !important;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35) !important;
 }
+/* Inputs de búsqueda: son cajas blancas (o van dentro de una píldora blanca),
+   así que el texto va NEGRO para que se lea, no blanco. */
+.module-header-actions input {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
 .module-header-actions input::placeholder {
-  color: rgba(255, 255, 255, 0.75) !important;
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.75) !important;
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+}
+.module-header-actions input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55) !important;
 }
 /* El desplegable nativo del select se pinta sobre blanco: texto oscuro
    (va al final para ganarle al text-fill blanco heredado del select) */

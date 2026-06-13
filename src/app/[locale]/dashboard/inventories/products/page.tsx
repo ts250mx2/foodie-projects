@@ -429,44 +429,6 @@ export default function ProductsPage() {
                             className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
                         />
                     </div>
-                    <Button
-                        onClick={() => setShowRecentOnly(!showRecentOnly)}
-                        variant={showRecentOnly ? 'primary' : 'secondary'}
-                        className={`${showRecentOnly ? 'bg-amber-500 hover:bg-amber-600 border-amber-600' : ''} flex items-center gap-2`}
-                        title="Mostrar productos cargados en la última hora"
-                    >
-                        {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
-                    </Button>
-                    <Button leftIcon={Upload} iconBox onClick={() => setIsMassiveModalOpen(true)} variant="secondary" size="sm">
-                        Carga por Excel
-                    </Button>
-                    <Button leftIcon={Upload} iconBox onClick={() => setIsProductImageCaptureModalOpen(true)} variant="secondary" size="sm">
-                        Carga por Imagen
-                    </Button>
-                    <Button
-                        leftIcon={Download}
-                        iconBox
-                        onClick={() => {
-                            const XLSX = require('xlsx');
-                            const dataToExport = sortedAndFilteredProducts.map(p => ({
-                                'Producto': p.Producto,
-                                'Código': p.Codigo,
-                                'Categoría': p.Categoria || '',
-                                'Unidad Medida Compra': (p as any).UnidadMedidaCompra || '',
-                                'Precio': p.Precio,
-                                'IVA (%)': p.IVA,
-                                'Estatus': p.Status === 0 ? 'Activo' : 'Inactivo'
-                            }));
-                            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-                            const workbook = XLSX.utils.book_new();
-                            XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
-                            XLSX.writeFile(workbook, "listado_productos.xlsx");
-                        }}
-                        variant="secondary"
-                        size="sm"
-                    >
-                        Exportar Excel
-                    </Button>
                     <Button variant="solid" leftIcon={Plus} iconBox onClick={() => { setEditingProduct(null); setSelectedProductForCosting(null); setIsModalOpen(true); }} size="sm">
                         {t('addProduct')}
                     </Button>
@@ -479,8 +441,50 @@ export default function ProductsPage() {
             }
         >
 
+            {/* Barra de acciones: filtros y carga/exportación, entre el header y el grid */}
+            <div className="flex gap-2 flex-wrap items-center mb-3">
+                <Button
+                    onClick={() => setShowRecentOnly(!showRecentOnly)}
+                    variant={showRecentOnly ? 'primary' : 'secondary'}
+                    className={`${showRecentOnly ? 'bg-amber-500 hover:bg-amber-600 border-amber-600' : ''} flex items-center gap-2`}
+                    title="Mostrar productos cargados en la última hora"
+                >
+                    {showRecentOnly ? '🕒 Mostrando Recientes' : '🕒 Ver Recientes'}
+                </Button>
+                <Button leftIcon={Upload} iconBox onClick={() => setIsMassiveModalOpen(true)} variant="secondary" size="sm">
+                    Carga por Excel
+                </Button>
+                <Button leftIcon={Upload} iconBox onClick={() => setIsProductImageCaptureModalOpen(true)} variant="secondary" size="sm">
+                    Carga por Imagen
+                </Button>
+                <Button
+                    leftIcon={Download}
+                    iconBox
+                    onClick={() => {
+                        const XLSX = require('xlsx');
+                        const dataToExport = sortedAndFilteredProducts.map(p => ({
+                            'Producto': p.Producto,
+                            'Código': p.Codigo,
+                            'Categoría': p.Categoria || '',
+                            'Unidad Medida Compra': (p as any).UnidadMedidaCompra || '',
+                            'Precio': p.Precio,
+                            'IVA (%)': p.IVA,
+                            'Estatus': p.Status === 0 ? 'Activo' : 'Inactivo'
+                        }));
+                        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, "Productos");
+                        XLSX.writeFile(workbook, "listado_productos.xlsx");
+                    }}
+                    variant="secondary"
+                    size="sm"
+                >
+                    Exportar Excel
+                </Button>
+            </div>
+
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 290px)' }}>
+                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 345px)' }}>
                     <table className="min-w-full divide-y divide-gray-100 table-row-hover border-collapse">
                         <ThemedGridHeader>
                             {showRecentOnly && (
