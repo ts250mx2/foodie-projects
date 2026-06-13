@@ -25,7 +25,8 @@ import { reportToMarkdown, reportHasContent, AgentReport } from '@/lib/ai/report
 
 const MAX_TURNS = 8;
 const PENDING_TTL_MS = 10 * 60 * 1000;
-const ANSWER_CAP = 1500;
+const ANSWER_CAP = 100;      // Si la respuesta supera este límite → se envía link del reporte
+const REPORT_THRESHOLD = 100; // chars: umbral para forzar generación de reporte
 const WA_MODEL = process.env.WHATSAPP_AI_MODEL || 'claude-sonnet-4-6';
 const WA_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
 const SHARE_LOCALE = 'es';
@@ -176,32 +177,34 @@ CÓMO RESPONDES
 - Nunca inventes cifras; si una consulta sale vacía revisa el filtro (sucursal, Status, convención de mes) y reintenta antes de decir que no hay datos.
 
 ──────────────────────────────────────────────────────────────
-FORMATO WHATSAPP (obligatorio)
+FORMATO WHATSAPP — REGLA DE ORO
 ──────────────────────────────────────────────────────────────
-- Respuesta CORTA: 1 a 5 oraciones (target ~300 chars, máx ~700).
-- TEXTO PLANO: nada de markdown, tablas, #, ** ni viñetas. Emojis ligeros está bien.
-- Cifras en MXN con coma de miles ($14,820.00). Tutea, tono humano y directo.
-- Si hay algo accionable (comisión delivery alta, food cost elevado, caída fuerte) méncionalo en una frase.
+El texto que envías por WhatsApp SIEMPRE debe ser una sola frase titular ≤ 100 caracteres
+con el dato más importante (ej. "Ventas mayo: $182,400 📈+8% vs abril").
+Todo el análisis, tablas, gráficas y desglose van en el bloque report (ver abajo).
+
+- TEXTO PLANO: sin markdown, sin **, sin #, sin viñetas. Emojis ligeros están bien.
+- Cifras en MXN con coma de miles ($14,820.00). Tutea, tono directo.
 - Responde SIEMPRE en español.
+- Para saludos o preguntas conceptuales: responde natural y breve, sin report.
 
 ──────────────────────────────────────────────────────────────
-DETALLE VISUAL (tabla/gráfica en una página web)
+DETALLE VISUAL — bloque report (SIEMPRE que haya datos)
 ──────────────────────────────────────────────────────────────
-Cuando la respuesta involucre datos que se aprecian mejor en TABLA o GRÁFICA
-(varias filas, ranking/top, desglose por canal/turno/sucursal, evolución por día
-o mes, comparativa de períodos), agrega AL FINAL un bloque cercado \`\`\`report con
-un JSON en UNA sola línea:
+CUALQUIER respuesta con datos numéricos DEBE incluir un bloque report con el análisis
+completo: tablas con todas las filas relevantes y gráficas cuando aporten.
 
 \`\`\`report
 {"title":"Ventas por canal (mayo 2026)","tables":[{"title":"Detalle","columns":["Canal","Venta"],"rows":[["Comedor",1382567],["Uber",111322]]}],"charts":[{"type":"bar","title":"Ventas por canal","format":"currency","data":[{"name":"Comedor","value":1382567},{"name":"Uber","value":111322}]}]}
 \`\`\`
 
 REGLAS DEL BLOQUE report:
-- OBLIGATORIO cuando la respuesta sea una LISTA de varios registros (top productos, ventas por día, gastos por concepto, etc.): genera "tables" con TODAS las filas relevantes. NO metas la lista completa en el texto de WhatsApp.
-- En esos casos el TEXTO es SOLO un resumen de 1-2 frases (cuántos, total, lo más relevante). El detalle va en la tabla/gráfica que el usuario abrirá con el link que agrega el sistema.
-- "charts": "type" bar|line|pie, "format" currency|number|percent, "data":[{"name","value","value2"?}], "seriesLabels"?. Máx ~12 puntos, valores crudos (sin $, comas ni %).
-- Incluye "tables", "charts" o ambos. Omite el bloque SOLO para un único número, saludos o conceptos.
-- NO menciones el link ni el bloque en el texto; el sistema agrega el enlace automáticamente.`;
+- SIEMPRE en respuestas con datos: una tabla por cada dimensión analizada + gráfica cuando haya comparativa.
+- El texto de WhatsApp es SOLO el titular (≤ 100 chars). El detalle va en el link.
+- "charts": "type" bar|line|pie, "format" currency|number|percent, valores crudos (sin $, comas ni %).
+- Puedes incluir análisis de texto enriquecido (con **negritas** y saltos de línea) dentro del JSON en un campo "analysis": "texto del análisis completo".
+- Omite el bloque SOLO para saludos, preguntas conceptuales o respuesta de un solo número sin contexto.
+- NO menciones el link en el texto; el sistema lo agrega automáticamente.`;
 }
 
 async function createWithFallback(anthropic: Anthropic, params: any, primary: string): Promise<{ msg: Anthropic.Message; model: string }> {
@@ -416,6 +419,17 @@ export async function POST(req: Request) {
     }
 }
 
+// Convierte el texto completo del agente en un AgentReport básico para el link de resumen.
+// Se usa cuando la respuesta supera REPORT_THRESHOLD pero el modelo no emitió bloque report.
+function buildTextReport(answer: string, question: string): AgentReport {
+    return {
+        title: question.slice(0, 80),
+        tables: [],
+        charts: [],
+        analysis: answer,   // el campo "analysis" es texto enriquecido del agente
+    };
+}
+
 async function answerForProject(
     project: PhoneProject, question: string, fromPhone: string,
     requestId: string, startTime: number, justSelected: boolean, baseUrl: string
@@ -425,25 +439,41 @@ async function answerForProject(
     const { answer, report, executedSql, model } = await runAgent(project.IdProyecto, project.Proyecto, question);
     if (executedSql.length) console.log(`[${requestId}] project=${project.IdProyecto} SQL: ${executedSql.join(' | ').slice(0, 240)}`);
 
-    const prefix = justSelected ? `📍 ${project.Proyecto}\n` : '';
-    let finalAnswer = (prefix + (answer || 'No pude generar una respuesta. ¿Puedes reformular tu pregunta?')).slice(0, ANSWER_CAP + 60);
+    const rawAnswer = answer || 'No pude generar una respuesta. ¿Puedes reformular tu pregunta?';
+    const prefix    = justSelected ? `📍 ${project.Proyecto}\n` : '';
 
+    // Truncar el texto de WhatsApp a ANSWER_CAP (100 chars) si hay reporte o si la
+    // respuesta es larga — el detalle completo va en el link.
+    const needsReport = rawAnswer.length > REPORT_THRESHOLD || (report && reportHasContent(report));
+    const waText      = needsReport
+        ? (prefix + rawAnswer.slice(0, ANSWER_CAP)).trim()
+        : (prefix + rawAnswer).trim();
+
+    let finalAnswer = waText;
     let reportUrl: string | null = null;
-    if (report && reportHasContent(report)) {
+
+    if (needsReport) {
+        // Usar el reporte emitido por el modelo, o construir uno con el texto completo
+        const effectiveReport = (report && reportHasContent(report))
+            ? report
+            : buildTextReport(rawAnswer, question);
+
         try {
             const token = await saveShare({
-                content: reportToMarkdown(report),
+                content: reportToMarkdown(effectiveReport),
                 question,
                 projectId: project.IdProyecto,
                 model,
                 branchName: project.Proyecto,
             });
             if (baseUrl) {
-                reportUrl = `${baseUrl}/${SHARE_LOCALE}/r/${token}`;
-                finalAnswer += `\n\n📊 Ver gráfica y detalle: ${reportUrl}`;
+                reportUrl    = `${baseUrl}/${SHARE_LOCALE}/r/${token}`;
+                finalAnswer += `\n\n📊 Ver análisis completo: ${reportUrl}`;
             }
         } catch (e) {
             console.error(`[${requestId}] no se pudo guardar el reporte:`, e);
+            // Si falla el guardado, enviamos la respuesta completa sin link
+            finalAnswer = (prefix + rawAnswer).trim();
         }
     }
 
@@ -453,7 +483,9 @@ async function answerForProject(
         reportUrl,
         meta: {
             request_id: requestId, from_phone: fromPhone, model_used: model,
-            rows_queries: executedSql.length, has_report: !!reportUrl, elapsed_ms: Date.now() - startTime,
+            rows_queries: executedSql.length, has_report: !!reportUrl,
+            answer_length: rawAnswer.length, used_threshold: needsReport,
+            elapsed_ms: Date.now() - startTime,
         },
     });
 }

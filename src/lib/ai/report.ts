@@ -1,12 +1,18 @@
 /**
- * Convierte un bloque `report` ({title, tables, charts}) — el formato que emite
+ * Convierte un bloque `report` ({title, tables, charts, analysis}) — el formato que emite
  * el agente por WhatsApp — a Markdown, para reusar la vista compartible
  * (AgentShareView) que ya renderiza tablas Markdown y bloques ```chart.
  */
 
 interface ReportTable { title?: string; columns: string[]; rows: any[][]; }
 interface ReportChart { type: string; title?: string; format?: string; data: any[]; seriesLabels?: string[]; }
-export interface AgentReport { title?: string | null; tables?: ReportTable[]; charts?: ReportChart[]; }
+export interface AgentReport {
+    title?: string | null;
+    tables?: ReportTable[];
+    charts?: ReportChart[];
+    /** Texto de análisis completo (markdown) generado por el agente. */
+    analysis?: string | null;
+}
 
 function cell(v: any): string {
     if (v === null || v === undefined) return '';
@@ -17,6 +23,11 @@ function cell(v: any): string {
 export function reportToMarkdown(report: AgentReport): string {
     let md = '';
     if (report.title) md += `## ${report.title}\n\n`;
+
+    // Texto de análisis completo (puede incluir markdown enriquecido del agente)
+    if (report.analysis) {
+        md += `${report.analysis}\n\n`;
+    }
 
     for (const t of report.tables || []) {
         if (!t || !Array.isArray(t.columns) || t.columns.length === 0) continue;
@@ -40,7 +51,8 @@ export function reportToMarkdown(report: AgentReport): string {
 
 export function reportHasContent(report: AgentReport | null | undefined): boolean {
     if (!report) return false;
-    const hasTables = Array.isArray(report.tables) && report.tables.some(t => t?.columns?.length);
-    const hasCharts = Array.isArray(report.charts) && report.charts.some(c => c?.data?.length);
-    return hasTables || hasCharts;
+    const hasTables   = Array.isArray(report.tables) && report.tables.some(t => t?.columns?.length);
+    const hasCharts   = Array.isArray(report.charts) && report.charts.some(c => c?.data?.length);
+    const hasAnalysis = typeof report.analysis === 'string' && report.analysis.trim().length > 0;
+    return hasTables || hasCharts || hasAnalysis;
 }
