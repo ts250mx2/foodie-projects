@@ -57,7 +57,7 @@ async function runToolBlocks(
 // convención de mes detectada en vivo) se arma con buildProjectCatalog().
 
 // ─── Tools ────────────────────────────────────────────────────────────────────
-const AGENT_TOOLS: any[] = [
+export const AGENT_TOOLS: any[] = [
     {
         name: 'query_database',
         description: `Ejecuta SQL SELECT/WITH de solo lectura contra la BD MySQL del restaurante.
@@ -117,7 +117,7 @@ CUÁNDO NO USARLA:
 // Devuelve bloques de contenido. El primero (estable: rol + esquema + catálogo +
 // reglas) lleva cache_control para que Anthropic lo cachee (5 min). El segundo
 // (volátil: saludo + período + contexto) cambia por request y no se cachea.
-function buildSystemPrompt(context: any, projectCatalog: string): Anthropic.TextBlockParam[] {
+export function buildSystemPrompt(context: any, projectCatalog: string): Anthropic.TextBlockParam[] {
     const now = new Date();
     const h   = now.getHours();
     const greeting = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';

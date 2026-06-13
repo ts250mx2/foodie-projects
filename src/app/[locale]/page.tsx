@@ -42,11 +42,11 @@ export default function LandingPage() {
   ] as const;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: CREAM }}>
+    <div className="flex flex-col min-h-screen md:h-screen overflow-y-auto md:overflow-hidden" style={{ backgroundColor: CREAM }}>
 
       {/* ═══════════════════════ HERO (fondo naranja, 42% alto) ═══════════════════════ */}
-      <section className="relative overflow-hidden flex flex-col items-center justify-center text-center"
-        style={{ backgroundColor: ORANGE, height: '42%' }}>
+      <section className="relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[42vh] md:min-h-0 md:h-[42%] py-12 md:py-0"
+        style={{ backgroundColor: ORANGE }}>
 
         {/* ── Language Switcher top-right ── */}
         <div className="absolute top-4 right-4 z-20 text-white">
@@ -66,8 +66,8 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* ── Badge pill top-center ── */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+        {/* ── Badge pill top-center (oculto en móvil para no chocar con logo/idioma) ── */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 hidden md:block">
           <span className="font-brand inline-block rounded-full bg-black px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white">
             Ser restaurantero es un arte
           </span>
@@ -104,7 +104,7 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════ BOTTOM (fondo crema, 52% alto) ═══════════════════════ */}
-      <section className="relative flex-[1_1_52%] flex flex-col items-center justify-between px-6 pt-5 pb-2 overflow-hidden"
+      <section className="relative flex flex-col items-center gap-8 md:gap-0 md:flex-[1_1_52%] md:justify-between px-6 pt-8 md:pt-5 pb-8 md:pb-2 md:overflow-hidden"
         style={{ backgroundColor: CREAM }}>
 
         {/* Cuarto verde — esquina inferior izquierda */}
@@ -121,7 +121,7 @@ export default function LandingPage() {
         </Link>
 
         {/* Feature cards (compactas para no rebasar altura) */}
-        <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4 my-auto">
+        <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4 md:my-auto">
           {features.map((f) => (
             <div
               key={f.key}
@@ -162,7 +162,7 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════ FOOTER azul (6% alto) ═══════════════════════ */}
-      <footer className="py-2.5 flex items-center justify-center" style={{ backgroundColor: BLUE, height: '6%' }}>
+      <footer className="shrink-0 py-2.5 md:h-[6%] flex items-center justify-center" style={{ backgroundColor: BLUE }}>
         <p className="font-brand text-center text-[10px] font-bold uppercase tracking-widest text-white">
           Derechos reservados Foodie Gurú Consulting 2026.
         </p>
