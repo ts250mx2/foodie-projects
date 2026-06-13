@@ -139,6 +139,17 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
         const dbUser = project.UsuarioBD || project.UsarioBD;
         const dbPass = project.PasswordBD || project.PasswdBD;
 
+        // Guardia defensiva: campos de conexión deben estar completos en tblProyectos.
+        // Si son NULL el proyecto fue registrado con el INSERT antiguo. Ejecutar:
+        //   node scripts/fix-proyectos-nulls.js
+        if (!project.BaseDatos || !project.Servidor || !dbUser || !dbPass) {
+            throw new Error(
+                `Proyecto ${projectId} ("${project.Proyecto || 'desconocido'}") no tiene configuración de BD completa. ` +
+                `Verifica BaseDatos, Servidor, UsarioBD y PasswdBD en tblProyectos, ` +
+                `o ejecuta: node scripts/fix-proyectos-nulls.js`
+            );
+        }
+
         // 2. Create connection to project DB
         const connection = await mysql.createConnection({
             host: project.Servidor,

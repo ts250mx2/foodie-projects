@@ -5,6 +5,13 @@ import { z } from 'zod';
 import { ResultSetHeader } from 'mysql2';
 import crypto from 'crypto';
 import { sendVerificationEmail } from '@/lib/email';
+import { initializeProjectDatabase } from '@/lib/db-init';
+
+/** Convierte el nombre del proyecto al nombre de BD: igual que db-init.ts */
+function toDbName(proyecto: string): string {
+    const sanitized = proyecto.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    return `FG_${sanitized}`;
+}
 
 // Validation schema
 const registerSchema = z.object({
@@ -73,10 +80,19 @@ export async function POST(request: NextRequest) {
 
         const idUsuario = (userResult as any).insertId;
 
-        // Insert into tblProyectos
+        // Insert into tblProyectos con todos los campos de conexión para homologar
+        const dbName   = toDbName(nombreProyecto);
+        const dbHost   = process.env.DB_HOST   || '74.208.192.90';
+        const dbUser   = process.env.DB_USER   || 'kyk';
+        const dbPass   = process.env.DB_PASSWORD || 'merkurio';
+        const projectUuid = crypto.randomUUID();
+
         const [projectResult] = await connection.query(
-            'INSERT INTO tblProyectos (Proyecto, Pais, Idioma, FechaAct, Status) VALUES (?, ?, ?, Now(), 0)',
-            [nombreProyecto, pais, idioma]
+            `INSERT INTO tblProyectos
+                (Proyecto, Pais, Idioma, FechaAct, Status,
+                 BaseDatos, Servidor, UsarioBD, PasswdBD, UUID)
+             VALUES (?, ?, ?, Now(), 0, ?, ?, ?, ?, ?)`,
+            [nombreProyecto, pais, idioma, dbName, dbHost, dbUser, dbPass, projectUuid]
         ) as any;
 
         const idProyecto = (projectResult as any).insertId;
@@ -89,6 +105,12 @@ export async function POST(request: NextRequest) {
 
         // Commit transaction
         await connection.commit();
+
+        // Inicializar la BD del proyecto con el schema (no bloquea la respuesta)
+        // Se ejecuta fuera de la transacción principal para no afectar el registro
+        initializeProjectDatabase(nombreProyecto).catch(err =>
+            console.error(`[register] Error inicializando BD "${dbName}":`, err)
+        );
 
         // Send verification email (non-blocking)
         sendVerificationEmail(correoElectronico, verificationToken, locale);
@@ -104,6 +126,8 @@ export async function POST(request: NextRequest) {
             proyecto: {
                 idProyecto,
                 nombreProyecto,
+                baseDatos: dbName,
+                uuid: projectUuid,
             },
         });
 
