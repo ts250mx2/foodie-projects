@@ -102,7 +102,7 @@ export default function AgentChart({ json }: { json: string }) {
     }
 
     return (
-        <div className="my-3 rounded-xl border border-slate-200 bg-white px-2 pt-3 pb-1 not-prose">
+        <div className="my-3 rounded-xl border border-slate-200 bg-white px-2 pt-3 pb-1 not-prose agent-chart-card">
             {title && <p className="text-xs font-bold text-slate-700 mb-1 text-center">{title}</p>}
             <ResponsiveContainer width="100%" height={type === 'pie' ? 240 : 210}>
                 {chart}

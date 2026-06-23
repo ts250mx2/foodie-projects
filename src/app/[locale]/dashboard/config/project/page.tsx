@@ -16,6 +16,7 @@ interface ProjectSettings {
     ColorFondo1: string;
     ColorFondo2: string;
     ColorLetra: string;
+    AppPriceCalculatorEnabled: number;
 }
 
 interface UserSettings {
@@ -32,7 +33,8 @@ export default function ProjectSettingsPage() {
         Titulo: '',
         ColorFondo1: '#FF6B35',
         ColorFondo2: '#F7931E',
-        ColorLetra: '#FFFFFF'
+        ColorLetra: '#FFFFFF',
+        AppPriceCalculatorEnabled: 1
     });
     const [userData, setUserData] = useState<UserSettings>({
         CorreoElectronico: '',
@@ -140,7 +142,8 @@ export default function ProjectSettingsPage() {
                         Titulo: projectData.Titulo,
                         ColorFondo1: projectData.ColorFondo1,
                         ColorFondo2: projectData.ColorFondo2,
-                        ColorLetra: projectData.ColorLetra
+                        ColorLetra: projectData.ColorLetra,
+                        AppPriceCalculatorEnabled: projectData.AppPriceCalculatorEnabled
                     },
                     userData: {
                         Usuario: userData.Usuario,
@@ -154,9 +157,18 @@ export default function ProjectSettingsPage() {
             if (data.success) {
                 setMessage('Configuración guardada exitosamente');
                 // Update logo path if a new one was saved
-                if (data.logoPath) {
-                    setProjectData({ ...projectData, Logo64: data.logoPath });
+                const nextLogo = data.logoPath || projectData.Logo64;
+                setProjectData(prev => ({ ...prev, Logo64: nextLogo }));
+
+                // Save in localStorage project details
+                const storedProject = localStorage.getItem('project');
+                if (storedProject) {
+                    const parsed = JSON.parse(storedProject);
+                    parsed.appPriceCalculatorEnabled = projectData.AppPriceCalculatorEnabled;
+                    localStorage.setItem('project', JSON.stringify(parsed));
                 }
+                // Dispatch event to notify other components (Sidebar)
+                window.dispatchEvent(new CustomEvent('project-settings-updated'));
             } else {
                 setMessage('Error al guardar la configuración');
             }
@@ -262,6 +274,26 @@ export default function ProjectSettingsPage() {
                                 value={projectData.Titulo}
                                 onChange={(e) => setProjectData({ ...projectData, Titulo: e.target.value })}
                             />
+
+                            {/* App Price Calculator module toggle */}
+                            <div className="flex items-center gap-3 pt-2">
+                                <input
+                                    id="appPriceCalculatorToggle"
+                                    type="checkbox"
+                                    checked={projectData.AppPriceCalculatorEnabled === 1}
+                                    onChange={(e) => setProjectData(prev => ({ 
+                                        ...prev, 
+                                        AppPriceCalculatorEnabled: e.target.checked ? 1 : 0 
+                                    }))}
+                                    className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
+                                />
+                                <label 
+                                    htmlFor="appPriceCalculatorToggle" 
+                                    className="text-sm font-semibold text-gray-700 cursor-pointer select-none"
+                                >
+                                    Habilitar módulo de Calculadora de Precios de aplicaciones en el menú
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

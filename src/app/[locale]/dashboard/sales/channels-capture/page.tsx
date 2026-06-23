@@ -975,7 +975,7 @@ export default function SalesChannelsCapturePage() {
                         </div>
 
                         {/* Tab Switcher */}
-                        <div className="shrink-0 flex border-b border-gray-200 px-6 py-0 bg-gray-50/50" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <div className="shrink-0 flex border-b border-gray-200 px-2 sm:px-6 py-0 bg-gray-50/50 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                             {[
                                 { id: 'channels', label: 'Canales de Venta', icon: Store },
                                 { id: 'payments', label: 'Formas de Pago', icon: CreditCard },
@@ -986,16 +986,16 @@ export default function SalesChannelsCapturePage() {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as any)}
-                                        className={`px-6 py-4 border-b-2 flex items-center gap-2 whitespace-nowrap transition-all duration-200 font-medium ${activeTab === tab.id
-                                            ? `text-[13px]`
-                                            : 'text-[13px] text-gray-500 hover:text-gray-700 border-b-2 border-transparent'
+                                        className={`flex-1 sm:flex-none px-3 sm:px-6 py-3 sm:py-4 border-b-2 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-all duration-200 font-medium text-xs sm:text-[13px] ${activeTab === tab.id
+                                            ? ''
+                                            : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent'
                                         }`}
                                         style={activeTab === tab.id ? {
                                             color: colors.colorFondo1,
                                             borderBottomColor: colors.colorFondo1
                                         } : {}}
                                     >
-                                        <TabIcon size={16} />
+                                        <TabIcon size={15} className="flex-shrink-0" />
                                         {tab.label}
                                     </button>
                                 );

@@ -73,7 +73,8 @@
         "employees": "Employees",
         "positions": "Positions",
         "shifts": "Shifts",
-        "payrollCapture": "Payroll Capture"
+        "payrollCapture": "Payroll Capture",
+        "confirmLogout": "您确定要注销吗？"
     },
     "Terminals": {
         "title": "Terminals Management",

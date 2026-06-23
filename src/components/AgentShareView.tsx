@@ -30,13 +30,58 @@ interface Props {
     dateStr?: string;
     model?: string | null;
     branchName?: string | null;
+    projectId?: number | null;
 }
 
-export default function AgentShareView({ content, question, dateStr, model, branchName }: Props) {
+export default function AgentShareView({ content, question, dateStr, model, branchName, projectId }: Props) {
     const exportPdf = async () => {
         try {
+            let logo64 = '';
+            let projectName = '';
+            if (projectId) {
+                try {
+                    const resp = await fetch(`/api/project-header?projectId=${projectId}`);
+                    const headerData = await resp.json();
+                    if (headerData.success) {
+                        logo64 = headerData.logo64 || '';
+                        projectName = headerData.titulo || '';
+                    }
+                } catch (e) {
+                    console.warn('Error fetching header for pdf logo:', e);
+                }
+            }
+
+            // Capturar las gráficas de la página si existen en el DOM
+            const chartImages: string[] = [];
+            const el = document.getElementById('agent-share-content');
+            if (el) {
+                const chartElements = el.querySelectorAll('.agent-chart-card');
+                if (chartElements.length > 0) {
+                    try {
+                        const htmlToImage = await import('html-to-image');
+                        for (let i = 0; i < chartElements.length; i++) {
+                            const dataUrl = await htmlToImage.toPng(chartElements[i] as HTMLElement, {
+                                backgroundColor: '#ffffff',
+                                pixelRatio: 2,
+                                cacheBust: true,
+                            });
+                            chartImages.push(dataUrl);
+                        }
+                    } catch (chartErr) {
+                        console.warn('Error rendering chart elements to PNG data urls:', chartErr);
+                    }
+                }
+            }
+
             const { generateAnswerPDF } = await import('@/utils/generateAnswerPDF');
-            generateAnswerPDF(content, { question: question || undefined, model: model || undefined, branchName: branchName || undefined });
+            generateAnswerPDF(content, {
+                question: question || undefined,
+                model: model || undefined,
+                branchName: branchName || undefined,
+                projectLogo: logo64 || undefined,
+                projectName: projectName || undefined,
+                chartImages: chartImages.length > 0 ? chartImages : undefined
+            });
         } catch (e) {
             console.error('No se pudo generar el PDF:', e);
         }
@@ -73,7 +118,7 @@ export default function AgentShareView({ content, question, dateStr, model, bran
                         </button>
                     </div>
 
-                    <div className="px-5 py-5">
+                    <div className="px-5 py-5" id="agent-share-content">
                         <div className={PROSE}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={shareMdComponents}>
                                 {content}

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
         // Fetch project title and colors
         const [rows]: any = await connection.query(
-            'SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
+            'SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
             logo64: rows[0].Logo64 || null,
             colorFondo1: rows[0].ColorFondo1 || '#FF6B35',
             colorFondo2: rows[0].ColorFondo2 || '#F7931E',
-            colorLetra: rows[0].ColorLetra || '#FFFFFF'
+            colorLetra: rows[0].ColorLetra || '#FFFFFF',
+            appPriceCalculatorEnabled: rows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0
         });
     } catch (error) {
         console.error('Error fetching project header:', error);

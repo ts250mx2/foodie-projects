@@ -7,7 +7,8 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import * as XLSX from 'xlsx';
 import PageShell from '@/components/PageShell';
-import { Scale, Search, Image as ImageIcon, ChevronDown, BarChart2 } from 'lucide-react';
+import CostingModal, { type Product } from '@/components/CostingModal';
+import { Scale, Search, Image as ImageIcon, ChevronDown, BarChart2, Pencil } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -18,11 +19,11 @@ interface MinMaxEntry {
     IdProducto: number;
     Producto: string;
     Codigo: string;
-    Presentacion: string;
     IdCategoria: number;
     Categoria: string;
     ImagenCategoria?: string;
     ArchivoImagen?: string;
+    UnidadMedidaInventario?: string;
     Minimo: number;
     Maximo: number;
 }
@@ -46,6 +47,10 @@ export default function MinMaxPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+    // Edición de producto (reusa CostingModal, igual que la página de Productos)
+    const [allProducts, setAllProducts] = useState<Product[]>([]);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -57,10 +62,33 @@ export default function MinMaxPage() {
     useEffect(() => {
         if (project?.idProyecto) {
             fetchBranches();
+            fetchAllProducts();
             const savedBranch = localStorage.getItem('dashboardSelectedBranch');
             if (savedBranch) setSelectedBranch(savedBranch);
         }
     }, [project]);
+
+    // Catálogo completo de productos (vista enriquecida) para poder editarlos con CostingModal.
+    const fetchAllProducts = async () => {
+        if (!project?.idProyecto) return;
+        try {
+            const response = await fetch(`/api/products?projectId=${project.idProyecto}&useView=true`);
+            const data = await response.json();
+            if (data.success) setAllProducts(data.data);
+        } catch (error) {
+            console.error('Error fetching products catalog:', error);
+        }
+    };
+
+    const handleEditProduct = (productId: number) => {
+        const full = allProducts.find((p) => p.IdProducto === productId);
+        if (!full) {
+            alert('No se pudo cargar el producto para editar.');
+            return;
+        }
+        setEditingProduct(full);
+        setIsEditOpen(true);
+    };
 
     useEffect(() => {
         if (selectedBranch) {
@@ -164,16 +192,16 @@ export default function MinMaxPage() {
                 [tCommon('category') || 'Categoría']: entry.Categoria || 'Sin Categoría',
                 [t('product') || 'Producto']: entry.Producto,
                 [t('code') || 'Código']: entry.Codigo,
-                [t('presentation') || 'Presentación']: entry.Presentacion,
-                [t('max') || 'Máximo']: values.max,
+                ['Unidad de Medida']: entry.UnidadMedidaInventario,
                 [t('min') || 'Mínimo']: values.min,
+                [t('max') || 'Máximo']: values.max,
             };
         });
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Maximos y Minimos');
-        XLSX.writeFile(wb, `Maximos_Minimos_${branchName}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'Minimos y Maximos');
+        XLSX.writeFile(wb, `Minimos_Maximos_${branchName}.xlsx`);
     };
 
     const filteredEntries = entries.filter(entry => {
@@ -286,9 +314,10 @@ export default function MinMaxPage() {
                                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest w-16">Foto</th>
                                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Código</th>
                                                     <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Producto</th>
-                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Presentación</th>
-                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-32">{t('max')}</th>
+                                                    <th className="px-5 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Unidad de Medida</th>
                                                     <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-32">{t('min')}</th>
+                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-32">{t('max')}</th>
+                                                    <th className="px-5 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest w-16">Editar</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
@@ -305,7 +334,16 @@ export default function MinMaxPage() {
                                                         </td>
                                                         <td className="px-5 py-3 text-sm text-gray-600">{entry.Codigo}</td>
                                                         <td className="px-5 py-3 text-sm font-medium text-gray-900">{entry.Producto}</td>
-                                                        <td className="px-5 py-3 text-sm text-gray-600">{entry.Presentacion || '-'}</td>
+                                                        <td className="px-5 py-3 text-sm text-gray-600">{entry.UnidadMedidaInventario || '-'}</td>
+                                                        <td className="px-5 py-3">
+                                                            <input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={editedValues[entry.IdProducto]?.min ?? 0}
+                                                                onChange={(e) => handleValueChange(entry.IdProducto, 'min', e.target.value)}
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-primary-500/30 outline-none"
+                                                            />
+                                                        </td>
                                                         <td className="px-5 py-3">
                                                             <input
                                                                 type="number"
@@ -315,14 +353,15 @@ export default function MinMaxPage() {
                                                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-primary-500/30 outline-none"
                                                             />
                                                         </td>
-                                                        <td className="px-5 py-3">
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={editedValues[entry.IdProducto]?.min ?? 0}
-                                                                onChange={(e) => handleValueChange(entry.IdProducto, 'min', e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-center text-sm focus:ring-2 focus:ring-primary-500/30 outline-none"
-                                                            />
+                                                        <td className="px-5 py-3 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditProduct(entry.IdProducto)}
+                                                                title="Editar producto"
+                                                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                                                            >
+                                                                <Pencil size={15} />
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -335,6 +374,24 @@ export default function MinMaxPage() {
                     )}
                 </div>
             </div>
+
+            {isEditOpen && editingProduct && project && (
+                <CostingModal
+                    isOpen={isEditOpen}
+                    onClose={() => {
+                        setIsEditOpen(false);
+                        setEditingProduct(null);
+                    }}
+                    product={editingProduct}
+                    projectId={project.idProyecto}
+                    productType={editingProduct.IdTipoProducto ?? 0}
+                    onProductUpdate={() => {
+                        fetchAllProducts();
+                        fetchMinMaxEntries();
+                    }}
+                    initialTab="general"
+                />
+            )}
         </PageShell>
     );
 }

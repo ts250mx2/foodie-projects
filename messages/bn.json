@@ -73,7 +73,8 @@
         "employees": "Employees",
         "positions": "Positions",
         "shifts": "Shifts",
-        "payrollCapture": "Payroll Capture"
+        "payrollCapture": "Payroll Capture",
+        "confirmLogout": "আপনি কি লগ আউট করতে চান?"
     },
     "Terminals": {
         "title": "Terminals Management",

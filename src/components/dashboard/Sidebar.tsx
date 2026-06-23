@@ -39,6 +39,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
     const [searchTerm, setSearchTerm] = useState('');
     const [user, setUser] = useState<any>(null);
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+    const [project, setProject] = useState<any>(null);
 
     useEffect(() => {
         try {
@@ -49,6 +50,18 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
         } catch (e) {
             console.error('Error loading permissions:', e);
         }
+
+        const loadProject = () => {
+            try {
+                const storedProject = localStorage.getItem('project');
+                if (storedProject) setProject(JSON.parse(storedProject));
+            } catch (err) {
+                console.error('Error loading project settings in Sidebar:', err);
+            }
+        };
+        loadProject();
+        window.addEventListener('project-settings-updated', loadProject);
+        return () => window.removeEventListener('project-settings-updated', loadProject);
     }, []);
 
     // Determinar qué sección contiene la ruta activa
@@ -84,6 +97,11 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
     const filteredSections = menuItems.map(section => ({
         ...section,
         items: section.items.filter(item => {
+            // Filter out App Price Calculator if disabled in project settings
+            if (item.key === 'appPriceCalculator' && project?.appPriceCalculatorEnabled === 0) {
+                return false;
+            }
+
             // Check permissions first
             const isAuthorized = !user?.isEmployee || user?.isAdmin || permissions[item.key] === true;
             if (!isAuthorized) return false;

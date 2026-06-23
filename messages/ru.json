@@ -73,7 +73,8 @@
         "employees": "Employees",
         "positions": "Positions",
         "shifts": "Shifts",
-        "payrollCapture": "Payroll Capture"
+        "payrollCapture": "Payroll Capture",
+        "confirmLogout": "Вы уверены, что хотите выйти?"
     },
     "Terminals": {
         "title": "Terminals Management",

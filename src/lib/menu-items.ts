@@ -90,6 +90,8 @@ export const menuItems: MenuSection[] = [
         items: [
             { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
             { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
+            // Oculto temporalmente del menú (la página sigue accesible en /dashboard/wansoft):
+            // { key: 'wansoftSales', href: '/dashboard/wansoft', icon: TrendingUp, emoji: '📊', label: 'Ventas por Sucursal (Wansoft)' },
         ],
     },
     {

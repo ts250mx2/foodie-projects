@@ -55,6 +55,7 @@
         "project": "Proyecto",
         "initialLoad": "Carga Inicial",
         "logout": "Cerrar Sesión",
+        "confirmLogout": "¿Está seguro de que desea cerrar sesión?",
         "configuration": "Configuración",
         "branches": "Sucursales",
         "tips": "Propinas",

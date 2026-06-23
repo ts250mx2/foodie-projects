@@ -33,9 +33,9 @@ export async function GET(
 
         // Fetch all active products and join with Min/Max settings for this branch
         const [rows] = await connection.query(
-            `SELECT 
-                p.IdProducto, p.Producto, p.Codigo, 
-                v.UnidadMedidaInventario AS Presentacion, 
+            `SELECT
+                p.IdProducto, p.Producto, p.Codigo,
+                v.UnidadMedidaInventario,
                 v.IdCategoria, v.Categoria, v.ImagenCategoria, v.ArchivoImagen,
                 m.Minimo, m.Maximo, m.FechaAct
              FROM tblProductos p

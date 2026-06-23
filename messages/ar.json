@@ -73,7 +73,8 @@
         "employees": "Employees",
         "positions": "Positions",
         "shifts": "Shifts",
-        "payrollCapture": "Payroll Capture"
+        "payrollCapture": "Payroll Capture",
+        "confirmLogout": "هل أنت متأكد أنك تريد تسجيل الخروج؟"
     },
     "Terminals": {
         "title": "Terminals Management",

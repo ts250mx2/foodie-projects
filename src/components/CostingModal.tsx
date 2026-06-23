@@ -157,6 +157,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         return val;
     };
 
+    // Unidades permitidas para Inventario y Recetario: solo kilos, piezas y libras.
+    const INVENTORY_RECIPE_UNIT_KEYS = ['kg', 'pza', 'lb'];
+    const allowedInvRecUnits = () => INVENTORY_RECIPE_UNIT_KEYS.map((u) => t(`units.${u}`));
+
     useEffect(() => {
         if (isOpen && initialProduct) {
             console.log('CostingModal: Loading initialProduct:', initialProduct);
@@ -1903,18 +1907,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                 >
                                                     {(() => {
                                                         const options = new Set<string>();
-                                                        
-                                                        if (productType === 1 || productType === 2) {
-                                                            // For Dishes and Sub-recipes, show the FULL catalog
-                                                            Object.keys(UNIT_HIERARCHY).forEach(u => options.add(t(`units.${u}`)));
-                                                        } else {
-                                                            // For Raw Materials, show only children of Purchase Unit (Existing logic)
-                                                            const baseCompra = getBaseUnit(unMedidaCompra);
-                                                            const children = UNIT_HIERARCHY[baseCompra] || [];
-                                                            if (unMedidaCompra) options.add(unMedidaCompra);
-                                                            children.forEach(u => options.add(t(`units.${u}`)));
-                                                        }
-                                                        
+                                                        // Solo kilos, piezas y libras (más el valor actual si difiere).
+                                                        allowedInvRecUnits().forEach(u => options.add(u));
                                                         if (unMedidaInventario) options.add(unMedidaInventario);
 
                                                         return Array.from(options).sort().map(u => (
@@ -1943,15 +1937,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
                                                         options.add(""); // Selec...
                                                         if (unMedidaRecetario) options.add(unMedidaRecetario);
-                                                        if (unMedidaInventario) options.add(unMedidaInventario);
-                                                        
-                                                        // Add all units of measure regardless of inventory unit of measure
-                                                        Object.keys(UNIT_HIERARCHY).forEach(u => {
-                                                            options.add(t(`units.${u}`));
-                                                            (UNIT_HIERARCHY[u] || []).forEach(child => {
-                                                                options.add(t(`units.${child}`));
-                                                            });
-                                                        });
+                                                        // Solo kilos, piezas y libras.
+                                                        allowedInvRecUnits().forEach(u => options.add(u));
 
                                                         return Array.from(options).sort().map(u => (
                                                             <option key={u} value={u}>{u || 'Selec...'}</option>
@@ -1969,7 +1956,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                             <div>
                                                 <div className="flex justify-between items-center mb-1">
                                                     <label className="block text-sm font-medium text-gray-700">
-                                                        {MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) ? "Conversion" : "Contenido"}
+                                                        {MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) ? "Conversion" : `Contenido ${unMedidaInventario}`.trim()}
                                                     </label>
                                                     {!MEASUREMENT_UNITS.includes(getBaseUnit(unMedidaCompra)) && (
                                                         <button
@@ -2383,7 +2370,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <div className="flex justify-between items-center mb-1">
-                                                <label className="block text-sm font-medium text-gray-700">Contenido</label>
+                                                <label className="block text-sm font-medium text-gray-700">{`Contenido ${unMedidaInventario}`.trim()}</label>
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsConverterOpen(true)}
@@ -2656,13 +2643,10 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:ring-2 focus:ring-primary-500"
                                                         >
                                                             {(() => {
-                                                                const baseCompra = getBaseUnit(unMedidaCompra);
-                                                                const children = UNIT_HIERARCHY[baseCompra] || [];
                                                                 const options = new Set<string>();
-
+                                                                // Solo kilos, piezas y libras (más el valor actual si difiere).
+                                                                allowedInvRecUnits().forEach(u => options.add(u));
                                                                 if (unMedidaInventario) options.add(unMedidaInventario);
-                                                                if (unMedidaCompra) options.add(unMedidaCompra);
-                                                                children.forEach(u => options.add(t(`units.${u}`)));
 
                                                                 return Array.from(options).sort().map(u => (
                                                                     <option key={u} value={u}>{u === unMedidaCompra && u !== unMedidaInventario ? `${u} (Misma)` : u}</option>

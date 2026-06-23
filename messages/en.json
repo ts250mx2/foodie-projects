@@ -55,6 +55,7 @@
         "project": "Project",
         "initialLoad": "Initial Load",
         "logout": "Logout",
+        "confirmLogout": "Are you sure you want to log out?",
         "configuration": "Configuration",
         "branches": "Branches",
         "tips": "Tips",

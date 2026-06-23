@@ -56,7 +56,8 @@
         "shifts": "Quarts",
         "payrollCapture": "Saisie de la paie",
         "massiveProductUpload": "Téléchargement en Masse de Produits",
-        "productionCapture": "Capture de Production"
+        "productionCapture": "Capture de Production",
+        "confirmLogout": "Êtes-vous sûr de vouloir vous déconnecter ?"
     },
     "Terminals": {
         "title": "Gestion des Terminaux",

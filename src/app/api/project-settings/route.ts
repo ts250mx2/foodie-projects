@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
         connection = await getFoodieProjectsConnection();
 
         // Fetch project data (Changed NombreArchivoLogo to Logo64)
-        const [projectRows] = await connection.query(
-            'SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra FROM tblProyectos WHERE IdProyecto = ?',
+        const [projectRows]: any = await connection.query(
+            'SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled FROM tblProyectos WHERE IdProyecto = ?',
             [projectId]
         );
 
@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
                 Titulo: projectRows[0].Titulo || '',
                 ColorFondo1: projectRows[0].ColorFondo1 || '#FF6B35',
                 ColorFondo2: projectRows[0].ColorFondo2 || '#F7931E',
-                ColorLetra: projectRows[0].ColorLetra || '#FFFFFF'
+                ColorLetra: projectRows[0].ColorLetra || '#FFFFFF',
+                AppPriceCalculatorEnabled: projectRows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0
             },
             userData: {
                 CorreoElectronico: userRows[0].CorreoElectronico || '',
@@ -90,8 +91,8 @@ export async function PUT(request: NextRequest) {
         // Update project data saving Base64 directly to Logo64 column
         // Removed NombreArchivoLogo update as we are using Logo64 now
         await connection.query(
-            'UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ? WHERE IdProyecto = ?',
-            [finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra, projectId]
+            'UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ?, AppPriceCalculatorEnabled = ? WHERE IdProyecto = ?',
+            [finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra, projectData.AppPriceCalculatorEnabled !== 0 ? 1 : 0, projectId]
         );
 
         // Update user data

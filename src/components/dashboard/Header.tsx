@@ -36,11 +36,12 @@ const ROUTE_LABELS: Record<string, string> = {
     terminals: 'Terminales',
     platforms: 'Plataformas',
     'app-price-calculator': 'Calculadora de Precio',
+    wansoft: 'Ventas por Sucursal (Wansoft)',
     inventories: 'Inventarios',
     products: 'Productos',
     categories: 'Categorías',
     presentations: 'Presentaciones',
-    'min-max': 'Mín/Máx',
+    'min-max': 'Mínimos y Máximos',
     'waste-capture': 'Captura de Merma',
     production: 'Producción',
     dishes: 'Platillos',
@@ -107,6 +108,15 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
             if (data.success) {
                 setProjectTitle(data.titulo || '');
                 setProjectLogo(data.logo64 || '');
+
+                // Cache appPriceCalculatorEnabled in localStorage project object
+                const storedProject = localStorage.getItem('project');
+                if (storedProject) {
+                    const parsed = JSON.parse(storedProject);
+                    parsed.appPriceCalculatorEnabled = data.appPriceCalculatorEnabled;
+                    localStorage.setItem('project', JSON.stringify(parsed));
+                    window.dispatchEvent(new CustomEvent('project-settings-updated'));
+                }
             }
         } catch { /* ignore */ }
     };
@@ -145,8 +155,11 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
-        onLogout ? onLogout() : router.push('/');
+        const confirmMsg = t('confirmLogout') || '¿Está seguro de que desea cerrar sesión?';
+        if (window.confirm(confirmMsg)) {
+            localStorage.removeItem('user');
+            onLogout ? onLogout() : router.push('/');
+        }
     };
 
     const displayTitle = projectTitle || `Foodie Guru${projectName ? ` · ${projectName}` : ''}`;

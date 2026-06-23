@@ -36,13 +36,15 @@ export const PERMISSION_MENU: MenuPermSection[] = [
         key: 'sales', label: 'Ventas', items: [
             { key: 'salesChannelsCapture', label: 'Captura de Canales de Venta', href: '/dashboard/sales/channels-capture' },
             { key: 'appPriceCalculator', label: 'Calculadora de Precios App', href: '/dashboard/sales/app-price-calculator' },
+            // Oculto temporalmente del menú/permisos (la página sigue en /dashboard/wansoft):
+            // { key: 'wansoftSales', label: 'Ventas por Sucursal (Wansoft)', href: '/dashboard/wansoft' },
         ],
     },
     {
         key: 'inventories', label: 'Inventarios', items: [
             { key: 'products', label: 'Productos', href: '/dashboard/inventories/products' },
             { key: 'inventoryCapture', label: 'Captura de Inventario', href: '/dashboard/inventories/capture' },
-            { key: 'minMax', label: 'Mín/Máx', href: '/dashboard/inventories/min-max' },
+            { key: 'minMax', label: 'Mínimos y Máximos', href: '/dashboard/inventories/min-max' },
             { key: 'wasteCapture', label: 'Captura de Mermas', href: '/dashboard/inventories/waste-capture' },
         ],
     },

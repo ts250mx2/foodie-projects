@@ -65,7 +65,8 @@
         "shifts": "Turnos",
         "payrollCapture": "Captura de Folha",
         "massiveProductUpload": "Carregamento em Massa de Produtos",
-        "productionCapture": "Captura de Produção"
+        "productionCapture": "Captura de Produção",
+        "confirmLogout": "Tem certeza que deseja sair?"
     },
     "Terminals": {
         "title": "Gestão de Terminais",

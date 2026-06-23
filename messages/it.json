@@ -56,7 +56,8 @@
         "employees": "Dipendenti",
         "positions": "Posizioni",
         "shifts": "Turni",
-        "payrollCapture": "Acquisizione Libro paga"
+        "payrollCapture": "Acquisizione Libro paga",
+        "confirmLogout": "Sei sicuro di voler effettuare el logout?"
     },
     "Terminals": {
         "title": "Gestione Terminali",

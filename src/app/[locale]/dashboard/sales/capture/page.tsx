@@ -549,7 +549,7 @@ export default function SalesCapturePage() {
                             </div>
 
                             {/* Tabs */}
-                            <div className="flex gap-1 mt-6 overflow-x-auto relative px-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                            <div className="flex gap-1 mt-6 relative px-2 w-full overflow-x-auto sm:overflow-x-visible scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                                 {[
                                     { id: 'sales', label: tModal('tabs.sales'), icon: '💰' },
                                     { id: 'notes', label: tModal('tabs.notes'), icon: '📝' }
@@ -557,13 +557,13 @@ export default function SalesCapturePage() {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as any)}
-                                        className={`px-6 py-2.5 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
-                                            ? 'bg-white text-gray-900 text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
+                                        className={`flex-1 sm:flex-initial px-3 sm:px-6 py-2.5 rounded-t-xl transition-all duration-300 whitespace-nowrap relative flex items-center justify-center ${activeTab === tab.id
+                                            ? 'bg-white text-gray-900 text-xs sm:text-sm font-bold z-30 translate-y-[1px] border-t border-l border-r border-gray-200 shadow-[4px_-4px_10px_rgba(0,0,0,0.05)]'
                                             : 'bg-white/10 text-xs font-normal hover:bg-white/20 hover:-translate-y-0.5'
                                             }`}
                                         style={activeTab === tab.id ? {} : { color: colors.colorLetra }}
                                     >
-                                        <span className="mr-2">{tab.icon}</span>
+                                        <span className="mr-1 sm:mr-2">{tab.icon}</span>
                                         {tab.label}
                                         {activeTab === tab.id && (
                                             <div className="absolute -bottom-[2px] left-0 right-0 h-[4px] bg-white z-40"></div>

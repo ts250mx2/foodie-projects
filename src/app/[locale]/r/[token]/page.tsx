@@ -48,6 +48,7 @@ export default async function SharePage({ params }: PageParams) {
             dateStr={dateStr}
             model={share.model}
             branchName={share.branchName}
+            projectId={share.projectId}
         />
     );
 }

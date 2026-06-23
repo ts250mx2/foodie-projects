@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { FOODIE_SOLUTIONS_LOGO_BASE64 } from './logoAssets';
 
 /**
  * Exporta una respuesta del Agente Foodie Guru (texto Markdown) a un PDF con
@@ -21,6 +22,9 @@ export interface AnswerPdfMeta {
     question?: string;
     model?: string;
     branchName?: string;
+    projectLogo?: string;
+    projectName?: string;
+    chartImages?: string[];
 }
 
 // ── Limpieza inline (quita lo que la fuente no dibuja, conserva el texto) ──────
@@ -98,17 +102,36 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
 
     // ── Header band ──
     doc.setFillColor(...ORANGE);
-    doc.rect(0, 0, pageW, 64, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
-    doc.text('Foodie Guru', margin, 30);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
-    doc.text('Análisis del agente de rentabilidad', margin, 47);
-    const dateStr = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
-    doc.text(dateStr, pageW - margin, 30, { align: 'right' });
-    if (meta.branchName) doc.text(meta.branchName, pageW - margin, 47, { align: 'right' });
+    doc.rect(0, 0, pageW, 75, 'F');
 
-    let y = 64 + 30;
+    // Yellow accent line at the bottom of the header
+    doc.setFillColor(248, 225, 76);
+    doc.rect(0, 72, pageW, 3, 'F');
+
+    let textOffset = margin;
+    if (meta.projectLogo) {
+        try {
+            const logoData = meta.projectLogo.startsWith('data:') ? meta.projectLogo : `data:image/png;base64,${meta.projectLogo}`;
+            const format = logoData.includes('image/jpeg') || logoData.includes('image/jpg') ? 'JPEG' : 'PNG';
+            doc.addImage(logoData, format, margin, 15, 45, 45);
+            textOffset = margin + 58;
+        } catch (e) {
+            console.warn('Error rendering business logo in PDF:', e);
+        }
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.text(meta.projectName || 'Foodie Guru', textOffset, 36);
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+    doc.text('Análisis del Agente de Rentabilidad', textOffset, 52);
+
+    const dateStr = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+    doc.text(dateStr, pageW - margin, 36, { align: 'right' });
+    if (meta.branchName) doc.text(meta.branchName, pageW - margin, 52, { align: 'right' });
+
+    let y = 75 + 30;
 
     // ── Pregunta del usuario ──
     if (meta.question) {
@@ -122,10 +145,11 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
     // ── Cuerpo: parseo de bloques Markdown ──
     const lines = answer.replace(/\r/g, '').split('\n');
     let i = 0;
+    let chartIdx = 0;
     while (i < lines.length) {
         const line = lines[i];
 
-        // Bloque cercado ``` … ``` (incluye ```chart → se vuelve tabla)
+        // Bloque cercado ``` … ``` (incluye ```chart → se vuelve gráfica/tabla)
         const fence = line.match(/^```(\w*)/);
         if (fence) {
             const lang = fence[1];
@@ -138,6 +162,25 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
             if (lang === 'chart') {
                 try {
                     const spec = JSON.parse(inner);
+                    if (spec.title) {
+                        ensure(20);
+                        doc.setFontSize(11); doc.setTextColor(...DARK);
+                        y = renderRich(spec.title, margin, y, contentW, 14, true) + 2;
+                    }
+
+                    // Renderizar la imagen de la gráfica si fue capturada del DOM
+                    if (meta.chartImages && meta.chartImages[chartIdx]) {
+                        try {
+                            const imgData = meta.chartImages[chartIdx];
+                            ensure(190);
+                            doc.addImage(imgData, 'PNG', margin, y, contentW, 180);
+                            y += 190;
+                        } catch (imgErr) {
+                            console.warn('Error drawing chart image in PDF:', imgErr);
+                        }
+                    }
+
+                    // Renderizar la tabla de datos debajo de la gráfica
                     const fmt = (v: any) => typeof v === 'number'
                         ? (spec.format === 'currency' ? '$' + v.toLocaleString('es-MX', { maximumFractionDigits: 2 })
                             : spec.format === 'percent' ? v.toLocaleString('es-MX', { maximumFractionDigits: 1 }) + '%'
@@ -149,11 +192,7 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
                     const head = hasV2 ? ['', l1, l2] : ['', l1];
                     const body = (spec.data || []).map((d: any) =>
                         hasV2 ? [String(d.name), fmt(d.value), fmt(d.value2)] : [String(d.name), fmt(d.value)]);
-                    if (spec.title) {
-                        ensure(20);
-                        doc.setFontSize(11); doc.setTextColor(...DARK);
-                        y = renderRich(spec.title, margin, y, contentW, 14, true) + 2;
-                    }
+
                     autoTable(doc, {
                         head: [head], body, startY: y, margin: { left: margin, right: margin },
                         styles: { fontSize: 8.5, cellPadding: 5, textColor: DARK, lineColor: [226, 232, 240], lineWidth: 0.5 },
@@ -162,6 +201,7 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
                     });
                     y = (doc as any).lastAutoTable.finalY + 16;
                 } catch { /* JSON inválido → ignora el bloque */ }
+                chartIdx++;
             } else if (lang === 'nav') {
                 try {
                     const items = JSON.parse(inner)?.items || [];
@@ -246,13 +286,50 @@ export function buildAnswerPdfDoc(answer: string, meta: AnswerPdfMeta = {}): jsP
         i++;
     }
 
-    // ── Footer con paginación ──
+    // ── Footer con paginación y branding ──
     const pages = doc.getNumberOfPages();
     for (let p = 1; p <= pages; p++) {
         doc.setPage(p);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-        doc.text('Foodie Guru · Puede cometer errores, verifica cifras importantes', margin, pageH - 28);
-        doc.text(`${p} / ${pages}`, pageW - margin, pageH - 28, { align: 'right' });
+
+        // Separator line for footer
+        doc.setDrawColor(241, 245, 249); // slate-100
+        doc.setLineWidth(0.75);
+        doc.line(margin, pageH - 44, pageW - margin, pageH - 44);
+
+        // 1. Foodie Solutions Logo (bottom left)
+        try {
+            doc.addImage(FOODIE_SOLUTIONS_LOGO_BASE64, 'PNG', margin, pageH - 36, 40, 20);
+        } catch (e) {
+            console.warn('Error rendering footer logo:', e);
+        }
+
+        // 2. "powered by foodie-solutions" text next to the logo
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...GRAY);
+        doc.text('powered by foodie-solutions', margin + 45, pageH - 24);
+
+        // 3. Disclaimer (centered)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text('Foodie Guru · Puede cometer errores, verifica cifras importantes', pageW / 2, pageH - 24, { align: 'center' });
+
+        // 4. Page numbers (bottom right)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(`${p} / ${pages}`, pageW - margin, pageH - 24, { align: 'right' });
+
+        // 5. Running header for page 2+
+        if (p > 1) {
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+            doc.text('Análisis del Agente · Foodie Guru', margin, 30);
+            if (meta.projectName) {
+                doc.text(meta.projectName, pageW - margin, 30, { align: 'right' });
+            }
+            doc.setDrawColor(241, 245, 249);
+            doc.setLineWidth(0.75);
+            doc.line(margin, 34, pageW - margin, 34);
+        }
     }
 
     return doc;

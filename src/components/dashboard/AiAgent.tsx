@@ -166,6 +166,7 @@ function ChatPanel({
     model, setModel, onClear, onMaximize, onClose,
     isMaximized, mode, suggestions, messagesEndRef,
     streamingText, streamPhase, onNavigate, onShare,
+    dashboardData,
 }: {
     messages: Message[];
     isLoading: boolean;
@@ -185,6 +186,7 @@ function ChatPanel({
     streamPhase?: string | null;
     onNavigate: (path: string) => void;
     onShare: (content: string, question?: string) => Promise<string | null>;
+    dashboardData?: any;
 }) {
     const { colors } = useTheme();
     const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
@@ -210,19 +212,70 @@ function ChatPanel({
         }, 0);
     };
 
-    // Exporta una respuesta del asistente a PDF capturando el render REAL del mensaje
-    // (gráficas incluidas). Carga el util en demanda para no inflar el bundle inicial.
+    // Exporta una respuesta del asistente a PDF de forma limpia con formato premium,
+    // logos, cabeceras, gráficas (si existen) y pie de página. Carga el util en demanda.
     const [exportingIdx, setExportingIdx] = useState<number | null>(null);
     const exportMsg = async (idx: number) => {
         const msg = messages[idx];
         if (!msg || msg.role !== 'assistant' || !msg.content) return;
-        const el = document.getElementById(`agent-msg-${idx}`);
-        if (!el) return;
         setExportingIdx(idx);
         try {
-            const { exportElementToPdf } = await import('@/utils/exportElementToPdf');
-            const stamp = new Date().toISOString().slice(0, 10);
-            await exportElementToPdf(el, `foodie-guru-analisis-${stamp}.pdf`);
+            const ctx = dashboardData || getContextFromLocalStorage();
+            const projectId =
+                dashboardData?.project?.idProyecto ||
+                dashboardData?.project?.IdProyecto ||
+                (ctx as any)?.project?.idProyecto ||
+                (ctx as any)?.project?.IdProyecto;
+
+            let logo64 = '';
+            let projectName = '';
+            if (projectId) {
+                try {
+                    const resp = await fetch(`/api/project-header?projectId=${projectId}`);
+                    const headerData = await resp.json();
+                    if (headerData.success) {
+                        logo64 = headerData.logo64 || '';
+                        projectName = headerData.titulo || (ctx as any)?.project?.nombre || '';
+                    }
+                } catch (e) {
+                    console.warn('Error fetching header for pdf logo:', e);
+                }
+            }
+
+            // Capturar las gráficas de esta burbuja de mensaje si las tiene renderizadas en el DOM
+            const chartImages: string[] = [];
+            const el = document.getElementById(`agent-msg-${idx}`);
+            if (el) {
+                const chartElements = el.querySelectorAll('.agent-chart-card');
+                if (chartElements.length > 0) {
+                    try {
+                        const htmlToImage = await import('html-to-image');
+                        for (let i = 0; i < chartElements.length; i++) {
+                            const dataUrl = await htmlToImage.toPng(chartElements[i] as HTMLElement, {
+                                backgroundColor: '#ffffff',
+                                pixelRatio: 2,
+                                cacheBust: true,
+                            });
+                            chartImages.push(dataUrl);
+                        }
+                    } catch (chartErr) {
+                        console.warn('Error rendering chart elements to PNG data urls:', chartErr);
+                    }
+                }
+            }
+
+            const { generateAnswerPDF } = await import('@/utils/generateAnswerPDF');
+            const prev = messages[idx - 1];
+            const question = prev && prev.role === 'user' ? prev.content : undefined;
+
+            generateAnswerPDF(msg.content, {
+                question,
+                model: CLAUDE_MODELS.find(m => m.id === model)?.label,
+                branchName: (ctx as any)?.branchName || undefined,
+                projectLogo: logo64 || undefined,
+                projectName: projectName || undefined,
+                chartImages: chartImages.length > 0 ? chartImages : undefined,
+            });
         } catch (err) {
             console.error('No se pudo generar el PDF:', err);
         } finally {
@@ -792,6 +845,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         messages, isLoading, input, setInput, handleSend,
         model, setModel, onClear: handleClear, suggestions, messagesEndRef,
         streamingText, streamPhase, onNavigate: handleNavigate, onShare: handleShare,
+        dashboardData,
     };
 
     // ── EMBEDDED ──────────────────────────────────────────────────────────
