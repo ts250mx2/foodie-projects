@@ -13,13 +13,14 @@ export const PERMISSION_MENU: MenuPermSection[] = [
     {
         key: 'general', label: 'General', items: [
             { key: 'dashboard', label: 'Dashboard', href: '/dashboard' },
-            { key: 'agente', label: 'Agente Foodie Gurú', href: '/dashboard/agente' },
+            // { key: 'agente', label: 'Agente Foodie Gurú', href: '/dashboard/agente' },
         ],
     },
     {
         key: 'reportsAI', label: 'Reportes IA', items: [
-            { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo' },
+            // { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo' },
             { key: 'myReports', label: 'Mis Reportes', href: '/dashboard/reportes' },
+            // { key: 'jarvis', label: 'Modo Voz', href: '/dashboard/agente/jarvis' },
         ],
     },
     {
@@ -30,12 +31,14 @@ export const PERMISSION_MENU: MenuPermSection[] = [
             { key: 'employees', label: 'Empleados', href: '/dashboard/payroll/employees' },
             { key: 'taxes', label: 'Impuestos', href: '/dashboard/config/taxes' },
             { key: 'breakEvenAnalysis', label: 'Análisis de Punto de Equilibrio', href: '/dashboard/config/break-even' },
+            { key: 'posConnection', label: 'Conexión a Punto de Venta', href: '/dashboard/config/pos-connection' },
         ],
     },
     {
         key: 'sales', label: 'Ventas', items: [
             { key: 'salesChannelsCapture', label: 'Captura de Canales de Venta', href: '/dashboard/sales/channels-capture' },
             { key: 'appPriceCalculator', label: 'Calculadora de Precios App', href: '/dashboard/sales/app-price-calculator' },
+            { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes' },
             // Oculto temporalmente del menú/permisos (la página sigue en /dashboard/wansoft):
             // { key: 'wansoftSales', label: 'Ventas por Sucursal (Wansoft)', href: '/dashboard/wansoft' },
         ],

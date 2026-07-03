@@ -157,7 +157,8 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                     {!isCollapsed && <span className="text-sm">{t('dashboard')}</span>}
                 </Link>
 
-                {/* Agente Foodie Guru link */}
+                {/* Agente Foodie Guru link - Ocultado temporalmente */}
+                {/*
                 <Link
                     href={`/${locale}/dashboard/agente`}
                     title={isCollapsed ? 'Agente Foodie Guru' : ''}
@@ -182,6 +183,7 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                         </span>
                     )}
                 </Link>
+                */}
 
                 {/* Divisor */}
                 <div className="border-t border-white/10 my-1" />

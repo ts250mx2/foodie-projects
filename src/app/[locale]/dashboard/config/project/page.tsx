@@ -291,7 +291,7 @@ export default function ProjectSettingsPage() {
                                     htmlFor="appPriceCalculatorToggle" 
                                     className="text-sm font-semibold text-gray-700 cursor-pointer select-none"
                                 >
-                                    Habilitar módulo de Calculadora de Precios de aplicaciones en el menú
+                                    Habilitar Modulo de Calculadora de Precios Apps
                                 </label>
                             </div>
                         </div>

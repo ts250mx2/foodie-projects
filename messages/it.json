@@ -57,7 +57,8 @@
         "positions": "Posizioni",
         "shifts": "Turni",
         "payrollCapture": "Acquisizione Libro paga",
-        "confirmLogout": "Sei sicuro di voler effettuare el logout?"
+        "confirmLogout": "Sei sicuro di voler effettuare el logout?",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Gestione Terminali",

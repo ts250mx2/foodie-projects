@@ -103,7 +103,8 @@
         "ocrProcessing": "Procesamiento OCR",
         "receiptCapture": "Captura de Recibos",
         "ocrDocuments": "Documentos OCR",
-        "appPriceCalculator": "Calculadora precios de aplicaciones"
+        "appPriceCalculator": "Calculadora precios de aplicaciones",
+        "posConnection": "Conexión a Punto de Venta"
     },
     "InitialLoad": {
         "title": "Carga Inicial de Proyecto",

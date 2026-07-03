@@ -7,9 +7,12 @@
   "scripts": {
     "explore": "node explore.mjs",
     "scrape": "node scrape.mjs",
+    "scrape-all": "node scrape-all.mjs",
+    "test-parsers": "node dev/test-parsers.mjs",
     "start": "node scheduler.mjs"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "dotenv": "^16.4.7",
     "mysql2": "^3.15.3",
     "nodemailer": "^7.0.11",

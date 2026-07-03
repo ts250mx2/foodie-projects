@@ -66,7 +66,8 @@
         "payrollCapture": "Captura de Folha",
         "massiveProductUpload": "Carregamento em Massa de Produtos",
         "productionCapture": "Captura de Produção",
-        "confirmLogout": "Tem certeza que deseja sair?"
+        "confirmLogout": "Tem certeza que deseja sair?",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Gestão de Terminais",

@@ -98,7 +98,8 @@
         "ocrProcessing": "OCR Processing",
         "receiptCapture": "Receipt Capture",
         "ocrDocuments": "OCR Documents",
-        "appPriceCalculator": "App Price Calculator"
+        "appPriceCalculator": "App Price Calculator",
+        "posConnection": "POS Connection"
     },
     "InitialLoad": {
         "title": "Project Initial Load",

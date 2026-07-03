@@ -116,6 +116,106 @@ export async function ensureAccessAndPermissions(connection: Connection) {
 }
 
 /**
+ * Asegura el esquema del módulo de Cotizaciones de eventos (por proyecto):
+ *  - tblCotizaciones: cabecera de la cotización del evento (con totales calculados);
+ *  - tblCotizacionesGastos: desglose de gastos operativos por cotización.
+ * Idempotente.
+ */
+async function ensureQuotesTables(connection: Connection) {
+    try {
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblCotizaciones\` (
+              \`IdCotizacion\` int NOT NULL AUTO_INCREMENT,
+              \`NombreEvento\` varchar(255) NOT NULL,
+              \`FechaEvento\` date DEFAULT NULL,
+              \`IdPlatillo\` int DEFAULT NULL,
+              \`Platillo\` varchar(255) DEFAULT NULL,
+              \`CantidadPlatillos\` int NOT NULL DEFAULT 0,
+              \`CostoPorPlatillo\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`PrecioPorPlatillo\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`GastosOperativos\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`Recaudacion\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`CostoPlatillos\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`IngresoEstimado\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`CostoTotal\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`UtilidadEstimada\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`UtilidadReal\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`Notas\` text,
+              \`Status\` int NOT NULL DEFAULT 0,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdCotizacion\`),
+              KEY \`idx_status_fecha\` (\`Status\`, \`FechaEvento\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // Columnas agregadas después de la creación inicial (tablas ya existentes).
+        const [cotCols]: any = await connection.query('SHOW COLUMNS FROM tblCotizaciones');
+        const cotNames = cotCols.map((c: any) => c.Field);
+        if (!cotNames.includes('IdPlatillo')) {
+            await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN IdPlatillo int DEFAULT NULL AFTER FechaEvento');
+        }
+        if (!cotNames.includes('Platillo')) {
+            await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN Platillo varchar(255) DEFAULT NULL AFTER IdPlatillo');
+        }
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblCotizacionesGastos\` (
+              \`IdCotizacionGasto\` int NOT NULL AUTO_INCREMENT,
+              \`IdCotizacion\` int NOT NULL,
+              \`Concepto\` varchar(255) NOT NULL,
+              \`Monto\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdCotizacionGasto\`),
+              KEY \`idx_cotizacion\` (\`IdCotizacion\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // Líneas de platillo de cada cotización (una cotización tiene varios platillos).
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblCotizacionesPlatillos\` (
+              \`IdCotizacionPlatillo\` int NOT NULL AUTO_INCREMENT,
+              \`IdCotizacion\` int NOT NULL,
+              \`IdPlatillo\` int DEFAULT NULL,
+              \`Platillo\` varchar(255) DEFAULT NULL,
+              \`Cantidad\` int NOT NULL DEFAULT 0,
+              \`CostoUnitario\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`PrecioUnitario\` decimal(14,2) NOT NULL DEFAULT 0,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdCotizacionPlatillo\`),
+              KEY \`idx_cotizacion\` (\`IdCotizacion\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+    } catch (e) {
+        console.error('Error ensuring quotes schema:', e);
+    }
+}
+
+async function ensurePOSConfigTable(connection: Connection) {
+    try {
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblPOSConfig\` (
+              \`IdPOSConfig\` int NOT NULL AUTO_INCREMENT,
+              \`Provider\` varchar(50) NOT NULL DEFAULT 'none',
+              \`Url\` varchar(500) DEFAULT NULL,
+              \`User\` varchar(255) DEFAULT NULL,
+              \`Password\` varchar(255) DEFAULT NULL,
+              \`ApiKey\` varchar(500) DEFAULT NULL,
+              \`ApiEndpoint\` varchar(500) DEFAULT NULL,
+              \`SyncInterval\` varchar(50) DEFAULT 'daily',
+              \`AlertsEnabled\` tinyint NOT NULL DEFAULT 1,
+              \`AlertEmail\` varchar(255) DEFAULT NULL,
+              \`Status\` varchar(50) NOT NULL DEFAULT 'disconnected',
+              \`LastSync\` datetime DEFAULT NULL,
+              \`FechaAct\` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              PRIMARY KEY (\`IdPOSConfig\`)
+            ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+        `);
+    } catch (e) {
+        console.error('Error ensuring POS config schema:', e);
+    }
+}
+
+/**
  * Creates a connection to the project-specific database.
  * 
  * @param projectId The ID of the project to connect to.
@@ -167,6 +267,8 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
         if (!verifiedProjects.has(projectId)) {
             await ensureDocumentTablesAndColumns(connection);
             await ensureAccessAndPermissions(connection);
+            await ensurePOSConfigTable(connection);
+            await ensureQuotesTables(connection);
             verifiedProjects.add(projectId);
         }
 

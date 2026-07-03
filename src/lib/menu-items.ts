@@ -33,6 +33,8 @@ import {
     Book,
     Layers,
     Sparkles,
+    Mic,
+    Link2,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -64,8 +66,9 @@ export const menuItems: MenuSection[] = [
         emoji: '📊',
         color: '#06b6d4', // cyan
         items: [
-            { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo', icon: Sparkles, emoji: '🤖' },
+            // { key: 'advancedAgent', label: 'Agente Avanzado', href: '/dashboard/reportes/nuevo', icon: Sparkles, emoji: '🤖' },
             { key: 'myReports', label: 'Mis Reportes', href: '/dashboard/reportes', icon: Layers, emoji: '📁' },
+            // { key: 'jarvis', label: 'Modo Voz', href: '/dashboard/agente/jarvis', icon: Mic, emoji: '🎙️' },
         ],
     },
     {
@@ -80,6 +83,7 @@ export const menuItems: MenuSection[] = [
             { key: 'employees', href: '/dashboard/payroll/employees', icon: UserCheck, emoji: '🧑‍💼' },
             { key: 'taxes', href: '/dashboard/config/taxes', icon: Receipt, emoji: '🧾' },
             { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', icon: TrendingUp, emoji: '📈' },
+            { key: 'posConnection', href: '/dashboard/config/pos-connection', icon: Link2, emoji: '🔌' },
         ],
     },
     {
@@ -90,6 +94,7 @@ export const menuItems: MenuSection[] = [
         items: [
             { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
             { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
+            { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes', icon: FileText, emoji: '🧾' },
             // Oculto temporalmente del menú (la página sigue accesible en /dashboard/wansoft):
             // { key: 'wansoftSales', href: '/dashboard/wansoft', icon: TrendingUp, emoji: '📊', label: 'Ventas por Sucursal (Wansoft)' },
         ],

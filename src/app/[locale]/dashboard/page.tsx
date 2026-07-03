@@ -291,15 +291,19 @@ export default function DashboardPage() {
             if (data.success && data.data.length > 0) {
                 setBranches(data.data);
 
-                // Keep selected branch if it exists, save it, or auto-select if only 1 branch
+                // Keep selected branch if it exists and is valid for this project, otherwise auto-select the first one
                 const savedBranch = localStorage.getItem('dashboardSelectedBranch');
-                if (!savedBranch && !selectedBranch) {
-                    if (data.data.length === 1) {
-                        setSelectedBranch(data.data[0].IdSucursal.toString());
-                    } else {
-                        // Fallback to first branch if desired, or leave empty
-                        setSelectedBranch(data.data[0].IdSucursal.toString());
+                const branchToValidate = selectedBranch || savedBranch;
+                const isValidBranch = data.data.some((b: any) => b.IdSucursal.toString() === branchToValidate);
+
+                if (branchToValidate && isValidBranch) {
+                    if (branchToValidate !== selectedBranch) {
+                        setSelectedBranch(branchToValidate);
                     }
+                } else {
+                    const defaultBranch = data.data[0].IdSucursal.toString();
+                    setSelectedBranch(defaultBranch);
+                    localStorage.setItem('dashboardSelectedBranch', defaultBranch);
                 }
             }
         } catch (error) {

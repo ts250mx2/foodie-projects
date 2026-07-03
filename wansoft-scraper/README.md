@@ -11,12 +11,42 @@ devuelve JSON. Es rápido (~7 s las 10 sucursales) y robusto.
 ## Archivos
 | Archivo | Rol |
 |---|---|
-| `scrape.mjs` | **Producción.** Una corrida: login → ventas del día por sucursal → upsert en BD. |
+| `scrape.mjs` | Una corrida del **resumen consolidado**: login → ventas del día por sucursal → upsert en BD. |
+| `scrape-all.mjs` | **Producción (completo).** Resumen consolidado **+ los 21 reportes** de Wansoft, una tabla por reporte. Lo dispara el cron y el botón "Sincronizar ahora" del dashboard. |
 | `scheduler.mjs` | Loop en proceso que llama a `scrape.mjs` cada hora (alternativa al cron). |
 | `auth.mjs` | Login reusable en Wansoft (Playwright). |
 | `report.mjs` | Lista de sucursales + llamada a `GetConsolidatedSales`. |
-| `db.mjs` | Crea la tabla (idempotente) y hace upsert por `(Fecha, IdSucursal)`. |
+| `reports-registry.mjs` | **Fuente única de verdad:** define los 21 reportes (endpoint, tabla, tipo, columnas). |
+| `parse.mjs` | Parsers genéricos de los fragmentos HTML (rowReport / twoCard / Highcharts). |
+| `fetch-reports.mjs` | Pide cada reporte por su endpoint AJAX y lo parsea a filas. |
+| `reports-db.mjs` | Crea una tabla por reporte y refresca el día por `(Fecha, IdSucursal)` (delete+insert). |
+| `db.mjs` | Crea la tabla del consolidado (idempotente) y hace upsert por `(Fecha, IdSucursal)`. |
+| `dev/` | Helpers de desarrollo: extracción de fixtures y `test-parsers.mjs` (test offline de parsers). |
 | `explore*.mjs`, `test-*.mjs`, `verify-dates.mjs` | Helpers de desarrollo/diagnóstico (no necesarios en producción). |
+
+## Todos los reportes (`scrape-all.mjs`)
+Además del resumen consolidado, trae los 21 reportes de **Reportes → Ingresos** (Ventas por
+forma de pago, por grupo, por tipo de grupo, por zona, por tipo de orden, por hora, por usuario,
+por terminal, por modificador, por platillo, propinas, promociones, personas por hora/fecha/día,
+cobros por forma de pago, cancelaciones, cortesías, descuentos, anulaciones y megapuntos).
+
+Cada reporte se guarda en su propia tabla `tblWansoft<Reporte>` (ver `reports-registry.mjs`).
+Para agregar/ajustar un reporte basta con editar el registry. Los parsers están verificados
+offline contra HTML real del portal:
+```bash
+npm run test-parsers
+```
+
+Uso:
+```bash
+node scrape-all.mjs                       # hoy, todos los reportes, todas las sucursales
+node scrape-all.mjs --dry                 # imprime resumen, no toca la BD
+node scrape-all.mjs --branch=123          # una sola sucursal
+node scrape-all.mjs --only=SalesByGroup,SalesByUser
+DATE=2026-06-22 node scrape-all.mjs       # fecha específica
+```
+La corrida imprime una línea `SUMMARY {json}` que el API web (`/api/config/pos-connection/sync`)
+lee para registrar la bitácora.
 
 ## Configuración (`.env`)
 ```
@@ -51,9 +81,15 @@ DATE=2026-06-22 node scrape.mjs   # una fecha específica
 
 **Opción A — cron (Linux, recomendado):** sobrevive reinicios, una corrida por hora.
 ```cron
-# minuto 0 de cada hora
-0 * * * * cd /ruta/wansoft-scraper && /usr/bin/node scrape.mjs >> scrape.log 2>&1
+# minuto 0 de cada hora — TODOS los reportes
+0 * * * * cd /ruta/wansoft-scraper && /usr/bin/node scrape-all.mjs >> scrape.log 2>&1
 ```
+> Para sólo el resumen consolidado usa `scrape.mjs` en vez de `scrape-all.mjs`.
+
+**Botón "Sincronizar ahora" (dashboard):** el API `/api/config/pos-connection/sync` lanza
+`scrape-all.mjs` como proceso hijo usando las credenciales de Wansoft guardadas en `tblPOSConfig`
+y la BD del proyecto. Requiere que el servidor de la app tenga este folder con sus dependencias
+(`npm install`) y el navegador de Playwright instalado (`npx playwright install chromium`).
 
 **Opción B — proceso permanente con pm2** (Linux o Windows Server):
 ```bash

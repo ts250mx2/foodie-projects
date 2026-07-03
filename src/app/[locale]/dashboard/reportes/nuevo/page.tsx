@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Check, Maximize2, Minimize2, Eraser, FileBarChart, X } from 'lucide-react';
+import { Loader2, Check, Maximize2, Minimize2, Eraser, FileBarChart, X, ChefHat } from 'lucide-react';
 import { FcCommandLine, FcDatabase, FcComments, FcPlus, FcHighPriority } from 'react-icons/fc';
 
 const SUGGESTIONS = [
@@ -176,6 +176,9 @@ export default function AgenteAvanzadoConsole() {
                     className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
                     <Eraser size={13} /> Limpiar
                 </button>
+                <Link href={`/${locale}/dashboard/agente`} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 hover:text-indigo-600">
+                    <ChefHat size={13} className="text-indigo-500" /> Agente Foodie
+                </Link>
                 <Link href={`/${locale}/dashboard/reportes`} className="text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors" style={{ color: 'var(--color-brand-orange, #f4481e)' }}>Mis Reportes →</Link>
                 <button onClick={() => setMaximized(m => !m)} title={maximized ? 'Restaurar (Esc)' : 'Maximizar'}
                     className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">

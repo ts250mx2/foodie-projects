@@ -55,7 +55,8 @@
         "positions": "Positionen",
         "shifts": "Schichten",
         "payrollCapture": "Gehaltserfassung",
-        "confirmLogout": "Sind Sie sicher, dass Sie sich abmelden möchten?"
+        "confirmLogout": "Sind Sie sicher, dass Sie sich abmelden möchten?",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Verwaltung der Terminals",

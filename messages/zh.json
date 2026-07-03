@@ -74,7 +74,8 @@
         "positions": "Positions",
         "shifts": "Shifts",
         "payrollCapture": "Payroll Capture",
-        "confirmLogout": "您确定要注销吗？"
+        "confirmLogout": "您确定要注销吗？",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Terminals Management",

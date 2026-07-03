@@ -17,6 +17,8 @@ interface HeaderProps {
 // Mapa de segmentos de URL a etiquetas legibles
 const ROUTE_LABELS: Record<string, string> = {
     dashboard: 'Dashboard',
+    agente: 'Agente Foodie Gurú',
+    jarvis: 'Modo Voz',
     config: 'Configuración',
     project: 'Proyecto',
     'initial-load': 'Carga Inicial',
@@ -36,6 +38,7 @@ const ROUTE_LABELS: Record<string, string> = {
     terminals: 'Terminales',
     platforms: 'Plataformas',
     'app-price-calculator': 'Calculadora de Precio',
+    quotes: 'Cotizaciones',
     wansoft: 'Ventas por Sucursal (Wansoft)',
     inventories: 'Inventarios',
     products: 'Productos',

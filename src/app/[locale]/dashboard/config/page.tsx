@@ -13,7 +13,8 @@ import {
     UserCheck,
     Receipt,
     TrendingUp,
-    ChevronRight
+    ChevronRight,
+    Link2
 } from 'lucide-react';
 
 export default function ConfigDashboardPage() {
@@ -82,6 +83,16 @@ export default function ConfigDashboardPage() {
             href: `/dashboard/config/break-even`,
             icon: TrendingUp,
             badge: locale === 'es' ? 'Finanzas' : 'Finance'
+        },
+        {
+            key: 'posConnection',
+            title: t('posConnection'),
+            description: locale === 'es' 
+                ? 'Configura la conexión y sincronización con tu sistema de Punto de Venta.' 
+                : 'Configure connection and synchronization with your Point of Sale system.',
+            href: `/dashboard/config/pos-connection`,
+            icon: Link2,
+            badge: locale === 'es' ? 'Integración' : 'Integration'
         }
     ];
 

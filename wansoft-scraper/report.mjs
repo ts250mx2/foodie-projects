@@ -64,7 +64,7 @@ export async function getConsolidatedSales(ctx, subsidiaryId, startDate, endDate
 }
 
 /** Convierte el JSON del endpoint a la fila que guardamos. */
-function toRow(branch, fecha, j) {
+export function consolidatedToRow(branch, fecha, j) {
   return {
     fecha,
     idSucursal: Number(branch.id),
@@ -100,7 +100,7 @@ export async function scrapeSalesByBranch(ctx, page, { startDate, endDate, branc
   const rows = [];
   for (const b of branches) {
     const j = await getConsolidatedSales(ctx, b.id, startDate, endDate);
-    const row = toRow(b, startDate, j);
+    const row = consolidatedToRow(b, startDate, j);
     rows.push(row);
     if (onRow) await onRow(row);
   }

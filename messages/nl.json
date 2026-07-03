@@ -74,7 +74,8 @@
         "positions": "Positions",
         "shifts": "Shifts",
         "payrollCapture": "Payroll Capture",
-        "confirmLogout": "Weet u zeker dat u wilt uitloggen?"
+        "confirmLogout": "Weet u zeker dat u wilt uitloggen?",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Terminals Management",

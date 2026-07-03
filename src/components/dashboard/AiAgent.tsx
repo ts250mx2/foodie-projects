@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
-import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, ArrowUpRight, Link2, Check, Loader2, ChefHat } from 'lucide-react';
+import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, ArrowUpRight, Link2, Check, Loader2, ChefHat, Mic } from 'lucide-react';
 import { FcDocument } from 'react-icons/fc';
 import { useTheme } from '@/contexts/ThemeContext';
 import AgentChart from '@/components/dashboard/AgentChart';
@@ -189,6 +189,9 @@ function ChatPanel({
     dashboardData?: any;
 }) {
     const { colors } = useTheme();
+    const router = useRouter();
+    const params = useParams();
+    const locale = (params?.locale as string) || 'es';
     const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
     const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -336,6 +339,16 @@ function ChatPanel({
                         </div>
 
                         <div className="flex items-center gap-1">
+                            <button onClick={() => router.push(`/${locale}/dashboard/reportes/nuevo`)} title="Agente Avanzado"
+                                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                <Sparkles size={14} />
+                            </button>
+
+                            <button onClick={() => router.push(`/${locale}/dashboard/agente/jarvis`)} title="Activar Modo Voz"
+                                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                <Mic size={14} />
+                            </button>
+
                             <button onClick={onClear} title="Nueva conversación"
                                 className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
                                 <Trash2 size={14} />
@@ -856,14 +869,32 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                 subtitle={locale === 'es' ? 'Tu consultor de rentabilidad en tiempo real' : 'Your real-time profitability consultant'}
                 icon={ChefHat}
                 actions={
-                    <button
-                        onClick={handleClear}
-                        title={locale === 'es' ? 'Nueva conversación' : 'New conversation'}
-                        className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all active:scale-[0.98] shadow-sm"
-                    >
-                        <Trash2 size={13} className="text-gray-500" />
-                        <span>{locale === 'es' ? 'Limpiar Chat' : 'Clear Chat'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => router.push(`/${locale}/dashboard/reportes/nuevo`)}
+                            title={locale === 'es' ? 'Ir al Agente Avanzado' : 'Go to Advanced Agent'}
+                            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all active:scale-[0.98] shadow-sm"
+                        >
+                            <Sparkles size={13} className="text-white" />
+                            <span>{locale === 'es' ? 'Agente Avanzado' : 'Advanced Agent'}</span>
+                        </button>
+                        <button
+                            onClick={() => router.push(`/${locale}/dashboard/agente/jarvis`)}
+                            title={locale === 'es' ? 'Activar Modo Voz' : 'Activate Voice Mode'}
+                            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all active:scale-[0.98] shadow-sm"
+                        >
+                            <Mic size={13} className="text-white" />
+                            <span>{locale === 'es' ? 'Modo Voz' : 'Voice Mode'}</span>
+                        </button>
+                        <button
+                            onClick={handleClear}
+                            title={locale === 'es' ? 'Nueva conversación' : 'New conversation'}
+                            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all active:scale-[0.98] shadow-sm"
+                        >
+                            <Trash2 size={13} className="text-gray-500" />
+                            <span>{locale === 'es' ? 'Limpiar Chat' : 'Clear Chat'}</span>
+                        </button>
+                    </div>
                 }
                 className="flex-1 min-h-0 flex flex-col"
             >

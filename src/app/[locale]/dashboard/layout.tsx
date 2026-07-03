@@ -60,14 +60,15 @@ export default function DashboardLayout({
     // Páginas de pantalla completa (sin scroll del main): agente y consola de reportes.
     const isAgentePage = pathname?.includes('/dashboard/agente');
     const isConsolePage = pathname?.includes('/dashboard/reportes/nuevo');
+    const isVoicePage = pathname?.includes('/dashboard/agente/jarvis');
     const isFullBleed = isAgentePage || isConsolePage;
 
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-brand-cream flex flex-col overflow-x-hidden">
+            <div className={`bg-brand-cream flex flex-col overflow-x-hidden ${isFullBleed ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
                 <Header userName="" onToggleSidebar={toggleSidebar} />
 
-                <div className="flex flex-1 pt-16">
+                <div className={`flex flex-1 pt-16 ${isFullBleed ? 'h-screen min-h-0 overflow-hidden' : ''}`}>
                     <Sidebar
                         isCollapsed={isMobile ? false : isCollapsed}
                         mobileOpen={mobileNavOpen}
@@ -83,9 +84,9 @@ export default function DashboardLayout({
                         />
                     )}
 
-                    <main className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'} ${
+                    <main className={`relative flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'} ${
                         isFullBleed
-                            ? `${isConsolePage ? 'p-0' : 'px-4 sm:px-8 pt-4 pb-6'} h-[calc(100vh-4rem)] flex flex-col overflow-hidden`
+                            ? `${(isConsolePage || isAgentePage) ? 'p-0' : 'px-4 sm:px-8 pt-4 pb-6'} h-full flex flex-col overflow-hidden`
                             : 'px-4 sm:px-8 pt-4 pb-8 overflow-x-clip'
                     }`}>
                         {children}

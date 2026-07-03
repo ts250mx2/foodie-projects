@@ -74,7 +74,8 @@
         "positions": "Positions",
         "shifts": "Shifts",
         "payrollCapture": "Payroll Capture",
-        "confirmLogout": "هل أنت متأكد أنك تريد تسجيل الخروج؟"
+        "confirmLogout": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+        "posConnection": "POS Connection"
     },
     "Terminals": {
         "title": "Terminals Management",
