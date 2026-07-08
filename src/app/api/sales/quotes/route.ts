@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, nombreEvento, fechaEvento, recaudacion, notas, gastos = [], platillos = [] } = body;
+        const { projectId, nombreEvento, fechaEvento, horaEvento, estatus, recaudacion, notas, gastos = [], platillos = [] } = body;
 
         if (!projectId || !nombreEvento) {
             return NextResponse.json({ success: false, message: 'Faltan campos obligatorios (proyecto y nombre del evento).' }, { status: 400 });
@@ -41,17 +41,18 @@ export async function POST(request: NextRequest) {
         const items = normalizeGastos(gastos);
         const dishes = normalizeDishes(platillos);
         const t = computeQuoteTotals({ platillos: dishes, recaudacion, gastos: items });
+        const estatusEvento = estatus === 'confirmada' ? 'confirmada' : 'pendiente';
 
         connection = await getProjectConnection(parseInt(projectId));
 
         const [result]: any = await connection.query(
             `INSERT INTO tblCotizaciones
-              (NombreEvento, FechaEvento, CantidadPlatillos, GastosOperativos, Recaudacion,
+              (NombreEvento, FechaEvento, HoraEvento, EstatusEvento, CantidadPlatillos, GastosOperativos, Recaudacion,
                CostoPlatillos, IngresoEstimado, CostoTotal, UtilidadEstimada, UtilidadReal,
                Notas, Status, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
             [
-                nombreEvento, fechaEvento || null, t.cantidadPlatillos,
+                nombreEvento, fechaEvento || null, horaEvento || null, estatusEvento, t.cantidadPlatillos,
                 t.gastosOperativos, Number(recaudacion) || 0, t.costoPlatillos,
                 t.ingresoEstimado, t.costoTotal, t.utilidadEstimada, t.utilidadReal,
                 notas || null,
@@ -61,9 +62,9 @@ export async function POST(request: NextRequest) {
         const idCotizacion = result.insertId;
         for (const d of dishes) {
             await connection.query(
-                `INSERT INTO tblCotizacionesPlatillos (IdCotizacion, IdPlatillo, Platillo, Cantidad, CostoUnitario, PrecioUnitario, FechaAct)
-                 VALUES (?, ?, ?, ?, ?, ?, Now())`,
-                [idCotizacion, d.idPlatillo, d.platillo, d.cantidad, d.costoUnitario, d.precioUnitario]
+                `INSERT INTO tblCotizacionesPlatillos (IdCotizacion, IdPlatillo, Platillo, Tipo, Unidad, Cantidad, CostoUnitario, PrecioUnitario, FechaAct)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, Now())`,
+                [idCotizacion, d.idPlatillo, d.platillo, d.tipo, d.unidad || null, d.cantidad, d.costoUnitario, d.precioUnitario]
             );
         }
         for (const g of items) {

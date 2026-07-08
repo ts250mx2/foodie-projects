@@ -110,6 +110,20 @@ export async function ensureAccessAndPermissions(connection: Connection) {
               UNIQUE KEY \`uq_empleado_menu\` (\`IdEmpleado\`, \`MenuKey\`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+
+        // Migración: "Sucursales" (branches) e "Impuestos" (taxes) se fusionaron
+        // dentro de "Configuración General" (project) — sucursales como pestañas e
+        // impuestos como botón. Quien tuviera acceso a esos menús debe conservar
+        // acceso al menú fusionado. Idempotente: tras correr una vez no quedan filas
+        // 'branches'/'taxes', así que las siguientes ejecuciones no hacen nada.
+        await connection.query(`
+            INSERT INTO tblEmpleadosPermisos (IdEmpleado, MenuKey, Permitido, FechaAct)
+            SELECT DISTINCT IdEmpleado, 'project', 1, NOW()
+            FROM tblEmpleadosPermisos
+            WHERE MenuKey IN ('branches', 'taxes') AND Permitido = 1
+            ON DUPLICATE KEY UPDATE Permitido = 1, FechaAct = NOW()
+        `);
+        await connection.query(`DELETE FROM tblEmpleadosPermisos WHERE MenuKey IN ('branches', 'taxes')`);
     } catch (e) {
         console.error('Error ensuring access/permissions schema:', e);
     }
@@ -157,6 +171,13 @@ async function ensureQuotesTables(connection: Connection) {
         if (!cotNames.includes('Platillo')) {
             await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN Platillo varchar(255) DEFAULT NULL AFTER IdPlatillo');
         }
+        // Hora del evento (formato HH:MM) y estatus del evento (pendiente | confirmada).
+        if (!cotNames.includes('HoraEvento')) {
+            await connection.query("ALTER TABLE tblCotizaciones ADD COLUMN HoraEvento varchar(5) DEFAULT NULL AFTER FechaEvento");
+        }
+        if (!cotNames.includes('EstatusEvento')) {
+            await connection.query("ALTER TABLE tblCotizaciones ADD COLUMN EstatusEvento varchar(20) NOT NULL DEFAULT 'pendiente'");
+        }
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS \`tblCotizacionesGastos\` (
@@ -177,6 +198,7 @@ async function ensureQuotesTables(connection: Connection) {
               \`IdCotizacion\` int NOT NULL,
               \`IdPlatillo\` int DEFAULT NULL,
               \`Platillo\` varchar(255) DEFAULT NULL,
+              \`Tipo\` int DEFAULT NULL,
               \`Cantidad\` int NOT NULL DEFAULT 0,
               \`CostoUnitario\` decimal(14,2) NOT NULL DEFAULT 0,
               \`PrecioUnitario\` decimal(14,2) NOT NULL DEFAULT 0,
@@ -185,6 +207,16 @@ async function ensureQuotesTables(connection: Connection) {
               KEY \`idx_cotizacion\` (\`IdCotizacion\`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+        // Tipo de producto de la línea (0=insumo, 1=platillo, 2=sub-receta, null=manual).
+        const [platCols]: any = await connection.query('SHOW COLUMNS FROM tblCotizacionesPlatillos');
+        const platNames = platCols.map((c: any) => c.Field);
+        if (!platNames.includes('Tipo')) {
+            await connection.query('ALTER TABLE tblCotizacionesPlatillos ADD COLUMN Tipo int DEFAULT NULL AFTER Platillo');
+        }
+        // Unidad de medida de la línea (default: UnidadMedidaInventario del producto; editable).
+        if (!platNames.includes('Unidad')) {
+            await connection.query('ALTER TABLE tblCotizacionesPlatillos ADD COLUMN Unidad varchar(50) DEFAULT NULL AFTER Tipo');
+        }
     } catch (e) {
         console.error('Error ensuring quotes schema:', e);
     }

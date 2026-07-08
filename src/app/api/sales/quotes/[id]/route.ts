@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             [id]
         );
         const [platillos] = await connection.query(
-            'SELECT IdCotizacionPlatillo, IdPlatillo, Platillo, Cantidad, CostoUnitario, PrecioUnitario FROM tblCotizacionesPlatillos WHERE IdCotizacion = ? ORDER BY IdCotizacionPlatillo',
+            'SELECT IdCotizacionPlatillo, IdPlatillo, Platillo, Tipo, Unidad, Cantidad, CostoUnitario, PrecioUnitario FROM tblCotizacionesPlatillos WHERE IdCotizacion = ? ORDER BY IdCotizacionPlatillo',
             [id]
         );
         return NextResponse.json({ success: true, data: { ...rows[0], gastos, platillos } });
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { projectId, nombreEvento, fechaEvento, recaudacion, notas, gastos = [], platillos = [] } = body;
+        const { projectId, nombreEvento, fechaEvento, horaEvento, estatus, recaudacion, notas, gastos = [], platillos = [] } = body;
 
         if (!projectId || !nombreEvento) {
             return NextResponse.json({ success: false, message: 'Faltan campos obligatorios (proyecto y nombre del evento).' }, { status: 400 });
@@ -52,17 +52,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const items = normalizeGastos(gastos);
         const dishes = normalizeDishes(platillos);
         const t = computeQuoteTotals({ platillos: dishes, recaudacion, gastos: items });
+        const estatusEvento = estatus === 'confirmada' ? 'confirmada' : 'pendiente';
 
         connection = await getProjectConnection(parseInt(projectId));
 
         await connection.query(
             `UPDATE tblCotizaciones SET
-              NombreEvento = ?, FechaEvento = ?, CantidadPlatillos = ?, GastosOperativos = ?, Recaudacion = ?,
+              NombreEvento = ?, FechaEvento = ?, HoraEvento = ?, EstatusEvento = ?, CantidadPlatillos = ?, GastosOperativos = ?, Recaudacion = ?,
               CostoPlatillos = ?, IngresoEstimado = ?, CostoTotal = ?, UtilidadEstimada = ?, UtilidadReal = ?,
               Notas = ?, FechaAct = Now()
              WHERE IdCotizacion = ?`,
             [
-                nombreEvento, fechaEvento || null, t.cantidadPlatillos,
+                nombreEvento, fechaEvento || null, horaEvento || null, estatusEvento, t.cantidadPlatillos,
                 t.gastosOperativos, Number(recaudacion) || 0, t.costoPlatillos,
                 t.ingresoEstimado, t.costoTotal, t.utilidadEstimada, t.utilidadReal,
                 notas || null, id,
@@ -73,9 +74,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         await connection.query('DELETE FROM tblCotizacionesPlatillos WHERE IdCotizacion = ?', [id]);
         for (const d of dishes) {
             await connection.query(
-                `INSERT INTO tblCotizacionesPlatillos (IdCotizacion, IdPlatillo, Platillo, Cantidad, CostoUnitario, PrecioUnitario, FechaAct)
-                 VALUES (?, ?, ?, ?, ?, ?, Now())`,
-                [id, d.idPlatillo, d.platillo, d.cantidad, d.costoUnitario, d.precioUnitario]
+                `INSERT INTO tblCotizacionesPlatillos (IdCotizacion, IdPlatillo, Platillo, Tipo, Unidad, Cantidad, CostoUnitario, PrecioUnitario, FechaAct)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, Now())`,
+                [id, d.idPlatillo, d.platillo, d.tipo, d.unidad || null, d.cantidad, d.costoUnitario, d.precioUnitario]
             );
         }
         await connection.query('DELETE FROM tblCotizacionesGastos WHERE IdCotizacion = ?', [id]);
@@ -90,6 +91,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } catch (error) {
         console.error('Error updating quote:', error);
         return NextResponse.json({ success: false, message: 'Error updating quote' }, { status: 500 });
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+// PATCH: cambia sólo el estatus del evento (pendiente | confirmada) sin tocar el resto.
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    let connection;
+    try {
+        const { id } = await params;
+        const body = await request.json();
+        const { projectId, estatus } = body;
+        if (!projectId) {
+            return NextResponse.json({ success: false, message: 'Project ID is required' }, { status: 400 });
+        }
+        const estatusEvento = estatus === 'confirmada' ? 'confirmada' : 'pendiente';
+
+        connection = await getProjectConnection(parseInt(projectId));
+        await connection.query(
+            'UPDATE tblCotizaciones SET EstatusEvento = ?, FechaAct = Now() WHERE IdCotizacion = ?',
+            [estatusEvento, id]
+        );
+        return NextResponse.json({ success: true, message: 'Estatus actualizado', estatus: estatusEvento });
+    } catch (error) {
+        console.error('Error updating quote status:', error);
+        return NextResponse.json({ success: false, message: 'Error updating quote status' }, { status: 500 });
     } finally {
         if (connection) await connection.end();
     }

@@ -8,11 +8,8 @@ import {
     CreditCard,
     Users,
     ChefHat,
-    FolderOpen,
     Rocket,
-    MapPin,
     UserCheck,
-    Receipt,
     TrendingUp,
     Store,
     Calculator,
@@ -77,11 +74,9 @@ export const menuItems: MenuSection[] = [
         emoji: '⚙️',
         color: '#64748b', // slate
         items: [
-            { key: 'project', href: '/dashboard/config/project', icon: FolderOpen, emoji: '📁' },
+            { key: 'project', label: 'Configuración General', href: '/dashboard/config/project', icon: Settings, emoji: '⚙️' },
             { key: 'initialLoad', href: '/dashboard/config/initial-load', icon: Rocket, emoji: '🚀' },
-            { key: 'branches', href: '/dashboard/settings/branches', icon: MapPin, emoji: '📍' },
             { key: 'employees', href: '/dashboard/payroll/employees', icon: UserCheck, emoji: '🧑‍💼' },
-            { key: 'taxes', href: '/dashboard/config/taxes', icon: Receipt, emoji: '🧾' },
             { key: 'breakEvenAnalysis', href: '/dashboard/config/break-even', icon: TrendingUp, emoji: '📈' },
             { key: 'posConnection', href: '/dashboard/config/pos-connection', icon: Link2, emoji: '🔌' },
         ],
@@ -95,6 +90,7 @@ export const menuItems: MenuSection[] = [
             { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
             { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
             { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes', icon: FileText, emoji: '🧾' },
+            { key: 'eventsCalendar', label: 'Calendario de Eventos', href: '/dashboard/sales/events-calendar', icon: CalendarDays, emoji: '📅' },
             // Oculto temporalmente del menú (la página sigue accesible en /dashboard/wansoft):
             // { key: 'wansoftSales', href: '/dashboard/wansoft', icon: TrendingUp, emoji: '📊', label: 'Ventas por Sucursal (Wansoft)' },
         ],

@@ -7,7 +7,8 @@ import {
     Cell, PieChart, Pie, Legend
 } from 'recharts';
 import PageShell from '@/components/PageShell';
-import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2, Sparkles, TrendingUp, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -69,6 +70,11 @@ export default function DashboardPage() {
     const [showAiSummary,   setShowAiSummary]   = useState(false);
     const [aiSummaryText,   setAiSummaryText]   = useState('');
     const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+
+    // Income Statement modal
+    const [showIncomeStatement, setShowIncomeStatement] = useState(false);
+    const [incomeStatementData, setIncomeStatementData] = useState<any>(null);
+    const [incomeStatementLoading, setIncomeStatementLoading] = useState(false);
 
     // KPI Detail state
     const [selectedKpi, setSelectedKpi] = useState<string | null>('sales');
@@ -176,6 +182,74 @@ export default function DashboardPage() {
         } finally {
             setAiSummaryLoading(false);
         }
+    };
+
+    const handleIncomeStatement = async () => {
+        if (incomeStatementLoading) return;
+        setShowIncomeStatement(true);
+        setIncomeStatementData(null);
+        setIncomeStatementLoading(true);
+        try {
+            const storedProject = JSON.parse(localStorage.getItem('project') || '{}');
+            const projectId = storedProject.idProyecto || storedProject.IdProyecto;
+            const res = await fetch('/api/dashboard/income-statement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    branchId: selectedBranch,
+                    month: selectedMonth,
+                    year: selectedYear,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Error al calcular');
+            setIncomeStatementData(data);
+        } catch (err: any) {
+            setIncomeStatementData({ error: err.message });
+        } finally {
+            setIncomeStatementLoading(false);
+        }
+    };
+
+    const handleExportIncomeStatement = () => {
+        const d = incomeStatementData;
+        if (!d || d.error) return;
+
+        const monthName = tPurchases(`months.${d.period?.month}`);
+        const branchName = branches.find(b => String(b.IdSucursal) === String(selectedBranch))?.Sucursal || '';
+        const pct = (value: number) => d.ventas.total > 0 ? Number(((value / d.ventas.total) * 100).toFixed(2)) : 0;
+
+        const rows: (string | number)[][] = [
+            ['ESTADO DE RESULTADOS'],
+            [`${branchName} — ${monthName} ${d.period?.year}`],
+            [],
+            ['Concepto', 'Monto', '% Ventas'],
+            [],
+            ['VENTAS'],
+            ...(d.ventas?.detalles || []).map((v: any) => [v.canal, Number(v.monto), pct(Number(v.monto))]),
+            ['Total Ventas', Number(d.ventas?.total || 0), 100],
+            [],
+            ['COSTO DE MATERIA PRIMA (Compras por Categoría)'],
+            ...(d.costoMateriaPrima?.detalles || []).map((c: any) => [c.categoria, Number(c.total), pct(Number(c.total))]),
+            ['Total Materia Prima', Number(d.costoMateriaPrima?.total || 0), Number((d.costoMateriaPrima?.porcentaje || 0).toFixed(2))],
+            [],
+            ['GASTOS OPERATIVOS'],
+            ...(d.gastosOperativos?.detalles || []).map((g: any) => [g.ConceptoGasto, Number(g.total), pct(Number(g.total))]),
+            ['Total Gastos', Number(d.gastosOperativos?.total || 0), Number((d.gastosOperativos?.porcentaje || 0).toFixed(2))],
+            [],
+            ['NÓMINA'],
+            ['Total Nómina', Number(d.nomina?.total || 0), Number((d.nomina?.porcentaje || 0).toFixed(2))],
+            [],
+            ['Costo Total (Materia Prima + Gastos + Nómina)', Number(d.costoTotal || 0), pct(Number(d.costoTotal || 0))],
+            ['UTILIDAD / (PÉRDIDA)', Number(d.utilidad || 0), Number((d.margenUtilidad || 0).toFixed(2))],
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 10 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Estado de Resultados');
+        XLSX.writeFile(wb, `Estado_Resultados_${branchName || 'Sucursal'}_${monthName}_${d.period?.year}.xlsx`);
     };
 
     useEffect(() => {
@@ -621,6 +695,16 @@ export default function DashboardPage() {
                     >
                         <Sparkles size={14} className={aiSummaryLoading ? 'animate-spin' : ''} />
                         {aiSummaryLoading ? 'Analizando...' : 'Resumir con IA'}
+                    </button>
+                    <button
+                        onClick={handleIncomeStatement}
+                        disabled={incomeStatementLoading || !selectedBranch}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg text-white hover:brightness-110 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                        title="Ver Estado de Resultados del período"
+                    >
+                        <TrendingUp size={14} />
+                        {incomeStatementLoading ? 'Calculando...' : 'Estado de Resultados'}
                     </button>
                     <button onClick={toggleFullscreen} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors" title={isFullscreen ? 'Restaurar' : 'Maximizar'}>
                         {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -1782,6 +1866,177 @@ export default function DashboardPage() {
                 </div>
             )}
         </PageShell>
+
+        {/* ── Income Statement Modal ─────────────────────────────────────── */}
+        {showIncomeStatement && (
+            <div className="fixed inset-0 z-[99998] flex items-center justify-center p-4" onClick={() => setShowIncomeStatement(false)}>
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                <div
+                    className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Modal header — azul con letras blancas, como el botón que lo abre */}
+                    <div className="relative overflow-hidden px-6 py-4 flex items-center justify-between shrink-0 bg-blue-600">
+                        {/* Acento geométrico de marca (esquina derecha, como PageShell) */}
+                        <span aria-hidden="true" className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white opacity-[0.12]" />
+                        <div className="relative z-10 flex items-center gap-3.5 text-white">
+                            {/* Emoji en burbuja cuadrada redondeada, estilo IconBubble del menú */}
+                            <span className="w-9 h-9 rounded-lg shrink-0 grid place-items-center shadow-sm bg-white/20 text-lg select-none">📊</span>
+                            <div>
+                                <h2 className="brand-heading text-xl" style={{ color: '#ffffff' }}>Estado de Resultados</h2>
+                                <p className="text-[12px] mt-0.5 leading-tight" style={{ color: '#ffffff' }}>
+                                    {tPurchases(`months.${incomeStatementData?.period?.month}`)} {incomeStatementData?.period?.year}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="relative z-10 flex items-center gap-2">
+                            {!incomeStatementLoading && incomeStatementData && !incomeStatementData.error && (
+                                <button
+                                    onClick={handleExportIncomeStatement}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-semibold transition-colors"
+                                >
+                                    <Download size={16} />
+                                    <span className="max-sm:hidden">Exportar a Excel</span>
+                                </button>
+                            )}
+                            <button onClick={() => setShowIncomeStatement(false)} className="p-2 rounded-xl hover:bg-white/10 text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Modal body */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {incomeStatementLoading ? (
+                            <div className="flex flex-col items-center justify-center py-16 gap-4">
+                                <div className="w-16 h-16 rounded-full bg-yellow-50 flex items-center justify-center">
+                                    <TrendingUp size={32} className="text-yellow-600 animate-pulse" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="font-bold text-slate-700">Calculando estado de resultados...</p>
+                                    <p className="text-sm text-slate-500 mt-1">Recopilando datos de ventas, gastos y nómina</p>
+                                </div>
+                            </div>
+                        ) : incomeStatementData?.error ? (
+                            <div className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-center">
+                                <p className="text-rose-700 font-medium">{incomeStatementData.error}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* VENTAS */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-blue-600 px-4 py-3 border-b border-blue-700">
+                                        <h3 className="font-bold" style={{ color: '#ffffff' }}>VENTAS</h3>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                        {incomeStatementData?.ventas?.detalles?.map((v: any, i: number) => (
+                                            <div key={i} className="flex justify-between text-sm">
+                                                <span className="text-gray-600">{v.canal}</span>
+                                                <div className="flex gap-4">
+                                                    <span className="font-medium">${Number(v.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="text-gray-400 w-12 text-right">{((v.monto / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
+                                            <span>TOTAL VENTAS</span>
+                                            <span>${incomeStatementData?.ventas?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* COSTO DE MATERIA PRIMA */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-blue-600 px-4 py-3 border-b border-blue-700">
+                                        <h3 className="font-bold" style={{ color: '#ffffff' }}>COSTO DE MATERIA PRIMA (Compras por Categoría)</h3>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                        {incomeStatementData?.costoMateriaPrima?.detalles?.map((c: any, i: number) => (
+                                            <div key={i} className="flex justify-between text-sm">
+                                                <span className="text-gray-600">{c.categoria}</span>
+                                                <div className="flex gap-4">
+                                                    <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="text-gray-400 w-12 text-right">{((c.total / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
+                                            <span>Total Materia Prima</span>
+                                            <div className="flex gap-4">
+                                                <span>${incomeStatementData?.costoMateriaPrima?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span className="w-12 text-right">{incomeStatementData?.costoMateriaPrima?.porcentaje?.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* GASTOS OPERATIVOS */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-blue-600 px-4 py-3 border-b border-blue-700">
+                                        <h3 className="font-bold" style={{ color: '#ffffff' }}>GASTOS OPERATIVOS</h3>
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                        {incomeStatementData?.gastosOperativos?.detalles?.map((g: any, i: number) => (
+                                            <div key={i} className="flex justify-between text-sm">
+                                                <span className="text-gray-600">{g.ConceptoGasto}</span>
+                                                <div className="flex gap-4">
+                                                    <span className="font-medium">${Number(g.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="text-gray-400 w-12 text-right">{((g.total / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
+                                            <span>Total Gastos</span>
+                                            <div className="flex gap-4">
+                                                <span>${incomeStatementData?.gastosOperativos?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span className="w-12 text-right">{incomeStatementData?.gastosOperativos?.porcentaje?.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* NÓMINA */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-blue-600 px-4 py-3 border-b border-blue-700">
+                                        <h3 className="font-bold" style={{ color: '#ffffff' }}>NÓMINA</h3>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="flex justify-between font-bold text-blue-900">
+                                            <span>Total Nómina</span>
+                                            <div className="flex gap-4">
+                                                <span>${incomeStatementData?.nomina?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span className="w-12 text-right">{incomeStatementData?.nomina?.porcentaje?.toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* RESUMEN FINAL */}
+                                <div className="rounded-xl border-2 border-blue-600 overflow-hidden bg-gray-50">
+                                    <div className="bg-blue-600 px-4 py-3">
+                                        <h3 className="font-black text-lg" style={{ color: '#ffffff' }}>UTILIDAD / PÉRDIDA</h3>
+                                    </div>
+                                    <div className="p-4 space-y-3">
+                                        <div className="flex justify-between pb-2 border-b border-gray-200">
+                                            <span className="text-gray-600">Costo Total (Materia Prima + Gastos + Nómina)</span>
+                                            <span className="font-medium">${incomeStatementData?.costoTotal?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className={`flex justify-between pt-2 text-lg font-black ${incomeStatementData?.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            <span>UTILIDAD / (PÉRDIDA)</span>
+                                            <span>${incomeStatementData?.utilidad?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className={`flex justify-between text-sm font-semibold ${incomeStatementData?.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            <span>Margen</span>
+                                            <span>{incomeStatementData?.margenUtilidad?.toFixed(2)}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* ── AI Summary Modal ─────────────────────────────────────────── */}
         {showAiSummary && (

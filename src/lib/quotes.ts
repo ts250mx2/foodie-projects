@@ -16,9 +16,25 @@ export interface QuoteGasto {
 export interface QuoteDish {
     idPlatillo: number | null;
     platillo: string;
+    tipo: number | null;     // 0=insumo, 1=platillo, 2=sub-receta, null=manual/libre
+    unidad?: string;         // unidad de medida (default: UnidadMedidaInventario del producto; editable)
     cantidad: number;
     costoUnitario: number;   // costo de costeo por platillo
     precioUnitario: number;  // precio de venta por platillo
+}
+
+export interface QuoteDishTotals {
+    total: number;        // cantidad × precio unitario
+    recaudacion: number;  // (cantidad × precio) − (cantidad × costo)
+}
+
+/** Totales de una sola línea de platillo (para mostrarlos en vivo por línea). */
+export function computeDishLineTotals(dish: Partial<QuoteDish>): QuoteDishTotals {
+    const cantidad = n(dish?.cantidad);
+    const precio = n(dish?.precioUnitario);
+    const costo = n(dish?.costoUnitario);
+    const total = cantidad * precio;
+    return { total, recaudacion: total - cantidad * costo };
 }
 
 export interface QuoteInput {
@@ -59,6 +75,8 @@ export function normalizeDishes(platillos: unknown): QuoteDish[] {
         .map((p: any) => ({
             idPlatillo: p.idPlatillo !== null && p.idPlatillo !== undefined && p.idPlatillo !== '' ? Number(p.idPlatillo) : null,
             platillo: String(p.platillo || ''),
+            tipo: p.tipo !== null && p.tipo !== undefined && p.tipo !== '' ? Number(p.tipo) : null,
+            unidad: String(p.unidad || ''),
             cantidad: n(p.cantidad),
             costoUnitario: n(p.costoUnitario),
             precioUnitario: n(p.precioUnitario),

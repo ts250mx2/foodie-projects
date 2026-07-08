@@ -25,11 +25,9 @@ export const PERMISSION_MENU: MenuPermSection[] = [
     },
     {
         key: 'configuration', label: 'Configuración', items: [
-            { key: 'project', label: 'Proyecto', href: '/dashboard/config/project' },
+            { key: 'project', label: 'Configuración General', href: '/dashboard/config/project' },
             { key: 'initialLoad', label: 'Carga Inicial', href: '/dashboard/config/initial-load' },
-            { key: 'branches', label: 'Sucursales', href: '/dashboard/settings/branches' },
             { key: 'employees', label: 'Empleados', href: '/dashboard/payroll/employees' },
-            { key: 'taxes', label: 'Impuestos', href: '/dashboard/config/taxes' },
             { key: 'breakEvenAnalysis', label: 'Análisis de Punto de Equilibrio', href: '/dashboard/config/break-even' },
             { key: 'posConnection', label: 'Conexión a Punto de Venta', href: '/dashboard/config/pos-connection' },
         ],
@@ -39,6 +37,7 @@ export const PERMISSION_MENU: MenuPermSection[] = [
             { key: 'salesChannelsCapture', label: 'Captura de Canales de Venta', href: '/dashboard/sales/channels-capture' },
             { key: 'appPriceCalculator', label: 'Calculadora de Precios App', href: '/dashboard/sales/app-price-calculator' },
             { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes' },
+            { key: 'eventsCalendar', label: 'Calendario de Eventos', href: '/dashboard/sales/events-calendar' },
             // Oculto temporalmente del menú/permisos (la página sigue en /dashboard/wansoft):
             // { key: 'wansoftSales', label: 'Ventas por Sucursal (Wansoft)', href: '/dashboard/wansoft' },
         ],

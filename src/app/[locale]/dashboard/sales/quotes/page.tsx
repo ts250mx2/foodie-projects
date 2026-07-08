@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, AlertTriangle, FileText, X } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Plus, Pencil, Trash2, Search, AlertTriangle, FileText, X, CheckCircle2, Clock, ChevronDown } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
-import { computeQuoteTotals } from '@/lib/quotes';
+import { computeQuoteTotals, computeDishLineTotals } from '@/lib/quotes';
 
 interface Dish {
     idPlatillo: number;
     platillo: string;
     codigo: string;
+    tipo: number;   // 0=insumo, 1=platillo, 2=sub-receta
+    unidad: string; // UnidadMedidaInventario del producto
     costo: number;
 }
 
@@ -20,6 +22,8 @@ interface Quote {
     IdCotizacion: number;
     NombreEvento: string;
     FechaEvento: string | null;
+    HoraEvento: string | null;
+    EstatusEvento: string | null;
     CantidadPlatillos: number;
     GastosOperativos: number;
     Recaudacion: number;
@@ -32,10 +36,17 @@ interface Quote {
 }
 
 interface GastoRow { concepto: string; monto: string }
-interface DishRow { idPlatillo: string; platillo: string; cantidad: string; costoUnitario: string; precioUnitario: string }
+interface DishRow { idPlatillo: string; platillo: string; tipo: string; unidad: string; cantidad: string; costoUnitario: string; precioUnitario: string }
 
-const EMPTY_FORM = { nombreEvento: '', fechaEvento: '', recaudacion: '', notas: '' };
-const EMPTY_DISH: DishRow = { idPlatillo: '', platillo: '', cantidad: '', costoUnitario: '', precioUnitario: '' };
+const EMPTY_FORM = { nombreEvento: '', fechaEvento: '', horaEvento: '', estatus: 'pendiente', recaudacion: '', notas: '' };
+const EMPTY_DISH: DishRow = { idPlatillo: '', platillo: '', tipo: '', unidad: '', cantidad: '', costoUnitario: '', precioUnitario: '' };
+
+// Grupos del selector de conceptos, en el orden en que se muestran.
+const DISH_GROUPS: { tipo: number; label: string }[] = [
+    { tipo: 1, label: 'Platillos' },
+    { tipo: 2, label: 'Sub-recetas' },
+    { tipo: 0, label: 'Productos / Insumos' },
+];
 
 const money = (v: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number.isFinite(v) ? v : 0);
@@ -96,13 +107,16 @@ export default function QuotesPage() {
     const updateDish = (i: number, field: keyof DishRow, value: string) =>
         setPlatillos((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
 
-    // Al elegir un platillo en una línea, autollena su costo unitario desde el costeo.
+    // Al elegir un concepto en una línea, autollena su costo, tipo y unidad desde el costeo.
+    // value === '' => concepto manual (campo abierto): conserva el nombre y unidad escritos.
     const selectDish = (i: number, idStr: string) => {
         const dish = dishes.find((d) => String(d.idPlatillo) === idStr);
         setPlatillos((prev) => prev.map((p, idx) => idx === i ? {
             ...p,
             idPlatillo: idStr,
-            platillo: dish?.platillo || '',
+            tipo: dish ? String(dish.tipo) : '',
+            platillo: dish ? dish.platillo : p.platillo,
+            unidad: dish ? dish.unidad : p.unidad,
             costoUnitario: dish ? String(dish.costo) : p.costoUnitario,
         } : p));
     };
@@ -126,6 +140,8 @@ export default function QuotesPage() {
         setFormData({
             nombreEvento: q.NombreEvento || '',
             fechaEvento: q.FechaEvento ? String(q.FechaEvento).substring(0, 10) : '',
+            horaEvento: q.HoraEvento ? String(q.HoraEvento).substring(0, 5) : '',
+            estatus: q.EstatusEvento === 'confirmada' ? 'confirmada' : 'pendiente',
             recaudacion: String(q.Recaudacion ?? ''),
             notas: q.Notas || '',
         });
@@ -138,11 +154,13 @@ export default function QuotesPage() {
             if (data.success) {
                 if (Array.isArray(data.data.platillos)) {
                     setPlatillos(data.data.platillos.map((p: any) => {
-                        // Recalcula el costo unitario desde el costeo ACTUAL del platillo.
+                        // Recalcula el costo unitario desde el costeo ACTUAL del concepto.
                         const cur = dishes.find((d) => d.idPlatillo === Number(p.IdPlatillo));
                         return {
                             idPlatillo: p.IdPlatillo != null ? String(p.IdPlatillo) : '',
                             platillo: p.Platillo || '',
+                            tipo: p.Tipo != null ? String(p.Tipo) : (cur ? String(cur.tipo) : ''),
+                            unidad: p.Unidad || (cur ? cur.unidad : ''),
                             cantidad: String(p.Cantidad ?? ''),
                             costoUnitario: cur ? String(cur.costo) : String(p.CostoUnitario ?? ''),
                             precioUnitario: String(p.PrecioUnitario ?? ''),
@@ -163,6 +181,7 @@ export default function QuotesPage() {
         platillos: platillos.map((p) => ({
             idPlatillo: p.idPlatillo ? Number(p.idPlatillo) : null,
             platillo: p.platillo,
+            tipo: p.tipo !== '' ? Number(p.tipo) : null,
             cantidad: Number(p.cantidad) || 0,
             costoUnitario: Number(p.costoUnitario) || 0,
             precioUnitario: Number(p.precioUnitario) || 0,
@@ -179,6 +198,8 @@ export default function QuotesPage() {
                 projectId: project.idProyecto,
                 nombreEvento: formData.nombreEvento.trim(),
                 fechaEvento: formData.fechaEvento || null,
+                horaEvento: formData.horaEvento || null,
+                estatus: formData.estatus,
                 recaudacion: Number(formData.recaudacion) || 0,
                 notas: formData.notas || null,
                 platillos: platillos
@@ -186,6 +207,8 @@ export default function QuotesPage() {
                     .map((p) => ({
                         idPlatillo: p.idPlatillo ? Number(p.idPlatillo) : null,
                         platillo: p.platillo.trim(),
+                        tipo: p.tipo !== '' ? Number(p.tipo) : null,
+                        unidad: p.unidad.trim(),
                         cantidad: Number(p.cantidad) || 0,
                         costoUnitario: Number(p.costoUnitario) || 0,
                         precioUnitario: Number(p.precioUnitario) || 0,
@@ -208,6 +231,21 @@ export default function QuotesPage() {
             console.error('Error saving quote:', e);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Cambia el estatus de una cotización directamente desde la tabla.
+    const changeStatus = async (q: Quote, estatus: string) => {
+        setQuotes((prev) => prev.map((x) => x.IdCotizacion === q.IdCotizacion ? { ...x, EstatusEvento: estatus } : x));
+        try {
+            await fetch(`/api/sales/quotes/${q.IdCotizacion}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: project.idProyecto, estatus }),
+            });
+        } catch (e) {
+            console.error('Error updating status:', e);
+            fetchQuotes();
         }
     };
 
@@ -255,7 +293,8 @@ export default function QuotesPage() {
                     <table className="min-w-full border-collapse">
                         <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
                             <ThemedGridHeaderCell>Evento</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell>Fecha</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Fecha y hora</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell>Estatus</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Platillos</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Costo total</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Recaudación</ThemedGridHeaderCell>
@@ -266,14 +305,23 @@ export default function QuotesPage() {
                             loading={isLoading}
                             empty={filtered.length === 0}
                             emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay cotizaciones. Crea la primera.'}
-                            colSpan={7}
+                            colSpan={8}
                         >
                             {filtered.map((q) => (
                                 <TableRow key={q.IdCotizacion}>
                                     <TableCell>
                                         <span className="font-medium text-gray-900">{q.NombreEvento}</span>
                                     </TableCell>
-                                    <TableCell muted>{q.FechaEvento ? new Date(q.FechaEvento).toLocaleDateString('es-MX') : '—'}</TableCell>
+                                    <TableCell muted>
+                                        {q.FechaEvento ? new Date(q.FechaEvento).toLocaleDateString('es-MX') : '—'}
+                                        {q.HoraEvento ? <span className="text-gray-400"> · {String(q.HoraEvento).substring(0, 5)}</span> : null}
+                                    </TableCell>
+                                    <TableCell>
+                                        <StatusSelect
+                                            value={q.EstatusEvento === 'confirmada' ? 'confirmada' : 'pendiente'}
+                                            onChange={(v) => changeStatus(q, v)}
+                                        />
+                                    </TableCell>
                                     <TableCell align="right">{q.CantidadPlatillos}</TableCell>
                                     <TableCell align="right">{money(Number(q.CostoTotal))}</TableCell>
                                     <TableCell align="right">{money(Number(q.Recaudacion))}</TableCell>
@@ -321,70 +369,126 @@ export default function QuotesPage() {
                             placeholder="Ej. Boda Martínez"
                             required
                         />
-                        <Input
-                            label="Fecha del evento"
-                            type="date"
-                            value={formData.fechaEvento}
-                            onChange={(e) => setFormData({ ...formData, fechaEvento: e.target.value })}
-                        />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Input
+                                label="Fecha del evento"
+                                type="date"
+                                value={formData.fechaEvento}
+                                onChange={(e) => setFormData({ ...formData, fechaEvento: e.target.value })}
+                            />
+                            <Input
+                                label="Hora del evento"
+                                type="time"
+                                value={formData.horaEvento}
+                                onChange={(e) => setFormData({ ...formData, horaEvento: e.target.value })}
+                            />
+                            <div className="w-full flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estatus</label>
+                                <select
+                                    value={formData.estatus}
+                                    onChange={(e) => setFormData({ ...formData, estatus: e.target.value })}
+                                    className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 text-gray-800"
+                                >
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="confirmada">Confirmada</option>
+                                </select>
+                            </div>
+                        </div>
+                        {formData.estatus === 'confirmada' && (
+                            <p className="text-[11px] text-emerald-600 flex items-center gap-1 -mt-1">
+                                <CheckCircle2 size={12} /> Al confirmarla aparecerá en el Calendario de Eventos.
+                            </p>
+                        )}
 
-                        {/* Platillos (varias líneas) */}
+                        {/* Platillos / conceptos (varias líneas) */}
                         <div className="space-y-2 pt-2 border-t border-gray-100">
                             <div className="flex items-center justify-between">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Platillos</label>
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Platillos y conceptos</label>
                                 <button onClick={addDish} className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-                                    <Plus size={13} /> Agregar platillo
+                                    <Plus size={13} /> Agregar concepto
                                 </button>
                             </div>
                             {platillos.length === 0 && (
-                                <p className="text-xs text-gray-400">Agrega uno o varios platillos. El costo se toma del costeo de cada platillo.</p>
-                            )}
-                            {/* Encabezados (solo en pantallas medianas+) */}
-                            {platillos.length > 0 && (
-                                <div className="hidden sm:grid grid-cols-12 gap-2 px-1">
-                                    <span className="col-span-5 text-[10px] font-bold text-gray-400 uppercase">Platillo</span>
-                                    <span className="col-span-2 text-[10px] font-bold text-gray-400 uppercase text-right">Cantidad</span>
-                                    <span className="col-span-2 text-[10px] font-bold text-gray-400 uppercase text-right">Costo</span>
-                                    <span className="col-span-2 text-[10px] font-bold text-gray-400 uppercase text-right">Precio</span>
-                                    <span className="col-span-1" />
-                                </div>
+                                <p className="text-xs text-gray-400">Agrega platillos, sub-recetas, productos o un concepto manual. El costo se toma del costeo de cada uno.</p>
                             )}
                             <div className="space-y-2">
-                                {platillos.map((p, i) => (
-                                    <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                                        <select
-                                            value={p.idPlatillo}
-                                            onChange={(e) => selectDish(i, e.target.value)}
-                                            className="col-span-12 sm:col-span-5 text-sm rounded-lg border border-gray-200 px-2 py-2 bg-white focus:outline-none focus:border-blue-500"
-                                        >
-                                            <option value="">Platillo manual…</option>
-                                            {dishes.map((d) => (
-                                                <option key={d.idPlatillo} value={d.idPlatillo}>{d.platillo} — {money(d.costo)}</option>
-                                            ))}
-                                        </select>
-                                        <input
-                                            type="number" min="0" placeholder="Cant."
-                                            value={p.cantidad}
-                                            onChange={(e) => updateDish(i, 'cantidad', e.target.value)}
-                                            className="col-span-4 sm:col-span-2 text-sm text-right rounded-lg border border-gray-200 px-2 py-2 focus:outline-none focus:border-blue-500"
-                                        />
-                                        <input
-                                            type="number" min="0" step="0.01" placeholder="Costo"
-                                            value={p.costoUnitario}
-                                            onChange={(e) => updateDish(i, 'costoUnitario', e.target.value)}
-                                            className="col-span-4 sm:col-span-2 text-sm text-right rounded-lg border border-gray-200 px-2 py-2 focus:outline-none focus:border-blue-500"
-                                        />
-                                        <input
-                                            type="number" min="0" step="0.01" placeholder="Precio"
-                                            value={p.precioUnitario}
-                                            onChange={(e) => updateDish(i, 'precioUnitario', e.target.value)}
-                                            className="col-span-3 sm:col-span-2 text-sm text-right rounded-lg border border-gray-200 px-2 py-2 focus:outline-none focus:border-blue-500"
-                                        />
-                                        <button onClick={() => removeDish(i)} className="col-span-1 flex justify-center p-2 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar platillo">
-                                            <X size={15} />
-                                        </button>
-                                    </div>
-                                ))}
+                                {platillos.map((p, i) => {
+                                    const isManual = p.idPlatillo === '';
+                                    const line = computeDishLineTotals({
+                                        cantidad: Number(p.cantidad) || 0,
+                                        costoUnitario: Number(p.costoUnitario) || 0,
+                                        precioUnitario: Number(p.precioUnitario) || 0,
+                                    });
+                                    return (
+                                        <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/40 p-3 space-y-2">
+                                            {/* Selector de concepto (con búsqueda incremental) + eliminar */}
+                                            <div className="flex items-center gap-2">
+                                                <DishCombobox
+                                                    dishes={dishes}
+                                                    value={p.idPlatillo}
+                                                    selectedLabel={p.idPlatillo !== '' ? p.platillo : ''}
+                                                    onSelect={(idStr) => selectDish(i, idStr)}
+                                                />
+                                                <button onClick={() => removeDish(i)} className="shrink-0 p-2 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar concepto">
+                                                    <X size={15} />
+                                                </button>
+                                            </div>
+
+                                            {/* Nombre libre cuando es concepto manual */}
+                                            {isManual && (
+                                                <input
+                                                    type="text"
+                                                    value={p.platillo}
+                                                    onChange={(e) => updateDish(i, 'platillo', e.target.value)}
+                                                    placeholder="Nombre del concepto (ej. Servicio de barra libre)"
+                                                    className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-blue-500"
+                                                />
+                                            )}
+
+                                            {/* Cantidad / Unidad / Costo / Precio + calculados */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                                                <LabeledField label="Cantidad">
+                                                    <input
+                                                        type="number" min="0" placeholder="0"
+                                                        value={p.cantidad}
+                                                        onChange={(e) => updateDish(i, 'cantidad', e.target.value)}
+                                                        className="w-full text-sm text-right rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Unidad" hint={isManual ? 'Libre' : 'De inventario'}>
+                                                    <input
+                                                        type="text" placeholder="pza, kg…"
+                                                        value={p.unidad}
+                                                        onChange={(e) => updateDish(i, 'unidad', e.target.value)}
+                                                        className="w-full text-sm rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Costo">
+                                                    <input
+                                                        type="number" min="0" step="0.01" placeholder="0.00"
+                                                        value={p.costoUnitario}
+                                                        onChange={(e) => updateDish(i, 'costoUnitario', e.target.value)}
+                                                        className="w-full text-sm text-right rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Precio">
+                                                    <input
+                                                        type="number" min="0" step="0.01" placeholder="0.00"
+                                                        value={p.precioUnitario}
+                                                        onChange={(e) => updateDish(i, 'precioUnitario', e.target.value)}
+                                                        className="w-full text-sm text-right rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Total" hint="Cant × Precio">
+                                                    <div className="text-sm text-right font-semibold text-gray-800 px-2 py-1.5 tabular-nums">{money(line.total)}</div>
+                                                </LabeledField>
+                                                <LabeledField label="Recaudación" hint="Total − costo">
+                                                    <div className={`text-sm text-right font-semibold px-2 py-1.5 tabular-nums ${line.recaudacion >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{money(line.recaudacion)}</div>
+                                                </LabeledField>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -452,6 +556,7 @@ export default function QuotesPage() {
                             <SummaryRow label="Total de platillos" value={String(totals.cantidadPlatillos)} />
                             <SummaryRow label="Costo de platillos" value={money(totals.costoPlatillos)} hint="Σ cantidad × costo unitario" />
                             <SummaryRow label="Ingreso estimado" value={money(totals.ingresoEstimado)} hint="Σ cantidad × precio unitario" />
+                            <SummaryRow label="Recaudación de platillos" value={money(totals.ingresoEstimado - totals.costoPlatillos)} hint="Σ (cant × precio) − (cant × costo)" positive={(totals.ingresoEstimado - totals.costoPlatillos) >= 0} />
                             <SummaryRow label="Gastos operativos" value={money(totals.gastosOperativos)} />
                             <div className="border-t border-gray-200 my-1" />
                             <SummaryRow label="Costo total" value={money(totals.costoTotal)} strong />
@@ -486,6 +591,137 @@ export default function QuotesPage() {
                 </div>
             </BaseModal>
         </PageShell>
+    );
+}
+
+/**
+ * Combobox de conceptos con búsqueda incremental: escribe para filtrar platillos,
+ * sub-recetas y productos (por nombre o código); también permite elegir
+ * "concepto manual" para capturar un campo abierto.
+ */
+function DishCombobox({
+    dishes,
+    value,
+    selectedLabel,
+    onSelect,
+}: {
+    dishes: Dish[];
+    value: string;            // idPlatillo seleccionado ('' = concepto manual)
+    selectedLabel: string;    // nombre a mostrar cuando hay selección
+    onSelect: (idStr: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    // Cierra al hacer clic fuera.
+    useEffect(() => {
+        if (!open) return;
+        const onDown = (e: MouseEvent) => {
+            if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
+    }, [open]);
+
+    const q = query.trim().toLowerCase();
+    const filtered = useMemo(
+        () => (q === ''
+            ? dishes
+            : dishes.filter((d) => d.platillo.toLowerCase().includes(q) || d.codigo.toLowerCase().includes(q))),
+        [dishes, q]
+    );
+
+    const displayText = value !== '' ? selectedLabel : '✍️ Concepto manual (campo abierto)…';
+
+    const pick = (idStr: string) => {
+        onSelect(idStr);
+        setQuery('');
+        setOpen(false);
+    };
+
+    return (
+        <div ref={rootRef} className="relative flex-1 min-w-0">
+            <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                <input
+                    type="text"
+                    value={open ? query : displayText}
+                    onChange={(e) => { setQuery(e.target.value); if (!open) setOpen(true); }}
+                    onFocus={() => { setOpen(true); setQuery(''); }}
+                    placeholder="Buscar platillo, sub-receta o producto…"
+                    className={`w-full text-sm rounded-lg border border-gray-200 pl-8 pr-8 py-2 bg-white focus:outline-none focus:border-blue-500 ${value === '' && !open ? 'text-gray-500' : 'text-gray-800'}`}
+                />
+                <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </div>
+            {open && (
+                <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
+                    <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); pick(''); }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${value === '' ? 'bg-blue-50/60 font-semibold text-blue-700' : 'text-gray-700'}`}
+                    >
+                        ✍️ Concepto manual (campo abierto)…
+                    </button>
+                    {DISH_GROUPS.map((g) => {
+                        const items = filtered.filter((d) => d.tipo === g.tipo);
+                        if (items.length === 0) return null;
+                        return (
+                            <div key={g.tipo}>
+                                <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wide">{g.label}</div>
+                                {items.map((d) => (
+                                    <button
+                                        key={d.idPlatillo}
+                                        type="button"
+                                        onMouseDown={(e) => { e.preventDefault(); pick(String(d.idPlatillo)); }}
+                                        className={`w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 flex items-center justify-between gap-2 ${String(d.idPlatillo) === value ? 'bg-blue-50/60 font-semibold text-blue-700' : 'text-gray-700'}`}
+                                    >
+                                        <span className="truncate">{d.platillo}{d.unidad ? <span className="text-gray-400"> · {d.unidad}</span> : null}</span>
+                                        <span className="shrink-0 text-xs text-gray-500 tabular-nums">{money(d.costo)}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })}
+                    {filtered.length === 0 && (
+                        <p className="px-3 py-2 text-xs text-gray-400">Sin resultados para “{query}”.</p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function LabeledField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">{label}</span>
+            {children}
+            {hint && <span className="text-[9px] text-gray-400 leading-none px-2">{hint}</span>}
+        </div>
+    );
+}
+
+function StatusSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const confirmed = value === 'confirmada';
+    return (
+        <div className="relative inline-flex">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={`appearance-none cursor-pointer text-xs font-semibold rounded-full pl-6 pr-6 py-1 border focus:outline-none transition-colors ${
+                    confirmed
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}
+            >
+                <option value="pendiente">Pendiente</option>
+                <option value="confirmada">Confirmada</option>
+            </select>
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2">
+                {confirmed ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-amber-600" />}
+            </span>
+        </div>
     );
 }
 
