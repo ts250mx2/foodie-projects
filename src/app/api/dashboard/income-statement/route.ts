@@ -115,6 +115,65 @@ export async function POST(request: NextRequest) {
 
         const totalNomina = Number((nominaRows as RowDataPacket[])[0]?.total || 0);
 
+        // 5. INVENTARIO FINAL: el último inventario capturado hasta el fin del mes
+        // (mismo costeo que el KPI del dashboard: Cantidad × COALESCE(CostoInventario, Precio)).
+        // Se devuelve agrupado por categoría y con detalle por producto; el cliente decide
+        // (checkbox) si lo suma a la utilidad.
+        const [lastInvRows] = await connection.query(
+            `SELECT I.Anio AS anio, I.Mes AS mes, I.Dia AS dia,
+                    SUM(I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) AS total
+             FROM tblInventarios I
+             LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
+             WHERE I.IdSucursal = ? AND DATE(CONCAT(I.Anio, '-', I.Mes, '-', I.Dia)) <= ?
+             GROUP BY I.Anio, I.Mes, I.Dia
+             HAVING total > 0
+             ORDER BY I.Anio DESC, I.Mes DESC, I.Dia DESC
+             LIMIT 1`,
+            [parseInt(branchId), endDateStr]
+        );
+
+        let inventarioFinal: {
+            fecha: string;
+            total: number;
+            categorias: RowDataPacket[];
+            productos: RowDataPacket[];
+        } | null = null;
+
+        const lastInv = (lastInvRows as RowDataPacket[])[0];
+        if (lastInv) {
+            const invParams = [parseInt(branchId), lastInv.dia, lastInv.mes, lastInv.anio];
+            const [invCatRows] = await connection.query(
+                `SELECT COALESCE(v.Categoria, 'SIN CATEGORÍA') AS categoria,
+                        SUM(I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) AS total
+                 FROM tblInventarios I
+                 LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
+                 WHERE I.IdSucursal = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ?
+                 GROUP BY COALESCE(v.Categoria, 'SIN CATEGORÍA')
+                 HAVING total > 0
+                 ORDER BY total DESC`,
+                invParams
+            );
+            const [invProdRows] = await connection.query(
+                `SELECT COALESCE(v.Categoria, 'SIN CATEGORÍA') AS categoria,
+                        v.Producto AS producto,
+                        I.Cantidad AS cantidad,
+                        COALESCE(v.CostoInventario, I.Precio) AS costo,
+                        (I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) AS total
+                 FROM tblInventarios I
+                 LEFT JOIN vlProductos v ON I.IdProducto = v.IdProducto
+                 WHERE I.IdSucursal = ? AND I.Dia = ? AND I.Mes = ? AND I.Anio = ?
+                 AND (I.Cantidad * COALESCE(v.CostoInventario, I.Precio)) > 0
+                 ORDER BY categoria, total DESC`,
+                invParams
+            );
+            inventarioFinal = {
+                fecha: `${lastInv.anio}-${String(lastInv.mes).padStart(2, '0')}-${String(lastInv.dia).padStart(2, '0')}`,
+                total: Number(lastInv.total) || 0,
+                categorias: invCatRows as RowDataPacket[],
+                productos: invProdRows as RowDataPacket[],
+            };
+        }
+
         // Cálculos finales
         const costoTotal = costMateriaPrima + totalGastos + totalNomina;
         const utilidad = totalVentas - costoTotal;
@@ -142,6 +201,7 @@ export async function POST(request: NextRequest) {
                 total: totalNomina,
                 porcentaje: totalVentas > 0 ? (totalNomina / totalVentas) * 100 : 0,
             },
+            inventarioFinal,
             costoTotal,
             utilidad,
             margenUtilidad,

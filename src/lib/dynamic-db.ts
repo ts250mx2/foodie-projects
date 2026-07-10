@@ -207,6 +207,18 @@ async function ensureQuotesTables(connection: Connection) {
               KEY \`idx_cotizacion\` (\`IdCotizacion\`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+        // Plantillas de cotización: conceptos + gastos guardados como JSON para
+        // reutilizarlos en futuras cotizaciones.
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblCotizacionesPlantillas\` (
+              \`IdPlantilla\` int NOT NULL AUTO_INCREMENT,
+              \`Nombre\` varchar(255) NOT NULL,
+              \`Datos\` longtext,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdPlantilla\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
         // Tipo de producto de la línea (0=insumo, 1=platillo, 2=sub-receta, null=manual).
         const [platCols]: any = await connection.query('SHOW COLUMNS FROM tblCotizacionesPlatillos');
         const platNames = platCols.map((c: any) => c.Field);

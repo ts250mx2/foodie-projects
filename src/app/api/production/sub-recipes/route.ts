@@ -16,13 +16,15 @@ export async function GET(request: NextRequest) {
         const type = searchParams.get('type') || '2'; // Default to sub-recipes
         connection = await getProjectConnection(projectId);
 
-        // Fetch products based on type: 2 for sub-recipes, 1 for dishes (platillos)
+        // Fetch products based on type: 2 for sub-recipes, 1 for dishes (platillos).
+        // NumIngredientes: cuántos productos componen su receta/costeo (tblProductosKits).
         const [rows] = await connection.query(
-            `SELECT p.*, cat.Categoria, pres.Presentacion 
+            `SELECT p.*, cat.Categoria, pres.Presentacion,
+                    (SELECT COUNT(*) FROM tblProductosKits k WHERE k.IdProductoPadre = p.IdProducto) AS NumIngredientes
              FROM tblProductos p
              LEFT JOIN tblCategorias cat ON p.IdCategoria = cat.IdCategoria
              LEFT JOIN tblPresentaciones pres ON p.IdPresentacion = pres.IdPresentacion
-             WHERE p.IdTipoProducto = ? AND p.Status = 0 
+             WHERE p.IdTipoProducto = ? AND p.Status = 0
              ORDER BY p.Producto ASC`,
             [parseInt(type)]
         );

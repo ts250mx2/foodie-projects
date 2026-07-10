@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import PageShell from '@/components/PageShell';
 import { LayoutDashboard, Maximize2, Minimize2, X, AlertTriangle, CheckCircle2, Sparkles, TrendingUp, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -75,6 +75,8 @@ export default function DashboardPage() {
     const [showIncomeStatement, setShowIncomeStatement] = useState(false);
     const [incomeStatementData, setIncomeStatementData] = useState<any>(null);
     const [incomeStatementLoading, setIncomeStatementLoading] = useState(false);
+    // Inventario Final (informativo, no afecta la utilidad): categorías expandibles
+    const [openInvCategories, setOpenInvCategories] = useState<string[]>([]);
 
     // KPI Detail state
     const [selectedKpi, setSelectedKpi] = useState<string | null>('sales');
@@ -188,6 +190,7 @@ export default function DashboardPage() {
         if (incomeStatementLoading) return;
         setShowIncomeStatement(true);
         setIncomeStatementData(null);
+        setOpenInvCategories([]);
         setIncomeStatementLoading(true);
         try {
             const storedProject = JSON.parse(localStorage.getItem('project') || '{}');
@@ -212,44 +215,126 @@ export default function DashboardPage() {
         }
     };
 
-    const handleExportIncomeStatement = () => {
+    const handleExportIncomeStatement = async () => {
         const d = incomeStatementData;
         if (!d || d.error) return;
 
         const monthName = tPurchases(`months.${d.period?.month}`);
         const branchName = branches.find(b => String(b.IdSucursal) === String(selectedBranch))?.Sucursal || '';
-        const pct = (value: number) => d.ventas.total > 0 ? Number(((value / d.ventas.total) * 100).toFixed(2)) : 0;
+        // % sobre ventas como fracción (el formato de celda lo pinta como porcentaje)
+        const pct = (value: number) => (d.ventas.total > 0 ? value / d.ventas.total : 0);
 
-        const rows: (string | number)[][] = [
-            ['ESTADO DE RESULTADOS'],
-            [`${branchName} — ${monthName} ${d.period?.year}`],
-            [],
-            ['Concepto', 'Monto', '% Ventas'],
-            [],
-            ['VENTAS'],
-            ...(d.ventas?.detalles || []).map((v: any) => [v.canal, Number(v.monto), pct(Number(v.monto))]),
-            ['Total Ventas', Number(d.ventas?.total || 0), 100],
-            [],
-            ['COSTO DE MATERIA PRIMA (Compras por Categoría)'],
-            ...(d.costoMateriaPrima?.detalles || []).map((c: any) => [c.categoria, Number(c.total), pct(Number(c.total))]),
-            ['Total Materia Prima', Number(d.costoMateriaPrima?.total || 0), Number((d.costoMateriaPrima?.porcentaje || 0).toFixed(2))],
-            [],
-            ['GASTOS OPERATIVOS'],
-            ...(d.gastosOperativos?.detalles || []).map((g: any) => [g.ConceptoGasto, Number(g.total), pct(Number(g.total))]),
-            ['Total Gastos', Number(d.gastosOperativos?.total || 0), Number((d.gastosOperativos?.porcentaje || 0).toFixed(2))],
-            [],
-            ['NÓMINA'],
-            ['Total Nómina', Number(d.nomina?.total || 0), Number((d.nomina?.porcentaje || 0).toFixed(2))],
-            [],
-            ['Costo Total (Materia Prima + Gastos + Nómina)', Number(d.costoTotal || 0), pct(Number(d.costoTotal || 0))],
-            ['UTILIDAD / (PÉRDIDA)', Number(d.utilidad || 0), Number((d.margenUtilidad || 0).toFixed(2))],
-        ];
+        // Paleta alineada al modal: headers azul con letra blanca, totales en azul claro.
+        const BLUE = 'FF2563EB';
+        const BLUE_LIGHT = 'FFDBEAFE';
+        const GRAY = 'FF6B7280';
+        const GREEN = 'FF059669';
+        const RED = 'FFE11D48';
+        const MONEY_FMT = '$#,##0.00';
+        const PCT_FMT = '0.0%';
 
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 48 }, { wch: 16 }, { wch: 10 }];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Estado de Resultados');
-        XLSX.writeFile(wb, `Estado_Resultados_${branchName || 'Sucursal'}_${monthName}_${d.period?.year}.xlsx`);
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Estado de Resultados');
+        ws.columns = [{ width: 48 }, { width: 18 }, { width: 12 }];
+
+        // Título y período
+        const title = ws.addRow(['ESTADO DE RESULTADOS']);
+        ws.mergeCells(`A${title.number}:C${title.number}`);
+        title.getCell(1).font = { bold: true, size: 16 };
+        const sub = ws.addRow([`${branchName} — ${monthName} ${d.period?.year}`]);
+        ws.mergeCells(`A${sub.number}:C${sub.number}`);
+        sub.getCell(1).font = { size: 11, color: { argb: GRAY } };
+        ws.addRow([]);
+
+        // Encabezado de columnas
+        const colHeader = ws.addRow(['Concepto', 'Monto', '% Ventas']);
+        colHeader.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } };
+            cell.alignment = { horizontal: cell.col === '1' ? 'left' : 'right' };
+        });
+        colHeader.getCell(2).alignment = { horizontal: 'right' };
+        colHeader.getCell(3).alignment = { horizontal: 'right' };
+
+        const addSectionHeader = (label: string) => {
+            ws.addRow([]);
+            const r = ws.addRow([label]);
+            ws.mergeCells(`A${r.number}:C${r.number}`);
+            const cell = r.getCell(1);
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } };
+        };
+
+        const addDetail = (name: string, monto: number) => {
+            const r = ws.addRow([name, monto, pct(monto)]);
+            r.getCell(2).numFmt = MONEY_FMT;
+            r.getCell(3).numFmt = PCT_FMT;
+        };
+
+        const addTotal = (label: string, monto: number, pctFrac: number) => {
+            const r = ws.addRow([label, monto, pctFrac]);
+            r.eachCell((cell) => {
+                cell.font = { bold: true };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_LIGHT } };
+                cell.border = { top: { style: 'thin', color: { argb: BLUE } } };
+            });
+            r.getCell(2).numFmt = MONEY_FMT;
+            r.getCell(3).numFmt = PCT_FMT;
+        };
+
+        // VENTAS
+        addSectionHeader('VENTAS');
+        (d.ventas?.detalles || []).forEach((v: any) => addDetail(v.canal, Number(v.monto)));
+        addTotal('Total Ventas', Number(d.ventas?.total || 0), 1);
+
+        // COSTO DE MATERIA PRIMA
+        addSectionHeader('COSTO DE MATERIA PRIMA (Compras por Categoría)');
+        (d.costoMateriaPrima?.detalles || []).forEach((c: any) => addDetail(c.categoria, Number(c.total)));
+        addTotal('Total Materia Prima', Number(d.costoMateriaPrima?.total || 0), pct(Number(d.costoMateriaPrima?.total || 0)));
+
+        // GASTOS OPERATIVOS
+        addSectionHeader('GASTOS OPERATIVOS');
+        (d.gastosOperativos?.detalles || []).forEach((g: any) => addDetail(g.ConceptoGasto, Number(g.total)));
+        addTotal('Total Gastos', Number(d.gastosOperativos?.total || 0), pct(Number(d.gastosOperativos?.total || 0)));
+
+        // NÓMINA
+        addSectionHeader('NÓMINA');
+        addTotal('Total Nómina', Number(d.nomina?.total || 0), pct(Number(d.nomina?.total || 0)));
+
+        // INVENTARIO FINAL (informativo, no afecta la utilidad)
+        if (d.inventarioFinal) {
+            addSectionHeader(`INVENTARIO FINAL (${d.inventarioFinal.fecha})`);
+            (d.inventarioFinal.categorias || []).forEach((c: any) => addDetail(c.categoria, Number(c.total)));
+            addTotal('Total Inventario Final', Number(d.inventarioFinal.total || 0), pct(Number(d.inventarioFinal.total || 0)));
+        }
+
+        // RESUMEN FINAL
+        addSectionHeader('UTILIDAD / PÉRDIDA');
+        addDetail('Costo Total (Materia Prima + Gastos + Nómina)', Number(d.costoTotal || 0));
+        const utilidad = Number(d.utilidad || 0);
+        const utilRow = ws.addRow(['UTILIDAD / (PÉRDIDA)', utilidad, pct(utilidad)]);
+        utilRow.eachCell((cell) => {
+            cell.font = { bold: true, size: 12, color: { argb: utilidad >= 0 ? GREEN : RED } };
+            cell.border = { top: { style: 'double', color: { argb: BLUE } } };
+        });
+        utilRow.getCell(2).numFmt = MONEY_FMT;
+        utilRow.getCell(3).numFmt = PCT_FMT;
+        if (d.inventarioFinal) {
+            const invRow = ws.addRow([`Inventario Final (${d.inventarioFinal.fecha})`, Number(d.inventarioFinal.total || 0), pct(Number(d.inventarioFinal.total || 0))]);
+            invRow.getCell(1).font = { color: { argb: GRAY } };
+            invRow.getCell(2).numFmt = MONEY_FMT;
+            invRow.getCell(3).numFmt = PCT_FMT;
+        }
+
+        // Descarga en el navegador
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Estado_Resultados_${branchName || 'Sucursal'}_${monthName}_${d.period?.year}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     useEffect(() => {
@@ -1893,10 +1978,11 @@ export default function DashboardPage() {
                             {!incomeStatementLoading && incomeStatementData && !incomeStatementData.error && (
                                 <button
                                     onClick={handleExportIncomeStatement}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-semibold transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-semibold transition-colors"
+                                    style={{ color: '#ffffff' }}
                                 >
-                                    <Download size={16} />
-                                    <span className="max-sm:hidden">Exportar a Excel</span>
+                                    <Download size={16} style={{ color: '#ffffff' }} />
+                                    <span className="max-sm:hidden" style={{ color: '#ffffff' }}>Exportar a Excel</span>
                                 </button>
                             )}
                             <button onClick={() => setShowIncomeStatement(false)} className="p-2 rounded-xl hover:bg-white/10 text-white transition-colors">
@@ -2011,7 +2097,64 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
 
-                                {/* RESUMEN FINAL */}
+                                {/* INVENTARIO FINAL (informativo, no afecta la utilidad) */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="bg-blue-600 px-4 py-3 border-b border-blue-700 flex items-center justify-between gap-3">
+                                        <h3 className="font-bold" style={{ color: '#ffffff' }}>INVENTARIO FINAL</h3>
+                                        {incomeStatementData?.inventarioFinal?.fecha && (
+                                            <span className="text-xs font-semibold" style={{ color: '#ffffff' }}>
+                                                Último inventario: {incomeStatementData.inventarioFinal.fecha}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="p-4 space-y-2">
+                                        {!incomeStatementData?.inventarioFinal ? (
+                                                <p className="text-sm text-gray-400">No hay inventarios capturados para esta sucursal.</p>
+                                            ) : (
+                                                <>
+                                                    {incomeStatementData.inventarioFinal.categorias?.map((c: any, i: number) => {
+                                                        const isOpen = openInvCategories.includes(c.categoria);
+                                                        const prods = (incomeStatementData.inventarioFinal.productos || []).filter((p: any) => p.categoria === c.categoria);
+                                                        return (
+                                                            <div key={i}>
+                                                                <div className="flex justify-between text-sm">
+                                                                    <button
+                                                                        onClick={() => setOpenInvCategories((prev) => isOpen ? prev.filter((x) => x !== c.categoria) : [...prev, c.categoria])}
+                                                                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                                                                    >
+                                                                        {c.categoria} {isOpen ? '▾' : '▸'}
+                                                                    </button>
+                                                                    <div className="flex gap-4">
+                                                                        <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                                        <span className="text-gray-400 w-12 text-right">{incomeStatementData.ventas.total > 0 ? ((c.total / incomeStatementData.ventas.total) * 100).toFixed(1) : '0.0'}%</span>
+                                                                    </div>
+                                                                </div>
+                                                                {isOpen && prods.length > 0 && (
+                                                                    <div className="ml-4 mt-1 mb-2 rounded-lg bg-gray-50 border border-gray-100 divide-y divide-gray-100">
+                                                                        {prods.map((p: any, j: number) => (
+                                                                            <div key={j} className="flex justify-between items-center px-3 py-1.5 text-xs">
+                                                                                <span className="text-gray-600 truncate">{p.producto || 'Sin nombre'}</span>
+                                                                                <div className="flex gap-3 shrink-0 tabular-nums">
+                                                                                    <span className="text-gray-400">{Number(p.cantidad).toLocaleString('es-MX')} × ${Number(p.costo).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                                                    <span className="font-medium text-gray-800 w-20 text-right">${Number(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
+                                                        <span>Total Inventario Final</span>
+                                                        <span>${Number(incomeStatementData.inventarioFinal.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                </div>
+
+                                {/* RESUMEN FINAL (el inventario final es informativo: no suma a la utilidad) */}
                                 <div className="rounded-xl border-2 border-blue-600 overflow-hidden bg-gray-50">
                                     <div className="bg-blue-600 px-4 py-3">
                                         <h3 className="font-black text-lg" style={{ color: '#ffffff' }}>UTILIDAD / PÉRDIDA</h3>
@@ -2029,6 +2172,12 @@ export default function DashboardPage() {
                                             <span>Margen</span>
                                             <span>{incomeStatementData?.margenUtilidad?.toFixed(2)}%</span>
                                         </div>
+                                        {incomeStatementData?.inventarioFinal && (
+                                            <div className="flex justify-between pt-2 border-t border-gray-200 text-sm">
+                                                <span className="text-gray-600">Inventario Final ({incomeStatementData.inventarioFinal.fecha})</span>
+                                                <span className="font-semibold text-gray-800">${Number(incomeStatementData.inventarioFinal.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -65,7 +65,9 @@ export default function DashboardLayout({
 
     return (
         <ThemeProvider>
-            <div className={`bg-brand-cream flex flex-col overflow-x-hidden ${isFullBleed ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+            {/* overflow-x-clip (no hidden): hidden crea un contenedor de scroll y rompe
+                position:sticky en las páginas (ej. carrito de explosión de materiales). */}
+            <div className={`bg-brand-cream flex flex-col overflow-x-clip ${isFullBleed ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
                 <Header userName="" onToggleSidebar={toggleSidebar} />
 
                 <div className={`flex flex-1 pt-16 ${isFullBleed ? 'h-screen min-h-0 overflow-hidden' : ''}`}>
