@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle2, MapPin } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle2, MapPin, Pencil, ShoppingCart, Receipt } from 'lucide-react';
 import Button from '@/components/Button';
 import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
@@ -19,6 +20,15 @@ interface EventItem {
     Notas: string | null;
 }
 
+// Detalle completo de la cotización (GET /api/sales/quotes/[id])
+interface QuoteDetail {
+    platillos: { IdCotizacionPlatillo: number; Platillo: string | null; Unidad: string | null; Cantidad: number; CostoUnitario: number; PrecioUnitario: number }[];
+    gastos: { IdCotizacionGasto: number; Concepto: string; Monto: number }[];
+    GastosOperativos: number;
+    CostoPlatillos: number;
+    UtilidadReal: number;
+}
+
 const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 const money = (v: number) =>
@@ -31,11 +41,18 @@ const eventKey = (fecha: string | null) => (fecha ? String(fecha).substring(0, 1
 const hhmm = (h: string | null) => (h ? String(h).substring(0, 5) : '');
 
 export default function EventsCalendarPage() {
+    const router = useRouter();
+    const params = useParams();
+    const locale = (params?.locale as string) || 'es';
+
     const [project, setProject] = useState<any>(null);
     const [events, setEvents] = useState<EventItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [cursor, setCursor] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
     const [selected, setSelected] = useState<EventItem | null>(null);
+    // Detalle completo (conceptos + gastos) de la cotización seleccionada.
+    const [detail, setDetail] = useState<QuoteDetail | null>(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
 
     useEffect(() => {
         const storedProject = localStorage.getItem('project');
@@ -104,6 +121,28 @@ export default function EventsCalendarPage() {
         [events, cursor]
     );
 
+    // Abre el detalle: carga la cotización completa (conceptos + gastos).
+    const openEvent = async (e: EventItem) => {
+        setSelected(e);
+        setDetail(null);
+        setLoadingDetail(true);
+        try {
+            const res = await fetch(`/api/sales/quotes/${e.IdCotizacion}?projectId=${project.idProyecto}`);
+            const data = await res.json();
+            if (data.success) setDetail(data.data);
+        } catch (err) {
+            console.error('Error fetching quote detail:', err);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
+    // Lleva al editor de la cotización en la página de Cotizaciones.
+    const goEdit = () => {
+        if (!selected) return;
+        router.push(`/${locale}/dashboard/sales/quotes?edit=${selected.IdCotizacion}`);
+    };
+
     const goPrev = () => setCursor((c) => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 });
     const goNext = () => setCursor((c) => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 });
     const goToday = () => { const d = new Date(); setCursor({ year: d.getFullYear(), month: d.getMonth() }); };
@@ -170,7 +209,7 @@ export default function EventsCalendarPage() {
                                             {cell.events.map((e) => (
                                                 <button
                                                     key={e.IdCotizacion}
-                                                    onClick={() => setSelected(e)}
+                                                    onClick={() => openEvent(e)}
                                                     title={`${hhmm(e.HoraEvento)} ${e.NombreEvento}`}
                                                     className="group text-left rounded-md px-1.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/70 transition-colors"
                                                 >
@@ -191,14 +230,21 @@ export default function EventsCalendarPage() {
                 )}
             </div>
 
-            {/* Detalle del evento */}
+            {/* Detalle del evento: cotización completa + editar */}
             <BaseModal
                 isOpen={!!selected}
                 onClose={() => setSelected(null)}
                 title={selected?.NombreEvento || 'Evento'}
                 subtitle="Evento confirmado"
-                size="md"
-                footer={<div className="flex justify-end"><Button variant="secondary" onClick={() => setSelected(null)}>Cerrar</Button></div>}
+                size="lg"
+                footer={
+                    <div className="flex items-center justify-between gap-2">
+                        <Button variant="solid" size="md" leftIcon={Pencil} onClick={goEdit}>
+                            Editar cotización
+                        </Button>
+                        <Button variant="secondary" size="md" onClick={() => setSelected(null)}>Cerrar</Button>
+                    </div>
+                }
             >
                 {selected && (
                     <div className="space-y-4">
@@ -217,12 +263,64 @@ export default function EventsCalendarPage() {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <DetailStat label="Platillos" value={String(selected.CantidadPlatillos)} />
+                            <DetailStat label="Costo total" value={money(Number(selected.CostoTotal))} />
                             <DetailStat label="Recaudación" value={money(Number(selected.Recaudacion))} />
-                            <DetailStat label="Ingreso estimado" value={money(Number(selected.IngresoEstimado))} />
                             <DetailStat label="Utilidad estimada" value={money(Number(selected.UtilidadEstimada))} positive={Number(selected.UtilidadEstimada) >= 0} />
                         </div>
+
+                        {loadingDetail ? (
+                            <p className="text-sm text-gray-400 text-center py-4">Cargando detalle de la cotización…</p>
+                        ) : detail && (
+                            <>
+                                {/* Conceptos cotizados */}
+                                <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                    <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
+                                        <ShoppingCart size={13} className="text-gray-400" />
+                                        <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wide">Conceptos ({detail.platillos?.length || 0})</span>
+                                    </div>
+                                    <div className="divide-y divide-gray-50 max-h-56 overflow-y-auto">
+                                        {(detail.platillos || []).length === 0 && (
+                                            <p className="p-4 text-xs text-gray-400 text-center">Sin conceptos capturados.</p>
+                                        )}
+                                        {(detail.platillos || []).map((p) => {
+                                            const total = Number(p.Cantidad) * Number(p.PrecioUnitario);
+                                            return (
+                                                <div key={p.IdCotizacionPlatillo} className="px-3 py-2 flex items-center gap-3 text-xs">
+                                                    <span className="flex-1 min-w-0 font-semibold text-gray-800 truncate uppercase">{p.Platillo || 'Concepto'}</span>
+                                                    <span className="shrink-0 text-gray-500 tabular-nums">{Number(p.Cantidad)} {p.Unidad || ''}</span>
+                                                    <span className="shrink-0 text-gray-400 tabular-nums hidden sm:inline">× {money(Number(p.PrecioUnitario))}</span>
+                                                    <span className="shrink-0 w-20 text-right font-bold text-gray-900 tabular-nums">{money(total)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Gastos operativos */}
+                                {(detail.gastos || []).length > 0 && (
+                                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                        <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-1.5">
+                                            <Receipt size={13} className="text-gray-400" />
+                                            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wide">Gastos operativos ({detail.gastos.length})</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-50 max-h-40 overflow-y-auto">
+                                            {detail.gastos.map((g) => (
+                                                <div key={g.IdCotizacionGasto} className="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+                                                    <span className="flex-1 min-w-0 text-gray-700 truncate">{g.Concepto}</span>
+                                                    <span className="shrink-0 font-bold text-gray-900 tabular-nums">{money(Number(g.Monto))}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-gray-800">
+                                            <span>Total gastos</span>
+                                            <span className="tabular-nums">{money(Number(detail.GastosOperativos))}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
 
                         {selected.Notas && (
                             <div className="rounded-lg bg-gray-50 border border-gray-100 p-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Pencil, Trash2, Search, AlertTriangle, FileText, X, CheckCircle2, Clock, BookOpen, UtensilsCrossed, Tag, LayoutGrid, ShoppingCart, Eye, BookMarked, Save } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -116,6 +116,23 @@ export default function QuotesPage() {
             fetchTemplates();
         }
     }, [project]);
+
+    // Abre el editor directo cuando se llega con ?edit=<IdCotizacion> (desde el
+    // Calendario de Eventos). Se lee de window en vez de useSearchParams para no
+    // requerir un <Suspense> alrededor de la página. Espera a que carguen los
+    // conceptos (dishes) porque openEdit recalcula costos con ellos.
+    const autoOpenedRef = useRef(false);
+
+    useEffect(() => {
+        if (autoOpenedRef.current || quotes.length === 0 || dishes.length === 0) return;
+        const editParam = new URLSearchParams(window.location.search).get('edit');
+        if (!editParam) return;
+        const target = quotes.find((q) => String(q.IdCotizacion) === editParam);
+        if (target) {
+            autoOpenedRef.current = true;
+            openEdit(target);
+        }
+    }, [quotes, dishes]);
 
     const fetchQuotes = async () => {
         try {

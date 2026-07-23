@@ -112,11 +112,18 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 setProjectTitle(data.titulo || '');
                 setProjectLogo(data.logo64 || '');
 
-                // Cache appPriceCalculatorEnabled in localStorage project object
+                // Cache module flags in localStorage project object (los lee el Sidebar
+                // para ocultar submenús y el CostingModal para la pestaña de Costeo)
                 const storedProject = localStorage.getItem('project');
                 if (storedProject) {
                     const parsed = JSON.parse(storedProject);
                     parsed.appPriceCalculatorEnabled = data.appPriceCalculatorEnabled;
+                    parsed.recetarioEnabled = data.recetarioEnabled;
+                    parsed.purchaseOrdersEnabled = data.purchaseOrdersEnabled;
+                    parsed.posConnectionEnabled = data.posConnectionEnabled;
+                    parsed.quotesEnabled = data.quotesEnabled;
+                    parsed.minMaxEnabled = data.minMaxEnabled;
+                    parsed.schedulesEnabled = data.schedulesEnabled;
                     localStorage.setItem('project', JSON.stringify(parsed));
                     window.dispatchEvent(new CustomEvent('project-settings-updated'));
                 }

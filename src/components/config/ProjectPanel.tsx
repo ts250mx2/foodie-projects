@@ -16,7 +16,52 @@ interface ProjectSettings {
     ColorFondo2: string;
     ColorLetra: string;
     AppPriceCalculatorEnabled: number;
+    RecetarioEnabled: number;
+    PurchaseOrdersEnabled: number;
+    POSConnectionEnabled: number;
+    QuotesEnabled: number;
+    MinMaxEnabled: number;
+    SchedulesEnabled: number;
 }
+
+/** Módulos opcionales que se pueden encender/apagar por proyecto. */
+const MODULE_TOGGLES: { key: keyof ProjectSettings; label: string; hint: string }[] = [
+    {
+        key: 'AppPriceCalculatorEnabled',
+        label: 'Habilitar Modulo de Calculadora de Precios Apps',
+        hint: 'Muestra el submenú Calculadora de Precios App.',
+    },
+    {
+        key: 'RecetarioEnabled',
+        label: 'Habilitar Modulo Recetario',
+        hint: 'Muestra todo el menú de Producción (sub-recetas, platillos, captura y explosión de materiales) y la pestaña Costeo.',
+    },
+    {
+        key: 'PurchaseOrdersEnabled',
+        label: 'Habilitar Ordenes de Compra',
+        hint: 'Muestra el submenú Órdenes de Compra.',
+    },
+    {
+        key: 'POSConnectionEnabled',
+        label: 'Habilitar Conexion a Punto de Venta',
+        hint: 'Muestra el submenú Conexión a Punto de Venta.',
+    },
+    {
+        key: 'QuotesEnabled',
+        label: 'Habilitar Cotizaciones',
+        hint: 'Muestra los submenús Cotizaciones y Calendario de Eventos.',
+    },
+    {
+        key: 'MinMaxEnabled',
+        label: 'Habilitar Maximos y Minimos',
+        hint: 'Muestra el submenú Mínimos y Máximos.',
+    },
+    {
+        key: 'SchedulesEnabled',
+        label: 'Habilitar Horarios',
+        hint: 'Muestra el submenú Horarios.',
+    },
+];
 
 interface UserSettings {
     CorreoElectronico: string;
@@ -37,7 +82,13 @@ export default function ProjectPanel() {
         ColorFondo1: '#FF6B35',
         ColorFondo2: '#F7931E',
         ColorLetra: '#FFFFFF',
-        AppPriceCalculatorEnabled: 1
+        AppPriceCalculatorEnabled: 1,
+        RecetarioEnabled: 1,
+        PurchaseOrdersEnabled: 1,
+        POSConnectionEnabled: 1,
+        QuotesEnabled: 1,
+        MinMaxEnabled: 1,
+        SchedulesEnabled: 1
     });
     const [userData, setUserData] = useState<UserSettings>({
         CorreoElectronico: '',
@@ -147,7 +198,13 @@ export default function ProjectPanel() {
                         ColorFondo1: projectData.ColorFondo1,
                         ColorFondo2: projectData.ColorFondo2,
                         ColorLetra: projectData.ColorLetra,
-                        AppPriceCalculatorEnabled: projectData.AppPriceCalculatorEnabled
+                        AppPriceCalculatorEnabled: projectData.AppPriceCalculatorEnabled,
+                        RecetarioEnabled: projectData.RecetarioEnabled,
+                        PurchaseOrdersEnabled: projectData.PurchaseOrdersEnabled,
+                        POSConnectionEnabled: projectData.POSConnectionEnabled,
+                        QuotesEnabled: projectData.QuotesEnabled,
+                        MinMaxEnabled: projectData.MinMaxEnabled,
+                        SchedulesEnabled: projectData.SchedulesEnabled
                     },
                     userData: {
                         Usuario: userData.Usuario,
@@ -164,11 +221,17 @@ export default function ProjectPanel() {
                 const nextLogo = data.logoPath || projectData.Logo64;
                 setProjectData(prev => ({ ...prev, Logo64: nextLogo }));
 
-                // Save in localStorage project details
+                // Save in localStorage project details (los leen Sidebar y CostingModal)
                 const storedProject = localStorage.getItem('project');
                 if (storedProject) {
                     const parsed = JSON.parse(storedProject);
                     parsed.appPriceCalculatorEnabled = projectData.AppPriceCalculatorEnabled;
+                    parsed.recetarioEnabled = projectData.RecetarioEnabled;
+                    parsed.purchaseOrdersEnabled = projectData.PurchaseOrdersEnabled;
+                    parsed.posConnectionEnabled = projectData.POSConnectionEnabled;
+                    parsed.quotesEnabled = projectData.QuotesEnabled;
+                    parsed.minMaxEnabled = projectData.MinMaxEnabled;
+                    parsed.schedulesEnabled = projectData.SchedulesEnabled;
                     localStorage.setItem('project', JSON.stringify(parsed));
                 }
                 // Dispatch event to notify other components (Sidebar)
@@ -284,24 +347,39 @@ export default function ProjectPanel() {
                                 onChange={(e) => setProjectData({ ...projectData, Titulo: e.target.value })}
                             />
 
-                            {/* App Price Calculator module toggle */}
-                            <div className="flex items-center gap-3 pt-2">
-                                <input
-                                    id="appPriceCalculatorToggle"
-                                    type="checkbox"
-                                    checked={projectData.AppPriceCalculatorEnabled === 1}
-                                    onChange={(e) => setProjectData(prev => ({
-                                        ...prev,
-                                        AppPriceCalculatorEnabled: e.target.checked ? 1 : 0
-                                    }))}
-                                    className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
-                                />
-                                <label
-                                    htmlFor="appPriceCalculatorToggle"
-                                    className="text-sm font-semibold text-gray-700 cursor-pointer select-none"
-                                >
-                                    Habilitar Modulo de Calculadora de Precios Apps
-                                </label>
+                            {/* Módulos opcionales del proyecto */}
+                            <div className="pt-2 space-y-2">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Módulos</p>
+                                {MODULE_TOGGLES.map(({ key, label, hint }) => {
+                                    const inputId = `module-${key}`;
+                                    const isEnabled = projectData[key] === 1;
+                                    return (
+                                        <label
+                                            key={key}
+                                            htmlFor={inputId}
+                                            className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 cursor-pointer select-none transition-colors ${
+                                                isEnabled ? 'border-gray-200 bg-white hover:bg-gray-50' : 'border-gray-200 bg-gray-50'
+                                            }`}
+                                        >
+                                            <input
+                                                id={inputId}
+                                                type="checkbox"
+                                                checked={isEnabled}
+                                                onChange={(e) => setProjectData(prev => ({
+                                                    ...prev,
+                                                    [key]: e.target.checked ? 1 : 0
+                                                }))}
+                                                className="mt-0.5 w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
+                                            />
+                                            <span className="min-w-0">
+                                                <span className={`block text-sm font-semibold ${isEnabled ? 'text-gray-800' : 'text-gray-500'}`}>
+                                                    {label}
+                                                </span>
+                                                <span className="block text-xs text-gray-400 mt-0.5">{hint}</span>
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

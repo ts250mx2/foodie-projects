@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { ensureModuleFlagColumns, readModuleFlags } from '@/lib/project-modules';
 
 // Connection to BDFoodieProjects database
 async function getFoodieProjectsConnection() {
@@ -23,10 +24,14 @@ export async function GET(request: NextRequest) {
 
         const projectId = parseInt(projectIdStr);
         connection = await getFoodieProjectsConnection();
+        await ensureModuleFlagColumns(connection);
 
-        // Fetch project title and colors
+        // Fetch project title, colors and module flags
         const [rows]: any = await connection.query(
-            'SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled FROM tblProyectos WHERE IdProyecto = ?',
+            `SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled,
+                    RecetarioEnabled, PurchaseOrdersEnabled, POSConnectionEnabled,
+                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled
+             FROM tblProyectos WHERE IdProyecto = ?`,
             [projectId]
         );
 
@@ -41,7 +46,8 @@ export async function GET(request: NextRequest) {
             colorFondo1: rows[0].ColorFondo1 || '#FF6B35',
             colorFondo2: rows[0].ColorFondo2 || '#F7931E',
             colorLetra: rows[0].ColorLetra || '#FFFFFF',
-            appPriceCalculatorEnabled: rows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0
+            appPriceCalculatorEnabled: rows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0,
+            ...readModuleFlags(rows[0])
         });
     } catch (error) {
         console.error('Error fetching project header:', error);

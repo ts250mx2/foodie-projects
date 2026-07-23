@@ -313,6 +313,21 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
     };
 
     const [activeTab, setActiveTab] = useState<'general' | 'photo' | 'costing' | 'instructions' | 'documents'>(initialTab as any);
+    // Módulo Recetario: si está deshabilitado en Configuración General → Proyecto,
+    // la pestaña de Costeo no se muestra. Undefined cuenta como habilitado.
+    const [isRecetarioEnabled, setIsRecetarioEnabled] = useState(true);
+
+    useEffect(() => {
+        const readFlag = () => {
+            try {
+                const stored = localStorage.getItem('project');
+                if (stored) setIsRecetarioEnabled(JSON.parse(stored).recetarioEnabled !== 0);
+            } catch { /* ignore */ }
+        };
+        readFlag();
+        window.addEventListener('project-settings-updated', readFlag);
+        return () => window.removeEventListener('project-settings-updated', readFlag);
+    }, []);
     const [kitItems, setKitItems] = useState<KitItem[]>([]);
     const [allProducts, setAllProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -537,7 +552,8 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(initialTab as any);
+            // Si el Recetario está deshabilitado, "Costeo" no existe: cae en General.
+            setActiveTab((initialTab === 'costing' && !isRecetarioEnabled ? 'general' : initialTab) as any);
             fetchCategories();
             fetchRecipeCategories();
             fetchGlobalCategories();
@@ -551,7 +567,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                 setKitItems([]);
             }
         }
-    }, [isOpen, product.IdProducto, initialTab]);
+    }, [isOpen, product.IdProducto, initialTab, isRecetarioEnabled]);
 
     useEffect(() => {
         if (unMedidaInventario && unMedidaRecetario && unMedidaInventario === unMedidaRecetario) {
@@ -1427,7 +1443,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                     <div className="flex gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {[
                             { id: 'general', icon: Settings, label: 'Configuración General', show: true },
-                            { id: 'costing', icon: TrendingUp, label: 'Costeo', show: product.IdProducto !== 0 && productType !== 0 },
+                            { id: 'costing', icon: TrendingUp, label: 'Costeo', show: isRecetarioEnabled && product.IdProducto !== 0 && productType !== 0 },
                             { id: 'instructions', icon: FileText, label: 'Instrucciones', show: product.IdProducto !== 0 },
                             { id: 'documents', icon: AlertCircle, label: 'Observaciones', show: product.IdProducto !== 0 },
                             { id: 'photo', icon: Image, label: 'Foto', show: product.IdProducto !== 0 }

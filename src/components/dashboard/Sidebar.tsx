@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Search, ChevronDown } from 'lucide-react';
 import GeoShape from '@/components/brand/GeoShape';
 import { menuItems, DASHBOARD_LINK, AGENT_LINK } from '@/lib/menu-items';
+import { MENU_KEY_TO_FLAG, MENU_SECTION_TO_FLAG } from '@/lib/project-modules';
 
 // Burbuja de color por módulo (estilo Notion/Monday): cuadrito redondeado de
 // color sólido con el icono lucide blanco adentro, para que el menú sea
@@ -97,8 +98,16 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
     const filteredSections = menuItems.map(section => ({
         ...section,
         items: section.items.filter(item => {
-            // Filter out App Price Calculator if disabled in project settings
-            if (item.key === 'appPriceCalculator' && project?.appPriceCalculatorEnabled === 0) {
+            // Sección completa apagada (ej. Producción cuando el Recetario está off)
+            const sectionFlag = MENU_SECTION_TO_FLAG[section.title];
+            if (sectionFlag && project?.[sectionFlag] === 0) {
+                return false;
+            }
+
+            // Módulos opcionales: se ocultan si están deshabilitados en Configuración
+            // General → Proyecto. Undefined cuenta como habilitado.
+            const flag = MENU_KEY_TO_FLAG[item.key];
+            if (flag && project?.[flag] === 0) {
                 return false;
             }
 

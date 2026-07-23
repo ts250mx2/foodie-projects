@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
+import { ensureModuleFlagColumns, toFlag } from '@/lib/project-modules';
 
 // Connection to BDFoodieProjects database
 async function getFoodieProjectsConnection() {
@@ -25,10 +26,14 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         const userId = parseInt(userIdStr);
         connection = await getFoodieProjectsConnection();
+        await ensureModuleFlagColumns(connection);
 
         // Fetch project data (Changed NombreArchivoLogo to Logo64)
         const [projectRows]: any = await connection.query(
-            'SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled FROM tblProyectos WHERE IdProyecto = ?',
+            `SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled,
+                    RecetarioEnabled, PurchaseOrdersEnabled, POSConnectionEnabled,
+                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled
+             FROM tblProyectos WHERE IdProyecto = ?`,
             [projectId]
         );
 
@@ -51,7 +56,13 @@ export async function GET(request: NextRequest) {
                 ColorFondo1: projectRows[0].ColorFondo1 || '#FF6B35',
                 ColorFondo2: projectRows[0].ColorFondo2 || '#F7931E',
                 ColorLetra: projectRows[0].ColorLetra || '#FFFFFF',
-                AppPriceCalculatorEnabled: projectRows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0
+                AppPriceCalculatorEnabled: projectRows[0].AppPriceCalculatorEnabled !== 0 ? 1 : 0,
+                RecetarioEnabled: toFlag(projectRows[0].RecetarioEnabled),
+                PurchaseOrdersEnabled: toFlag(projectRows[0].PurchaseOrdersEnabled),
+                POSConnectionEnabled: toFlag(projectRows[0].POSConnectionEnabled),
+                QuotesEnabled: toFlag(projectRows[0].QuotesEnabled),
+                MinMaxEnabled: toFlag(projectRows[0].MinMaxEnabled),
+                SchedulesEnabled: toFlag(projectRows[0].SchedulesEnabled)
             },
             userData: {
                 CorreoElectronico: userRows[0].CorreoElectronico || '',
@@ -78,6 +89,7 @@ export async function PUT(request: NextRequest) {
         }
 
         connection = await getFoodieProjectsConnection();
+        await ensureModuleFlagColumns(connection);
 
         // Prepare Logo64 content
         let finalLogo64 = projectData.Logo64; // Default to existing if not changed
@@ -91,8 +103,21 @@ export async function PUT(request: NextRequest) {
         // Update project data saving Base64 directly to Logo64 column
         // Removed NombreArchivoLogo update as we are using Logo64 now
         await connection.query(
-            'UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ?, AppPriceCalculatorEnabled = ? WHERE IdProyecto = ?',
-            [finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra, projectData.AppPriceCalculatorEnabled !== 0 ? 1 : 0, projectId]
+            `UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ?,
+                    AppPriceCalculatorEnabled = ?, RecetarioEnabled = ?, PurchaseOrdersEnabled = ?, POSConnectionEnabled = ?,
+                    QuotesEnabled = ?, MinMaxEnabled = ?, SchedulesEnabled = ?
+             WHERE IdProyecto = ?`,
+            [
+                finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra,
+                projectData.AppPriceCalculatorEnabled !== 0 ? 1 : 0,
+                toFlag(projectData.RecetarioEnabled),
+                toFlag(projectData.PurchaseOrdersEnabled),
+                toFlag(projectData.POSConnectionEnabled),
+                toFlag(projectData.QuotesEnabled),
+                toFlag(projectData.MinMaxEnabled),
+                toFlag(projectData.SchedulesEnabled),
+                projectId
+            ]
         );
 
         // Update user data

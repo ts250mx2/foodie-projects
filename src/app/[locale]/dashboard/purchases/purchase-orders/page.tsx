@@ -8,7 +8,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageShell from '@/components/PageShell';
 import Button from '@/components/Button';
-import Input from '@/components/Input';
+import Input, { Select } from '@/components/Input';
 import BaseModal from '@/components/BaseModal';
 import ThemedGridHeader, {
     ThemedGridHeaderCell,
@@ -53,6 +53,9 @@ type OrderItem = {
     categoria?: string;
     idCategoria?: number;
 };
+
+/** Unidades de medida disponibles para los renglones de la orden. */
+const UNITS = ['KG', 'G', 'MG', 'L', 'ML', 'PZA', 'CAJA', 'BOLSA', 'PAQUETE', 'LATA', 'BOTELLA', 'COSTAL', 'TARRO', 'BOTE', 'LITRO', 'ONZA', 'LIBRA', 'TON', 'M', 'CM', 'DOCENA', 'UNIDAD'];
 
 type PurchaseOrder = {
     IdOrdenCompra: number;
@@ -354,11 +357,9 @@ export default function PurchaseOrdersPage() {
                 setOrderItems(items.map((it: any) => {
                     const prod = products.find((p: Product) => p.IdProducto === it.IdProducto);
                     const isInt = header.EsInterna === 1;
-                    // Priority: saved DB value (UnidadMedidaPedido) → product default → empty
-                    const defaultUnit = it.UnidadMedidaPedido ||
-                        (isInt
-                            ? (prod?.UnidadMedidaInventario || '')
-                            : (prod?.UnidadMedidaCompra || ''));
+                    // Misma resolución que el PDF, para que modal e impresión coincidan.
+                    const resolved = resolveItemUnit(it, isInt, prod);
+                    const defaultUnit = resolved === '—' ? '' : resolved;
                     return {
                         idProducto: it.IdProducto,
                         producto: it.Producto,
@@ -648,6 +649,21 @@ export default function PurchaseOrdersPage() {
         doc.save(`Hoja_Pedido_${selectedCategory.Categoria}.pdf`);
     };
 
+    /**
+     * Unidad de medida de un renglón de la orden. Es la MISMA fuente de verdad para
+     * el modal de edición y para el PDF: primero la unidad capturada en la orden
+     * (UnidadMedidaPedido) y, si no existe, la del producto según el tipo de orden.
+     * Sin esto, el PDF imprimía la unidad del producto e ignoraba la editada.
+     */
+    const resolveItemUnit = (item: any, isInterna: boolean, prod?: Product): string => {
+        const saved = item?.UnidadMedidaPedido || item?.unidadMedida;
+        if (saved) return String(saved);
+        const fallback = isInterna
+            ? (item?.UnidadMedidaInventario ?? prod?.UnidadMedidaInventario)
+            : (item?.UnidadMedidaCompra ?? prod?.UnidadMedidaCompra);
+        return fallback ? String(fallback) : '—';
+    };
+
     const exportOrderToPDF = async (order: PurchaseOrder) => {
         try {
             const res = await fetch(`/api/purchases/purchase-orders/${order.IdOrdenCompra}?projectId=${projectId}`);
@@ -716,7 +732,7 @@ export default function PurchaseOrdersPage() {
                         styles: { fillColor: [240, 245, 255], fontStyle: 'bold', textColor: [30, 64, 175] }
                     }]);
                     groups[cat].forEach((item: any) => {
-                        const unit = item.UnidadMedidaInventario || '—';
+                        const unit = resolveItemUnit(item, true);
                         tableData.push(['', item.Producto, item.Cantidad, unit]);
                     });
                 });
@@ -724,7 +740,7 @@ export default function PurchaseOrdersPage() {
                 // EXTERNAL ORDER: Producto + Cantidad + Unidad + Precio + Total. No category.
                 tableHead = [['Producto', 'Cantidad', 'Unidad', 'Precio Unit.', 'Total']];
                 tableData = items.map((item: any) => {
-                    const unit = item.UnidadMedidaCompra || '—';
+                    const unit = resolveItemUnit(item, false);
                     return [
                         item.Producto,
                         item.Cantidad,
@@ -1058,68 +1074,96 @@ export default function PurchaseOrdersPage() {
                 onClose={closeModal}
                 title={editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
                 subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'Configuración de Suministros'}
-                size="xl"
-                onConfirm={handleSubmit}
-                confirmLabel="Guardar"
-                confirmLoading={false}
-                cancelLabel={t('cancel')}
+                size="full"
                 headerVariant="primary"
+                footer={
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            {editingOrder && (
+                                <Button variant="secondary" size="md" leftIcon={Printer} onClick={() => exportOrderToPDF(editingOrder)}>
+                                    Imprimir PDF
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                            <Button variant="secondary" size="md" onClick={closeModal}>
+                                {t('cancel')}
+                            </Button>
+                            <Button variant="solid" size="md" leftIcon={Check} iconBox onClick={handleSubmit}>
+                                {editingOrder ? 'Actualizar Orden' : 'Confirmar y Guardar'}
+                            </Button>
+                        </div>
+                    </div>
+                }
             >
-                {/* Header Fields - top row */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-6 border-b border-gray-100">
+                <div className="space-y-5">
+                    {/* ── Datos de la orden ─────────────────────────────────── */}
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                            <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Datos de la orden</span>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            {/* Tipo de orden */}
+                            <label
+                                htmlFor="esInterna"
+                                className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 cursor-pointer select-none transition-colors ${
+                                    esInterna ? 'border-blue-300 bg-blue-50/60' : 'border-gray-200 bg-white hover:bg-gray-50'
+                                }`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    id="esInterna"
+                                    checked={esInterna}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setEsInterna(checked);
+                                        if (checked) {
+                                            setSelectedProvider('');
+                                            setProviderSearch('ORDEN DE COMPRA INTERNA');
+                                            // Auto-set today as scheduled delivery for internal orders
+                                            setFechaProgramada(new Date().toISOString().split('T')[0]);
+                                        } else {
+                                            setProviderSearch('');
+                                        }
+                                    }}
+                                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
+                                />
+                                <span className="text-sm font-semibold text-gray-800">
+                                    {t('internalOrder')}
+                                    <span className="ml-1.5 text-xs font-normal text-gray-500">— Uso administrativo interno (sin proveedor ni costos)</span>
+                                </span>
+                            </label>
 
-                                {/* Internal Order toggle */}
-                                <div className="md:col-span-4 flex items-center gap-3">
-                                    <input 
-                                        type="checkbox" 
-                                        id="esInterna"
-                                        checked={esInterna}
-                                        onChange={(e) => {
-                                            const checked = e.target.checked;
-                                            setEsInterna(checked);
-                                            if (checked) {
-                                                setSelectedProvider('');
-                                                setProviderSearch('ORDEN DE COMPRA INTERNA');
-                                                // Auto-set today as scheduled delivery for internal orders
-                                                setFechaProgramada(new Date().toISOString().split('T')[0]);
-                                            } else {
-                                                setProviderSearch('');
-                                            }
-                                        }}
-                                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
-                                    />
-                                    <label htmlFor="esInterna" className="text-xs font-bold text-blue-800 cursor-pointer select-none">
-                                        {t('internalOrder')} <span className="text-blue-400 font-medium">— Uso administrativo interno</span>
-                                    </label>
-                                </div>
-
-                                {/* Provider */}
-                                <div className={`relative ${esInterna ? 'opacity-40 pointer-events-none' : ''}`} ref={providerListRef}>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('provider')}</label>
-                                    <div className="relative">
-                                        <input 
-                                            type="text" 
-                                            value={providerSearch}
-                                            onChange={(e) => {
-                                                setProviderSearch(e.target.value);
-                                                setIsProviderListOpen(true);
-                                                setSelectedProvider('');
-                                            }}
-                                            onFocus={() => setIsProviderListOpen(true)}
-                                            placeholder="Buscar proveedor..."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 pl-9 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
-                                        />
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">🏢</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {/* Proveedor */}
+                                <div className={`relative ${esInterna ? 'opacity-50 pointer-events-none' : ''}`} ref={providerListRef}>
+                                    <div className="w-full flex flex-col gap-1">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('provider')}</label>
+                                        <div className="relative">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={providerSearch}
+                                                onChange={(e) => {
+                                                    setProviderSearch(e.target.value);
+                                                    setIsProviderListOpen(true);
+                                                    setSelectedProvider('');
+                                                }}
+                                                onFocus={() => setIsProviderListOpen(true)}
+                                                placeholder="Buscar proveedor…"
+                                                className="w-full text-sm rounded-lg border border-gray-200 bg-white pl-9 pr-3 py-2 text-gray-800 focus:outline-none focus:border-blue-500 transition-all"
+                                            />
+                                        </div>
                                     </div>
                                     {isProviderListOpen && providers.length > 0 && (
-                                        <div className="absolute z-[70] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-52 overflow-y-auto">
+                                        <div className="absolute z-[70] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
                                             {providers
                                                 .filter(p => p.Proveedor.toLowerCase().includes(providerSearch.toLowerCase()))
                                                 .map(p => (
                                                     <button
                                                         key={p.IdProveedor}
                                                         onClick={() => handleSelectProvider(p)}
-                                                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none font-semibold text-slate-800 text-xs"
+                                                        className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none font-medium text-gray-800 text-sm"
                                                     >
                                                         {p.Proveedor}
                                                     </button>
@@ -1128,248 +1172,228 @@ export default function PurchaseOrdersPage() {
                                     )}
                                 </div>
 
-                                {/* Branch */}
-                                <div>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('branch')}</label>
-                                    <select 
-                                        value={selectedBranch}
-                                        onChange={(e) => setSelectedBranch(Number(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
-                                    >
-                                        <option value="">Sucursal...</option>
-                                        {branches.map(b => (
-                                            <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {/* Sucursal */}
+                                <Select
+                                    label={t('branch')}
+                                    value={selectedBranch}
+                                    onChange={(e) => setSelectedBranch(Number(e.target.value))}
+                                >
+                                    <option value="">Sucursal…</option>
+                                    {branches.map(b => (
+                                        <option key={b.IdSucursal} value={b.IdSucursal}>{b.Sucursal}</option>
+                                    ))}
+                                </Select>
 
-                                {/* Scheduled Date */}
-                                <div>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('scheduledDeliveryDate')}</label>
-                                    <input 
-                                        type="date" 
-                                        value={fechaProgramada}
-                                        onChange={(e) => setFechaProgramada(e.target.value)}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
-                                    />
-                                </div>
+                                {/* Fecha programada */}
+                                <Input
+                                    label={t('scheduledDeliveryDate')}
+                                    type="date"
+                                    value={fechaProgramada}
+                                    onChange={(e) => setFechaProgramada(e.target.value)}
+                                />
 
-                                {/* Notes */}
-                                <div>
-                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">{t('notes')}</label>
-                                    <input 
-                                        type="text"
-                                        value={notas}
-                                        onChange={(e) => setNotas(e.target.value)}
-                                        placeholder="Notas internas..."
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none text-slate-800 font-semibold text-xs transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                {/* Items Section */}
-                <div className="space-y-4">
-                    <div className="relative" ref={productListRef}>
-                                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                                            <span className="text-xl">🔍</span>
-                                        </div>
-                                        <input 
-                                            type="text" 
-                                            value={productSearch}
-                                            onChange={(e) => {
-                                                setProductSearch(e.target.value);
-                                                setIsProductListOpen(true);
-                                            }}
-                                            onFocus={() => setIsProductListOpen(true)}
-                                            placeholder="Añadir producto a la orden..."
-                                            className="w-full bg-white border-2 border-blue-50 rounded-2xl px-6 py-5 pl-14 focus:border-blue-400 outline-none text-black font-black text-lg shadow-sm focus:shadow-md transition-all placeholder:text-gray-300 placeholder:font-bold"
-                                        />
-
-                                        {isProductListOpen && products.length > 0 && (
-                                            <div className="absolute z-[60] w-full mt-2 bg-white border border-gray-100 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] max-h-80 overflow-y-auto animate-in slide-in-from-top-4 duration-300">
-                                                {products
-                                                    .filter(p => p.Producto.toLowerCase().includes(productSearch.toLowerCase()))
-                                                    .map(product => (
-                                                        <button
-                                                            key={product.IdProducto}
-                                                            onClick={() => handleAddProduct(product)}
-                                                            className="w-full text-left px-8 py-5 hover:bg-blue-50/50 transition-all border-b border-gray-50 last:border-none flex justify-between items-center group"
-                                                        >
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                                                                    {getCategoryEmoji(product.Categoria)}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-black text-black text-sm group-hover:text-blue-700">{product.Producto}</div>
-                                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{product.Codigo}</span>
-                                                                        <span className="text-[9px] bg-gray-50 text-gray-400 px-2 py-0.5 rounded-md font-black uppercase">
-                                                                            {product.Categoria || 'General'}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="text-blue-600 font-black text-base">{formatCurrency(product.Costo)}</span>
-                                                                <div className="text-[9px] text-gray-300 font-bold uppercase">Costo Base</div>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                                <tr className="bg-slate-50 border-b border-slate-100">
-                                                    <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('product')}</th>
-                                                    {esInterna && (
-                                                        <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-36">Categoría</th>
-                                                    )}
-                                                    <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-center">{t('quantity')}</th>
-                                                    <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-center">Unidad</th>
-                                                    {!esInterna && (
-                                                        <>
-                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-right">{t('price')}</th>
-                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest w-28 text-right">{t('total')}</th>
-                                                        </>
-                                                    )}
-                                                    <th className="px-3 py-3 w-10"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-50">
-                                                {orderItems.map((item, index) => (
-                                                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                                                        {/* Product name */}
-                                                        <td className="px-5 py-2.5">
-                                                            <input 
-                                                                type="text" 
-                                                                value={item.producto}
-                                                                onChange={(e) => handleUpdateItem(index, 'producto', e.target.value)}
-                                                                className="w-full bg-transparent border-b border-transparent focus:border-blue-400 outline-none text-slate-800 font-semibold text-xs transition-all"
-                                                            />
-                                                        </td>
-                                                        {/* Categoria (only internal) */}
-                                                        {esInterna && (
-                                                            <td className="px-4 py-2.5">
-                                                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded-md">
-                                                                    {getCategoryEmoji(item.categoria)} {item.categoria || '—'}
-                                                                </span>
-                                                            </td>
-                                                        )}
-                                                        {/* Quantity */}
-                                                        <td className="px-4 py-2.5">
-                                                            <input 
-                                                                type="number" 
-                                                                value={item.cantidad}
-                                                                onChange={(e) => handleUpdateItem(index, 'cantidad', e.target.value)}
-                                                                className="w-full text-center bg-slate-50 border border-slate-100 focus:border-blue-400 focus:bg-white rounded-lg py-1 outline-none text-slate-800 font-bold text-xs transition-all"
-                                                            />
-                                                        </td>
-                                                        {/* Unit of measure — required */}
-                                                        <td className="px-4 py-2.5">
-                                                            <select
-                                                                value={item.unidadMedida || ''}
-                                                                onChange={(e) => handleUpdateItem(index, 'unidadMedida', e.target.value)}
-                                                                className={`w-full text-center border rounded-lg py-1 outline-none font-semibold text-xs transition-all ${
-                                                                    !item.unidadMedida
-                                                                        ? 'bg-red-50 border-red-300 text-red-500 focus:border-red-500'
-                                                                        : 'bg-slate-50 border-slate-100 focus:border-blue-400 focus:bg-white text-slate-700'
-                                                                }`}
-                                                            >
-                                                                <option value="">⚠ Requerida</option>
-                                                                {['KG','G','MG','L','ML','PZA','CAJA','BOLSA','PAQUETE','LATA','BOTELLA','COSTAL','TARRO','BOTE','LITRO','ONZA','LIBRA','TON','M','CM','DOCENA','UNIDAD'].map(u => (
-                                                                    <option key={u} value={u}>{u}</option>
-                                                                ))}
-                                                            </select>
-                                                        </td>
-                                                        {/* Price + Total (only external) */}
-                                                        {!esInterna && (
-                                                            <>
-                                                                <td className="px-4 py-2.5 text-right">
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.precioUnitario}
-                                                                        onChange={(e) => handleUpdateItem(index, 'precioUnitario', e.target.value)}
-                                                                        className="w-full text-right bg-slate-50 border border-slate-100 focus:border-blue-400 focus:bg-white rounded-lg py-1 px-2 outline-none text-slate-800 font-bold text-xs transition-all"
-                                                                    />
-                                                                </td>
-                                                                <td className="px-4 py-2.5 text-right text-xs font-bold text-blue-600">
-                                                                    {formatCurrency(item.total)}
-                                                                </td>
-                                                            </>
-                                                        )}
-                                                        <td className="px-3 py-2.5 text-center">
-                                                            <button 
-                                                                onClick={() => handleRemoveItem(index)}
-                                                                className="text-slate-200 hover:text-red-400 transition-colors"
-                                                            >🗑️</button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {orderItems.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={esInterna ? 5 : 6} className="px-5 py-12 text-center">
-                                                            <p className="text-slate-300 font-semibold text-xs uppercase tracking-widest">Agrega productos usando el buscador</p>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                            {orderItems.length > 0 && (
-                                                <tfoot>
-                                                    <tr className="bg-slate-50 border-t border-slate-100">
-                                                        <td className="px-5 py-3" colSpan={esInterna ? 3 : 3}>
-                                                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                                                                {orderItems.length} {orderItems.length === 1 ? 'producto' : 'productos'}
-                                                            </span>
-                                                        </td>
-                                                        {!esInterna && (
-                                                            <>
-                                                                <td className="px-4 py-3 text-right">
-                                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Total</span>
-                                                                </td>
-                                                                <td className="px-4 py-3 text-right">
-                                                                    <span className="text-sm font-black text-slate-800">
-                                                                        {formatCurrency(orderItems.reduce((acc, item) => acc + (isNaN(Number(item.total)) ? 0 : Number(item.total)), 0))}
-                                                                    </span>
-                                                                </td>
-                                                            </>
-                                                        )}
-                                                        <td className="px-3 py-3"></td>
-                                                    </tr>
-                                                </tfoot>
-                                            )}
-                                        </table>
-                                    </div>
-                            </div>
-                        {/* Modal Footer */}
-                        <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center gap-4">
-                            <div>
-                                {editingOrder && (
-                                    <button 
-                                        onClick={() => exportOrderToPDF(editingOrder)}
-                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 font-semibold text-xs transition-all shadow-sm"
-                                    >
-                                        🖨️ Imprimir PDF
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex gap-3">
-                            <button 
-                                onClick={closeModal}
-                                className="px-6 py-2.5 rounded-xl border border-gray-200 font-semibold hover:bg-white hover:shadow-sm transition-all text-gray-400 text-xs"
-                            >
-                                {t('cancel')}
-                            </button>
-                            <button 
-                                onClick={handleSubmit}
-                                className="px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md shadow-blue-500/20"
-                            >
-                                {editingOrder ? 'Actualizar Orden' : 'Confirmar y Guardar'}
-                            </button>
+                                {/* Notas */}
+                                <Input
+                                    label={t('notes')}
+                                    type="text"
+                                    value={notas}
+                                    onChange={(e) => setNotas(e.target.value)}
+                                    placeholder="Notas internas…"
+                                />
                             </div>
                         </div>
+                    </div>
+
+                    {/* ── Productos de la orden ─────────────────────────────── */}
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between gap-3">
+                            <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                                <Package size={13} />
+                                Productos ({orderItems.length})
+                            </span>
+                            {!esInterna && orderItems.length > 0 && (
+                                <span className="text-xs font-medium text-gray-500">
+                                    Total: <span className="font-bold text-gray-900">
+                                        {formatCurrency(orderItems.reduce((acc, item) => acc + (isNaN(Number(item.total)) ? 0 : Number(item.total)), 0))}
+                                    </span>
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Buscador de productos */}
+                        <div className="p-3 border-b border-gray-100 bg-white">
+                            <div className="relative" ref={productListRef}>
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={productSearch}
+                                    onChange={(e) => {
+                                        setProductSearch(e.target.value);
+                                        setIsProductListOpen(true);
+                                    }}
+                                    onFocus={() => setIsProductListOpen(true)}
+                                    placeholder="Añadir producto a la orden…"
+                                    className="w-full text-sm rounded-lg border border-gray-200 bg-white pl-9 pr-3 py-2.5 text-gray-800 focus:outline-none focus:border-blue-500 transition-all"
+                                />
+
+                                {isProductListOpen && products.length > 0 && (
+                                    <div className="absolute z-[60] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-72 overflow-y-auto">
+                                        {products
+                                            .filter(p => p.Producto.toLowerCase().includes(productSearch.toLowerCase()))
+                                            .map(product => (
+                                                <button
+                                                    key={product.IdProducto}
+                                                    onClick={() => handleAddProduct(product)}
+                                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none flex justify-between items-center gap-3 group"
+                                                >
+                                                    <span className="flex items-center gap-2.5 min-w-0">
+                                                        <span className="shrink-0 w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base">
+                                                            {getCategoryEmoji(product.Categoria)}
+                                                        </span>
+                                                        <span className="min-w-0">
+                                                            <span className="block text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700">{product.Producto}</span>
+                                                            <span className="block text-[11px] text-gray-400 truncate">
+                                                                {product.Codigo} · {product.Categoria || 'General'}
+                                                                {product.UnidadMedidaCompra ? ` · ${product.UnidadMedidaCompra}` : ''}
+                                                            </span>
+                                                        </span>
+                                                    </span>
+                                                    <span className="shrink-0 text-right">
+                                                        <span className="block text-sm font-bold text-blue-600">{formatCurrency(product.Costo)}</span>
+                                                        <span className="block text-[10px] text-gray-400 uppercase">Costo base</span>
+                                                    </span>
+                                                </button>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Tabla de renglones (scroll horizontal para que todo se alcance a ver) */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[720px] text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                        <th className="px-4 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide min-w-[220px]">{t('product')}</th>
+                                        {esInterna && (
+                                            <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-44">Categoría</th>
+                                        )}
+                                        <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-28 text-center">{t('quantity')}</th>
+                                        <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-center">Unidad</th>
+                                        {!esInterna && (
+                                            <>
+                                                <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-right">{t('price')}</th>
+                                                <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-right">{t('total')}</th>
+                                            </>
+                                        )}
+                                        <th className="px-3 py-2.5 w-14"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {orderItems.map((item, index) => (
+                                        <tr key={index} className="hover:bg-gray-50/60 transition-colors">
+                                            {/* Producto */}
+                                            <td className="px-4 py-2">
+                                                <input
+                                                    type="text"
+                                                    value={item.producto}
+                                                    onChange={(e) => handleUpdateItem(index, 'producto', e.target.value)}
+                                                    className="w-full text-sm rounded-lg border border-transparent hover:border-gray-200 focus:border-blue-500 bg-transparent focus:bg-white px-2 py-1.5 outline-none text-gray-800 font-medium transition-all"
+                                                />
+                                            </td>
+                                            {/* Categoría (solo interna) */}
+                                            {esInterna && (
+                                                <td className="px-3 py-2">
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-md truncate max-w-full">
+                                                        {getCategoryEmoji(item.categoria)} {item.categoria || '—'}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            {/* Cantidad */}
+                                            <td className="px-3 py-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={item.cantidad}
+                                                    onChange={(e) => handleUpdateItem(index, 'cantidad', e.target.value)}
+                                                    className="w-full text-sm text-center rounded-lg border border-gray-200 bg-white focus:border-blue-500 px-2 py-1.5 outline-none text-gray-800 font-semibold transition-all"
+                                                />
+                                            </td>
+                                            {/* Unidad de medida — obligatoria */}
+                                            <td className="px-3 py-2">
+                                                <select
+                                                    value={item.unidadMedida || ''}
+                                                    onChange={(e) => handleUpdateItem(index, 'unidadMedida', e.target.value)}
+                                                    className={`w-full text-sm text-center rounded-lg border px-2 py-1.5 outline-none font-semibold transition-all ${
+                                                        !item.unidadMedida
+                                                            ? 'bg-red-50 border-red-300 text-red-600 focus:border-red-500'
+                                                            : 'bg-white border-gray-200 text-gray-800 focus:border-blue-500'
+                                                    }`}
+                                                >
+                                                    <option value="">⚠ Requerida</option>
+                                                    {/* Conserva la unidad guardada aunque no esté en el catálogo estándar */}
+                                                    {item.unidadMedida && !UNITS.includes(item.unidadMedida) && (
+                                                        <option value={item.unidadMedida}>{item.unidadMedida}</option>
+                                                    )}
+                                                    {UNITS.map(u => (
+                                                        <option key={u} value={u}>{u}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            {/* Precio + Total (solo externa) */}
+                                            {!esInterna && (
+                                                <>
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={item.precioUnitario}
+                                                            onChange={(e) => handleUpdateItem(index, 'precioUnitario', e.target.value)}
+                                                            className="w-full text-sm text-right rounded-lg border border-gray-200 bg-white focus:border-blue-500 px-2 py-1.5 outline-none text-gray-800 font-semibold transition-all"
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right text-sm font-bold text-blue-600 tabular-nums whitespace-nowrap">
+                                                        {formatCurrency(item.total)}
+                                                    </td>
+                                                </>
+                                            )}
+                                            <td className="px-3 py-2 text-center">
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label="Quitar producto"
+                                                    variant="delete"
+                                                    onClick={() => handleRemoveItem(index)}
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {orderItems.length === 0 && (
+                                        <tr>
+                                            <td colSpan={esInterna ? 5 : 6} className="px-4 py-12 text-center">
+                                                <Package size={28} className="mx-auto text-gray-200 mb-2" />
+                                                <p className="text-sm text-gray-400">Agrega productos usando el buscador de arriba.</p>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                {orderItems.length > 0 && !esInterna && (
+                                    <tfoot>
+                                        <tr className="bg-gray-50 border-t border-gray-200">
+                                            <td className="px-4 py-3 text-xs font-semibold text-gray-500" colSpan={3}>
+                                                {orderItems.length} {orderItems.length === 1 ? 'producto' : 'productos'}
+                                            </td>
+                                            <td className="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wide">Total</td>
+                                            <td className="px-3 py-3 text-right text-base font-black text-gray-900 tabular-nums whitespace-nowrap" colSpan={2}>
+                                                {formatCurrency(orderItems.reduce((acc, item) => acc + (isNaN(Number(item.total)) ? 0 : Number(item.total)), 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </BaseModal>
 
             {/* Category Selection / Capture Modal */}
