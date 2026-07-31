@@ -25,11 +25,13 @@ export async function GET(request: NextRequest) {
             "SET SESSION sql_mode = REPLACE(@@sql_mode, 'ERROR_FOR_DIVISION_BY_ZERO', '')"
         );
 
+        // TODA la materia prima activa (IdTipoProducto=0), tenga o no movimientos
+        // de almacén: LEFT JOIN con existencias de la sucursal (default 0).
         const [rows] = await connection.query(
             `SELECT
-                e.IdProducto,
-                e.Existencia,
-                e.CostoPromedio,
+                v.IdProducto,
+                COALESCE(e.Existencia, 0) AS Existencia,
+                COALESCE(e.CostoPromedio, 0) AS CostoPromedio,
                 e.Unidad,
                 e.FechaAct,
                 v.Producto,
@@ -40,9 +42,10 @@ export async function GET(request: NextRequest) {
                 v.UnidadMedidaCompra,
                 v.UnidadMedidaInventario,
                 v.CostoInventario
-             FROM tblAlmacenExistencias e
-             JOIN vlProductos v ON v.IdProducto = e.IdProducto
-             WHERE e.IdSucursal = ?
+             FROM vlProductos v
+             LEFT JOIN tblAlmacenExistencias e
+                ON e.IdProducto = v.IdProducto AND e.IdSucursal = ?
+             WHERE v.IdTipoProducto = 0 AND v.Status = 0
              ORDER BY v.Categoria, v.Producto`,
             [parseInt(branchIdStr)]
         );

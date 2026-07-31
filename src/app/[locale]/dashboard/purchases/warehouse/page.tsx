@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import PageShell from '@/components/PageShell';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -26,7 +27,7 @@ import {
     AlertTriangle,
     ArrowDownCircle,
     ArrowUpCircle,
-    ChevronDown,
+    ArrowLeft,
     ChevronRight,
 } from 'lucide-react';
 
@@ -56,7 +57,25 @@ type StockGroup = {
     emoji: string;
     rows: StockRow[];
     subtotal: number;
+    conExistencia: number;
+    negativos: number;
+    sinCosteo: boolean;
 };
+
+/** Categoría global cuyos productos NO se costean en almacén. */
+const SIN_COSTO_CATEGORIA = 'MP PRODUCTO TERMINADO';
+const isSinCosteo = (categoria?: string | null) =>
+    (categoria || '').trim().toUpperCase() === SIN_COSTO_CATEGORIA;
+
+/** Costo efectivo del renglón: promedio de almacén, o el del catálogo si aún no hay movimientos. */
+const rowCost = (row: { Categoria: string | null; CostoPromedio: number; CostoInventario: number | null }) => {
+    if (isSinCosteo(row.Categoria)) return 0;
+    const avg = Number(row.CostoPromedio) || 0;
+    return avg > 0 ? avg : (Number(row.CostoInventario) || 0);
+};
+
+const rowValue = (row: { Categoria: string | null; Existencia: number; CostoPromedio: number; CostoInventario: number | null }) =>
+    (Number(row.Existencia) || 0) * rowCost(row);
 
 /** Emoji de respaldo cuando la categoría no tiene ImagenCategoria configurada. */
 const getCategoryEmoji = (category?: string | null) => {
@@ -102,6 +121,12 @@ type Product = {
     UnidadMedidaInventario?: string;
 };
 
+type Category = {
+    IdCategoria: number;
+    Categoria: string;
+    ImagenCategoria: string | null;
+};
+
 const ORIGIN_LABELS: Record<string, string> = {
     ORDEN_COMPRA: 'Orden de compra',
     SALIDA_INTERNA: 'Salida interna',
@@ -117,15 +142,27 @@ export default function WarehousePage() {
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [stock, setStock] = useState<StockRow[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [onlyWithStock, setOnlyWithStock] = useState(false);
-    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+    /** Categoría abierta: null = vista de tarjetas de categorías. */
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     // Kardex modal
     const [movementsProduct, setMovementsProduct] = useState<StockRow | null>(null);
     const [movements, setMovements] = useState<Movement[]>([]);
     const [isMovementsLoading, setIsMovementsLoading] = useState(false);
+
+    // Reporte de movimientos de la sucursal (todos los productos, por periodo)
+    const [isMovReportOpen, setIsMovReportOpen] = useState(false);
+    const [movReportRows, setMovReportRows] = useState<Movement[]>([]);
+    const [isMovReportLoading, setIsMovReportLoading] = useState(false);
+    const [movStartDate, setMovStartDate] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    });
+    const [movEndDate, setMovEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
     // Adjustment modal
     const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -170,6 +207,17 @@ export default function WarehousePage() {
         }
     }, [projectId]);
 
+    const fetchCategories = useCallback(async () => {
+        if (!projectId) return;
+        try {
+            const res = await fetch(`/api/categories?projectId=${projectId}`, { cache: 'no-store' });
+            const data = await res.json();
+            if (data.success) setCategories(data.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    }, [projectId]);
+
     const fetchStock = useCallback(async () => {
         if (!projectId || !selectedBranch) return;
         setIsLoading(true);
@@ -189,7 +237,8 @@ export default function WarehousePage() {
     useEffect(() => {
         fetchBranches();
         fetchProducts();
-    }, [fetchBranches, fetchProducts]);
+        fetchCategories();
+    }, [fetchBranches, fetchProducts, fetchCategories]);
 
     useEffect(() => {
         if (selectedBranch) {
@@ -231,11 +280,33 @@ export default function WarehousePage() {
                     emoji: row.ImagenCategoria || getCategoryEmoji(row.Categoria),
                     rows: [],
                     subtotal: 0,
+                    conExistencia: 0,
+                    negativos: 0,
+                    sinCosteo: isSinCosteo(row.Categoria),
                 });
             }
             const group = map.get(categoria)!;
             group.rows.push(row);
-            group.subtotal += Number(row.Existencia) * Number(row.CostoPromedio) || 0;
+            group.subtotal += rowValue(row);
+            if (Number(row.Existencia) !== 0) group.conExistencia++;
+            if (Number(row.Existencia) < 0) group.negativos++;
+        }
+        // Categorías del catálogo global sin productos: también deben verse en el
+        // almacén. Se ocultan solo si el filtro activo las dejaría vacías a fuerza
+        // ("solo con existencia") o si la búsqueda no coincide con su nombre.
+        for (const cat of categories) {
+            if (!cat.Categoria || map.has(cat.Categoria)) continue;
+            if (onlyWithStock) continue;
+            if (searchTerm && !cat.Categoria.toLowerCase().includes(searchTerm.toLowerCase())) continue;
+            map.set(cat.Categoria, {
+                categoria: cat.Categoria,
+                emoji: cat.ImagenCategoria || getCategoryEmoji(cat.Categoria),
+                rows: [],
+                subtotal: 0,
+                conExistencia: 0,
+                negativos: 0,
+                sinCosteo: isSinCosteo(cat.Categoria),
+            });
         }
         return [...map.values()].sort((a, b) => {
             if (a.categoria === 'Sin Categoría') return 1;
@@ -244,16 +315,11 @@ export default function WarehousePage() {
         });
     })();
 
-    const toggleGroup = (categoria: string) => {
-        setCollapsedGroups(prev => {
-            const next = new Set(prev);
-            if (next.has(categoria)) next.delete(categoria);
-            else next.add(categoria);
-            return next;
-        });
-    };
+    const selectedGroup = selectedCategory !== null
+        ? stockGroups.find(g => g.categoria === selectedCategory) || null
+        : null;
 
-    const totalValue = filteredStock.reduce((sum, r) => sum + (Number(r.Existencia) * Number(r.CostoPromedio) || 0), 0);
+    const totalValue = filteredStock.reduce((sum, r) => sum + rowValue(r), 0);
     const negativeCount = stock.filter(r => Number(r.Existencia) < 0).length;
 
     const openMovements = async (row: StockRow) => {
@@ -270,6 +336,120 @@ export default function WarehousePage() {
         } finally {
             setIsMovementsLoading(false);
         }
+    };
+
+    const fetchMovementsReport = useCallback(async () => {
+        if (!projectId || !selectedBranch) return;
+        setIsMovReportLoading(true);
+        try {
+            const res = await fetch(
+                `/api/warehouse/movements?projectId=${projectId}&branchId=${selectedBranch}&startDate=${movStartDate}&endDate=${movEndDate}`
+            );
+            const data = await res.json();
+            if (data.success) setMovReportRows(data.data);
+            else toastError(data.message || 'Error al cargar movimientos');
+        } catch (error) {
+            console.error('Error fetching movements report:', error);
+            toastError('Error al cargar movimientos');
+        } finally {
+            setIsMovReportLoading(false);
+        }
+    }, [projectId, selectedBranch, movStartDate, movEndDate, toastError]);
+
+    useEffect(() => {
+        if (isMovReportOpen) fetchMovementsReport();
+    }, [isMovReportOpen, fetchMovementsReport]);
+
+    /** Exporta movimientos a Excel (reporte general o kardex de un producto). */
+    const exportMovementsExcel = (rows: Movement[], productLabel?: string) => {
+        if (rows.length === 0) {
+            toastError('No hay movimientos para exportar');
+            return;
+        }
+        const exportData = rows.map(mov => ({
+            Fecha: new Date(mov.FechaMovimiento).toLocaleString('es-MX'),
+            Producto: mov.Producto,
+            'Código': mov.Codigo || '',
+            Movimiento: mov.TipoMovimiento === 'ENTRADA' ? 'Entrada' : 'Salida',
+            Origen: ORIGIN_LABELS[mov.Origen] || mov.Origen,
+            Folio: mov.IdOrdenCompra ? `OC-${String(mov.IdOrdenCompra).padStart(4, '0')}` : '',
+            Cantidad: (mov.TipoMovimiento === 'ENTRADA' ? 1 : -1) * Number(mov.Cantidad),
+            Unidad: mov.Unidad || '',
+            'Costo Unitario': Number(mov.CostoUnitario),
+            'Existencia Anterior': Number(mov.ExistenciaAnterior),
+            'Existencia Nueva': Number(mov.ExistenciaNueva),
+            Notas: mov.Notas || '',
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+        const suffix = productLabel ? `_${productLabel.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}` : '';
+        XLSX.writeFile(wb, `Movimientos_Almacen_${branchName || 'Sucursal'}${suffix}.xlsx`);
+    };
+
+    /** Exporta movimientos a PDF (reporte general o kardex de un producto). */
+    const exportMovementsPDF = (rows: Movement[], productLabel?: string, periodo?: string) => {
+        if (rows.length === 0) {
+            toastError('No hay movimientos para exportar');
+            return;
+        }
+        const doc = new jsPDF({ orientation: 'landscape' });
+
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0);
+        doc.text(productLabel ? `KARDEX — ${productLabel.toUpperCase()}` : 'MOVIMIENTOS DE ALMACÉN', 148, 15, { align: 'center' });
+
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        if (projectName) doc.text(`Proyecto: ${projectName}`, 15, 24);
+        doc.text(`Sucursal: ${branchName}`, 15, 29);
+        if (periodo) doc.text(`Periodo: ${periodo}`, 15, 34);
+        doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, 282, 24, { align: 'right' });
+
+        const tableData = rows.map(mov => [
+            new Date(mov.FechaMovimiento).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            mov.Producto,
+            mov.TipoMovimiento === 'ENTRADA' ? 'Entrada' : 'Salida',
+            `${ORIGIN_LABELS[mov.Origen] || mov.Origen}${mov.IdOrdenCompra ? ` · OC-${String(mov.IdOrdenCompra).padStart(4, '0')}` : ''}`,
+            `${mov.TipoMovimiento === 'ENTRADA' ? '+' : '−'}${formatQty(mov.Cantidad)} ${mov.Unidad || ''}`,
+            formatCurrency(mov.CostoUnitario),
+            formatQty(mov.ExistenciaNueva),
+            mov.Notas || '',
+        ]);
+
+        autoTable(doc, {
+            startY: periodo ? 38 : 33,
+            head: [['Fecha', 'Producto', 'Mov.', 'Referencia', 'Cantidad', 'Costo Unit.', 'Saldo', 'Notas']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [13, 148, 136] },
+            columnStyles: {
+                4: { halign: 'right' },
+                5: { halign: 'right' },
+                6: { halign: 'right' },
+            },
+            styles: { fontSize: 7, cellPadding: 1.2 },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 4) {
+                    const raw = String(data.cell.raw || '');
+                    data.cell.styles.textColor = raw.startsWith('+') ? [22, 101, 52] : [153, 27, 27];
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            },
+        });
+
+        const finalY = (doc as any).lastAutoTable.finalY || 150;
+        const entradas = rows.filter(m => m.TipoMovimiento === 'ENTRADA').length;
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${rows.length} movimientos — ${entradas} entradas · ${rows.length - entradas} salidas`, 15, finalY + 8);
+
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Foodie Guru - Control de Almacén', 148, 205, { align: 'center' });
+
+        const suffix = productLabel ? `_${productLabel.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}` : '';
+        doc.save(`Movimientos_Almacen_${branchName || 'Sucursal'}${suffix}.pdf`);
     };
 
     const openAdjust = (row?: StockRow) => {
@@ -349,11 +529,11 @@ export default function WarehousePage() {
         doc.text(`Sucursal: ${branchName}`, 20, 33);
         doc.text(`Fecha: ${new Date().toLocaleString('es-MX')}`, 190, 28, { align: 'right' });
 
-        // Agrupado por categoría, igual que la tabla en pantalla.
+        // Agrupado por categoría, igual que la vista en pantalla.
         const tableData: any[] = [];
         for (const group of stockGroups) {
             tableData.push([{
-                content: `${group.categoria}  —  ${group.rows.length} producto(s) · ${formatCurrency(group.subtotal)}`,
+                content: `${group.categoria}  —  ${group.rows.length} producto(s) · ${group.sinCosteo ? 'Sin costeo' : formatCurrency(group.subtotal)}`,
                 colSpan: 5,
                 styles: { fillColor: [240, 245, 255], fontStyle: 'bold', textColor: [30, 64, 175] },
             }]);
@@ -362,8 +542,8 @@ export default function WarehousePage() {
                     row.Producto,
                     row.Unidad || row.UnidadMedidaInventario || '—',
                     formatQty(row.Existencia),
-                    formatCurrency(row.CostoPromedio),
-                    formatCurrency(Number(row.Existencia) * Number(row.CostoPromedio)),
+                    group.sinCosteo ? '—' : formatCurrency(rowCost(row)),
+                    group.sinCosteo ? '—' : formatCurrency(rowValue(row)),
                 ]);
             }
         }
@@ -420,12 +600,21 @@ export default function WarehousePage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar producto, código, categoría…"
+                            placeholder={selectedCategory ? `Buscar en ${selectedCategory}…` : 'Buscar producto, código, categoría…'}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 pl-9 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-800 font-medium text-xs transition-all shadow-sm"
                         />
                     </div>
+
+                    <Button
+                        leftIcon={History}
+                        onClick={() => setIsMovReportOpen(true)}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Movimientos
+                    </Button>
 
                     <Button
                         leftIcon={Download}
@@ -486,126 +675,193 @@ export default function WarehousePage() {
                 </label>
             </div>
 
-            {/* Stock Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 380px)' }}>
-                    <table className="min-w-full border-collapse">
-                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
-                            <ThemedGridHeaderCell>Producto</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell>Categoría</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="center">Unidad</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="right">Existencia</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="right">Costo Prom.</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="right">Valor</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell>Última Act.</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="right">Acciones</ThemedGridHeaderCell>
-                        </ThemedGridHeader>
-
-                        <TableBody
-                            loading={isLoading}
-                            empty={!isLoading && filteredStock.length === 0}
-                            emptyMessage={
-                                !selectedBranch
+            {/* Vista de categorías (tarjetas con emoji) o productos de la categoría abierta */}
+            {selectedCategory === null ? (
+                <>
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-teal-600 mb-3"></div>
+                            <p className="text-gray-400 font-semibold text-sm">Cargando almacén…</p>
+                        </div>
+                    ) : stockGroups.length === 0 ? (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm py-16 text-center">
+                            <Package size={32} className="mx-auto text-gray-200 mb-3" />
+                            <p className="text-sm text-gray-400">
+                                {!selectedBranch
                                     ? 'Selecciona una sucursal para ver su almacén'
                                     : searchTerm
                                         ? 'Sin resultados para tu búsqueda'
-                                        : 'Sin existencias registradas. Aplica órdenes de compra o captura un ajuste para iniciar.'
-                            }
-                            colSpan={8}
-                        >
-                            {stockGroups.map((group) => [
-                                <tr
-                                    key={`cat-${group.categoria}`}
-                                    onClick={() => toggleGroup(group.categoria)}
-                                    className="bg-gray-50/90 border-y border-gray-100 cursor-pointer hover:bg-gray-100/80 transition-colors select-none"
+                                        : 'Sin materias primas registradas.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {stockGroups.map(group => (
+                                <button
+                                    key={group.categoria}
+                                    onClick={() => setSelectedCategory(group.categoria)}
+                                    className="group relative bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5 text-left hover:shadow-lg hover:border-teal-200 hover:-translate-y-0.5 transition-all duration-200"
                                 >
-                                    <td colSpan={5} className="px-4 py-2">
-                                        <span className="flex items-center gap-2">
-                                            {collapsedGroups.has(group.categoria)
-                                                ? <ChevronRight size={14} className="text-gray-400" />
-                                                : <ChevronDown size={14} className="text-gray-400" />}
-                                            <span className="text-base leading-none">{group.emoji}</span>
-                                            <span className="text-xs font-black text-gray-700 uppercase tracking-wide">{group.categoria}</span>
-                                            <span className="text-[10px] font-bold text-gray-400 bg-white border border-gray-200 rounded-full px-2 py-0.5">
-                                                {group.rows.length}
-                                            </span>
+                                    <div className="text-5xl mb-3 group-hover:scale-110 transition-transform origin-left">
+                                        {group.emoji}
+                                    </div>
+                                    <div className="text-sm font-black text-gray-900 leading-tight mb-2">
+                                        {group.categoria}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+                                            {group.rows.length} productos
                                         </span>
-                                    </td>
-                                    <td className="px-4 py-2 text-right">
-                                        <span className={`text-xs font-black tabular-nums ${group.subtotal < 0 ? 'text-red-600' : 'text-gray-700'}`}>
-                                            {formatCurrency(group.subtotal)}
-                                        </span>
-                                    </td>
-                                    <td colSpan={2}></td>
-                                </tr>,
-                                ...(collapsedGroups.has(group.categoria) ? [] : group.rows.map((row) => {
-                                const value = Number(row.Existencia) * Number(row.CostoPromedio);
-                                const isNegative = Number(row.Existencia) < 0;
-                                return (
-                                    <TableRow key={row.IdProducto}>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium text-gray-900">{row.Producto}</span>
-                                                {row.Codigo && <span className="text-xs text-gray-400 font-semibold">{row.Codigo}</span>}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell muted>{row.Categoria || '—'}</TableCell>
-                                        <TableCell align="center">
-                                            <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
-                                                {row.Unidad || row.UnidadMedidaInventario || '—'}
+                                        {group.conExistencia > 0 && (
+                                            <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">
+                                                {group.conExistencia} con existencia
                                             </span>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <span className={`font-bold tabular-nums ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
-                                                {formatQty(row.Existencia)}
+                                        )}
+                                        {group.negativos > 0 && (
+                                            <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-0.5">
+                                                {group.negativos} en negativo
                                             </span>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <span className="text-gray-600 tabular-nums">{formatCurrency(row.CostoPromedio)}</span>
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <span className={`font-semibold tabular-nums ${value < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                                                {formatCurrency(value)}
+                                        )}
+                                    </div>
+                                    <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between">
+                                        {group.sinCosteo ? (
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-wide">Sin costeo</span>
+                                        ) : (
+                                            <span className={`text-xs font-black tabular-nums ${group.subtotal < 0 ? 'text-red-600' : 'text-gray-700'}`}>
+                                                {formatCurrency(group.subtotal)}
                                             </span>
-                                        </TableCell>
-                                        <TableCell muted>
-                                            {row.FechaAct ? new Date(row.FechaAct).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <RowActionButton
-                                                    icon={History}
-                                                    label="Ver movimientos (kardex)"
-                                                    variant="view"
-                                                    onClick={() => openMovements(row)}
-                                                />
-                                                <RowActionButton
-                                                    icon={SlidersHorizontal}
-                                                    label="Ajustar existencia"
-                                                    variant="edit"
-                                                    onClick={() => openAdjust(row)}
-                                                />
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                                })),
-                            ])}
-                        </TableBody>
-                    </table>
-                </div>
-
-                {!isLoading && filteredStock.length > 0 && (
-                    <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                        <span className="text-xs text-gray-400">
-                            {filteredStock.length} de {stock.length} productos
-                        </span>
-                        <span className="text-xs font-semibold text-gray-600">
-                            Inventario costeado: {formatCurrency(totalValue)}
-                        </span>
+                                        )}
+                                        <ChevronRight size={14} className="text-gray-300 group-hover:text-teal-500 group-hover:translate-x-0.5 transition-all" />
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                    {/* Encabezado de la categoría abierta con regreso */}
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setSelectedCategory(null)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-teal-300 hover:text-teal-700 text-xs font-bold text-gray-600 transition-colors"
+                            >
+                                <ArrowLeft size={14} />
+                                Categorías
+                            </button>
+                            <span className="text-3xl leading-none">{selectedGroup?.emoji || '📦'}</span>
+                            <div>
+                                <p className="text-sm font-black text-gray-900">{selectedCategory}</p>
+                                <p className="text-[11px] text-gray-400 font-semibold">
+                                    {selectedGroup?.rows.length || 0} productos
+                                    {selectedGroup?.sinCosteo ? ' · Sin costeo' : ''}
+                                </p>
+                            </div>
+                        </div>
+                        {selectedGroup && !selectedGroup.sinCosteo && (
+                            <span className="text-xs font-black text-gray-700 tabular-nums">
+                                {formatCurrency(selectedGroup.subtotal)}
+                            </span>
+                        )}
                     </div>
-                )}
-            </div>
+
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 430px)' }}>
+                        <table className="min-w-full border-collapse">
+                            <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                                <ThemedGridHeaderCell>Producto</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="center">Unidad</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">Existencia</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">Costo Prom.</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">Valor</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Última Act.</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell align="right">Acciones</ThemedGridHeaderCell>
+                            </ThemedGridHeader>
+
+                            <TableBody
+                                loading={isLoading}
+                                empty={!isLoading && (selectedGroup?.rows.length || 0) === 0}
+                                emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda en esta categoría' : 'Sin productos en esta categoría'}
+                                colSpan={7}
+                            >
+                                {(selectedGroup?.rows || []).map((row) => {
+                                    const sinCosteo = isSinCosteo(row.Categoria);
+                                    const value = rowValue(row);
+                                    const isNegative = Number(row.Existencia) < 0;
+                                    return (
+                                        <TableRow key={row.IdProducto}>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-gray-900">{row.Producto}</span>
+                                                    {row.Codigo && <span className="text-xs text-gray-400 font-semibold">{row.Codigo}</span>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
+                                                    {row.Unidad || row.UnidadMedidaInventario || '—'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <span className={`font-bold tabular-nums ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
+                                                    {formatQty(row.Existencia)}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                {sinCosteo ? (
+                                                    <span className="text-xs font-semibold text-gray-300">—</span>
+                                                ) : (
+                                                    <span className="text-gray-600 tabular-nums">{formatCurrency(rowCost(row))}</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                {sinCosteo ? (
+                                                    <span className="text-xs font-semibold text-gray-300">—</span>
+                                                ) : (
+                                                    <span className={`font-semibold tabular-nums ${value < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                                        {formatCurrency(value)}
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell muted>
+                                                {row.FechaAct ? new Date(row.FechaAct).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <RowActionButton
+                                                        icon={History}
+                                                        label="Ver movimientos (kardex)"
+                                                        variant="view"
+                                                        onClick={() => openMovements(row)}
+                                                    />
+                                                    <RowActionButton
+                                                        icon={SlidersHorizontal}
+                                                        label="Ajustar existencia"
+                                                        variant="edit"
+                                                        onClick={() => openAdjust(row)}
+                                                    />
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </table>
+                    </div>
+
+                    {!isLoading && (selectedGroup?.rows.length || 0) > 0 && (
+                        <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                            <span className="text-xs text-gray-400">
+                                {selectedGroup?.rows.length} productos en {selectedCategory}
+                            </span>
+                            {selectedGroup && !selectedGroup.sinCosteo && (
+                                <span className="text-xs font-semibold text-gray-600">
+                                    Subtotal costeado: {formatCurrency(selectedGroup.subtotal)}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Kardex Modal */}
             <BaseModal
@@ -628,16 +884,38 @@ export default function WarehousePage() {
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Costo Promedio</p>
-                                <p className="text-lg font-black text-gray-900 mt-0.5">{formatCurrency(movementsProduct.CostoPromedio)}</p>
+                                <p className="text-lg font-black text-gray-900 mt-0.5">
+                                    {isSinCosteo(movementsProduct.Categoria) ? 'Sin costeo' : formatCurrency(rowCost(movementsProduct))}
+                                </p>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Valor</p>
                                 <p className="text-lg font-black text-gray-900 mt-0.5">
-                                    {formatCurrency(Number(movementsProduct.Existencia) * Number(movementsProduct.CostoPromedio))}
+                                    {isSinCosteo(movementsProduct.Categoria) ? '—' : formatCurrency(rowValue(movementsProduct))}
                                 </p>
                             </div>
                         </div>
                     )}
+
+                    {/* Exportar kardex del producto */}
+                    <div className="flex items-center justify-end gap-2">
+                        <Button
+                            leftIcon={Download}
+                            onClick={() => exportMovementsPDF(movements, movementsProduct?.Producto)}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            PDF
+                        </Button>
+                        <Button
+                            leftIcon={Download}
+                            onClick={() => exportMovementsExcel(movements, movementsProduct?.Producto)}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Excel
+                        </Button>
+                    </div>
 
                     <div className="border border-gray-100 rounded-lg overflow-hidden max-h-[420px] overflow-y-auto">
                         <table className="w-full text-left">
@@ -668,6 +946,143 @@ export default function WarehousePage() {
                                         <tr key={mov.IdMovimiento} className="hover:bg-gray-50/60 transition-colors">
                                             <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">
                                                 {new Date(mov.FechaMovimiento).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
+                                                    isEntry
+                                                        ? 'bg-green-50 text-green-600 border border-green-100'
+                                                        : 'bg-red-50 text-red-600 border border-red-100'
+                                                }`}>
+                                                    {isEntry ? <ArrowDownCircle size={11} /> : <ArrowUpCircle size={11} />}
+                                                    {isEntry ? 'Entrada' : 'Salida'}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-semibold text-gray-700">
+                                                        {ORIGIN_LABELS[mov.Origen] || mov.Origen}
+                                                        {mov.IdOrdenCompra ? ` · OC-${String(mov.IdOrdenCompra).padStart(4, '0')}` : ''}
+                                                    </span>
+                                                    {mov.Notas && <span className="text-[11px] text-gray-400">{mov.Notas}</span>}
+                                                </div>
+                                            </td>
+                                            <td className={`px-3 py-2.5 text-right text-sm font-bold tabular-nums ${isEntry ? 'text-green-600' : 'text-red-600'}`}>
+                                                {isEntry ? '+' : '−'}{formatQty(mov.Cantidad)} <span className="text-[10px] font-semibold text-gray-400">{mov.Unidad || ''}</span>
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right text-sm text-gray-600 tabular-nums">{formatCurrency(mov.CostoUnitario)}</td>
+                                            <td className="px-3 py-2.5 text-right text-sm font-semibold text-gray-900 tabular-nums">{formatQty(mov.ExistenciaNueva)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </BaseModal>
+
+            {/* Movements Report Modal (toda la sucursal, por periodo) */}
+            <BaseModal
+                isOpen={isMovReportOpen}
+                onClose={() => setIsMovReportOpen(false)}
+                title="Movimientos de Almacén"
+                subtitle={branchName ? `Reporte de kardex — ${branchName}` : 'Reporte de kardex'}
+                size="full"
+                headerVariant="primary"
+            >
+                <div className="space-y-4">
+                    {/* Periodo + export */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+                            <input
+                                type="date"
+                                value={movStartDate}
+                                onChange={(e) => setMovStartDate(e.target.value)}
+                                className="bg-transparent outline-none text-xs font-semibold text-gray-700"
+                            />
+                            <span className="text-gray-300 text-xs">→</span>
+                            <input
+                                type="date"
+                                value={movEndDate}
+                                onChange={(e) => setMovEndDate(e.target.value)}
+                                className="bg-transparent outline-none text-xs font-semibold text-gray-700"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                leftIcon={Download}
+                                onClick={() => exportMovementsPDF(movReportRows, undefined, `${movStartDate} → ${movEndDate}`)}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                PDF
+                            </Button>
+                            <Button
+                                leftIcon={Download}
+                                onClick={() => exportMovementsExcel(movReportRows)}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                Excel
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Resumen */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Movimientos</p>
+                            <p className="text-lg font-black text-gray-900 mt-0.5">{movReportRows.length}</p>
+                        </div>
+                        <div className="bg-green-50 p-3 rounded-lg">
+                            <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wider">Entradas</p>
+                            <p className="text-lg font-black text-green-700 mt-0.5">
+                                {movReportRows.filter(m => m.TipoMovimiento === 'ENTRADA').length}
+                            </p>
+                        </div>
+                        <div className="bg-red-50 p-3 rounded-lg">
+                            <p className="text-[10px] font-semibold text-red-600 uppercase tracking-wider">Salidas</p>
+                            <p className="text-lg font-black text-red-700 mt-0.5">
+                                {movReportRows.filter(m => m.TipoMovimiento === 'SALIDA').length}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="border border-gray-100 rounded-lg overflow-hidden max-h-[440px] overflow-y-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                                <tr>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Fecha</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Producto</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Movimiento</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide">Referencia</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide text-right">Cantidad</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide text-right">Costo Unit.</th>
+                                    <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide text-right">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 bg-white">
+                                {isMovReportLoading && (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">Cargando movimientos…</td>
+                                    </tr>
+                                )}
+                                {!isMovReportLoading && movReportRows.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">Sin movimientos en el periodo seleccionado.</td>
+                                    </tr>
+                                )}
+                                {!isMovReportLoading && movReportRows.map(mov => {
+                                    const isEntry = mov.TipoMovimiento === 'ENTRADA';
+                                    return (
+                                        <tr key={mov.IdMovimiento} className="hover:bg-gray-50/60 transition-colors">
+                                            <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">
+                                                {new Date(mov.FechaMovimiento).toLocaleString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="px-3 py-2.5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium text-gray-900">{mov.Producto}</span>
+                                                    {mov.Codigo && <span className="text-[11px] text-gray-400 font-semibold">{mov.Codigo}</span>}
+                                                </div>
                                             </td>
                                             <td className="px-3 py-2.5">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
