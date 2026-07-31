@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { Connection } from 'mysql2/promise';
+import { findOrderForCompra, registerWarehouseMovement, OC_STATUS_DELETED } from '@/lib/warehouse';
 
 export async function GET(request: NextRequest) {
     let connection: Connection | null = null;
@@ -139,11 +140,20 @@ export async function PUT(request: NextRequest) {
         } else if (providerId && invoiceNumber) {
             // Regular update
             await connection.query(
-                `UPDATE tblCompras 
+                `UPDATE tblCompras
                  SET IdProveedor = ?, NumeroFactura = ?, IdCanalPago = ?, Referencia = ?, PagarA = ?, Total = ?, FechaAct = NOW()
                  WHERE IdCompra = ?`,
                 [providerId, invoiceNumber.toUpperCase(), paymentChannelId, reference || '', payTo || '', total, purchaseId]
             );
+
+            // Mantén sincronizado el proveedor de la orden generada por esta compra.
+            const order = await findOrderForCompra(connection, purchaseId);
+            if (order) {
+                await connection.query(
+                    'UPDATE tblOrdenesCompra SET IdProveedor = ?, FechaAct = NOW() WHERE IdOrdenCompra = ?',
+                    [providerId, order.IdOrdenCompra]
+                );
+            }
         }
 
         return NextResponse.json({
@@ -173,6 +183,36 @@ export async function DELETE(request: NextRequest) {
         const purchaseId = parseInt(purchaseIdStr);
 
         connection = await getProjectConnection(projectId);
+        await connection.beginTransaction();
+
+        // Si la compra generó una orden aplicada al almacén, revierte sus
+        // entradas (salida por cada renglón vigente) y elimina la orden.
+        const order = await findOrderForCompra(connection, purchaseId);
+        if (order) {
+            if (order.FechaAplicacion) {
+                const [lines] = await connection.query<RowDataPacket[]>(
+                    `SELECT IdProducto, Cantidad FROM tblDetalleCompras
+                     WHERE IdCompra = ? AND (Status IS NULL OR Status <> 2)
+                       AND IdProducto IS NOT NULL AND Cantidad > 0`,
+                    [purchaseId]
+                );
+                for (const line of lines) {
+                    await registerWarehouseMovement(connection, {
+                        idSucursal: order.IdSucursal,
+                        idProducto: line.IdProducto,
+                        tipo: 'SALIDA',
+                        origen: 'ORDEN_COMPRA',
+                        idOrdenCompra: order.IdOrdenCompra,
+                        cantidad: Number(line.Cantidad),
+                        notas: `Cancelación de compra #${purchaseId}`,
+                    });
+                }
+            }
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = NOW() WHERE IdOrdenCompra = ?',
+                [OC_STATUS_DELETED, order.IdOrdenCompra]
+            );
+        }
 
         // Soft delete by setting Status = 2
         await connection.query(
@@ -180,11 +220,14 @@ export async function DELETE(request: NextRequest) {
             [purchaseId]
         );
 
+        await connection.commit();
+
         return NextResponse.json({
             success: true,
             message: 'Purchase deleted successfully'
         });
     } catch (error) {
+        if (connection) await connection.rollback().catch(() => {});
         console.error('Error deleting purchase:', error);
         return NextResponse.json({ success: false, message: 'Error deleting purchase' }, { status: 500 });
     } finally {

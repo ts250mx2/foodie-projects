@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { Connection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import { ensureAppliedOrderForCompra, registerWarehouseMovement, syncOrderDetailsFromCompra } from '@/lib/warehouse';
 
 export async function POST(request: NextRequest) {
     let connection: Connection | null = null;
@@ -107,6 +108,26 @@ export async function POST(request: NextRequest) {
                          VALUES (?, ?, ?, ?, ?, NOW(), 0)`,
                         [purchaseId, concept.productId, concept.description, concept.quantity, concept.price]
                     );
+                }
+
+                // 3. La compra genera su orden de compra APLICADA al almacén:
+                //    cada renglón con producto ligado suma existencias de inmediato.
+                const orderRef = await ensureAppliedOrderForCompra(connection, purchaseId);
+                if (orderRef?.aplicada) {
+                    for (const concept of ocrResult.concepts) {
+                        if (!concept.productId || !(Number(concept.quantity) > 0)) continue;
+                        await registerWarehouseMovement(connection, {
+                            idSucursal: orderRef.idSucursal,
+                            idProducto: concept.productId,
+                            tipo: 'ENTRADA',
+                            origen: 'ORDEN_COMPRA',
+                            idOrdenCompra: orderRef.idOrden,
+                            cantidad: Number(concept.quantity),
+                            costoUnitario: Number(concept.price) || 0,
+                            notas: `Captura de compra #${purchaseId} (OCR)`,
+                        });
+                    }
+                    await syncOrderDetailsFromCompra(connection, orderRef.idOrden, purchaseId);
                 }
             }
 

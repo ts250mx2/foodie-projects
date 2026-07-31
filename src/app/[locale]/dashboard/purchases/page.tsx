@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageShell from '@/components/PageShell';
-import { 
-    ShoppingCart, 
-    Truck, 
-    FileText, 
-    PenLine, 
-    ChevronRight 
+import {
+    ShoppingCart,
+    Truck,
+    FileText,
+    PenLine,
+    ChevronRight,
+    Warehouse,
+    PackageMinus
 } from 'lucide-react';
 
 export default function PurchasesDashboardPage() {
@@ -41,6 +43,26 @@ export default function PurchasesDashboardPage() {
             badge: locale === 'es' ? 'Pedidos' : 'Orders'
         },
         {
+            key: 'outboundOrders',
+            title: locale === 'es' ? 'Órdenes de Salida' : 'Outbound Orders',
+            description: locale === 'es'
+                ? 'Salidas de inventario del almacén: traspasos, eventos y consumo interno.'
+                : 'Warehouse inventory outbound: transfers, events and internal consumption.',
+            href: `/dashboard/purchases/outbound-orders`,
+            icon: PackageMinus,
+            badge: locale === 'es' ? 'Salidas' : 'Outbound'
+        },
+        {
+            key: 'warehouse',
+            title: locale === 'es' ? 'Almacén' : 'Warehouse',
+            description: locale === 'es'
+                ? 'Existencias por sucursal, inventario costeado, kardex de movimientos y ajustes.'
+                : 'Stock per branch, costed inventory, movement history (kardex) and adjustments.',
+            href: `/dashboard/purchases/warehouse`,
+            icon: Warehouse,
+            badge: locale === 'es' ? 'Existencias' : 'Stock'
+        },
+        {
             key: 'purchasesCapture',
             title: t('purchasesCapture'),
             description: locale === 'es'
@@ -61,7 +83,7 @@ export default function PurchasesDashboardPage() {
             icon={ShoppingCart}
         >
             <div className="max-w-7xl mx-auto py-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {menuCards.map((card) => {
                         const IconComponent = card.icon;
                         return (

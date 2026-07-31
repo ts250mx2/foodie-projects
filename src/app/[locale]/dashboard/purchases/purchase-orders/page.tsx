@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import PageShell from '@/components/PageShell';
@@ -18,7 +18,7 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
-import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download } from 'lucide-react';
+import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -68,15 +68,30 @@ type PurchaseOrder = {
     FechaProgramadaEntrega: string | null;
     Status: number;
     EsInterna: number;
+    EsSalida?: number;
+    FechaAplicacion?: string | null;
     Total?: number;
     Notas?: string;
 };
+
+/**
+ * Estados de la orden:
+ *  0 En Tránsito (legado) · 1 Surtido/Aplicada · 3 Cancelado · 4 Fantasma · 5 Descartada.
+ * Las órdenes nuevas nacen Fantasma: se aplican al inventario del almacén o se descartan.
+ */
+const ST_APPLIED = 1;
+const ST_PHANTOM = 4;
+const ST_DISCARDED = 5;
+
+type StatusFilter = 'all' | 'phantom' | 'applied' | 'discarded';
 
 export default function PurchaseOrdersPage() {
     const t = useTranslations('PurchaseOrders');
     const { colors } = useTheme();
     const { success, error: toastError } = useToast();
     const params = useParams();
+    const router = useRouter();
+    const locale = params.locale as string;
     const projectId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('project') || '{}').idProyecto : null;
 
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -94,6 +109,7 @@ export default function PurchaseOrdersPage() {
     const [categoryProductsCapture, setCategoryProductsCapture] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
@@ -110,6 +126,7 @@ export default function PurchaseOrdersPage() {
     
     const [selectedBranch, setSelectedBranch] = useState<number | ''>('');
     const [esInterna, setEsInterna] = useState(false);
+    const [esSalida, setEsSalida] = useState(false);
     const [fechaEntrega, setFechaEntrega] = useState('');
     const [fechaProgramada, setFechaProgramada] = useState('');
     const [notas, setNotas] = useState('');
@@ -127,7 +144,8 @@ export default function PurchaseOrdersPage() {
     const fetchOrders = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}&startDate=${startDate}&endDate=${endDate}`);
+            // tipo=compras: las salidas de almacén tienen su propio módulo (outbound-orders).
+            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}&tipo=compras&startDate=${startDate}&endDate=${endDate}`);
             const data = await res.json();
             if (data.success) setOrders(data.data);
         } catch (error) {
@@ -249,7 +267,7 @@ export default function PurchaseOrdersPage() {
     };
 
     const handleAddProduct = (product: Product) => {
-        const defaultUnit = esInterna
+        const defaultUnit = (esInterna || esSalida)
             ? (product.UnidadMedidaInventario || '')
             : (product.UnidadMedidaCompra || '');
         const existing = orderItems.find(item => item.idProducto === product.IdProducto);
@@ -294,8 +312,8 @@ export default function PurchaseOrdersPage() {
     };
 
     const handleSubmit = async () => {
-        if ((!selectedProvider && !esInterna) || !selectedBranch || orderItems.length === 0) {
-            alert('Por favor selecciona un proveedor (o marca como interna), una sucursal y agrega al menos un producto.');
+        if ((!selectedProvider && !esInterna && !esSalida) || !selectedBranch || orderItems.length === 0) {
+            alert('Por favor selecciona un proveedor (o marca la orden como interna o salida), una sucursal y agrega al menos un producto.');
             return;
         }
 
@@ -315,9 +333,10 @@ export default function PurchaseOrdersPage() {
                 body: JSON.stringify({
                     projectId,
                     idOrdenCompra: editingOrder?.IdOrdenCompra,
-                    idProveedor: esInterna ? null : selectedProvider,
+                    idProveedor: (esInterna || esSalida) ? null : selectedProvider,
                     idSucursal: selectedBranch,
                     esInterna,
+                    esSalida,
                     fechaEntrega: fechaEntrega || null,
                     fechaProgramadaEntrega: fechaProgramada || null,
                     notas,
@@ -349,6 +368,7 @@ export default function PurchaseOrdersPage() {
                 const { header, items } = data.data;
                 setEditingOrder(order);
                 setEsInterna(header.EsInterna === 1);
+                setEsSalida(header.EsSalida === 1);
                 setSelectedProvider(header.IdProveedor);
                 setProviderSearch(header.Proveedor);
                 setSelectedBranch(header.IdSucursal);
@@ -356,7 +376,7 @@ export default function PurchaseOrdersPage() {
                 setNotas(header.Notas || '');
                 setOrderItems(items.map((it: any) => {
                     const prod = products.find((p: Product) => p.IdProducto === it.IdProducto);
-                    const isInt = header.EsInterna === 1;
+                    const isInt = header.EsInterna === 1 || header.EsSalida === 1;
                     // Misma resolución que el PDF, para que modal e impresión coincidan.
                     const resolved = resolveItemUnit(it, isInt, prod);
                     const defaultUnit = resolved === '—' ? '' : resolved;
@@ -407,6 +427,7 @@ export default function PurchaseOrdersPage() {
         setSelectedProvider('');
         setProviderSearch('');
         setEsInterna(false);
+        setEsSalida(false);
         setNotas('');
         setFechaProgramada('');
         if (branches.length !== 1) {
@@ -676,7 +697,9 @@ export default function PurchaseOrdersPage() {
 
             const { header, items } = data.data;
             const doc = new jsPDF();
-            
+            // Órdenes sin costos: internas y salidas de almacén.
+            const sinCostos = Boolean(header.EsInterna || header.EsSalida);
+
             // Logo
             if (projectLogo) {
                 try {
@@ -690,7 +713,7 @@ export default function PurchaseOrdersPage() {
             // Header Section
             doc.setFontSize(22);
             doc.setTextColor(0, 0, 0);
-            doc.text(header.EsInterna ? 'ORDEN DE COMPRA INTERNA' : 'ORDEN DE COMPRA', 105, 25, { align: 'center' });
+            doc.text(header.EsSalida ? 'SALIDA INTERNA DE ALMACÉN' : header.EsInterna ? 'ORDEN DE COMPRA INTERNA' : 'ORDEN DE COMPRA', 105, 25, { align: 'center' });
             
             doc.setFontSize(10);
             doc.setTextColor(100, 100, 100);
@@ -716,8 +739,8 @@ export default function PurchaseOrdersPage() {
             let tableData: any[] = [];
             let tableHead: string[][];
 
-            if (header.EsInterna) {
-                // INTERNAL ORDER: group by category, show Categoria + Producto + Cantidad + Unidad. No cost/total.
+            if (sinCostos) {
+                // INTERNAL/OUTBOUND ORDER: group by category, show Categoria + Producto + Cantidad + Unidad. No cost/total.
                 tableHead = [['Categoría', 'Producto', 'Cantidad', 'Unidad']];
                 const groups: { [key: string]: any[] } = {};
                 items.forEach((item: any) => {
@@ -757,8 +780,8 @@ export default function PurchaseOrdersPage() {
                 head: tableHead,
                 body: tableData,
                 theme: 'striped',
-                headStyles: { fillColor: header.EsInterna ? [30, 64, 175] : [0, 51, 153] },
-                columnStyles: header.EsInterna
+                headStyles: { fillColor: header.EsSalida ? [153, 27, 27] : sinCostos ? [30, 64, 175] : [0, 51, 153] },
+                columnStyles: sinCostos
                     ? { 2: { halign: 'center' }, 3: { halign: 'center' } }
                     : { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } }
             });
@@ -766,7 +789,7 @@ export default function PurchaseOrdersPage() {
             const finalY = (doc as any).lastAutoTable.finalY || 150;
 
             // Total (only for external orders)
-            if (!header.EsInterna) {
+            if (!sinCostos) {
                 const total = items.reduce((acc: number, item: any) => acc + Number(item.Total), 0);
                 doc.setFontSize(11);
                 doc.setTextColor(0, 0, 0);
@@ -794,8 +817,8 @@ export default function PurchaseOrdersPage() {
         }
     };
 
-    const getStatusLabel = (status: number) => {
-        switch (status) {
+    const getStatusLabel = (order: PurchaseOrder) => {
+        switch (order.Status) {
             case 0:
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
@@ -803,11 +826,11 @@ export default function PurchaseOrdersPage() {
                         En Tránsito
                     </span>
                 );
-            case 1:
+            case ST_APPLIED:
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Surtido
+                        {order.FechaAplicacion ? 'Aplicada' : 'Surtido'}
                     </span>
                 );
             case 3:
@@ -817,36 +840,80 @@ export default function PurchaseOrdersPage() {
                         Cancelado
                     </span>
                 );
+            case ST_PHANTOM:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <Ghost size={10} className="animate-pulse" />
+                        Fantasma
+                    </span>
+                );
+            case ST_DISCARDED:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        Descartada
+                    </span>
+                );
             default: return null;
         }
     };
 
-    const handleStatusChange = async (order: PurchaseOrder, newStatus: number) => {
+    /** Ejecuta una acción del ciclo de vida (apply | discard | restore) sobre la orden. */
+    const handleOrderAction = async (order: PurchaseOrder, action: 'apply' | 'discard' | 'restore') => {
         if (!projectId) return;
+        const confirmations: Record<string, string> = {
+            apply: order.EsSalida
+                ? `¿Aplicar la salida OC-${order.IdOrdenCompra}? Se RESTARÁN las cantidades del inventario de almacén de ${order.Sucursal}.`
+                : `¿Aplicar la orden OC-${order.IdOrdenCompra}? Se SUMARÁN las cantidades al inventario de almacén de ${order.Sucursal}.`,
+            discard: `¿Descartar la orden OC-${order.IdOrdenCompra}? No afectará el inventario (podrás restaurarla después).`,
+            restore: `¿Restaurar la orden OC-${order.IdOrdenCompra}? Volverá a estado Fantasma.`,
+        };
+        if (!confirm(confirmations[action])) return;
+
         try {
             const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idOrdenCompra: order.IdOrdenCompra, status: newStatus, projectId }),
+                body: JSON.stringify({ idOrdenCompra: order.IdOrdenCompra, action, projectId }),
             });
             const data = await res.json();
             if (data.success) {
-                setOrders(prev => prev.map(o =>
-                    o.IdOrdenCompra === order.IdOrdenCompra ? { ...o, Status: newStatus } : o
-                ));
+                success(data.message || 'Orden actualizada');
+                fetchOrders();
             } else {
-                alert('Error al actualizar el estado');
+                toastError(data.message || 'Error al actualizar la orden');
             }
         } catch {
-            alert('Error al actualizar el estado');
+            toastError('Error al actualizar la orden');
         }
     };
 
-    const filteredOrders = orders.filter(order => 
-        order.Proveedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.Sucursal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `OC-${order.IdOrdenCompra}`.toLowerCase().includes(searchTerm.toLowerCase())
+    /**
+     * "Por aplicar" = aún no afectó el inventario del almacén (sin FechaAplicacion),
+     * sin importar si es Fantasma, En Tránsito o un "Surtido" legado anterior al
+     * módulo de almacén. Canceladas y descartadas quedan fuera.
+     */
+    const isPendingApplication = (order: PurchaseOrder) =>
+        !order.FechaAplicacion && order.Status !== 3 && order.Status !== ST_DISCARDED;
+
+    const matchesStatusFilter = (order: PurchaseOrder) => {
+        switch (statusFilter) {
+            case 'phantom': return isPendingApplication(order);
+            case 'applied': return Boolean(order.FechaAplicacion);
+            case 'discarded': return order.Status === ST_DISCARDED;
+            default: return true;
+        }
+    };
+
+    const filteredOrders = orders.filter(order =>
+        matchesStatusFilter(order) && (
+            order.Proveedor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.Sucursal.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            `OC-${order.IdOrdenCompra}`.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
+
+    const phantomCount = orders.filter(isPendingApplication).length;
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -883,6 +950,16 @@ export default function PurchaseOrdersPage() {
                             className="bg-transparent outline-none text-xs font-semibold text-gray-700" />
                     </div>
 
+                    {/* Warehouse Button */}
+                    <Button
+                        leftIcon={Warehouse}
+                        onClick={() => router.push(`/${locale}/dashboard/purchases/warehouse`)}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Almacén
+                    </Button>
+
                     {/* Category Button */}
                     <Button
                         leftIcon={FolderOpen}
@@ -904,6 +981,7 @@ export default function PurchaseOrdersPage() {
                             setProviderSearch('');
                             setSelectedBranch(branches.length === 1 ? branches[0].IdSucursal : '');
                             setEsInterna(false);
+                            setEsSalida(false);
                             setFechaEntrega('');
                             setFechaProgramada(today);
                             setNotas('');
@@ -920,13 +998,22 @@ export default function PurchaseOrdersPage() {
         >
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Package size={14} className="text-gray-400" />
                         <div>
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</p>
                             <p className="text-sm font-bold text-gray-900">{filteredOrders.length}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Ghost size={14} className="text-violet-400" />
+                        <div>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Por Aplicar</p>
+                            <p className="text-sm font-bold text-gray-900">{phantomCount}</p>
                         </div>
                     </div>
                 </div>
@@ -948,6 +1035,28 @@ export default function PurchaseOrdersPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Status Filter Chips */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {([
+                    { key: 'all', label: 'Todas' },
+                    { key: 'phantom', label: `Por aplicar (${phantomCount})` },
+                    { key: 'applied', label: 'Aplicadas al almacén' },
+                    { key: 'discarded', label: 'Descartadas' },
+                ] as { key: StatusFilter; label: string }[]).map(chip => (
+                    <button
+                        key={chip.key}
+                        onClick={() => setStatusFilter(chip.key)}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-all ${
+                            statusFilter === chip.key
+                                ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                        }`}
+                    >
+                        {chip.label}
+                    </button>
+                ))}
             </div>
 
             {/* Data Table */}
@@ -984,15 +1093,7 @@ export default function PurchaseOrdersPage() {
                                     </TableCell>
                                     <TableCell muted>{order.Sucursal}</TableCell>
                                     <TableCell align="center">
-                                        <div
-                                            onClick={() => {
-                                                if (order.Status === 0) handleStatusChange(order, 1);
-                                                else if (order.Status === 1) handleStatusChange(order, 0);
-                                            }}
-                                            className={`cursor-pointer transition-opacity ${order.Status === 0 || order.Status === 1 ? 'hover:opacity-70' : ''}`}
-                                        >
-                                            {getStatusLabel(order.Status)}
-                                        </div>
+                                        {getStatusLabel(order)}
                                     </TableCell>
                                     <TableCell>
                                         {order.FechaProgramadaEntrega ? (
@@ -1022,7 +1123,9 @@ export default function PurchaseOrdersPage() {
                                     </TableCell>
                                     <TableCell muted>{order.Notas || '—'}</TableCell>
                                     <TableCell align="right">
-                                        {order.EsInterna ? (
+                                        {order.EsSalida ? (
+                                            <span className="text-red-500 text-sm font-medium">Salida</span>
+                                        ) : order.EsInterna ? (
                                             <span className="text-gray-400 text-sm font-medium">Interna</span>
                                         ) : (
                                             <span className="font-semibold text-gray-900">{formatCurrency(order.Total)}</span>
@@ -1030,24 +1133,52 @@ export default function PurchaseOrdersPage() {
                                     </TableCell>
                                     <TableCell align="right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <RowActionButton
-                                                icon={Pencil}
-                                                label="Editar"
-                                                variant="edit"
-                                                onClick={() => handleEdit(order)}
-                                            />
+                                            {isPendingApplication(order) && (
+                                                <>
+                                                    <RowActionButton
+                                                        icon={PackageCheck}
+                                                        label={order.EsSalida ? 'Aplicar salida (restar inventario)' : 'Aplicar al inventario'}
+                                                        variant="default"
+                                                        onClick={() => handleOrderAction(order, 'apply')}
+                                                    />
+                                                    <RowActionButton
+                                                        icon={Ban}
+                                                        label="Descartar orden"
+                                                        variant="default"
+                                                        onClick={() => handleOrderAction(order, 'discard')}
+                                                    />
+                                                </>
+                                            )}
+                                            {order.Status === ST_DISCARDED && (
+                                                <RowActionButton
+                                                    icon={RotateCcw}
+                                                    label="Restaurar orden"
+                                                    variant="default"
+                                                    onClick={() => handleOrderAction(order, 'restore')}
+                                                />
+                                            )}
+                                            {!order.FechaAplicacion && (
+                                                <RowActionButton
+                                                    icon={Pencil}
+                                                    label="Editar"
+                                                    variant="edit"
+                                                    onClick={() => handleEdit(order)}
+                                                />
+                                            )}
                                             <RowActionButton
                                                 icon={Printer}
                                                 label="Imprimir"
                                                 variant="default"
                                                 onClick={() => exportOrderToPDF(order)}
                                             />
-                                            <RowActionButton
-                                                icon={Trash2}
-                                                label="Eliminar"
-                                                variant="delete"
-                                                onClick={() => handleDelete(order)}
-                                            />
+                                            {!order.FechaAplicacion && (
+                                                <RowActionButton
+                                                    icon={Trash2}
+                                                    label="Eliminar"
+                                                    variant="delete"
+                                                    onClick={() => handleDelete(order)}
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -1072,8 +1203,8 @@ export default function PurchaseOrdersPage() {
             <BaseModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
-                title={editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
-                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'Configuración de Suministros'}
+                title={editingOrder ? 'Editar Orden' : esSalida ? 'Nueva Salida de Almacén' : 'Nueva Orden de Compra'}
+                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : esSalida ? 'Resta existencias al aplicarse' : 'Configuración de Suministros'}
                 size="full"
                 headerVariant="primary"
                 footer={
@@ -1103,40 +1234,45 @@ export default function PurchaseOrdersPage() {
                             <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Datos de la orden</span>
                         </div>
                         <div className="p-4 space-y-4">
-                            {/* Tipo de orden */}
-                            <label
-                                htmlFor="esInterna"
-                                className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 cursor-pointer select-none transition-colors ${
-                                    esInterna ? 'border-blue-300 bg-blue-50/60' : 'border-gray-200 bg-white hover:bg-gray-50'
-                                }`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    id="esInterna"
-                                    checked={esInterna}
-                                    onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setEsInterna(checked);
-                                        if (checked) {
-                                            setSelectedProvider('');
-                                            setProviderSearch('ORDEN DE COMPRA INTERNA');
-                                            // Auto-set today as scheduled delivery for internal orders
-                                            setFechaProgramada(new Date().toISOString().split('T')[0]);
-                                        } else {
-                                            setProviderSearch('');
-                                        }
-                                    }}
-                                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer"
-                                />
-                                <span className="text-sm font-semibold text-gray-800">
-                                    {t('internalOrder')}
-                                    <span className="ml-1.5 text-xs font-normal text-gray-500">— Uso administrativo interno (sin proveedor ni costos)</span>
-                                </span>
-                            </label>
+                            {/* Tipo de orden: compra (entrada) o pedido interno. Las salidas
+                                de almacén tienen su propio módulo (Órdenes de Salida). */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {([
+                                    { key: 'compra', title: 'Orden de Compra', desc: 'Compra a proveedor — al aplicarse SUMA al almacén', active: !esInterna },
+                                    { key: 'interna', title: t('internalOrder'), desc: 'Pedido administrativo interno (sin costos) — al aplicarse SUMA al almacén', active: esInterna },
+                                ] as { key: string; title: string; desc: string; active: boolean }[]).map(opt => (
+                                    <button
+                                        key={opt.key}
+                                        type="button"
+                                        onClick={() => {
+                                            const isInterna = opt.key === 'interna';
+                                            setEsInterna(isInterna);
+                                            setEsSalida(false);
+                                            if (isInterna) {
+                                                setSelectedProvider('');
+                                                setProviderSearch('ORDEN DE COMPRA INTERNA');
+                                                setFechaProgramada(new Date().toISOString().split('T')[0]);
+                                            } else {
+                                                setProviderSearch('');
+                                            }
+                                        }}
+                                        className={`text-left rounded-lg border px-3 py-2.5 transition-colors ${
+                                            opt.active
+                                                ? 'border-blue-300 bg-blue-50/60'
+                                                : 'border-gray-200 bg-white hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <span className={`block text-sm font-bold ${opt.active ? 'text-blue-700' : 'text-gray-800'}`}>
+                                            {opt.title}
+                                        </span>
+                                        <span className="block text-[11px] text-gray-500 mt-0.5">{opt.desc}</span>
+                                    </button>
+                                ))}
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                 {/* Proveedor */}
-                                <div className={`relative ${esInterna ? 'opacity-50 pointer-events-none' : ''}`} ref={providerListRef}>
+                                <div className={`relative ${(esInterna || esSalida) ? 'opacity-50 pointer-events-none' : ''}`} ref={providerListRef}>
                                     <div className="w-full flex flex-col gap-1">
                                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('provider')}</label>
                                         <div className="relative">
@@ -1211,7 +1347,7 @@ export default function PurchaseOrdersPage() {
                                 <Package size={13} />
                                 Productos ({orderItems.length})
                             </span>
-                            {!esInterna && orderItems.length > 0 && (
+                            {!esInterna && !esSalida && orderItems.length > 0 && (
                                 <span className="text-xs font-medium text-gray-500">
                                     Total: <span className="font-bold text-gray-900">
                                         {formatCurrency(orderItems.reduce((acc, item) => acc + (isNaN(Number(item.total)) ? 0 : Number(item.total)), 0))}
@@ -1280,7 +1416,7 @@ export default function PurchaseOrdersPage() {
                                         )}
                                         <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-28 text-center">{t('quantity')}</th>
                                         <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-center">Unidad</th>
-                                        {!esInterna && (
+                                        {!esInterna && !esSalida && (
                                             <>
                                                 <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-right">{t('price')}</th>
                                                 <th className="px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wide w-32 text-right">{t('total')}</th>
@@ -1340,8 +1476,8 @@ export default function PurchaseOrdersPage() {
                                                     ))}
                                                 </select>
                                             </td>
-                                            {/* Precio + Total (solo externa) */}
-                                            {!esInterna && (
+                                            {/* Precio + Total (solo compra externa) */}
+                                            {!esInterna && !esSalida && (
                                                 <>
                                                     <td className="px-3 py-2">
                                                         <input
@@ -1370,14 +1506,14 @@ export default function PurchaseOrdersPage() {
                                     ))}
                                     {orderItems.length === 0 && (
                                         <tr>
-                                            <td colSpan={esInterna ? 5 : 6} className="px-4 py-12 text-center">
+                                            <td colSpan={esInterna ? 5 : esSalida ? 4 : 6} className="px-4 py-12 text-center">
                                                 <Package size={28} className="mx-auto text-gray-200 mb-2" />
                                                 <p className="text-sm text-gray-400">Agrega productos usando el buscador de arriba.</p>
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
-                                {orderItems.length > 0 && !esInterna && (
+                                {orderItems.length > 0 && !esInterna && !esSalida && (
                                     <tfoot>
                                         <tr className="bg-gray-50 border-t border-gray-200">
                                             <td className="px-4 py-3 text-xs font-semibold text-gray-500" colSpan={3}>

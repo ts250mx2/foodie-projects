@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
+import { Connection } from 'mysql2/promise';
 import { ResultSetHeader } from 'mysql2';
+import {
+    applyOrderToWarehouse,
+    OC_STATUS_APPLIED as STATUS_APPLIED,
+    OC_STATUS_PHANTOM as STATUS_PHANTOM,
+    OC_STATUS_DISCARDED as STATUS_DISCARDED,
+} from '@/lib/warehouse';
+
+/**
+ * Estados de tblOrdenesCompra: ver src/lib/warehouse.ts.
+ * Una orden "aplicada" (FechaAplicacion != NULL) ya afectó el inventario de almacén
+ * y no puede editarse, eliminarse ni volver a aplicarse.
+ */
+// Aplicable: cualquier orden que aún no afectó el inventario (FechaAplicacion NULL),
+// incluidas las "Surtido" legadas (Status 1 previo al módulo de almacén).
+const APPLICABLE_STATUSES = [0, STATUS_APPLIED, STATUS_PHANTOM];
+
+/** Busca o crea un proveedor por nombre (para órdenes internas y salidas de almacén). */
+async function resolveNamedProvider(connection: Connection, name: string): Promise<number> {
+    const [rows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = ?', [name]);
+    if ((rows as any[]).length > 0) return (rows as any[])[0].IdProveedor;
+    const [inserted] = await connection.query(
+        'INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES (?, 0, Now())',
+        [name]
+    );
+    return (inserted as ResultSetHeader).insertId;
+}
+
 
 export async function GET(request: NextRequest) {
     let connection;
@@ -15,20 +43,30 @@ export async function GET(request: NextRequest) {
         const projectId = parseInt(projectIdStr);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
-        
+        // tipo: 'compras' → solo entradas (órdenes de compra / pedidos internos);
+        //       'salidas' → solo salidas internas de almacén; sin tipo → todas.
+        const tipo = searchParams.get('tipo');
+
         connection = await getProjectConnection(projectId);
 
         let query = `
-            SELECT 
-                oc.*, 
+            SELECT
+                oc.*,
                 p.Proveedor,
                 s.Sucursal,
-                (SELECT SUM(Total) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Total
+                (SELECT SUM(Total) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Total,
+                (SELECT COUNT(*) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Renglones
             FROM tblOrdenesCompra oc
             LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor
             LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
             WHERE oc.Status != 2
         `;
+
+        if (tipo === 'salidas') {
+            query += ' AND oc.EsSalida = 1';
+        } else if (tipo === 'compras') {
+            query += ' AND (oc.EsSalida IS NULL OR oc.EsSalida = 0)';
+        }
 
         const queryParams: any[] = [];
 
@@ -58,20 +96,101 @@ export async function PATCH(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, idOrdenCompra, status } = body;
+        const { projectId, idOrdenCompra, status, action } = body;
 
-        if (!projectId || !idOrdenCompra || status === undefined) {
+        if (!projectId || !idOrdenCompra || (status === undefined && !action)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         connection = await getProjectConnection(parseInt(projectId));
-        await connection.query(
-            'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
-            [status, idOrdenCompra]
-        );
 
-        return NextResponse.json({ success: true });
+        // Cambio de estado simple (compatibilidad con el flujo anterior).
+        if (!action) {
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+                [status, idOrdenCompra]
+            );
+            return NextResponse.json({ success: true });
+        }
+
+        await connection.beginTransaction();
+
+        const [ordRows] = await connection.query(
+            'SELECT * FROM tblOrdenesCompra WHERE IdOrdenCompra = ? FOR UPDATE',
+            [idOrdenCompra]
+        );
+        const order = (ordRows as any[])[0];
+        if (!order) {
+            await connection.rollback();
+            return NextResponse.json({ success: false, message: 'Orden no encontrada' }, { status: 404 });
+        }
+
+        if (action === 'apply') {
+            if (order.FechaAplicacion) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'La orden ya fue aplicada al inventario' }, { status: 409 });
+            }
+            if (!APPLICABLE_STATUSES.includes(Number(order.Status))) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'La orden no está en un estado aplicable' }, { status: 409 });
+            }
+
+            const [items] = await connection.query(
+                `SELECT ocd.*, p.UnidadMedidaCompra, p.UnidadMedidaInventario
+                 FROM tblOrdenesCompraDetalle ocd
+                 JOIN tblProductos p ON ocd.IdProducto = p.IdProducto
+                 WHERE ocd.IdOrdenCompra = ?`,
+                [idOrdenCompra]
+            );
+            if ((items as any[]).length === 0) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'La orden no tiene productos' }, { status: 409 });
+            }
+
+            await applyOrderToWarehouse(connection, order, items as any[]);
+
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAplicacion = Now(), FechaAct = Now() WHERE IdOrdenCompra = ?',
+                [STATUS_APPLIED, idOrdenCompra]
+            );
+            await connection.commit();
+            return NextResponse.json({ success: true, message: 'Orden aplicada al inventario' });
+        }
+
+        if (action === 'discard') {
+            if (order.FechaAplicacion) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'No se puede descartar una orden ya aplicada' }, { status: 409 });
+            }
+            if (!APPLICABLE_STATUSES.includes(Number(order.Status))) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'La orden no está en un estado descartable' }, { status: 409 });
+            }
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+                [STATUS_DISCARDED, idOrdenCompra]
+            );
+            await connection.commit();
+            return NextResponse.json({ success: true, message: 'Orden descartada' });
+        }
+
+        if (action === 'restore') {
+            if (Number(order.Status) !== STATUS_DISCARDED) {
+                await connection.rollback();
+                return NextResponse.json({ success: false, message: 'Solo se pueden restaurar órdenes descartadas' }, { status: 409 });
+            }
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+                [STATUS_PHANTOM, idOrdenCompra]
+            );
+            await connection.commit();
+            return NextResponse.json({ success: true, message: 'Orden restaurada' });
+        }
+
+        await connection.rollback();
+        return NextResponse.json({ success: false, message: 'Acción no válida' }, { status: 400 });
     } catch (error) {
+        if (connection) await connection.rollback().catch(() => {});
         console.error('Error updating order status:', error);
         return NextResponse.json({ success: false, message: 'Error updating status' }, { status: 500 });
     } finally {
@@ -83,9 +202,9 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, idProveedor, idSucursal, fechaEntrega, fechaProgramadaEntrega, notas, items, esInterna } = body;
+        const { projectId, idProveedor, idSucursal, fechaEntrega, fechaProgramadaEntrega, notas, items, esInterna, esSalida } = body;
 
-        if (!projectId || (!idProveedor && !esInterna) || !idSucursal || !items || !Array.isArray(items)) {
+        if (!projectId || (!idProveedor && !esInterna && !esSalida) || !idSucursal || !items || !Array.isArray(items)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
@@ -94,27 +213,23 @@ export async function POST(request: NextRequest) {
 
         // Ensure UnidadMedidaPedido column exists
         await connection.query(`
-            ALTER TABLE tblOrdenesCompraDetalle 
+            ALTER TABLE tblOrdenesCompraDetalle
             ADD COLUMN IF NOT EXISTS UnidadMedidaPedido VARCHAR(30) NULL DEFAULT NULL
         `).catch(() => {});
 
         let finalIdProveedor = idProveedor;
 
-        if (esInterna) {
-            const internalName = body.providerName || "ORDEN DE COMPRA INTERNA";
-            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = ?', [internalName]);
-            if ((provRows as any[]).length > 0) {
-                finalIdProveedor = (provRows as any[])[0].IdProveedor;
-            } else {
-                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES (?, 0, Now())', [internalName]);
-                finalIdProveedor = (newProv as any).insertId;
-            }
+        if (esSalida) {
+            finalIdProveedor = await resolveNamedProvider(connection, 'SALIDA INTERNA DE ALMACÉN');
+        } else if (esInterna) {
+            finalIdProveedor = await resolveNamedProvider(connection, body.providerName || 'ORDEN DE COMPRA INTERNA');
         }
 
-        // 1. Create Purchase Order (FechaOrden is Now())
+        // 1. Crea la orden como "Fantasma" (Status 4): pendiente de aplicar al
+        //    inventario o de descartarse. FechaOrden es Now().
         const [result] = await connection.query(
-            'INSERT INTO tblOrdenesCompra (IdProveedor, IdSucursal, EsInterna, FechaOrden, FechaEntrega, FechaProgramadaEntrega, Status, Notas, FechaAct) VALUES (?, ?, ?, Now(), ?, ?, 0, ?, Now())',
-            [finalIdProveedor, idSucursal, esInterna ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, notas || null]
+            'INSERT INTO tblOrdenesCompra (IdProveedor, IdSucursal, EsInterna, EsSalida, FechaOrden, FechaEntrega, FechaProgramadaEntrega, Status, Notas, FechaAct) VALUES (?, ?, ?, ?, Now(), ?, ?, ?, ?, Now())',
+            [finalIdProveedor, idSucursal, esInterna ? 1 : 0, esSalida ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, STATUS_PHANTOM, notas || null]
         );
 
         const idOrdenCompra = (result as ResultSetHeader).insertId;
@@ -125,6 +240,9 @@ export async function POST(request: NextRequest) {
                 'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, UnidadMedidaPedido, FechaAct) VALUES (?, ?, ?, ?, ?, ?, Now())',
                 [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario, item.unidadMedida || null]
             );
+
+            // Las salidas de almacén no actualizan precios ni la relación proveedor-producto.
+            if (esSalida) continue;
 
             // Update relationship using the resolved provider ID
             await connection.query(`
@@ -149,16 +267,42 @@ export async function POST(request: NextRequest) {
             // If the product has no UnidadMedidaInventario and we have one, update it
             if (item.unidadMedida) {
                 await connection.query(`
-                    UPDATE tblProductos 
-                    SET UnidadMedidaInventario = ?, FechaAct = Now() 
+                    UPDATE tblProductos
+                    SET UnidadMedidaInventario = ?, FechaAct = Now()
                     WHERE IdProducto = ? AND (UnidadMedidaInventario IS NULL OR UnidadMedidaInventario = '')
                 `, [item.unidadMedida, item.idProducto]);
             }
         }
 
+        // Las SALIDAS se aplican al almacén automáticamente al crearse:
+        // restan existencias al costo promedio vigente y quedan como Aplicadas.
+        if (esSalida) {
+            const [orderItems] = await connection.query(
+                `SELECT ocd.*, p.UnidadMedidaCompra, p.UnidadMedidaInventario
+                 FROM tblOrdenesCompraDetalle ocd
+                 JOIN tblProductos p ON ocd.IdProducto = p.IdProducto
+                 WHERE ocd.IdOrdenCompra = ?`,
+                [idOrdenCompra]
+            );
+            await applyOrderToWarehouse(
+                connection,
+                { IdOrdenCompra: idOrdenCompra, IdSucursal: idSucursal, EsSalida: 1 },
+                orderItems as any[]
+            );
+            await connection.query(
+                'UPDATE tblOrdenesCompra SET Status = ?, FechaAplicacion = Now(), FechaAct = Now() WHERE IdOrdenCompra = ?',
+                [STATUS_APPLIED, idOrdenCompra]
+            );
+        }
+
         await connection.commit();
 
-        return NextResponse.json({ success: true, id: idOrdenCompra });
+        return NextResponse.json({
+            success: true,
+            id: idOrdenCompra,
+            applied: Boolean(esSalida),
+            message: esSalida ? 'Salida aplicada al almacén' : undefined,
+        });
     } catch (error) {
         if (connection) await connection.rollback();
         console.error('Error creating purchase order:', error);
@@ -172,36 +316,42 @@ export async function PUT(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, idOrdenCompra, idProveedor, idSucursal, esInterna, fechaEntrega, fechaProgramadaEntrega, notas, items } = body;
+        const { projectId, idOrdenCompra, idProveedor, idSucursal, esInterna, esSalida, fechaEntrega, fechaProgramadaEntrega, notas, items } = body;
 
-        if (!projectId || !idOrdenCompra || (!idProveedor && !esInterna) || !idSucursal || !items || !Array.isArray(items)) {
+        if (!projectId || !idOrdenCompra || (!idProveedor && !esInterna && !esSalida) || !idSucursal || !items || !Array.isArray(items)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         connection = await getProjectConnection(projectId);
         await connection.beginTransaction();
 
+        // Una orden aplicada ya afectó el inventario: no se puede editar.
+        const [currentRows] = await connection.query(
+            'SELECT FechaAplicacion FROM tblOrdenesCompra WHERE IdOrdenCompra = ? FOR UPDATE',
+            [idOrdenCompra]
+        );
+        if ((currentRows as any[])[0]?.FechaAplicacion) {
+            await connection.rollback();
+            return NextResponse.json({ success: false, message: 'La orden ya fue aplicada al inventario y no puede editarse. Usa un ajuste de almacén para corregir existencias.' }, { status: 409 });
+        }
+
         let finalIdProveedor = idProveedor;
-        if (esInterna) {
-            const [provRows] = await connection.query('SELECT IdProveedor FROM tblProveedores WHERE Proveedor = "ORDEN DE COMPRA INTERNA"');
-            if ((provRows as any[]).length > 0) {
-                finalIdProveedor = (provRows as any[])[0].IdProveedor;
-            } else {
-                const [newProv] = await connection.query('INSERT INTO tblProveedores (Proveedor, Status, FechaAct) VALUES ("ORDEN DE COMPRA INTERNA", 0, Now())');
-                finalIdProveedor = (newProv as any).insertId;
-            }
+        if (esSalida) {
+            finalIdProveedor = await resolveNamedProvider(connection, 'SALIDA INTERNA DE ALMACÉN');
+        } else if (esInterna) {
+            finalIdProveedor = await resolveNamedProvider(connection, 'ORDEN DE COMPRA INTERNA');
         }
 
         // Ensure UnidadMedidaPedido column exists
         await connection.query(`
-            ALTER TABLE tblOrdenesCompraDetalle 
+            ALTER TABLE tblOrdenesCompraDetalle
             ADD COLUMN IF NOT EXISTS UnidadMedidaPedido VARCHAR(30) NULL DEFAULT NULL
         `).catch(() => {});
 
         // 1. Update Header
         await connection.query(
-            'UPDATE tblOrdenesCompra SET IdProveedor = ?, IdSucursal = ?, EsInterna = ?, FechaEntrega = ?, FechaProgramadaEntrega = ?, Notas = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
-            [finalIdProveedor || 0, idSucursal, esInterna ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, notas || null, idOrdenCompra]
+            'UPDATE tblOrdenesCompra SET IdProveedor = ?, IdSucursal = ?, EsInterna = ?, EsSalida = ?, FechaEntrega = ?, FechaProgramadaEntrega = ?, Notas = ?, FechaAct = Now() WHERE IdOrdenCompra = ?',
+            [finalIdProveedor || 0, idSucursal, esInterna ? 1 : 0, esSalida ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, notas || null, idOrdenCompra]
         );
 
         // 2. Delete existing items
@@ -213,6 +363,9 @@ export async function PUT(request: NextRequest) {
                 'INSERT INTO tblOrdenesCompraDetalle (IdOrdenCompra, IdProducto, Cantidad, PrecioUnitario, Total, UnidadMedidaPedido, FechaAct) VALUES (?, ?, ?, ?, ?, ?, Now())',
                 [idOrdenCompra, item.idProducto, item.cantidad, item.precioUnitario, item.cantidad * item.precioUnitario, item.unidadMedida || null]
             );
+
+            // Las salidas de almacén no actualizan precios ni la relación proveedor-producto.
+            if (esSalida) continue;
 
             // Update relationship
             await connection.query(`
@@ -252,6 +405,15 @@ export async function DELETE(request: NextRequest) {
 
         const projectId = parseInt(projectIdStr);
         connection = await getProjectConnection(projectId);
+
+        // Una orden aplicada ya afectó el inventario: no se puede eliminar.
+        const [rows] = await connection.query(
+            'SELECT FechaAplicacion FROM tblOrdenesCompra WHERE IdOrdenCompra = ?',
+            [idOrdenCompra]
+        );
+        if ((rows as any[])[0]?.FechaAplicacion) {
+            return NextResponse.json({ success: false, message: 'La orden ya fue aplicada al inventario y no puede eliminarse. Usa un ajuste de almacén para corregir existencias.' }, { status: 409 });
+        }
 
         // Soft delete: Set Status = 2
         await connection.query(

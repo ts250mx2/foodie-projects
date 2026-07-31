@@ -54,6 +54,8 @@ export const PERMISSION_MENU: MenuPermSection[] = [
         key: 'purchases', label: 'Compras', items: [
             { key: 'suppliers', label: 'Proveedores', href: '/dashboard/purchases/suppliers' },
             { key: 'purchaseOrders', label: 'Órdenes de Compra', href: '/dashboard/purchases/purchase-orders' },
+            { key: 'outboundOrders', label: 'Órdenes de Salida', href: '/dashboard/purchases/outbound-orders' },
+            { key: 'warehouse', label: 'Almacén', href: '/dashboard/purchases/warehouse' },
             { key: 'purchasesCapture', label: 'Captura de Compras', href: '/dashboard/purchases/capture' },
         ],
     },

@@ -4,7 +4,7 @@ import type { Connection } from 'mysql2/promise';
  * Banderas de módulos opcionales del proyecto (columnas en BDFoodieProjects.tblProyectos).
  * Controlan qué submenús y pestañas aparecen en la app:
  *  - RecetarioEnabled: pestaña "Costeo" en platillos/sub-recetas + submenú Explosión de Materiales.
- *  - PurchaseOrdersEnabled: submenú Órdenes de Compra.
+ *  - PurchaseOrdersEnabled: submenús Órdenes de Compra, Órdenes de Salida y Almacén.
  *  - POSConnectionEnabled: submenú Conexión a Punto de Venta.
  *  - QuotesEnabled: submenús Cotizaciones y Calendario de Eventos.
  *  - MinMaxEnabled: submenú Mínimos y Máximos.
@@ -77,6 +77,8 @@ type FlagName = keyof ProjectModuleFlags | 'appPriceCalculatorEnabled';
 export const MENU_KEY_TO_FLAG: Record<string, FlagName> = {
     appPriceCalculator: 'appPriceCalculatorEnabled',
     purchaseOrders: 'purchaseOrdersEnabled',
+    outboundOrders: 'purchaseOrdersEnabled',
+    warehouse: 'purchaseOrdersEnabled',
     posConnection: 'posConnectionEnabled',
     quotes: 'quotesEnabled',
     eventsCalendar: 'quotesEnabled',

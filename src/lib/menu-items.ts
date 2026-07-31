@@ -32,6 +32,8 @@ import {
     Sparkles,
     Mic,
     Link2,
+    Warehouse,
+    PackageMinus,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -115,6 +117,8 @@ export const menuItems: MenuSection[] = [
         items: [
             { key: 'suppliers', href: '/dashboard/purchases/suppliers', icon: Truck, emoji: '🚚' },
             { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', icon: FileText, emoji: '📄' },
+            { key: 'outboundOrders', label: 'Órdenes de Salida', href: '/dashboard/purchases/outbound-orders', icon: PackageMinus, emoji: '📤' },
+            { key: 'warehouse', label: 'Almacén', href: '/dashboard/purchases/warehouse', icon: Warehouse, emoji: '🏬' },
             { key: 'purchasesCapture', href: '/dashboard/purchases/capture', icon: PenLine, emoji: '📝' },
         ],
     },

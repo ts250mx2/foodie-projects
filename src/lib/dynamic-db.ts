@@ -1,6 +1,7 @@
 import mysql, { Connection } from 'mysql2/promise';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+import { TEMPLATE_DB, syncDatabaseWithTemplate } from '@/lib/db-template';
 
 interface ProjectConfig extends RowDataPacket {
     BaseDatos: string;
@@ -234,6 +235,63 @@ async function ensureQuotesTables(connection: Connection) {
     }
 }
 
+/**
+ * Asegura el esquema del módulo de Almacén (control de existencias por sucursal):
+ *  - tblAlmacenExistencias: existencia y costo promedio por sucursal × producto;
+ *  - tblAlmacenMovimientos: kardex (entradas, salidas y ajustes) por producto;
+ *  - columnas EsSalida y FechaAplicacion en tblOrdenesCompra (flujo de órdenes
+ *    "fantasma" que se aplican al inventario o se descartan).
+ * Idempotente.
+ */
+async function ensureWarehouseTables(connection: Connection) {
+    try {
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblAlmacenExistencias\` (
+              \`IdSucursal\` int NOT NULL,
+              \`IdProducto\` int NOT NULL,
+              \`Existencia\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`CostoPromedio\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`Unidad\` varchar(45) DEFAULT NULL,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdSucursal\`, \`IdProducto\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblAlmacenMovimientos\` (
+              \`IdMovimiento\` int NOT NULL AUTO_INCREMENT,
+              \`IdSucursal\` int NOT NULL,
+              \`IdProducto\` int NOT NULL,
+              \`TipoMovimiento\` varchar(10) NOT NULL,
+              \`Origen\` varchar(20) NOT NULL,
+              \`IdOrdenCompra\` int DEFAULT NULL,
+              \`Cantidad\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`CostoUnitario\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`ExistenciaAnterior\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`ExistenciaNueva\` decimal(15,4) NOT NULL DEFAULT 0,
+              \`Unidad\` varchar(45) DEFAULT NULL,
+              \`Notas\` varchar(255) DEFAULT NULL,
+              \`FechaMovimiento\` datetime DEFAULT NULL,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdMovimiento\`),
+              KEY \`idx_suc_prod_fecha\` (\`IdSucursal\`, \`IdProducto\`, \`FechaMovimiento\`),
+              KEY \`idx_orden\` (\`IdOrdenCompra\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        const [ocCols]: any = await connection.query('SHOW COLUMNS FROM tblOrdenesCompra');
+        const ocNames = ocCols.map((c: any) => c.Field);
+        if (!ocNames.includes('EsSalida')) {
+            await connection.query('ALTER TABLE tblOrdenesCompra ADD COLUMN EsSalida TINYINT NOT NULL DEFAULT 0');
+        }
+        if (!ocNames.includes('FechaAplicacion')) {
+            await connection.query('ALTER TABLE tblOrdenesCompra ADD COLUMN FechaAplicacion datetime DEFAULT NULL');
+        }
+    } catch (e) {
+        console.error('Error ensuring warehouse schema:', e);
+    }
+}
+
 async function ensurePOSConfigTable(connection: Connection) {
     try {
         await connection.query(`
@@ -313,6 +371,29 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             await ensureAccessAndPermissions(connection);
             await ensurePOSConfigTable(connection);
             await ensureQuotesTables(connection);
+            await ensureWarehouseTables(connection);
+
+            // Sincronización aditiva con la BD plantilla (FG_Frijoles): replica
+            // tablas, columnas y vistas nuevas de la plantilla hacia este proyecto.
+            // Solo aplica si el proyecto vive en el mismo servidor que la plantilla.
+            const templateHost = process.env.DB_HOST || '74.208.192.90';
+            if (project.BaseDatos !== TEMPLATE_DB && project.Servidor === templateHost) {
+                try {
+                    const report = await syncDatabaseWithTemplate(connection, project.BaseDatos);
+                    if (report.tablesCreated.length || report.columnsAdded.length || report.viewsCreated.length) {
+                        console.log(
+                            `[db-sync] ${project.BaseDatos}: tablas ${report.tablesCreated.length}, ` +
+                            `columnas ${report.columnsAdded.length}, vistas ${report.viewsCreated.length}`
+                        );
+                    }
+                    if (report.errors.length) {
+                        console.error(`[db-sync] ${project.BaseDatos} errores:`, report.errors);
+                    }
+                } catch (e) {
+                    console.error(`[db-sync] Error sincronizando ${project.BaseDatos} con ${TEMPLATE_DB}:`, e);
+                }
+            }
+
             verifiedProjects.add(projectId);
         }
 

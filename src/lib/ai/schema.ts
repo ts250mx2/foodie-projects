@@ -100,6 +100,24 @@ tblSucursalesMaximosMinimos: IdProducto, IdSucursal, Minimo, Maximo
   • "productos por debajo del mínimo" = inventario actual del producto < Minimo.
 
 ───────────────────────────────────────────────────────────
+ALMACÉN (inventario perpetuo por sucursal)
+───────────────────────────────────────────────────────────
+tblAlmacenExistencias: IdSucursal, IdProducto, Existencia, CostoPromedio, Unidad, FechaAct
+  • PK (IdSucursal, IdProducto). Existencia actual y costo promedio ponderado.
+  • Inventario costeado = SUM(Existencia * CostoPromedio) por sucursal.
+tblAlmacenMovimientos (kardex): IdMovimiento, IdSucursal, IdProducto,
+  TipoMovimiento('ENTRADA'|'SALIDA'), Origen('ORDEN_COMPRA'|'SALIDA_INTERNA'|'AJUSTE_MANUAL'),
+  IdOrdenCompra, Cantidad, CostoUnitario, ExistenciaAnterior, ExistenciaNueva,
+  Unidad, Notas, FechaMovimiento
+  • Se genera al APLICAR una orden de compra (entrada), una salida interna (salida)
+    o un ajuste manual de almacén. Filtra por FechaMovimiento con MONTH()/YEAR().
+tblOrdenesCompra: Status 0=En Tránsito, 1=Surtido/Aplicada, 2=Eliminada, 3=Cancelada,
+  4=Fantasma (pendiente de aplicar), 5=Descartada. EsSalida=1 → salida interna de
+  almacén (resta existencias; se aplica automáticamente al crearse).
+  FechaAplicacion = cuándo afectó el almacén. Las capturas de compra (tblCompras)
+  generan automáticamente su orden APLICADA, ligada con Notas '[Compra #N]'.
+
+───────────────────────────────────────────────────────────
 NÓMINA Y PROPINAS  (⚠️ tblNomina: convención de mes según catálogo)
 ───────────────────────────────────────────────────────────
 tblNomina: Dia, Mes(VER CATÁLOGO), Anio, IdUsuario(=IdEmpleado), Pago, IdSucursal
