@@ -38,8 +38,8 @@ const MODULE_TOGGLES: { key: keyof ProjectSettings; label: string; hint: string 
     },
     {
         key: 'PurchaseOrdersEnabled',
-        label: 'Habilitar Ordenes de Compra',
-        hint: 'Muestra el submenú Órdenes de Compra.',
+        label: 'Habilitar Ordenes de Compra y Almacen',
+        hint: 'Muestra los submenús Órdenes de Compra, Órdenes de Salida y Almacén.',
     },
     {
         key: 'POSConnectionEnabled',

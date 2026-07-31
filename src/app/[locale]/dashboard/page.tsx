@@ -17,6 +17,11 @@ interface Branch {
     Sucursal: string;
 }
 
+// Formato de dinero fijo a 2 decimales (es-MX). Sin maximumFractionDigits,
+// toLocaleString deja hasta 3 decimales por defecto — de ahí los "3 decimales".
+const money = (v: number) =>
+    `$${(Number(v) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function DashboardPage() {
     const t = useTranslations('HomePage');
     const tPurchases = useTranslations('PurchasesCapture');
@@ -308,22 +313,31 @@ export default function DashboardPage() {
             addTotal('Total Inventario Final', Number(d.inventarioFinal.total || 0), pct(Number(d.inventarioFinal.total || 0)));
         }
 
-        // RESUMEN FINAL
-        addSectionHeader('UTILIDAD / PÉRDIDA');
-        addDetail('Costo Total (Materia Prima + Gastos + Nómina)', Number(d.costoTotal || 0));
-        const utilidad = Number(d.utilidad || 0);
-        const utilRow = ws.addRow(['UTILIDAD / (PÉRDIDA)', utilidad, pct(utilidad)]);
-        utilRow.eachCell((cell) => {
-            cell.font = { bold: true, size: 12, color: { argb: utilidad >= 0 ? GREEN : RED } };
-            cell.border = { top: { style: 'double', color: { argb: BLUE } } };
-        });
-        utilRow.getCell(2).numFmt = MONEY_FMT;
-        utilRow.getCell(3).numFmt = PCT_FMT;
+        // Utilidad final, con y sin inventario.
+        const costoTotal = Number(d.costoTotal || 0);
+        const invFinal = Number(d.inventarioFinal?.total || 0);
+        const utilidadSin = Number(d.utilidad || 0);
+
+        const addUtilidadRow = (label: string, value: number) => {
+            const r = ws.addRow([label, value, pct(value)]);
+            r.eachCell((cell) => {
+                cell.font = { bold: true, size: 12, color: { argb: value >= 0 ? GREEN : RED } };
+                cell.border = { top: { style: 'double', color: { argb: BLUE } } };
+            });
+            r.getCell(2).numFmt = MONEY_FMT;
+            r.getCell(3).numFmt = PCT_FMT;
+        };
+
+        // RESUMEN 1: sin inventario (todo consumido)
+        addSectionHeader('ESTADO DE RESULTADOS — SIN INVENTARIO (todo consumido)');
+        addDetail('Costo Total (Materia Prima + Gastos + Nómina)', costoTotal);
+        addUtilidadRow('UTILIDAD / (PÉRDIDA)', utilidadSin);
+
+        // RESUMEN 2: con inventario final (recalculado)
         if (d.inventarioFinal) {
-            const invRow = ws.addRow([`Inventario Final (${d.inventarioFinal.fecha})`, Number(d.inventarioFinal.total || 0), pct(Number(d.inventarioFinal.total || 0))]);
-            invRow.getCell(1).font = { color: { argb: GRAY } };
-            invRow.getCell(2).numFmt = MONEY_FMT;
-            invRow.getCell(3).numFmt = PCT_FMT;
+            addSectionHeader(`ESTADO DE RESULTADOS — CON INVENTARIO FINAL (${d.inventarioFinal.fecha})`);
+            addDetail('Costo ajustado (− Inventario Final)', costoTotal - invFinal);
+            addUtilidadRow('UTILIDAD / (PÉRDIDA)', utilidadSin + invFinal);
         }
 
         // Descarga en el navegador
@@ -2019,14 +2033,14 @@ export default function DashboardPage() {
                                             <div key={i} className="flex justify-between text-sm">
                                                 <span className="text-gray-600">{v.canal}</span>
                                                 <div className="flex gap-4">
-                                                    <span className="font-medium">${Number(v.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="font-medium">${Number(v.monto).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     <span className="text-gray-400 w-12 text-right">{((v.monto / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
                                                 </div>
                                             </div>
                                         ))}
                                         <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
                                             <span>TOTAL VENTAS</span>
-                                            <span>${incomeStatementData?.ventas?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                            <span>${incomeStatementData?.ventas?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2041,7 +2055,7 @@ export default function DashboardPage() {
                                             <div key={i} className="flex justify-between text-sm">
                                                 <span className="text-gray-600">{c.categoria}</span>
                                                 <div className="flex gap-4">
-                                                    <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     <span className="text-gray-400 w-12 text-right">{((c.total / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
                                                 </div>
                                             </div>
@@ -2049,7 +2063,7 @@ export default function DashboardPage() {
                                         <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
                                             <span>Total Materia Prima</span>
                                             <div className="flex gap-4">
-                                                <span>${incomeStatementData?.costoMateriaPrima?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span>${incomeStatementData?.costoMateriaPrima?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 <span className="w-12 text-right">{incomeStatementData?.costoMateriaPrima?.porcentaje?.toFixed(1)}%</span>
                                             </div>
                                         </div>
@@ -2066,7 +2080,7 @@ export default function DashboardPage() {
                                             <div key={i} className="flex justify-between text-sm">
                                                 <span className="text-gray-600">{g.ConceptoGasto}</span>
                                                 <div className="flex gap-4">
-                                                    <span className="font-medium">${Number(g.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                    <span className="font-medium">${Number(g.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     <span className="text-gray-400 w-12 text-right">{((g.total / incomeStatementData.ventas.total) * 100).toFixed(1)}%</span>
                                                 </div>
                                             </div>
@@ -2074,7 +2088,7 @@ export default function DashboardPage() {
                                         <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
                                             <span>Total Gastos</span>
                                             <div className="flex gap-4">
-                                                <span>${incomeStatementData?.gastosOperativos?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span>${incomeStatementData?.gastosOperativos?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 <span className="w-12 text-right">{incomeStatementData?.gastosOperativos?.porcentaje?.toFixed(1)}%</span>
                                             </div>
                                         </div>
@@ -2090,7 +2104,7 @@ export default function DashboardPage() {
                                         <div className="flex justify-between font-bold text-blue-900">
                                             <span>Total Nómina</span>
                                             <div className="flex gap-4">
-                                                <span>${incomeStatementData?.nomina?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                <span>${incomeStatementData?.nomina?.total?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 <span className="w-12 text-right">{incomeStatementData?.nomina?.porcentaje?.toFixed(1)}%</span>
                                             </div>
                                         </div>
@@ -2125,7 +2139,7 @@ export default function DashboardPage() {
                                                                         {c.categoria} {isOpen ? '▾' : '▸'}
                                                                     </button>
                                                                     <div className="flex gap-4">
-                                                                        <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                                        <span className="font-medium">${Number(c.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                         <span className="text-gray-400 w-12 text-right">{incomeStatementData.ventas.total > 0 ? ((c.total / incomeStatementData.ventas.total) * 100).toFixed(1) : '0.0'}%</span>
                                                                     </div>
                                                                 </div>
@@ -2135,8 +2149,8 @@ export default function DashboardPage() {
                                                                             <div key={j} className="flex justify-between items-center px-3 py-1.5 text-xs">
                                                                                 <span className="text-gray-600 truncate">{p.producto || 'Sin nombre'}</span>
                                                                                 <div className="flex gap-3 shrink-0 tabular-nums">
-                                                                                    <span className="text-gray-400">{Number(p.cantidad).toLocaleString('es-MX')} × ${Number(p.costo).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                                                                                    <span className="font-medium text-gray-800 w-20 text-right">${Number(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                                                    <span className="text-gray-400">{Number(p.cantidad).toLocaleString('es-MX')} × ${Number(p.costo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                                    <span className="font-medium text-gray-800 w-20 text-right">${Number(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                                 </div>
                                                                             </div>
                                                                         ))}
@@ -2147,39 +2161,117 @@ export default function DashboardPage() {
                                                     })}
                                                     <div className="border-t border-blue-100 pt-2 mt-2 flex justify-between font-bold text-blue-900">
                                                         <span>Total Inventario Final</span>
-                                                        <span>${Number(incomeStatementData.inventarioFinal.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                                        <span>${Number(incomeStatementData.inventarioFinal.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 </>
                                             )}
                                         </div>
                                 </div>
 
-                                {/* RESUMEN FINAL (el inventario final es informativo: no suma a la utilidad) */}
-                                <div className="rounded-xl border-2 border-blue-600 overflow-hidden bg-gray-50">
-                                    <div className="bg-blue-600 px-4 py-3">
-                                        <h3 className="font-black text-lg" style={{ color: '#ffffff' }}>UTILIDAD / PÉRDIDA</h3>
-                                    </div>
-                                    <div className="p-4 space-y-3">
-                                        <div className="flex justify-between pb-2 border-b border-gray-200">
-                                            <span className="text-gray-600">Costo Total (Materia Prima + Gastos + Nómina)</span>
-                                            <span className="font-medium">${incomeStatementData?.costoTotal?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                {/* RESUMEN FINAL — dos estados de resultados:
+                                    1) Sin inventario: todo lo comprado se asume consumido (costo = compras completas).
+                                    2) Con inventario final: se descuenta lo que quedó en almacén del costo de
+                                       materia prima, así que la utilidad sube en el monto del inventario final. */}
+                                {(() => {
+                                    const ventas = Number(incomeStatementData?.ventas?.total || 0);
+                                    const materiaPrima = Number(incomeStatementData?.costoMateriaPrima?.total || 0);
+                                    const gastos = Number(incomeStatementData?.gastosOperativos?.total || 0);
+                                    const nomina = Number(incomeStatementData?.nomina?.total || 0);
+                                    const costoTotal = Number(incomeStatementData?.costoTotal || (materiaPrima + gastos + nomina));
+                                    const invFinal = Number(incomeStatementData?.inventarioFinal?.total || 0);
+
+                                    // Sin inventario: se asume que TODA la materia prima comprada se consumió.
+                                    const utilidadSin = ventas - costoTotal;
+                                    const margenSin = ventas > 0 ? (utilidadSin / ventas) * 100 : 0;
+
+                                    // Con inventario final: la materia prima consumida = compras − inventario final.
+                                    // El inventario solo descuenta materia prima; gastos y nómina no cambian.
+                                    const materiaConsumida = materiaPrima - invFinal;
+                                    const costoConInv = materiaConsumida + gastos + nomina;
+                                    const utilidadCon = ventas - costoConInv;
+                                    const margenCon = ventas > 0 ? (utilidadCon / ventas) * 100 : 0;
+
+                                    const CostLine = ({ label, value, negative, strong }: { label: string; value: number; negative?: boolean; strong?: boolean }) => (
+                                        <div className={`flex justify-between text-sm ${strong ? 'font-bold text-gray-800 pt-1 border-t border-gray-200' : 'text-gray-600'}`}>
+                                            <span>{label}</span>
+                                            <span className={negative ? 'text-rose-600 font-medium' : strong ? '' : 'font-medium'}>
+                                                {negative ? `(${money(value)})` : money(value)}
+                                            </span>
                                         </div>
-                                        <div className={`flex justify-between pt-2 text-lg font-black ${incomeStatementData?.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                            <span>UTILIDAD / (PÉRDIDA)</span>
-                                            <span>${incomeStatementData?.utilidad?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                        <div className={`flex justify-between text-sm font-semibold ${incomeStatementData?.utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                            <span>Margen</span>
-                                            <span>{incomeStatementData?.margenUtilidad?.toFixed(2)}%</span>
-                                        </div>
-                                        {incomeStatementData?.inventarioFinal && (
-                                            <div className="flex justify-between pt-2 border-t border-gray-200 text-sm">
-                                                <span className="text-gray-600">Inventario Final ({incomeStatementData.inventarioFinal.fecha})</span>
-                                                <span className="font-semibold text-gray-800">${Number(incomeStatementData.inventarioFinal.total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                                    );
+
+                                    const StatementCard = ({
+                                        subtitle, lines, utilidad, margen, highlight,
+                                    }: {
+                                        subtitle: string;
+                                        lines: React.ReactNode;
+                                        utilidad: number; margen: number; highlight?: boolean;
+                                    }) => (
+                                        <div className={`rounded-xl border-2 overflow-hidden bg-gray-50 ${highlight ? 'border-emerald-600' : 'border-blue-600'}`}>
+                                            <div className={`px-4 py-3 ${highlight ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+                                                <h3 className="font-black text-base leading-tight" style={{ color: '#ffffff' }}>ESTADO DE RESULTADOS</h3>
+                                                <p className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>{subtitle}</p>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
+                                            <div className="p-4 space-y-2">
+                                                <div className="flex justify-between text-sm font-semibold text-gray-800 pb-1">
+                                                    <span>Ventas</span>
+                                                    <span>{money(ventas)}</span>
+                                                </div>
+                                                {lines}
+                                                <div className={`flex justify-between pt-2 mt-1 border-t-2 text-lg font-black ${utilidad >= 0 ? 'text-emerald-600 border-emerald-200' : 'text-rose-600 border-rose-200'}`}>
+                                                    <span>UTILIDAD / (PÉRDIDA)</span>
+                                                    <span>{money(utilidad)}</span>
+                                                </div>
+                                                <div className={`flex justify-between text-sm font-semibold ${utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    <span>Margen</span>
+                                                    <span>{margen.toFixed(2)}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+
+                                    return (
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            <StatementCard
+                                                subtitle="Sin inventario · toda la materia prima consumida"
+                                                utilidad={utilidadSin}
+                                                margen={margenSin}
+                                                lines={<>
+                                                    <CostLine label="(−) Materia Prima (compras)" value={materiaPrima} negative />
+                                                    <CostLine label="(−) Gastos Operativos" value={gastos} negative />
+                                                    <CostLine label="(−) Nómina" value={nomina} negative />
+                                                    <CostLine label="Costo Total" value={costoTotal} strong />
+                                                </>}
+                                            />
+                                            {incomeStatementData?.inventarioFinal ? (
+                                                <StatementCard
+                                                    subtitle={`Con inventario final (${incomeStatementData.inventarioFinal.fecha})`}
+                                                    utilidad={utilidadCon}
+                                                    margen={margenCon}
+                                                    highlight
+                                                    lines={<>
+                                                        <CostLine label="(−) Materia Prima (compras)" value={materiaPrima} negative />
+                                                        <div className="flex justify-between text-sm text-emerald-700">
+                                                            <span className="pl-3">(+) Inventario final (no consumido)</span>
+                                                            <span className="font-medium">{money(invFinal)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm text-gray-600 pl-3 italic">
+                                                            <span>= Materia Prima consumida</span>
+                                                            <span className="font-medium not-italic">{money(materiaConsumida)}</span>
+                                                        </div>
+                                                        <CostLine label="(−) Gastos Operativos" value={gastos} negative />
+                                                        <CostLine label="(−) Nómina" value={nomina} negative />
+                                                        <CostLine label="Costo Total" value={costoConInv} strong />
+                                                    </>}
+                                                />
+                                            ) : (
+                                                <div className="rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center p-4 text-center">
+                                                    <p className="text-sm text-gray-400">No hay inventario final capturado para recalcular el estado de resultados.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
