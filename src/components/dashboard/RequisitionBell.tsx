@@ -44,6 +44,11 @@ function formatAgo(value: string): string {
     return days === 1 ? 'ayer' : `hace ${days} días`;
 }
 
+/** Quita un "(3) " o "(9+) " previo para no encadenar prefijos al reaplicar. */
+function stripBadge(title: string): string {
+    return title.replace(/^\(\d+\+?\)\s*/, '');
+}
+
 /** "Jitomate · Cebolla · Aceite +2 más" */
 function buildSummary(resumen: string | null, renglones: number): string {
     if (!resumen) return 'Sin productos';
@@ -130,6 +135,38 @@ export default function RequisitionBell() {
         document.addEventListener('mousedown', onClickOutside);
         return () => document.removeEventListener('mousedown', onClickOutside);
     }, [isOpen]);
+
+    /**
+     * Contador en el título de la pestaña: "(3) Foodie Gurú". Es el único lugar
+     * donde el número te alcanza sin estar viendo la app.
+     *
+     * Next reescribe el título en cada navegación, así que no basta con fijarlo
+     * una vez: un MutationObserver vuelve a anteponer el prefijo cuando eso pasa.
+     * El observer no se cicla porque solo escribe si el título difiere.
+     */
+    useEffect(() => {
+        if (unreadCount <= 0) {
+            document.title = stripBadge(document.title);
+            return;
+        }
+
+        const prefix = `(${unreadCount > 9 ? '9+' : unreadCount}) `;
+        const applyBadge = () => {
+            const next = prefix + stripBadge(document.title);
+            if (document.title !== next) document.title = next;
+        };
+
+        applyBadge();
+
+        const titleElement = document.querySelector('title');
+        const observer = titleElement ? new MutationObserver(applyBadge) : null;
+        observer?.observe(titleElement!, { childList: true });
+
+        return () => {
+            observer?.disconnect();
+            document.title = stripBadge(document.title);
+        };
+    }, [unreadCount]);
 
     /** Marca como leída sin sacarla de la bandeja. */
     const markRead = async (idOrdenCompra?: number) => {
