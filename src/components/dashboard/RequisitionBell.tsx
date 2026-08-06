@@ -19,6 +19,18 @@ interface Requisition {
 
 const POLL_INTERVAL_MS = 60_000;
 
+/**
+ * El panel vive dentro del <header>, que tiene `text-white`. Cualquier texto que
+ * dependa de herencia sale blanco sobre fondo blanco, así que aquí TODO lleva
+ * color explícito. No heredar es la regla en este subárbol.
+ */
+const PANEL_INK = '#111827';
+const PANEL_INK_SOFT = '#4b5563';
+
+/** Verde legible para etiquetas (4.9:1 sobre blanco). Los vars --color-brand-*
+ *  de globals.css están cruzados: --color-brand-green es en realidad #f4481e. */
+const LABEL_GREEN = '#15803d';
+
 /** Cuántos productos se nombran antes de resumir el resto como "+N más". */
 const SUMMARY_ITEMS = 3;
 
@@ -236,15 +248,20 @@ export default function RequisitionBell() {
             {isOpen && (
                 <div className="absolute right-0 top-full mt-2 w-96 max-w-[92vw] rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-50 text-gray-900">
                     <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
-                        <span className="font-bold text-sm">
+                        <span className="font-bold text-sm" style={{ color: PANEL_INK }}>
                             Requisiciones
-                            {unreadCount > 0 && <span className="ml-1.5 font-semibold text-gray-500">({unreadCount} sin leer)</span>}
+                            {unreadCount > 0 && (
+                                <span className="ml-1.5 font-semibold" style={{ color: PANEL_INK_SOFT }}>
+                                    ({unreadCount} sin leer)
+                                </span>
+                            )}
                         </span>
                         {unreadCount > 0 && (
                             <button
                                 type="button"
                                 onClick={() => markRead()}
-                                className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors"
+                                className="text-xs font-semibold hover:underline transition-colors"
+                                style={{ color: PANEL_INK_SOFT }}
                             >
                                 Marcar todas
                             </button>
@@ -254,7 +271,7 @@ export default function RequisitionBell() {
                     {requisitions.length === 0 ? (
                         <div className="px-4 py-8 text-center">
                             <ClipboardCheck size={28} className="mx-auto text-gray-300" />
-                            <p className="text-sm text-gray-500 mt-2">Sin requisiciones recientes</p>
+                            <p className="text-sm mt-2" style={{ color: PANEL_INK_SOFT }}>Sin requisiciones recientes</p>
                         </div>
                     ) : (
                         <ul className="max-h-96 overflow-y-auto divide-y divide-gray-100">
@@ -273,19 +290,27 @@ export default function RequisitionBell() {
                                             }}
                                         >
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className={`text-sm ${isUnread ? 'font-bold' : 'font-semibold text-gray-600'}`}>
+                                                <span
+                                                    className={`text-sm ${isUnread ? 'font-bold' : 'font-semibold'}`}
+                                                    style={{ color: isUnread ? PANEL_INK : PANEL_INK_SOFT }}
+                                                >
                                                     Folio #{requisition.IdOrdenCompra}
-                                                    {!isUnread && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Leída</span>}
+                                                    {!isUnread && (
+                                                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9ca3af' }}>
+                                                            Leída
+                                                        </span>
+                                                    )}
                                                 </span>
                                                 <span
-                                                    className="text-[11px] text-gray-400 shrink-0"
+                                                    className="text-[11px] shrink-0"
+                                                    style={{ color: '#6b7280' }}
                                                     title={formatWhen(requisition.FechaOrden)}
                                                 >
                                                     {formatAgo(requisition.FechaOrden)}
                                                 </span>
                                             </div>
 
-                                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                                            <div className="mt-1 flex items-center gap-3 text-xs" style={{ color: PANEL_INK_SOFT }}>
                                                 <span className="flex items-center gap-1 min-w-0">
                                                     <Store size={12} className="shrink-0" />
                                                     <span className="truncate">{requisition.Sucursal || 'Sin sucursal'}</span>
@@ -302,12 +327,12 @@ export default function RequisitionBell() {
                                             {/* Qué se pidió, en su propia caja: es lo que permite decidir
                                                 si urge sin tener que abrir la orden. */}
                                             <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
-                                                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-brand-green)' }}>
+                                                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: LABEL_GREEN }}>
                                                     <Package size={12} className="shrink-0" />
                                                     {requisition.Renglones} {requisition.Renglones === 1 ? 'insumo' : 'insumos'}
                                                     {unidades > 0 && ` · ${unidades.toLocaleString('es-MX')} u`}
                                                 </p>
-                                                <p className="mt-1 text-[13px] text-gray-800 font-medium line-clamp-3 leading-snug">
+                                                <p className="mt-1 text-[13px] font-medium line-clamp-3 leading-snug" style={{ color: PANEL_INK }}>
                                                     {buildSummary(requisition.Resumen, requisition.Renglones)}
                                                 </p>
                                             </div>

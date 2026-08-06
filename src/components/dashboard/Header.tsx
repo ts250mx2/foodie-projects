@@ -168,7 +168,12 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
     const handleLogout = () => {
         const confirmMsg = t('confirmLogout') || '¿Está seguro de que desea cerrar sesión?';
         if (window.confirm(confirmMsg)) {
+            // Cerrar sesión es lo único que corta el acceso, así que tiene que
+            // llevarse todo: dejar 'project' o 'permissions' del usuario
+            // anterior filtra datos y permisos al siguiente que entre.
             localStorage.removeItem('user');
+            localStorage.removeItem('project');
+            localStorage.removeItem('permissions');
             onLogout ? onLogout() : router.push('/');
         }
     };

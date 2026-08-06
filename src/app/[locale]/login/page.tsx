@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import Input from '@/components/Input';
@@ -24,6 +24,26 @@ export default function LoginPage() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
+    // Evita el parpadeo del formulario mientras se comprueba si ya hay sesión.
+    const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+    /**
+     * La sesión vive en localStorage y no caduca: si ya hay uno guardado se
+     * entra directo al dashboard. Así el acceso queda abierto en la PC o el
+     * celular hasta que se pulse "Cerrar sesión", que es quien lo borra.
+     */
+    useEffect(() => {
+        let session: string | null = null;
+        try {
+            session = localStorage.getItem('user');
+        } catch { /* almacenamiento no disponible: se muestra el formulario */ }
+
+        if (session) {
+            window.location.href = `/${locale}/dashboard`;
+            return;
+        }
+        setIsCheckingSession(false);
+    }, [locale]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,6 +103,12 @@ export default function LoginPage() {
     };
 
     const isSuccess = message.includes('exitoso');
+
+    // Con sesión guardada esta pantalla solo es un paso intermedio hacia el
+    // dashboard: mostrar el formulario y quitarlo daría un parpadeo feo.
+    if (isCheckingSession) {
+        return <div className="min-h-screen" style={{ backgroundColor: CREAM }} />;
+    }
 
     return (
         <div className="relative min-h-screen flex overflow-hidden" style={{ backgroundColor: CREAM }}>
