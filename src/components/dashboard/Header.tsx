@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, LogOut, ChevronRight, User, CreditCard } from 'lucide-react';
 import BillingModal from './BillingModal';
+import RequisitionBell from './RequisitionBell';
 import LanguageSwitcher from '../LanguageSwitcher';
 
 interface HeaderProps {
@@ -250,6 +251,8 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                 {/* Right: usuario + logout */}
                 <div className="flex items-center gap-2 shrink-0">
                     <LanguageSwitcher className="hidden sm:block text-white" />
+
+                    <RequisitionBell />
 
                     <button
                         onClick={() => setIsBillingModalOpen(true)}

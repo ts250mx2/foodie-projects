@@ -18,7 +18,8 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
-import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost } from 'lucide-react';
+import RequisitionLinkModal from '@/components/requisitions/RequisitionLinkModal';
+import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost, TabletSmartphone } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -102,6 +103,7 @@ export default function PurchaseOrdersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
     const [multiSelectedIds, setMultiSelectedIds] = useState<number[]>([]);
     const [categorySearch, setCategorySearch] = useState('');
@@ -970,6 +972,16 @@ export default function PurchaseOrdersPage() {
                         Categorías
                     </Button>
 
+                    {/* Liga/QR de la tablet de cocina */}
+                    <Button
+                        leftIcon={TabletSmartphone}
+                        onClick={() => setIsLinkModalOpen(true)}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Requisiciones
+                    </Button>
+
                     {/* New Order Button */}
                     <Button
                         leftIcon={Plus}
@@ -1752,6 +1764,12 @@ export default function PurchaseOrdersPage() {
                     </div>
                 </div>
             )}
+
+            <RequisitionLinkModal
+                isOpen={isLinkModalOpen}
+                onClose={() => setIsLinkModalOpen(false)}
+                projectId={projectId}
+            />
         </PageShell>
     );
 }
