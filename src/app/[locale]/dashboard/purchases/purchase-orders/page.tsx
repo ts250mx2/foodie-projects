@@ -360,7 +360,9 @@ export default function PurchaseOrdersPage() {
         }
     };
 
-    const handleEdit = async (order: PurchaseOrder) => {
+    // Memoizado porque el deep-link de requisiciones (?orden=) lo usa dentro de
+    // un efecto: sin esto las dependencias cambiarían en cada render.
+    const handleEdit = useCallback(async (order: PurchaseOrder) => {
         try {
             setIsLoading(true);
             const res = await fetch(`/api/purchases/purchase-orders/${order.IdOrdenCompra}?projectId=${projectId}`);
@@ -402,7 +404,32 @@ export default function PurchaseOrdersPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [projectId, products]);
+
+    /**
+     * Deep-link desde la campana de requisiciones (?orden=123): abre esa orden
+     * en el modal de detalle una vez cargados órdenes y productos — handleEdit
+     * necesita el catálogo para resolver las unidades de cada renglón.
+     * La query se lee de window.location y no con useSearchParams para no
+     * obligar a envolver esta pantalla en un Suspense boundary.
+     */
+    const deepLinkHandledRef = useRef(false);
+
+    useEffect(() => {
+        if (deepLinkHandledRef.current || isLoading) return;
+        if (orders.length === 0 || products.length === 0) return;
+
+        const target = Number(new URLSearchParams(window.location.search).get('orden'));
+        if (!Number.isInteger(target) || target <= 0) return;
+
+        deepLinkHandledRef.current = true;
+        // Limpia la query para que recargar la página no reabra el modal.
+        window.history.replaceState(null, '', window.location.pathname);
+
+        const order = orders.find(o => o.IdOrdenCompra === target);
+        if (order) handleEdit(order);
+        else toastError(`La orden #${target} no está en el rango de fechas seleccionado`);
+    }, [isLoading, orders, products, handleEdit, toastError]);
 
     const handleDelete = async (order: PurchaseOrder) => {
         if (!confirm('¿Estás seguro de que deseas borrar esta orden de compra?')) return;

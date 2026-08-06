@@ -2,18 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Bell, ClipboardCheck, Store, UserRound } from 'lucide-react';
+import { Bell, ClipboardCheck, Package, Store, UserRound, Volume2 } from 'lucide-react';
+import { useRequisitionAlarm } from './useRequisitionAlarm';
 
-interface PendingRequisition {
+interface Requisition {
     IdOrdenCompra: number;
     FechaOrden: string;
+    FechaRequisicionVista: string | null;
     RequisicionSolicitante: string | null;
     RequisicionArea: string | null;
     Sucursal: string | null;
     Renglones: number;
+    Unidades: number | string | null;
+    Resumen: string | null;
 }
 
 const POLL_INTERVAL_MS = 60_000;
+
+/** Cuántos productos se nombran antes de resumir el resto como "+N más". */
+const SUMMARY_ITEMS = 3;
 
 function formatWhen(value: string): string {
     const date = new Date(value);
@@ -21,11 +28,36 @@ function formatWhen(value: string): string {
     return date.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
+/** "hace 15 min" — en una alerta operativa importa más que la hora exacta. */
+function formatAgo(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+    if (minutes < 1) return 'ahora';
+    if (minutes < 60) return `hace ${minutes} min`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours} h`;
+
+    const days = Math.floor(hours / 24);
+    return days === 1 ? 'ayer' : `hace ${days} días`;
+}
+
+/** "Jitomate · Cebolla · Aceite +2 más" */
+function buildSummary(resumen: string | null, renglones: number): string {
+    if (!resumen) return 'Sin productos';
+    const names = resumen.split(' · ').filter(Boolean);
+    const shown = names.slice(0, SUMMARY_ITEMS).join(' · ');
+    const rest = Math.max(renglones, names.length) - SUMMARY_ITEMS;
+    return rest > 0 ? `${shown} +${rest} más` : shown;
+}
+
 /**
- * Avisa en el portal que llegaron requisiciones nuevas desde las tablets.
- * "Nueva" = nadie la ha abierto todavía (FechaRequisicionVista NULL); abrir una
- * desde aquí la marca vista, así que el contador refleja pendientes reales de
- * revisar y no un simple total del día.
+ * Avisa en el portal que llegaron requisiciones desde las tablets.
+ *
+ * La bandeja es un historial: abrir una la marca como leída pero NO la quita,
+ * así se puede volver a ella. El badge y la alarma cuentan solo las no leídas.
  */
 export default function RequisitionBell() {
     const router = useRouter();
@@ -34,9 +66,14 @@ export default function RequisitionBell() {
 
     const [projectId, setProjectId] = useState<number | null>(null);
     const [isEnabled, setIsEnabled] = useState(false);
-    const [pending, setPending] = useState<PendingRequisition[]>([]);
+    const [requisitions, setRequisitions] = useState<Requisition[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
+
+    const unreadCount = requisitions.filter(r => !r.FechaRequisicionVista).length;
+
+    // La alarma suena mientras quede al menos una requisición sin leer.
+    const { needsUnlock, unlock } = useRequisitionAlarm(isEnabled && unreadCount > 0);
 
     useEffect(() => {
         const readProject = () => {
@@ -55,12 +92,12 @@ export default function RequisitionBell() {
         return () => window.removeEventListener('project-settings-updated', readProject);
     }, []);
 
-    const fetchPending = useCallback(async (signal?: AbortSignal) => {
+    const fetchRequisitions = useCallback(async (signal?: AbortSignal) => {
         if (!projectId) return;
         try {
             const res = await fetch(`/api/requisitions/pending?projectId=${projectId}`, { signal, cache: 'no-store' });
             const data = await res.json();
-            if (data.success) setPending(data.data || []);
+            if (data.success) setRequisitions(data.data || []);
         } catch { /* la siguiente vuelta del poll reintenta */ }
     }, [projectId]);
 
@@ -70,11 +107,11 @@ export default function RequisitionBell() {
         const controller = new AbortController();
         // El primer tiro sale en un timer y no en el cuerpo del efecto: llamar
         // setState de forma síncrona aquí encadena renders en cascada.
-        const kickoff = setTimeout(() => fetchPending(controller.signal), 0);
+        const kickoff = setTimeout(() => fetchRequisitions(controller.signal), 0);
 
-        const interval = setInterval(() => fetchPending(), POLL_INTERVAL_MS);
+        const interval = setInterval(() => fetchRequisitions(), POLL_INTERVAL_MS);
         // Al volver a la pestaña se refresca sin esperar el siguiente ciclo.
-        const onFocus = () => fetchPending();
+        const onFocus = () => fetchRequisitions();
         window.addEventListener('focus', onFocus);
 
         return () => {
@@ -83,7 +120,7 @@ export default function RequisitionBell() {
             clearInterval(interval);
             window.removeEventListener('focus', onFocus);
         };
-    }, [projectId, isEnabled, fetchPending]);
+    }, [projectId, isEnabled, fetchRequisitions]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -94,9 +131,15 @@ export default function RequisitionBell() {
         return () => document.removeEventListener('mousedown', onClickOutside);
     }, [isOpen]);
 
-    const markSeen = async (idOrdenCompra?: number) => {
+    /** Marca como leída sin sacarla de la bandeja. */
+    const markRead = async (idOrdenCompra?: number) => {
         if (!projectId) return;
-        setPending(prev => (idOrdenCompra ? prev.filter(r => r.IdOrdenCompra !== idOrdenCompra) : []));
+        const now = new Date().toISOString();
+        setRequisitions(prev => prev.map(r =>
+            (idOrdenCompra === undefined || r.IdOrdenCompra === idOrdenCompra) && !r.FechaRequisicionVista
+                ? { ...r, FechaRequisicionVista: now }
+                : r
+        ));
         try {
             await fetch('/api/requisitions/pending', {
                 method: 'PATCH',
@@ -104,48 +147,66 @@ export default function RequisitionBell() {
                 body: JSON.stringify({ projectId, idOrdenCompra }),
             });
         } catch {
-            fetchPending();
+            fetchRequisitions();
         }
     };
 
-    const openRequisition = async (requisition: PendingRequisition) => {
+    const openRequisition = async (requisition: Requisition) => {
         setIsOpen(false);
-        await markSeen(requisition.IdOrdenCompra);
-        router.push(`/${locale}/dashboard/purchases/purchase-orders`);
+        await markRead(requisition.IdOrdenCompra);
+        // ?orden= le dice a la pantalla de Órdenes de Compra que abra esta
+        // orden en su modal de detalle en cuanto termine de cargar.
+        router.push(`/${locale}/dashboard/purchases/purchase-orders?orden=${requisition.IdOrdenCompra}`);
     };
 
     if (!isEnabled || !projectId) return null;
 
-    const count = pending.length;
-
     return (
-        <div className="relative" ref={panelRef}>
+        <div className="relative flex items-center gap-2" ref={panelRef}>
+            {/* El navegador bloquea el audio hasta que haya un gesto del usuario.
+                Sin este botón la alarma fallaría en silencio. */}
+            {needsUnlock && unreadCount > 0 && (
+                <button
+                    type="button"
+                    onClick={unlock}
+                    className="flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold border-2 animate-pulse"
+                    style={{ backgroundColor: 'var(--color-brand-yellow)', color: '#0a0a0a', borderColor: '#ffffff' }}
+                    title="El navegador bloqueó el sonido. Toca para activarlo."
+                >
+                    <Volume2 size={15} />
+                    Activar sonido
+                </button>
+            )}
+
             <button
                 type="button"
                 onClick={() => setIsOpen(open => !open)}
                 className="relative flex items-center justify-center h-9 w-9 rounded-lg border border-white/20 text-white transition-all hover:bg-white/10 active:scale-95"
-                title={count > 0 ? `${count} requisiciones nuevas` : 'Requisiciones'}
-                aria-label={count > 0 ? `${count} requisiciones nuevas` : 'Requisiciones'}
+                title={unreadCount > 0 ? `${unreadCount} requisiciones nuevas` : 'Requisiciones'}
+                aria-label={unreadCount > 0 ? `${unreadCount} requisiciones nuevas` : 'Requisiciones'}
             >
                 <Bell size={17} />
-                {count > 0 && (
+                {unreadCount > 0 && (
                     <span
                         className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center tabular-nums border-2 animate-pulse"
                         style={{ backgroundColor: 'var(--color-brand-yellow)', color: '#0a0a0a', borderColor: 'var(--color-brand-green)' }}
                     >
-                        {count > 9 ? '9+' : count}
+                        {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-50 text-gray-900">
+                <div className="absolute right-0 top-full mt-2 w-96 max-w-[92vw] rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-50 text-gray-900">
                     <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
-                        <span className="font-bold text-sm">Requisiciones nuevas</span>
-                        {count > 0 && (
+                        <span className="font-bold text-sm">
+                            Requisiciones
+                            {unreadCount > 0 && <span className="ml-1.5 font-semibold text-gray-500">({unreadCount} sin leer)</span>}
+                        </span>
+                        {unreadCount > 0 && (
                             <button
                                 type="button"
-                                onClick={() => markSeen()}
+                                onClick={() => markRead()}
                                 className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors"
                             >
                                 Marcar todas
@@ -153,41 +214,70 @@ export default function RequisitionBell() {
                         )}
                     </div>
 
-                    {count === 0 ? (
+                    {requisitions.length === 0 ? (
                         <div className="px-4 py-8 text-center">
                             <ClipboardCheck size={28} className="mx-auto text-gray-300" />
-                            <p className="text-sm text-gray-500 mt-2">Sin requisiciones pendientes</p>
+                            <p className="text-sm text-gray-500 mt-2">Sin requisiciones recientes</p>
                         </div>
                     ) : (
-                        <ul className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                            {pending.map(requisition => (
-                                <li key={requisition.IdOrdenCompra}>
-                                    <button
-                                        type="button"
-                                        onClick={() => openRequisition(requisition)}
-                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-bold text-sm">Folio #{requisition.IdOrdenCompra}</span>
-                                            <span className="text-[11px] text-gray-400">{formatWhen(requisition.FechaOrden)}</span>
-                                        </div>
-                                        <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
-                                            <span className="flex items-center gap-1 min-w-0">
-                                                <Store size={12} className="shrink-0" />
-                                                <span className="truncate">{requisition.Sucursal || 'Sin sucursal'}</span>
-                                            </span>
-                                            <span className="flex items-center gap-1 min-w-0">
-                                                <UserRound size={12} className="shrink-0" />
-                                                <span className="truncate">{requisition.RequisicionSolicitante || '—'}</span>
-                                            </span>
-                                        </div>
-                                        <p className="mt-1 text-xs font-semibold" style={{ color: 'var(--color-brand-green)' }}>
-                                            {requisition.Renglones} {requisition.Renglones === 1 ? 'insumo' : 'insumos'}
-                                            {requisition.RequisicionArea ? ` · ${requisition.RequisicionArea}` : ''}
-                                        </p>
-                                    </button>
-                                </li>
-                            ))}
+                        <ul className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                            {requisitions.map(requisition => {
+                                const isUnread = !requisition.FechaRequisicionVista;
+                                const unidades = Number(requisition.Unidades) || 0;
+                                return (
+                                    <li key={requisition.IdOrdenCompra}>
+                                        <button
+                                            type="button"
+                                            onClick={() => openRequisition(requisition)}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-l-4"
+                                            style={{
+                                                borderLeftColor: isUnread ? 'var(--color-brand-green)' : 'transparent',
+                                                backgroundColor: isUnread ? '#f7fdf9' : undefined,
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-sm ${isUnread ? 'font-bold' : 'font-semibold text-gray-600'}`}>
+                                                    Folio #{requisition.IdOrdenCompra}
+                                                    {!isUnread && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Leída</span>}
+                                                </span>
+                                                <span
+                                                    className="text-[11px] text-gray-400 shrink-0"
+                                                    title={formatWhen(requisition.FechaOrden)}
+                                                >
+                                                    {formatAgo(requisition.FechaOrden)}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                                                <span className="flex items-center gap-1 min-w-0">
+                                                    <Store size={12} className="shrink-0" />
+                                                    <span className="truncate">{requisition.Sucursal || 'Sin sucursal'}</span>
+                                                </span>
+                                                <span className="flex items-center gap-1 min-w-0">
+                                                    <UserRound size={12} className="shrink-0" />
+                                                    <span className="truncate">
+                                                        {requisition.RequisicionSolicitante || '—'}
+                                                        {requisition.RequisicionArea ? ` · ${requisition.RequisicionArea}` : ''}
+                                                    </span>
+                                                </span>
+                                            </div>
+
+                                            {/* Qué se pidió, en su propia caja: es lo que permite decidir
+                                                si urge sin tener que abrir la orden. */}
+                                            <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+                                                <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-brand-green)' }}>
+                                                    <Package size={12} className="shrink-0" />
+                                                    {requisition.Renglones} {requisition.Renglones === 1 ? 'insumo' : 'insumos'}
+                                                    {unidades > 0 && ` · ${unidades.toLocaleString('es-MX')} u`}
+                                                </p>
+                                                <p className="mt-1 text-[13px] text-gray-800 font-medium line-clamp-3 leading-snug">
+                                                    {buildSummary(requisition.Resumen, requisition.Renglones)}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>
