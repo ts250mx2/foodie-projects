@@ -141,11 +141,13 @@ export default function RequisitionBell() {
 
     useEffect(() => {
         if (!isOpen) return;
-        const onClickOutside = (event: MouseEvent) => {
+        // pointerdown cubre ratón y touch con un solo listener; en móvil
+        // mousedown puede no dispararse en todos los navegadores.
+        const onPointerOutside = (event: PointerEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) setIsOpen(false);
         };
-        document.addEventListener('mousedown', onClickOutside);
-        return () => document.removeEventListener('mousedown', onClickOutside);
+        document.addEventListener('pointerdown', onPointerOutside);
+        return () => document.removeEventListener('pointerdown', onPointerOutside);
     }, [isOpen]);
 
     /**
@@ -246,8 +248,18 @@ export default function RequisitionBell() {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-96 max-w-[92vw] rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-50 text-gray-900">
-                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
+                /* En móvil es una hoja anclada al viewport (left/right fijos), no
+                   un popover colgado del botón: la campana no está pegada al borde
+                   derecho, así que un panel de ancho fijo se salía por la izquierda.
+                   Desde sm vuelve a ser popover anclado al botón. */
+                <div
+                    className="fixed left-3 right-3 top-[4.5rem] w-auto
+                               sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96
+                               flex flex-col max-h-[calc(100dvh-6rem)] sm:max-h-[80vh]
+                               rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden z-50"
+                    style={{ color: PANEL_INK }}
+                >
+                    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 shrink-0">
                         <span className="font-bold text-sm" style={{ color: PANEL_INK }}>
                             Requisiciones
                             {unreadCount > 0 && (
@@ -269,12 +281,15 @@ export default function RequisitionBell() {
                     </div>
 
                     {requisitions.length === 0 ? (
-                        <div className="px-4 py-8 text-center">
+                        <div className="px-4 py-8 text-center shrink-0">
                             <ClipboardCheck size={28} className="mx-auto text-gray-300" />
                             <p className="text-sm mt-2" style={{ color: PANEL_INK_SOFT }}>Sin requisiciones recientes</p>
                         </div>
                     ) : (
-                        <ul className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                        /* flex-1 + min-h-0: la lista ocupa el alto que quede y
+                           hace scroll dentro del panel, en vez de empujarlo
+                           fuera de la pantalla en celulares. */
+                        <ul className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-gray-100">
                             {requisitions.map(requisition => {
                                 const isUnread = !requisition.FechaRequisicionVista;
                                 const unidades = Number(requisition.Unidades) || 0;
