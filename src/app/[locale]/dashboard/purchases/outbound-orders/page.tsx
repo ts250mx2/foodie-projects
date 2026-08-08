@@ -16,6 +16,9 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
+import RequisitionLinkModal from '@/components/requisitions/RequisitionLinkModal';
+import { useModuleColor } from '@/lib/use-module-color';
+import { TabletSmartphone } from 'lucide-react';
 import {
     PackageMinus,
     Plus,
@@ -104,6 +107,9 @@ export default function OutboundOrdersPage() {
     const router = useRouter();
     const locale = params.locale as string;
     const projectId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('project') || '{}').idProyecto : null;
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    // Mismo color que PageShell pinta en el encabezado de esta página.
+    const moduleColor = useModuleColor() ?? '#0369a1';
 
     const [orders, setOrders] = useState<OutboundOrder[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -485,12 +491,23 @@ export default function OutboundOrdersPage() {
 
     return (
         <PageShell
-            title="Órdenes de Salida"
-            subtitle="Salidas de inventario del almacén — restan existencias al aplicarse"
+            title="Requisiciones"
+            subtitle="Material que sale del almacén — resta existencias al aplicarse"
             icon={PackageMinus}
             className="!mt-3"
             actions={
                 <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 flex-wrap">
+                    {/* Liga/QR de la tablet de cocina: las requisiciones que
+                        levanta el personal caen en esta pantalla. */}
+                    <Button
+                        leftIcon={TabletSmartphone}
+                        onClick={() => setIsLinkModalOpen(true)}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Liga para tablet
+                    </Button>
+
                     {/* Search */}
                     <div className="relative flex-1 lg:flex-none min-w-[220px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -566,32 +583,12 @@ export default function OutboundOrdersPage() {
             </div>
 
             {/* Status Filter Chips */}
-            <div className="flex items-center gap-2 flex-wrap">
-                {([
-                    { key: 'all', label: 'Todas' },
-                    { key: 'pending', label: `Por aplicar (${pendingCount})` },
-                    { key: 'applied', label: 'Aplicadas' },
-                    { key: 'discarded', label: 'Descartadas' },
-                ] as { key: StatusFilter; label: string }[]).map(chip => (
-                    <button
-                        key={chip.key}
-                        onClick={() => setStatusFilter(chip.key)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-all ${
-                            statusFilter === chip.key
-                                ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                    >
-                        {chip.label}
-                    </button>
-                ))}
-            </div>
 
             {/* Data Table */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                     <table className="min-w-full border-collapse">
-                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm" accentColor={moduleColor}>
                             <ThemedGridHeaderCell>Fecha</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>Folio</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>Sucursal</ThemedGridHeaderCell>
@@ -692,8 +689,9 @@ export default function OutboundOrdersPage() {
             <BaseModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
-                title={editingOrder ? 'Editar Salida' : 'Nueva Salida de Almacén'}
+                title={editingOrder ? 'Editar Requisición' : 'Nueva Requisición'}
                 subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'Se aplica automáticamente al guardarse: resta existencias del almacén'}
+                accentColor={moduleColor}
                 size="full"
                 headerVariant="primary"
                 footer={
@@ -884,6 +882,39 @@ export default function OutboundOrdersPage() {
                     </div>
                 </div>
             </BaseModal>
+            <RequisitionLinkModal
+                isOpen={isLinkModalOpen}
+                onClose={() => setIsLinkModalOpen(false)}
+                projectId={projectId}
+                accentColor={moduleColor}
+            />
+            {/* Filtros de estado al pie: arriba desplazaban la tabla y
+                descuadraban el encabezado de la página. */}
+            <div className="flex items-center gap-3 flex-wrap">
+                {([
+                    { key: 'all', label: 'Todas' },
+                    { key: 'pending', label: `Por aplicar (${pendingCount})` },
+                    { key: 'applied', label: 'Aplicadas' },
+                    { key: 'discarded', label: 'Descartadas' },
+                ] as { key: StatusFilter; label: string }[]).map(chip => {
+                    const isActive = statusFilter === chip.key;
+                    return (
+                        <button
+                            key={chip.key}
+                            onClick={() => setStatusFilter(chip.key)}
+                            className="px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-wide border-2 transition-all"
+                            style={{
+                                backgroundColor: isActive ? moduleColor : '#ffffff',
+                                borderColor: isActive ? moduleColor : '#e5e7eb',
+                                color: isActive ? '#ffffff' : '#6b7280',
+                            }}
+                        >
+                            {chip.label}
+                        </button>
+                    );
+                })}
+            </div>
+
         </PageShell>
     );
 }

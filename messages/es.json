@@ -1228,7 +1228,7 @@
         "subtitle": "Control y seguimiento de suministros",
         "newOrder": "Nueva Orden",
         "addOrder": "Nueva Orden de Compra",
-        "internalOrder": "Orden de Compra Interna",
+        "internalOrder": "Requisición a Almacén",
         "provider": "Proveedor",
         "branch": "Sucursal",
         "orderDate": "Fecha Orden",

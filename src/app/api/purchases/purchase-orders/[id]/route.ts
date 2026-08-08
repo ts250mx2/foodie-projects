@@ -24,6 +24,7 @@ export async function GET(
             SELECT 
                 oc.*, 
                 p.Proveedor,
+                p.Telefonos AS ProveedorTelefonos,
                 s.Sucursal
             FROM tblOrdenesCompra oc
             LEFT JOIN tblProveedores p ON oc.IdProveedor = p.IdProveedor

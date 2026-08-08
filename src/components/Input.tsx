@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { NO_AUTOFILL } from './noAutofill';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -30,8 +31,12 @@ export default function Input({
                     {label}
                 </label>
             )}
+            {/* NO_AUTOFILL va antes de {...props} para que un campo que SÍ quiera
+                autocompletado (el correo del login, por ejemplo) lo reactive
+                pasando su propio autoComplete. */}
             <input
                 id={inputId}
+                {...NO_AUTOFILL}
                 onFocus={(e) => {
                     setIsFocused(true);
                     if (props.onFocus) props.onFocus(e);

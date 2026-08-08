@@ -357,7 +357,8 @@
         "recipeUnit": "وحدة قياس الوصفة"
     },
     "Common": {
-        "errorFutureDate": "لا يمكن التقاط البيانات للتواريخ المستقبلية."
+        "errorFutureDate": "لا يمكن التقاط البيانات للتواريخ المستقبلية.",
+        "errorBeyondCurrentMonth": "لا يمكن تسجيل المصروفات المقدمة إلا ضمن الشهر الحالي."
     },
     "SchedulesCapture": {
         "exportPdf": "تصدير PDF"

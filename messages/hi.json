@@ -357,7 +357,8 @@
         "recipeUnit": "नुस्खा इकाई"
     },
     "Common": {
-        "errorFutureDate": "भविष्य की तारीखों के लिए डेटा कैप्चर करना संभव नहीं है।"
+        "errorFutureDate": "भविष्य की तारीखों के लिए डेटा कैप्चर करना संभव नहीं है।",
+        "errorBeyondCurrentMonth": "अग्रिम खर्च केवल चालू माह के भीतर ही दर्ज किए जा सकते हैं।"
     },
     "SchedulesCapture": {
         "exportPdf": "PDF निर्यात करें"

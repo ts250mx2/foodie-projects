@@ -123,7 +123,10 @@ export async function registerWarehouseMovement(
  * transacción abierta; NO cambia el Status de la orden (eso lo hace el caller).
  */
 export async function applyOrderToWarehouse(connection: Connection, order: any, items: any[]) {
-    const esSalida = Number(order.EsSalida) === 1;
+    // Descargan existencias tanto las salidas de almacén como las Requisiciones
+    // a Almacén (EsInterna): una requisición es material que SALE del almacén
+    // hacia cocina o barra. Solo la compra a proveedor suma.
+    const descarga = Number(order.EsSalida) === 1 || Number(order.EsInterna) === 1;
     const folio = `OC-${String(order.IdOrdenCompra).padStart(4, '0')}`;
 
     for (const item of items) {
@@ -131,16 +134,18 @@ export async function applyOrderToWarehouse(connection: Connection, order: any, 
         if (qty <= 0) continue;
 
         const unidad = item.UnidadMedidaPedido
-            || (esSalida ? item.UnidadMedidaInventario : item.UnidadMedidaCompra)
+            || (descarga ? item.UnidadMedidaInventario : item.UnidadMedidaCompra)
             || null;
 
         await registerWarehouseMovement(connection, {
             idSucursal: order.IdSucursal,
             idProducto: item.IdProducto,
-            tipo: esSalida ? 'SALIDA' : 'ENTRADA',
-            origen: esSalida ? 'SALIDA_INTERNA' : 'ORDEN_COMPRA',
+            tipo: descarga ? 'SALIDA' : 'ENTRADA',
+            origen: descarga ? 'SALIDA_INTERNA' : 'ORDEN_COMPRA',
             idOrdenCompra: order.IdOrdenCompra,
             cantidad: qty,
+            // Las descargas ignoran este costo y usan el promedio vigente
+            // (ver registerWarehouseMovement); va por compatibilidad de firma.
             costoUnitario: Number(item.PrecioUnitario) || 0,
             unidad,
             notas: `Aplicación de ${folio}`,

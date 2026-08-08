@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Search, X, Hash, Plus } from 'lucide-react';
 import { RequisitionProduct } from './types';
 import { INK, INK_MUTED, foregroundFor } from './theme';
+import { NO_AUTOFILL } from '@/components/noAutofill';
 
 interface ProductGridProps {
     products: RequisitionProduct[];
@@ -59,7 +60,8 @@ export default function ProductGrid({ products, quantities, accent, onAdd, onOpe
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Buscar insumo…"
-                        autoComplete="off"
+                        {...NO_AUTOFILL}
+                        name="rq-q"
                         className="w-full h-16 rounded-2xl bg-white border-2 border-slate-300 pl-14 pr-14 text-lg font-medium outline-none focus:border-slate-900 transition placeholder:text-slate-500"
                         style={{ color: INK }}
                     />

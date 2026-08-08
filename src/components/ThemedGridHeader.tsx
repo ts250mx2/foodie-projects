@@ -13,14 +13,20 @@ import React from 'react';
 interface ThemedGridHeaderProps {
     children: ReactNode;
     className?: string;
+    /**
+     * Color de fondo de la cabecera. Permite que el grid herede el color del
+     * módulo (el mismo del encabezado de la página, vía useModuleColor).
+     * Si se omite se usa el color de marca, como hasta ahora.
+     */
+    accentColor?: string;
 }
 
-export default function ThemedGridHeader({ children, className = '' }: ThemedGridHeaderProps) {
+export default function ThemedGridHeader({ children, className = '', accentColor }: ThemedGridHeaderProps) {
     return (
         <thead className="sticky top-0 z-10 shadow-sm">
             <tr
                 className={className}
-                style={{ backgroundColor: 'var(--color-brand-orange)' }}
+                style={{ backgroundColor: accentColor ?? 'var(--color-brand-orange)' }}
             >
                 {children}
             </tr>

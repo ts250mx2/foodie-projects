@@ -46,7 +46,6 @@ export const PERMISSION_MENU: MenuPermSection[] = [
         key: 'inventories', label: 'Inventarios', items: [
             { key: 'products', label: 'Productos', href: '/dashboard/inventories/products' },
             { key: 'inventoryCapture', label: 'Captura de Inventario', href: '/dashboard/inventories/capture' },
-            { key: 'minMax', label: 'Mínimos y Máximos', href: '/dashboard/inventories/min-max' },
             { key: 'wasteCapture', label: 'Captura de Mermas', href: '/dashboard/inventories/waste-capture' },
         ],
     },
@@ -54,9 +53,17 @@ export const PERMISSION_MENU: MenuPermSection[] = [
         key: 'purchases', label: 'Compras', items: [
             { key: 'suppliers', label: 'Proveedores', href: '/dashboard/purchases/suppliers' },
             { key: 'purchaseOrders', label: 'Órdenes de Compra', href: '/dashboard/purchases/purchase-orders' },
-            { key: 'outboundOrders', label: 'Órdenes de Salida', href: '/dashboard/purchases/outbound-orders' },
-            { key: 'warehouse', label: 'Almacén', href: '/dashboard/purchases/warehouse' },
             { key: 'purchasesCapture', label: 'Captura de Compras', href: '/dashboard/purchases/capture' },
+        ],
+    },
+    {
+        // Las `key` NO cambian al mover los items de sección: son las que están
+        // guardadas en tblEmpleadosPermisos, así que los permisos ya asignados
+        // se conservan tal cual.
+        key: 'warehouseArea', label: 'Almacén', items: [
+            { key: 'outboundOrders', label: 'Requisiciones', href: '/dashboard/purchases/outbound-orders' },
+            { key: 'warehouse', label: 'Existencias en Almacén', href: '/dashboard/purchases/warehouse' },
+            { key: 'minMax', label: 'Mínimos y Máximos', href: '/dashboard/inventories/min-max' },
         ],
     },
     {

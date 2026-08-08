@@ -357,7 +357,8 @@
         "recipeUnit": "配方计量单位"
     },
     "Common": {
-        "errorFutureDate": "无法获取未来日期的数据。"
+        "errorFutureDate": "无法获取未来日期的数据。",
+        "errorBeyondCurrentMonth": "预付费用只能在本月内录入。"
     },
     "SchedulesCapture": {
         "exportPdf": "导出 PDF"

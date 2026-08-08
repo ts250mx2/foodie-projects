@@ -301,7 +301,8 @@
         "recipeUnit": "Unità di misura ricetta"
     },
     "Common": {
-        "errorFutureDate": "Non è possibile acquisire dati per date future."
+        "errorFutureDate": "Non è possibile acquisire dati per date future.",
+        "errorBeyondCurrentMonth": "Le spese anticipate possono essere registrate solo nel mese corrente."
     },
     "SchedulesCapture": {
         "exportPdf": "Esporta PDF"

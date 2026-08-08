@@ -62,6 +62,8 @@ const ROUTE_LABELS: Record<string, string> = {
     purchases: 'Compras',
     suppliers: 'Proveedores',
     'purchase-orders': 'Órdenes de Compra',
+    'outbound-orders': 'Requisiciones',
+    warehouse: 'Existencias en Almacén',
     expenses: 'Gastos',
     concepts: 'Conceptos',
     receipt: 'Recibo',

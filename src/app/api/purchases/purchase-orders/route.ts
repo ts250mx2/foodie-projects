@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
             SELECT
                 oc.*,
                 p.Proveedor,
+                p.Telefonos AS ProveedorTelefonos,
                 s.Sucursal,
                 (SELECT SUM(Total) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Total,
                 (SELECT COUNT(*) FROM tblOrdenesCompraDetalle WHERE IdOrdenCompra = oc.IdOrdenCompra) as Renglones
@@ -63,9 +64,14 @@ export async function GET(request: NextRequest) {
         `;
 
         if (tipo === 'salidas') {
-            query += ' AND oc.EsSalida = 1';
+            // Requisiciones: todo lo que DESCARGA almacén — las salidas
+            // capturadas a mano y las requisiciones levantadas desde la tablet
+            // de cocina (EsInterna), que esperan aprobación como Fantasma.
+            query += ' AND (oc.EsSalida = 1 OR oc.EsInterna = 1)';
         } else if (tipo === 'compras') {
-            query += ' AND (oc.EsSalida IS NULL OR oc.EsSalida = 0)';
+            // Órdenes de Compra: solo compra a proveedor externo. Las internas
+            // dejaron de vivir aquí y ahora son requisiciones.
+            query += ' AND (oc.EsSalida IS NULL OR oc.EsSalida = 0) AND (oc.EsInterna IS NULL OR oc.EsInterna = 0)';
         }
 
         const queryParams: any[] = [];
@@ -316,7 +322,7 @@ export async function PUT(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, idOrdenCompra, idProveedor, idSucursal, esInterna, esSalida, fechaEntrega, fechaProgramadaEntrega, notas, items } = body;
+        const { projectId, idOrdenCompra, idProveedor, idSucursal, esInterna, esSalida, fechaEntrega, fechaProgramadaEntrega, notas, items, providerName } = body;
 
         if (!projectId || !idOrdenCompra || (!idProveedor && !esInterna && !esSalida) || !idSucursal || !items || !Array.isArray(items)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
@@ -339,7 +345,10 @@ export async function PUT(request: NextRequest) {
         if (esSalida) {
             finalIdProveedor = await resolveNamedProvider(connection, 'SALIDA INTERNA DE ALMACÉN');
         } else if (esInterna) {
-            finalIdProveedor = await resolveNamedProvider(connection, 'ORDEN DE COMPRA INTERNA');
+            // Respeta el nombre que manda el cliente (igual que en POST): sin
+            // esto, editar una Requisición a Almacén la reasignaría al
+            // proveedor sintético viejo.
+            finalIdProveedor = await resolveNamedProvider(connection, providerName || 'ORDEN DE COMPRA INTERNA');
         }
 
         // Ensure UnidadMedidaPedido column exists

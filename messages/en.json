@@ -1038,7 +1038,7 @@
         "subtitle": "Supply control and tracking",
         "newOrder": "New Order",
         "addOrder": "New Purchase Order",
-        "internalOrder": "Internal Purchase Order",
+        "internalOrder": "Warehouse Requisition",
         "provider": "Provider",
         "branch": "Branch",
         "orderDate": "Order Date",

@@ -3,6 +3,7 @@
 import { ArrowLeft, Minus, Plus, Send, Trash2 } from 'lucide-react';
 import { CartLine } from './types';
 import { INK, INK_MUTED, foregroundFor } from './theme';
+import { NO_AUTOFILL } from '@/components/noAutofill';
 
 interface RequisitionCartProps {
     lines: CartLine[];
@@ -129,6 +130,8 @@ export default function RequisitionCart({
                         rows={3}
                         maxLength={500}
                         placeholder="Ej. urge para el servicio de la noche"
+                        {...NO_AUTOFILL}
+                        name="rq-n"
                         className="w-full rounded-2xl bg-white border-2 border-slate-300 px-5 py-4 text-lg font-medium outline-none focus:border-slate-900 transition resize-none placeholder:text-slate-500"
                         style={{ color: INK }}
                     />

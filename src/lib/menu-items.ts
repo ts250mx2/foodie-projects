@@ -105,7 +105,6 @@ export const menuItems: MenuSection[] = [
         items: [
             { key: 'products', href: '/dashboard/inventories/products', icon: Tag, emoji: '🏷️' },
             { key: 'inventoryCapture', href: '/dashboard/inventories/capture', icon: ClipboardList, emoji: '📋' },
-            { key: 'minMax', href: '/dashboard/inventories/min-max', icon: Scale, emoji: '⚖️' },
             { key: 'wasteCapture', href: '/dashboard/inventories/waste-capture', icon: Trash2, emoji: '🗑️' },
         ],
     },
@@ -113,13 +112,31 @@ export const menuItems: MenuSection[] = [
         title: 'purchases',
         icon: ShoppingCart,
         emoji: '🛒',
-        color: '#14b8a6', // teal
+        // teal-700: el encabezado de página y las superficies que heredan este
+        // color pintan texto blanco encima. El teal-500 anterior daba 2.49:1.
+        color: '#0f766e',
         items: [
             { key: 'suppliers', href: '/dashboard/purchases/suppliers', icon: Truck, emoji: '🚚' },
             { key: 'purchaseOrders', href: '/dashboard/purchases/purchase-orders', icon: FileText, emoji: '📄' },
-            { key: 'outboundOrders', label: 'Órdenes de Salida', href: '/dashboard/purchases/outbound-orders', icon: PackageMinus, emoji: '📤' },
-            { key: 'warehouse', label: 'Almacén', href: '/dashboard/purchases/warehouse', icon: Warehouse, emoji: '🏬' },
             { key: 'purchasesCapture', href: '/dashboard/purchases/capture', icon: PenLine, emoji: '📝' },
+        ],
+    },
+    {
+        // Todo lo que mueve existencias vive junto: las órdenes que suman, las
+        // que restan y la consulta del inventario resultante. Las rutas siguen
+        // bajo /purchases para no romper ligas ni permisos existentes.
+        title: 'warehouseArea',
+        label: 'Almacén',
+        icon: Warehouse,
+        emoji: '🏬',
+        // sky-700: el header de página, la cabecera del grid y el header del
+        // modal pintan texto BLANCO encima, así que el tono tiene que aguantar
+        // 4.5:1 con blanco. Un sky-500 se veía bien pero daba 2.77:1.
+        color: '#0369a1',
+        items: [
+            { key: 'outboundOrders', label: 'Requisiciones', href: '/dashboard/purchases/outbound-orders', icon: PackageMinus, emoji: '📤' },
+            { key: 'warehouse', label: 'Existencias en Almacén', href: '/dashboard/purchases/warehouse', icon: Warehouse, emoji: '🏬' },
+            { key: 'minMax', href: '/dashboard/inventories/min-max', icon: Scale, emoji: '⚖️' },
         ],
     },
     {

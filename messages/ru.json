@@ -357,7 +357,8 @@
         "recipeUnit": "Единица рецепта"
     },
     "Common": {
-        "errorFutureDate": "Невозможно зафиксировать данные для будущих дат."
+        "errorFutureDate": "Невозможно зафиксировать данные для будущих дат.",
+        "errorBeyondCurrentMonth": "Расходы авансом можно вносить только в пределах текущего месяца."
     },
     "SchedulesCapture": {
         "exportPdf": "Экспорт в PDF"

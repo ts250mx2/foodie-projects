@@ -18,8 +18,10 @@ import ThemedGridHeader, {
     RowActionButton,
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
-import RequisitionLinkModal from '@/components/requisitions/RequisitionLinkModal';
-import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost, TabletSmartphone } from 'lucide-react';
+import { useModuleColor } from '@/lib/use-module-color';
+import { sendPdfViaWhatsApp, normalizePhone } from '@/lib/whatsapp-share';
+import { MessageCircle } from 'lucide-react';
+import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost } from 'lucide-react';
 
 type Product = {
     IdProducto: number;
@@ -37,6 +39,8 @@ type Product = {
 type Provider = {
     IdProveedor: number;
     Proveedor: string;
+    /** Para mandarle la orden por WhatsApp. Texto libre. */
+    Telefonos?: string | null;
 };
 
 type Branch = {
@@ -62,6 +66,8 @@ type PurchaseOrder = {
     IdOrdenCompra: number;
     IdProveedor: number;
     Proveedor: string;
+    /** Texto libre capturado en el proveedor; puede traer varios números. */
+    ProveedorTelefonos?: string | null;
     IdSucursal: number;
     Sucursal: string;
     FechaOrden: string;
@@ -80,6 +86,18 @@ type PurchaseOrder = {
  *  0 En Tránsito (legado) · 1 Surtido/Aplicada · 3 Cancelado · 4 Fantasma · 5 Descartada.
  * Las órdenes nuevas nacen Fantasma: se aplican al inventario del almacén o se descartan.
  */
+/**
+ * Identidad visual de esta pantalla: azul = compra a proveedor, que al
+ * aplicarse SUMA al almacén. Lo que descarga existencias (naranja) vive en
+ * Requisiciones. El azul pasa 5.2:1 con texto blanco encima.
+ */
+const ORDER_TYPES = {
+    proveedor: { color: '#2563eb', soft: '#eff6ff', border: '#bfdbfe' },
+} as const;
+
+/** Color de respaldo si la ruta no estuviera en el menú (sky-700, 5.9:1 con blanco). */
+const FALLBACK_MODULE_COLOR = '#0369a1';
+
 const ST_APPLIED = 1;
 const ST_PHANTOM = 4;
 const ST_DISCARDED = 5;
@@ -94,6 +112,11 @@ export default function PurchaseOrdersPage() {
     const router = useRouter();
     const locale = params.locale as string;
     const projectId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('project') || '{}').idProyecto : null;
+    // Mismo color que PageShell pinta en el encabezado de esta página, para que
+    // grid, modales y filtros hablen el mismo idioma visual.
+    const moduleColor = useModuleColor() ?? FALLBACK_MODULE_COLOR;
+    // Orden recién creada que se ofrece enviar al proveedor por WhatsApp.
+    const [whatsAppTarget, setWhatsAppTarget] = useState<PurchaseOrder | null>(null);
 
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -103,7 +126,6 @@ export default function PurchaseOrdersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
     const [multiSelectedIds, setMultiSelectedIds] = useState<number[]>([]);
     const [categorySearch, setCategorySearch] = useState('');
@@ -348,9 +370,31 @@ export default function PurchaseOrdersPage() {
 
             const data = await res.json();
             if (data.success) {
-                alert(editingOrder ? 'Orden actualizada con éxito' : t('successAdd'));
+                const wasEditing = Boolean(editingOrder);
+                const provider = providers.find(p => p.IdProveedor === Number(selectedProvider));
                 closeModal();
                 fetchOrders();
+
+                if (wasEditing) {
+                    success('Orden actualizada con éxito');
+                } else {
+                    success(t('successAdd'));
+                    // Recién creada: se ofrece mandarla al proveedor por WhatsApp.
+                    setWhatsAppTarget({
+                        IdOrdenCompra: data.id,
+                        IdProveedor: Number(selectedProvider),
+                        Proveedor: provider?.Proveedor ?? providerSearch,
+                        ProveedorTelefonos: provider?.Telefonos ?? null,
+                        IdSucursal: Number(selectedBranch),
+                        Sucursal: branches.find(b => b.IdSucursal === Number(selectedBranch))?.Sucursal ?? '',
+                        FechaOrden: new Date().toISOString(),
+                        FechaEntrega: null,
+                        FechaProgramadaEntrega: fechaProgramada || null,
+                        Status: 4,
+                        EsInterna: 0,
+                        Total: orderItems.reduce((sum, item) => sum + (item.total || 0), 0),
+                    });
+                }
             } else {
                 alert(t('errorAdd'));
             }
@@ -430,6 +474,25 @@ export default function PurchaseOrdersPage() {
         if (order) handleEdit(order);
         else toastError(`La orden #${target} no está en el rango de fechas seleccionado`);
     }, [isLoading, orders, products, handleEdit, toastError]);
+
+    /**
+     * Arranca una orden de compra a proveedor. Esta pantalla ya solo maneja
+     * compras externas: lo que descarga almacén vive en Requisiciones.
+     */
+    const startNewOrder = () => {
+        const today = new Date().toISOString().split('T')[0];
+        setEditingOrder(null);
+        setSelectedProvider('');
+        setProviderSearch('');
+        setSelectedBranch(branches.length === 1 ? branches[0].IdSucursal : '');
+        setEsInterna(false);
+        setEsSalida(false);
+        setFechaEntrega('');
+        setFechaProgramada(today);
+        setNotas('');
+        setOrderItems([]);
+        setIsModalOpen(true);
+    };
 
     const handleDelete = async (order: PurchaseOrder) => {
         if (!confirm('¿Estás seguro de que deseas borrar esta orden de compra?')) return;
@@ -714,14 +777,18 @@ export default function PurchaseOrdersPage() {
         return fallback ? String(fallback) : '—';
     };
 
-    const exportOrderToPDF = async (order: PurchaseOrder) => {
+    /**
+     * Arma el PDF de la orden y lo devuelve sin guardarlo, para que el llamador
+     * decida qué hacer: descargarlo o mandarlo por WhatsApp.
+     */
+    const buildOrderPDF = async (order: PurchaseOrder): Promise<{ doc: jsPDF; filename: string } | null> => {
         try {
             const res = await fetch(`/api/purchases/purchase-orders/${order.IdOrdenCompra}?projectId=${projectId}`);
             const data = await res.json();
-            
+
             if (!data.success) {
                 alert('Error al obtener los detalles de la orden');
-                return;
+                return null;
             }
 
             const { header, items } = data.data;
@@ -839,10 +906,54 @@ export default function PurchaseOrdersPage() {
             doc.setTextColor(150, 150, 150);
             doc.text('Foodie Guru - Sistema de Gestión Administrativa', 105, 285, { align: 'center' });
 
-            doc.save(`OrdenCompra_OC${header.IdOrdenCompra}_${header.Sucursal}.pdf`);
+            return { doc, filename: `OrdenCompra_OC${header.IdOrdenCompra}_${header.Sucursal}.pdf` };
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('Error al generar el PDF');
+            return null;
+        }
+    };
+
+    const exportOrderToPDF = async (order: PurchaseOrder) => {
+        const built = await buildOrderPDF(order);
+        if (built) built.doc.save(built.filename);
+    };
+
+    /**
+     * Manda la orden al proveedor por WhatsApp. En celular/tablet adjunta el
+     * PDF de verdad mediante la hoja nativa de compartir; en escritorio abre el
+     * chat del proveedor con el mensaje y descarga el PDF para adjuntarlo.
+     */
+    const sendOrderByWhatsApp = async (order: PurchaseOrder) => {
+        const built = await buildOrderPDF(order);
+        if (!built) return;
+
+        const folio = `OC-${String(order.IdOrdenCompra).padStart(4, '0')}`;
+        const total = formatCurrency(order.Total);
+        const mensaje =
+            `Hola${order.Proveedor ? ` ${order.Proveedor}` : ''}, les compartimos la orden de compra ${folio}` +
+            `${order.Sucursal ? ` para ${order.Sucursal}` : ''}. Total: ${total}. Gracias.`;
+
+        const result = await sendPdfViaWhatsApp({
+            blob: built.doc.output('blob'),
+            filename: built.filename,
+            message: mensaje,
+            phone: order.ProveedorTelefonos,
+        });
+
+        setWhatsAppTarget(null);
+
+        if (result.ok === true) {
+            success(result.via === 'share'
+                ? 'WhatsApp abierto con el PDF adjunto'
+                : 'WhatsApp abierto. El PDF se descargó para que lo adjuntes.');
+            return;
+        }
+
+        if (result.reason === 'no-phone') {
+            toastError(`${order.Proveedor || 'El proveedor'} no tiene teléfono capturado: elige el contacto en WhatsApp`);
+        } else if (result.reason === 'failed') {
+            toastError('No se pudo abrir WhatsApp');
         }
     };
 
@@ -999,34 +1110,13 @@ export default function PurchaseOrdersPage() {
                         Categorías
                     </Button>
 
-                    {/* Liga/QR de la tablet de cocina */}
-                    <Button
-                        leftIcon={TabletSmartphone}
-                        onClick={() => setIsLinkModalOpen(true)}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Requisiciones
-                    </Button>
+
 
                     {/* New Order Button */}
                     <Button
                         leftIcon={Plus}
                         iconBox
-                        onClick={() => {
-                            const today = new Date().toISOString().split('T')[0];
-                            setEditingOrder(null);
-                            setSelectedProvider('');
-                            setProviderSearch('');
-                            setSelectedBranch(branches.length === 1 ? branches[0].IdSucursal : '');
-                            setEsInterna(false);
-                            setEsSalida(false);
-                            setFechaEntrega('');
-                            setFechaProgramada(today);
-                            setNotas('');
-                            setOrderItems([]);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={startNewOrder}
                         size="sm"
                         variant="solid"
                     >
@@ -1076,33 +1166,11 @@ export default function PurchaseOrdersPage() {
                 </div>
             </div>
 
-            {/* Status Filter Chips */}
-            <div className="flex items-center gap-2 flex-wrap">
-                {([
-                    { key: 'all', label: 'Todas' },
-                    { key: 'phantom', label: `Por aplicar (${phantomCount})` },
-                    { key: 'applied', label: 'Aplicadas al almacén' },
-                    { key: 'discarded', label: 'Descartadas' },
-                ] as { key: StatusFilter; label: string }[]).map(chip => (
-                    <button
-                        key={chip.key}
-                        onClick={() => setStatusFilter(chip.key)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide border transition-all ${
-                            statusFilter === chip.key
-                                ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
-                        }`}
-                    >
-                        {chip.label}
-                    </button>
-                ))}
-            </div>
-
             {/* Data Table */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                     <table className="min-w-full border-collapse">
-                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm">
+                        <ThemedGridHeader className="sticky top-0 z-10 shadow-sm" accentColor={moduleColor}>
                             <ThemedGridHeaderCell>Fecha</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>Proveedor</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell>Sucursal</ThemedGridHeaderCell>
@@ -1125,9 +1193,19 @@ export default function PurchaseOrdersPage() {
                                         {new Date(order.FechaOrden).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-gray-900">{order.Proveedor}</span>
-                                            <span className="text-xs text-gray-400 font-semibold">OC-{String(order.IdOrdenCompra).padStart(4, '0')}</span>
+                                        {/* Barra azul: compra a proveedor, suma al almacén. */}
+                                        <div className="flex items-stretch gap-2.5">
+                                            <span
+                                                className="w-1 rounded-full shrink-0"
+                                                style={{ backgroundColor: ORDER_TYPES.proveedor.color }}
+                                                aria-hidden="true"
+                                            />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-medium text-gray-900">{order.Proveedor}</span>
+                                                <span className="text-xs font-semibold" style={{ color: ORDER_TYPES.proveedor.color }}>
+                                                    OC-{String(order.IdOrdenCompra).padStart(4, '0')}
+                                                </span>
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell muted>{order.Sucursal}</TableCell>
@@ -1164,8 +1242,6 @@ export default function PurchaseOrdersPage() {
                                     <TableCell align="right">
                                         {order.EsSalida ? (
                                             <span className="text-red-500 text-sm font-medium">Salida</span>
-                                        ) : order.EsInterna ? (
-                                            <span className="text-gray-400 text-sm font-medium">Interna</span>
                                         ) : (
                                             <span className="font-semibold text-gray-900">{formatCurrency(order.Total)}</span>
                                         )}
@@ -1210,6 +1286,11 @@ export default function PurchaseOrdersPage() {
                                                 variant="default"
                                                 onClick={() => exportOrderToPDF(order)}
                                             />
+                                            <RowActionButton
+                                                icon={MessageCircle}
+                                                label="Enviar por WhatsApp"
+                                                onClick={() => sendOrderByWhatsApp(order)}
+                                            />
                                             {!order.FechaAplicacion && (
                                                 <RowActionButton
                                                     icon={Trash2}
@@ -1242,10 +1323,23 @@ export default function PurchaseOrdersPage() {
             <BaseModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
-                title={editingOrder ? 'Editar Orden' : esSalida ? 'Nueva Salida de Almacén' : 'Nueva Orden de Compra'}
-                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : esSalida ? 'Resta existencias al aplicarse' : 'Configuración de Suministros'}
+                title={
+                    editingOrder
+                        ? `Editar ${esInterna ? t('internalOrder') : 'Orden de Compra'}`
+                        : esSalida
+                            ? 'Nueva Salida de Almacén'
+                            : esInterna ? `Nueva ${t('internalOrder')}` : 'Nueva Orden de Compra'
+                }
+                subtitle={
+                    editingOrder
+                        ? `Folio: OC-${editingOrder.IdOrdenCompra} · ${esInterna ? 'Resta del almacén al aplicarse' : 'Suma al almacén al aplicarse'}`
+                        : esInterna || esSalida
+                            ? 'Resta existencias al aplicarse'
+                            : 'Suma existencias al aplicarse'
+                }
                 size="full"
                 headerVariant="primary"
+                accentColor={moduleColor}
                 footer={
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div>
@@ -1273,40 +1367,22 @@ export default function PurchaseOrdersPage() {
                             <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Datos de la orden</span>
                         </div>
                         <div className="p-4 space-y-4">
-                            {/* Tipo de orden: compra (entrada) o pedido interno. Las salidas
-                                de almacén tienen su propio módulo (Órdenes de Salida). */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {([
-                                    { key: 'compra', title: 'Orden de Compra', desc: 'Compra a proveedor — al aplicarse SUMA al almacén', active: !esInterna },
-                                    { key: 'interna', title: t('internalOrder'), desc: 'Pedido administrativo interno (sin costos) — al aplicarse SUMA al almacén', active: esInterna },
-                                ] as { key: string; title: string; desc: string; active: boolean }[]).map(opt => (
-                                    <button
-                                        key={opt.key}
-                                        type="button"
-                                        onClick={() => {
-                                            const isInterna = opt.key === 'interna';
-                                            setEsInterna(isInterna);
-                                            setEsSalida(false);
-                                            if (isInterna) {
-                                                setSelectedProvider('');
-                                                setProviderSearch('ORDEN DE COMPRA INTERNA');
-                                                setFechaProgramada(new Date().toISOString().split('T')[0]);
-                                            } else {
-                                                setProviderSearch('');
-                                            }
-                                        }}
-                                        className={`text-left rounded-lg border px-3 py-2.5 transition-colors ${
-                                            opt.active
-                                                ? 'border-blue-300 bg-blue-50/60'
-                                                : 'border-gray-200 bg-white hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        <span className={`block text-sm font-bold ${opt.active ? 'text-blue-700' : 'text-gray-800'}`}>
-                                            {opt.title}
-                                        </span>
-                                        <span className="block text-[11px] text-gray-500 mt-0.5">{opt.desc}</span>
-                                    </button>
-                                ))}
+                            {/* Esta pantalla es exclusivamente compra a proveedor: ya no
+                                hay tipo que elegir. Lo que descarga almacén se levanta
+                                desde Requisiciones. */}
+                            <div
+                                className="flex items-center gap-3 rounded-lg border-2 px-3 py-2.5"
+                                style={{ borderColor: ORDER_TYPES.proveedor.border, backgroundColor: ORDER_TYPES.proveedor.soft }}
+                            >
+                                <Users size={18} className="shrink-0" style={{ color: ORDER_TYPES.proveedor.color }} />
+                                <div className="min-w-0">
+                                    <span className="block text-sm font-bold" style={{ color: ORDER_TYPES.proveedor.color }}>
+                                        Orden de Compra a proveedor
+                                    </span>
+                                    <span className="block text-[11px] text-gray-600 mt-0.5">
+                                        Compra a proveedor externo — al aplicarse SUMA existencias
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1792,11 +1868,82 @@ export default function PurchaseOrdersPage() {
                 </div>
             )}
 
-            <RequisitionLinkModal
-                isOpen={isLinkModalOpen}
-                onClose={() => setIsLinkModalOpen(false)}
-                projectId={projectId}
-            />
+
+            {/* Filtros de estado al pie: arriba empujaban la tabla y
+                descuadraban el encabezado de la página. */}
+            <div className="flex items-center gap-3 flex-wrap">
+                {([
+                    { key: 'all', label: 'Todas' },
+                    { key: 'phantom', label: `Por aplicar (${phantomCount})` },
+                    { key: 'applied', label: 'Aplicadas al almacén' },
+                    { key: 'discarded', label: 'Descartadas' },
+                ] as { key: StatusFilter; label: string }[]).map(chip => {
+                    const isActive = statusFilter === chip.key;
+                    return (
+                        <button
+                            key={chip.key}
+                            onClick={() => setStatusFilter(chip.key)}
+                            className="px-4 py-2 rounded-md text-[11px] font-bold uppercase tracking-wide border-2 transition-all"
+                            style={{
+                                backgroundColor: isActive ? moduleColor : '#ffffff',
+                                borderColor: isActive ? moduleColor : '#e5e7eb',
+                                color: isActive ? '#ffffff' : '#6b7280',
+                            }}
+                        >
+                            {chip.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Tras crear la orden: ofrecer mandarla al proveedor por WhatsApp. */}
+            <BaseModal
+                isOpen={Boolean(whatsAppTarget)}
+                onClose={() => setWhatsAppTarget(null)}
+                title="Orden creada"
+                subtitle="¿Se la mandamos al proveedor por WhatsApp?"
+                size="sm"
+                accentColor={moduleColor}
+            >
+                {whatsAppTarget && (() => {
+                    const phone = normalizePhone(whatsAppTarget.ProveedorTelefonos);
+                    return (
+                        <div className="space-y-4 py-1">
+                            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="text-sm font-bold text-gray-900">{whatsAppTarget.Proveedor}</p>
+                                <p className="text-xs text-gray-600 mt-0.5">
+                                    Folio OC-{String(whatsAppTarget.IdOrdenCompra).padStart(4, '0')}
+                                    {whatsAppTarget.Sucursal ? ` · ${whatsAppTarget.Sucursal}` : ''}
+                                </p>
+                                <p className="text-xs mt-1.5 font-semibold" style={{ color: phone ? '#047857' : '#b45309' }}>
+                                    {phone ? `WhatsApp a +${phone}` : 'Sin teléfono capturado — elegirás el contacto en WhatsApp'}
+                                </p>
+                            </div>
+
+                            <p className="text-[11px] text-gray-500 leading-relaxed">
+                                En celular o tablet se abre WhatsApp con el PDF adjunto. En computadora se abre el chat
+                                del proveedor con el mensaje y el PDF se descarga para que lo adjuntes: WhatsApp no
+                                permite mandar archivos desde una liga.
+                            </p>
+
+                            <div className="flex items-center justify-end gap-2.5">
+                                <Button variant="secondary" size="md" onClick={() => setWhatsAppTarget(null)}>
+                                    Ahora no
+                                </Button>
+                                <Button
+                                    variant="solid"
+                                    size="md"
+                                    leftIcon={MessageCircle}
+                                    iconBox
+                                    onClick={() => sendOrderByWhatsApp(whatsAppTarget)}
+                                >
+                                    Enviar por WhatsApp
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })()}
+            </BaseModal>
         </PageShell>
     );
 }

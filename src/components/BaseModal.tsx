@@ -25,6 +25,12 @@ interface BaseModalProps {
     confirmVariant?: 'primary' | 'danger';
     /** Variante del fondo del header */
     headerVariant?: 'default' | 'primary';
+    /**
+     * Color del header. Sirve para que el modal herede el color del tipo de
+     * registro que edita (p. ej. azul para compra a proveedor, naranja para
+     * requisición a almacén). Si se omite se usa el color de marca.
+     */
+    accentColor?: string;
 }
 
 const SIZE_CLASSES: Record<ModalSize, string> = {
@@ -50,7 +56,9 @@ export default function BaseModal({
     disableBackdropClose = false,
     confirmVariant  = 'primary',
     headerVariant   = 'primary',
+    accentColor,
 }: BaseModalProps) {
+    const accent = accentColor ?? 'var(--color-brand-orange)';
     const { colors } = useTheme();
     const panelRef   = useRef<HTMLDivElement>(null);
 
@@ -128,7 +136,7 @@ export default function BaseModal({
                             : 'border-gray-100'
                     }`}
                     style={{
-                        backgroundColor: headerVariant === 'primary' ? 'var(--color-brand-orange)' : undefined
+                        backgroundColor: headerVariant === 'primary' ? accent : undefined
                     }}
                 >
                     {/* Acento geométrico Bauhaus (solo header primary) */}
@@ -144,7 +152,7 @@ export default function BaseModal({
                         <div
                             className="w-[3px] shrink-0"
                             style={{
-                                backgroundColor: 'var(--color-brand-orange)',
+                                backgroundColor: accent,
                             }}
                         />
                     )}

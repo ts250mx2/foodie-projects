@@ -238,7 +238,8 @@
         "select": "Selecionar..."
     },
     "Common": {
-        "errorFutureDate": "Não é possível capturar dados para datas futuras."
+        "errorFutureDate": "Não é possível capturar dados para datas futuras.",
+        "errorBeyondCurrentMonth": "Despesas antecipadas só podem ser lançadas dentro do mês corrente."
     },
     "SchedulesCapture": {
         "title": "Horários",

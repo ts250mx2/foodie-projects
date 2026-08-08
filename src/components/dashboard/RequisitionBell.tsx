@@ -205,9 +205,9 @@ export default function RequisitionBell() {
     const openRequisition = async (requisition: Requisition) => {
         setIsOpen(false);
         await markRead(requisition.IdOrdenCompra);
-        // ?orden= le dice a la pantalla de Órdenes de Compra que abra esta
-        // orden en su modal de detalle en cuanto termine de cargar.
-        router.push(`/${locale}/dashboard/purchases/purchase-orders?orden=${requisition.IdOrdenCompra}`);
+        // Las requisiciones viven en la pantalla de Requisiciones (descargan
+        // almacén), no en Órdenes de Compra, que ya solo maneja proveedores.
+        router.push(`/${locale}/dashboard/purchases/outbound-orders?orden=${requisition.IdOrdenCompra}`);
     };
 
     if (!isEnabled || !projectId) return null;

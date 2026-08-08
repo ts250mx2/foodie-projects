@@ -43,6 +43,18 @@ interface ExpenseDetail {
     Costo: number;
 }
 
+// Los gastos se pueden capturar por adelantado, pero solo hasta el ultimo dia del mes en curso.
+const getLastCapturableDate = () => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+};
+
+const getEndOfToday = () => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return today;
+};
+
 
 export default function ExpensesCapturePage() {
     const t = useTranslations('ExpensesCapture');
@@ -272,10 +284,8 @@ export default function ExpensesCapturePage() {
     };
 
     const handleDayClick = async (date: Date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (date > today) {
-            alert(tCommon('errorFutureDate'));
+        if (date > getLastCapturableDate()) {
+            alert(tCommon('errorBeyondCurrentMonth'));
             return;
         }
 
@@ -578,6 +588,8 @@ export default function ExpensesCapturePage() {
 
     const calendarDays = getDaysInMonth(selectedMonth, selectedYear);
     const weekDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const lastCapturableDate = getLastCapturableDate();
+    const endOfToday = getEndOfToday();
 
     const totalExpenses = dailyExpenses.reduce((sum, exp) => sum + (parseFloat(exp.Total || exp.Gasto) || 0), 0);
 
@@ -657,30 +669,43 @@ export default function ExpensesCapturePage() {
                             const details = monthlyExpensesDetails[dayNum];
                             const hasExpenses = details && details.length > 0;
                             const isToday = new Date().toDateString() === date.toDateString();
+                            const isBlocked = date > lastCapturableDate;
+                            const isAdvance = !isBlocked && date > endOfToday;
+
+                            const dayStateClasses = isBlocked
+                                ? 'bg-gray-50 border-2 border-gray-100 opacity-50 cursor-not-allowed'
+                                : `cursor-pointer hover:scale-105 hover:-translate-y-1 ${isToday
+                                    ? 'bg-red-50 border-2 border-red-400 shadow-md hover:shadow-lg'
+                                    : hasExpenses
+                                    ? 'bg-red-50 border-2 border-red-300 shadow-sm hover:shadow-md'
+                                    : isAdvance
+                                    ? 'bg-white border-2 border-dashed border-amber-300 shadow-sm hover:shadow-md'
+                                    : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
+                                }`;
 
                             return (
                                 <div
                                     key={index}
                                     onClick={() => handleDayClick(date)}
+                                    title={isBlocked ? tCommon('errorBeyondCurrentMonth') : isAdvance ? 'Captura por adelantado' : undefined}
                                     className={`
-                                    aspect-square rounded-xl p-3 cursor-pointer transition-all duration-200
+                                    aspect-square rounded-xl p-3 transition-all duration-200
                                     flex flex-col justify-between group relative overflow-hidden
-                                    ${isToday
-                                            ? 'bg-red-50 border-2 border-red-400 shadow-md hover:shadow-lg'
-                                            : hasExpenses
-                                            ? 'bg-red-50 border-2 border-red-300 shadow-sm hover:shadow-md'
-                                            : 'bg-white border-2 border-gray-200 shadow-sm hover:shadow-md'
-                                        }
-                                    hover:scale-105 hover:-translate-y-1
+                                    ${dayStateClasses}
                                 `}
                                 >
                                     <div className="flex justify-between items-start z-10">
-                                        <span className={`text-xl font-black ${isToday ? 'text-red-600' : hasExpenses ? 'text-red-700' : 'text-gray-400'}`}>
+                                        <span className={`text-xl font-black ${isToday ? 'text-red-600' : hasExpenses ? 'text-red-700' : isAdvance ? 'text-amber-500' : 'text-gray-400'}`}>
                                             {dayNum}
                                         </span>
                                         {isToday && (
                                             <span className="text-[7px] font-bold bg-red-500 text-white px-1 py-0.5 rounded-full animate-pulse">
                                                 HOY
+                                            </span>
+                                        )}
+                                        {isAdvance && (
+                                            <span className="text-[7px] font-bold bg-amber-400 text-white px-1 py-0.5 rounded-full">
+                                                ADELANTO
                                             </span>
                                         )}
                                     </div>

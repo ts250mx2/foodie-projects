@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowRight, Store, UserRound } from 'lucide-react';
 import { REQUISITION_AREAS, RequisitionBranch, Requester } from './types';
 import { INK, INK_MUTED, foregroundFor } from './theme';
+import { NO_AUTOFILL } from '@/components/noAutofill';
 
 interface IdentityGateProps {
     branches: RequisitionBranch[];
@@ -116,7 +117,12 @@ export default function IdentityGate({ branches, accent, initial, onConfirm }: I
                     value={solicitante}
                     onChange={e => setSolicitante(e.target.value)}
                     placeholder="Nombre de quien solicita"
-                    autoComplete="off"
+                    {...NO_AUTOFILL}
+                    autoCapitalize="words"
+                    // Nombre sin significado a propósito: con uno como "nombre"
+                    // Chrome lo reconoce como campo de perfil y ofrece datos
+                    // guardados aunque autocomplete esté en off.
+                    name="rq-f1"
                     className="w-full h-20 rounded-2xl bg-white border-2 border-slate-300 px-6 text-xl font-medium outline-none focus:border-slate-900 transition placeholder:text-slate-500"
                     style={{ color: INK }}
                 />

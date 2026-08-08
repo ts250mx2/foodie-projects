@@ -233,7 +233,8 @@
         "recipeUnit": "Rezepteinheit"
     },
     "Common": {
-        "errorFutureDate": "Daten für zukünftige Daten können nicht erfasst werden."
+        "errorFutureDate": "Daten für zukünftige Daten können nicht erfasst werden.",
+        "errorBeyondCurrentMonth": "Vorausgezahlte Ausgaben können nur im laufenden Monat erfasst werden."
     },
     "SchedulesCapture": {
         "exportPdf": "PDF exportieren"

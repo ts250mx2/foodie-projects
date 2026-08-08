@@ -357,7 +357,8 @@
         "recipeUnit": "Recepteenheid"
     },
     "Common": {
-        "errorFutureDate": "Kan geen gegevens vastleggen voor toekomstige datums."
+        "errorFutureDate": "Kan geen gegevens vastleggen voor toekomstige datums.",
+        "errorBeyondCurrentMonth": "Vooruitbetaalde uitgaven kunnen alleen binnen de huidige maand worden vastgelegd."
     },
     "SchedulesCapture": {
         "exportPdf": "PDF exporteren"

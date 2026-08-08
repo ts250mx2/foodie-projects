@@ -229,7 +229,8 @@
         "select": "Sélectionner..."
     },
     "Common": {
-        "errorFutureDate": "Impossible de saisir des données pour des dates futures."
+        "errorFutureDate": "Impossible de saisir des données pour des dates futures.",
+        "errorBeyondCurrentMonth": "Les dépenses anticipées ne peuvent être saisies que dans le mois en cours."
     },
     "SchedulesCapture": {
         "title": "Horaires",

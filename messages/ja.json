@@ -357,7 +357,8 @@
         "recipeUnit": "レシピ単位"
     },
     "Common": {
-        "errorFutureDate": "将来の日付のデータを取り込むことはできません。"
+        "errorFutureDate": "将来の日付のデータを取り込むことはできません。",
+        "errorBeyondCurrentMonth": "前倒しの経費は当月内のみ登録できます。"
     },
     "SchedulesCapture": {
         "exportPdf": "PDFを書き出す"

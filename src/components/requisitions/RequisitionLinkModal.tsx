@@ -11,6 +11,8 @@ interface RequisitionLinkModalProps {
     isOpen: boolean;
     onClose: () => void;
     projectId: number | null;
+    /** Color del módulo, para que el modal case con el resto de la pantalla. */
+    accentColor?: string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface RequisitionLinkModalProps {
  * requisiciones sin usuario ni contraseña, así que el modal advierte de ello y
  * ofrece regenerar la liga si la tablet se pierde.
  */
-export default function RequisitionLinkModal({ isOpen, onClose, projectId }: RequisitionLinkModalProps) {
+export default function RequisitionLinkModal({ isOpen, onClose, projectId, accentColor }: RequisitionLinkModalProps) {
     const params = useParams();
     const locale = (params?.locale as string) || 'es';
 
@@ -91,11 +93,12 @@ export default function RequisitionLinkModal({ isOpen, onClose, projectId }: Req
             title="Requisiciones desde tablet"
             subtitle="Escanea el QR en la tablet de cocina"
             size="md"
+            accentColor={accentColor}
         >
             <div className="flex flex-col items-center gap-5 py-2">
                 <div className="bg-white p-5 rounded-2xl border-2 border-gray-100">
                     {url ? (
-                        <QRCode value={url} size={200} bgColor="transparent" fgColor="#14532d" />
+                        <QRCode value={url} size={200} bgColor="transparent" fgColor={accentColor ?? '#14532d'} />
                     ) : (
                         <div className="h-[200px] w-[200px] flex items-center justify-center text-sm text-gray-400">
                             {isLoading ? 'Generando…' : error || 'Sin liga'}
