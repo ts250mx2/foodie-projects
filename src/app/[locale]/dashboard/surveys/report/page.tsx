@@ -80,7 +80,10 @@ interface ReportBranch {
 const FALLBACK_MODULE_COLOR = '#6d28d9';
 const STAR_FILL = '#f59e0b';
 
-const toIso = (d: Date) => d.toISOString().slice(0, 10);
+// Fecha LOCAL (no toISOString/UTC: después de las 18:00 en CDMX ya es mañana
+// en UTC y el rango del reporte se correría un día).
+const toIso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function formatDate(value: string): string {
     const date = new Date(value);
@@ -132,13 +135,13 @@ export default function SurveyReportPage() {
     const [isLinkOpen, setIsLinkOpen] = useState(false);
     const [viewing, setViewing] = useState<ReportResponse | null>(null);
 
-    const fetchReport = useCallback(async () => {
+    const fetchReport = useCallback(async (signal?: AbortSignal) => {
         if (!projectId) return;
         setIsLoading(true);
         try {
             const params = new URLSearchParams({ projectId: String(projectId), startDate, endDate });
             if (branchFilter > 0) params.set('idSucursal', String(branchFilter));
-            const res = await fetch(`/api/surveys/report?${params.toString()}`);
+            const res = await fetch(`/api/surveys/report?${params.toString()}`, { signal });
             const data = await res.json();
             if (data.success) {
                 setSummary(data.summary);
@@ -148,13 +151,20 @@ export default function SurveyReportPage() {
                 setIsTruncated(Boolean(data.truncated));
             }
         } catch (error) {
+            if (signal?.aborted) return;
             console.error('Error fetching survey report:', error);
         } finally {
-            setIsLoading(false);
+            if (!signal?.aborted) setIsLoading(false);
         }
     }, [projectId, startDate, endDate, branchFilter]);
 
-    useEffect(() => { fetchReport(); }, [fetchReport]);
+    // El abort evita que un cambio rápido de filtros pinte datos viejos
+    // encima de los del filtro vigente.
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchReport(controller.signal);
+        return () => controller.abort();
+    }, [fetchReport]);
 
     const chartData = useMemo(() => questions.map((q, index) => ({
         name: `P${index + 1}`,
@@ -164,7 +174,14 @@ export default function SurveyReportPage() {
 
     const handleExportCsv = () => {
         if (responses.length === 0) return;
-        const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        // Comentarios y correos vienen de la liga PÚBLICA: una celda que
+        // empiece con = + - @ la evaluaría Excel como fórmula (CSV injection).
+        // El apóstrofo inicial es la forma estándar de forzarla a texto.
+        const escape = (value: unknown) => {
+            const raw = String(value ?? '');
+            const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+            return `"${safe.replace(/"/g, '""')}"`;
+        };
         const header = ['Fecha', 'Sucursal', 'Promedio', 'Correo', 'AceptaPromos', 'Comentario', 'Respuestas'];
         const rows = responses.map(r => [
             formatDate(r.fecha),
@@ -308,7 +325,13 @@ export default function SurveyReportPage() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5">
-                                        {[...question.distribucion].reverse().map(d => {
+                                        {[...question.distribucion]
+                                            .reverse()
+                                            // En preguntas de opciones con menos de 5 opciones no
+                                            // existen los valores altos: fila sin etiqueta y sin
+                                            // respuestas = valor fantasma, fuera.
+                                            .filter(d => question.tipo !== 'opciones' || d.total > 0 || d.etiqueta)
+                                            .map(d => {
                                             const pct = question.total > 0 ? Math.round((d.total / question.total) * 100) : 0;
                                             return (
                                                 <div key={d.valor} className="flex items-center gap-2">

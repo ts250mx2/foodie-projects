@@ -41,12 +41,13 @@ export async function PUT(request: NextRequest) {
         let idConfig = rows[0]?.IdConfig;
         if (!idConfig) {
             // Se siembra al conectar por primera vez (dynamic-db), pero si el
-            // renglón falta se crea aquí en vez de rechazar el guardado.
-            const [inserted] = await connection.query<ResultSetHeader>(
-                'INSERT INTO tblEncuestasConfig (Titulo, FechaAct) VALUES (?, Now())',
+            // renglón falta se crea aquí en vez de rechazar el guardado. Misma
+            // PK fija que la siembra (IdConfig = 1) para que no haya carrera.
+            await connection.query<ResultSetHeader>(
+                'INSERT IGNORE INTO tblEncuestasConfig (IdConfig, Titulo, FechaAct) VALUES (1, ?, Now())',
                 [d.Titulo]
             );
-            idConfig = inserted.insertId;
+            idConfig = 1;
         }
 
         await connection.query(

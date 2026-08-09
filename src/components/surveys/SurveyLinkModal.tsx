@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { Copy, Check, RefreshCw, TabletSmartphone, ExternalLink } from 'lucide-react';
@@ -36,6 +36,11 @@ export default function SurveyLinkModal({ isOpen, onClose, projectId, accentColo
     const [isLoading, setIsLoading] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => () => {
+        if (copiedTimeout.current) clearTimeout(copiedTimeout.current);
+    }, []);
 
     const loadLink = useCallback(async () => {
         if (!projectId) return;
@@ -78,7 +83,8 @@ export default function SurveyLinkModal({ isOpen, onClose, projectId, accentColo
         try {
             await navigator.clipboard.writeText(url);
             setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
+            if (copiedTimeout.current) clearTimeout(copiedTimeout.current);
+            copiedTimeout.current = setTimeout(() => setIsCopied(false), 2000);
         } catch { /* el usuario puede copiarla a mano del texto visible */ }
     };
 

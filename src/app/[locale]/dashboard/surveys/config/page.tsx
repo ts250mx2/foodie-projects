@@ -87,6 +87,9 @@ export default function SurveyConfigPage() {
 
     const [questions, setQuestions] = useState<SurveyQuestionRow[]>([]);
     const [config, setConfig] = useState<SurveyConfigForm>(EMPTY_CONFIG);
+    // Sin carga exitosa no se permite guardar textos: guardaría el formulario
+    // vacío encima de lo que el proyecto ya tiene configurado.
+    const [isConfigLoaded, setIsConfigLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingConfig, setIsSavingConfig] = useState(false);
     const [isLinkOpen, setIsLinkOpen] = useState(false);
@@ -107,6 +110,7 @@ export default function SurveyConfigPage() {
             const data = await res.json();
             if (data.success) {
                 setQuestions(data.questions || []);
+                setIsConfigLoaded(true);
                 if (data.config) {
                     setConfig({
                         Titulo: data.config.Titulo || '',
@@ -403,7 +407,7 @@ export default function SurveyConfigPage() {
                 <PageCard
                     title="Textos de la encuesta"
                     actions={
-                        <Button variant="solid" size="sm" leftIcon={Save} iconBox isLoading={isSavingConfig} onClick={handleSaveConfig}>
+                        <Button variant="solid" size="sm" leftIcon={Save} iconBox isLoading={isSavingConfig} disabled={!isConfigLoaded} onClick={handleSaveConfig}>
                             Guardar Textos
                         </Button>
                     }

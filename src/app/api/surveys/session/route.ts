@@ -31,6 +31,12 @@ export async function GET(request: NextRequest) {
         );
         const cfg = configRows[0] ?? ({} as RowDataPacket);
         const d = DEFAULT_SURVEY_CONFIG;
+        // Con renglón de config, un texto opcional en NULL significa que el
+        // restaurante lo BORRÓ a propósito: se respeta en vez de resucitar el
+        // default. Los defaults solo aplican cuando el renglón aún no existe.
+        const hasConfig = configRows.length > 0;
+        const optional = (value: unknown, fallback: string) =>
+            hasConfig ? ((value as string) || null) : fallback;
 
         const [questionRows] = await connection.query<RowDataPacket[]>(
             `SELECT IdPregunta, Pregunta, TipoPregunta, Etiquetas, Orden
@@ -56,18 +62,18 @@ export async function GET(request: NextRequest) {
             },
             config: {
                 titulo: cfg.Titulo || d.Titulo,
-                subtitulo: cfg.Subtitulo ?? d.Subtitulo,
-                subtitulo2: cfg.Subtitulo2 ?? d.Subtitulo2,
+                subtitulo: optional(cfg.Subtitulo, d.Subtitulo),
+                subtitulo2: optional(cfg.Subtitulo2, d.Subtitulo2),
                 umbralComentario: Number.isInteger(cfg.UmbralComentario) ? cfg.UmbralComentario : d.UmbralComentario,
-                tituloComentario: cfg.TituloComentario ?? d.TituloComentario,
-                textoComentario: cfg.TextoComentario ?? d.TextoComentario,
+                tituloComentario: cfg.TituloComentario || d.TituloComentario,
+                textoComentario: optional(cfg.TextoComentario, d.TextoComentario),
                 regaloActivo: cfg.RegaloActivo === 0 ? 0 : 1,
-                tituloRegalo: cfg.TituloRegalo ?? d.TituloRegalo,
-                textoRegalo: cfg.TextoRegalo ?? d.TextoRegalo,
-                textoPromos: cfg.TextoPromos ?? d.TextoPromos,
-                textoBotonEnviar: cfg.TextoBotonEnviar ?? d.TextoBotonEnviar,
-                tituloGracias: cfg.TituloGracias ?? d.TituloGracias,
-                textoGracias: cfg.TextoGracias ?? d.TextoGracias,
+                tituloRegalo: cfg.TituloRegalo || d.TituloRegalo,
+                textoRegalo: optional(cfg.TextoRegalo, d.TextoRegalo),
+                textoPromos: cfg.TextoPromos || d.TextoPromos,
+                textoBotonEnviar: cfg.TextoBotonEnviar || d.TextoBotonEnviar,
+                tituloGracias: cfg.TituloGracias || d.TituloGracias,
+                textoGracias: optional(cfg.TextoGracias, d.TextoGracias),
             },
             questions: questionRows
                 .map(q => ({

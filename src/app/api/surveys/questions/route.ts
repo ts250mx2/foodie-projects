@@ -141,7 +141,10 @@ export async function PUT(request: NextRequest) {
         connection = await getProjectConnection(parseInt(projectId));
 
         if (Array.isArray(body.order)) {
-            const ids = body.order.map(Number).filter((id: number) => Number.isInteger(id) && id > 0);
+            const ids = body.order
+                .slice(0, MAX_SURVEY_QUESTIONS)
+                .map(Number)
+                .filter((id: number) => Number.isInteger(id) && id > 0);
             await connection.beginTransaction();
             try {
                 for (const [index, id] of ids.entries()) {

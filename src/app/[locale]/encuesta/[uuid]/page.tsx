@@ -89,6 +89,41 @@ export default function PublicSurveyPage() {
 
     const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+    /**
+     * Carga (o recarga) la configuración y preguntas vigentes. La tablet vive
+     * abierta días: sin recargas, editar una pregunta en el portal dejaría a
+     * la tablet mandando respuestas que el servidor ya no acepta.
+     */
+    const loadSession = useCallback(async (signal?: AbortSignal): Promise<boolean> => {
+        const res = await fetch(`/api/surveys/session?uuid=${encodeURIComponent(uuid)}`, { signal });
+        const data = await res.json();
+        if (!data.success) return false;
+
+        setTheme(data.project);
+        setConfig(data.config);
+        const nextQuestions: SurveyQuestion[] = data.questions || [];
+        setQuestions(nextQuestions);
+        // Poda respuestas de preguntas que ya no existen o se desactivaron.
+        setAnswers(prev => {
+            const keep: Record<number, number> = {};
+            for (const q of nextQuestions) {
+                if (prev[q.idPregunta]) keep[q.idPregunta] = prev[q.idPregunta];
+            }
+            return keep;
+        });
+
+        // ?s=IdSucursal en la liga etiqueta la sucursal de la tablet.
+        const sParam = Number(new URLSearchParams(window.location.search).get('s'));
+        if (Number.isInteger(sParam) && sParam > 0) {
+            const branch = (data.branches || []).find((b: SurveyBranch) => b.IdSucursal === sParam);
+            if (branch) {
+                setBranchId(branch.IdSucursal);
+                setBranchName(branch.Sucursal);
+            }
+        }
+        return true;
+    }, [uuid]);
+
     useEffect(() => {
         if (!uuid) {
             setStage('invalid');
@@ -97,28 +132,8 @@ export default function PublicSurveyPage() {
         const controller = new AbortController();
         (async () => {
             try {
-                const res = await fetch(`/api/surveys/session?uuid=${encodeURIComponent(uuid)}`, {
-                    signal: controller.signal,
-                });
-                const data = await res.json();
-                if (!data.success) {
-                    setStage('invalid');
-                    return;
-                }
-                setTheme(data.project);
-                setConfig(data.config);
-                setQuestions(data.questions || []);
-
-                // ?s=IdSucursal en la liga etiqueta la sucursal de la tablet.
-                const sParam = Number(new URLSearchParams(window.location.search).get('s'));
-                if (Number.isInteger(sParam) && sParam > 0) {
-                    const branch = (data.branches || []).find((b: SurveyBranch) => b.IdSucursal === sParam);
-                    if (branch) {
-                        setBranchId(branch.IdSucursal);
-                        setBranchName(branch.Sucursal);
-                    }
-                }
-                setStage('form');
+                const ok = await loadSession(controller.signal);
+                setStage(ok ? 'form' : 'invalid');
             } catch (error) {
                 if (!controller.signal.aborted) {
                     console.error('Error loading survey:', error);
@@ -127,7 +142,7 @@ export default function PublicSurveyPage() {
             }
         })();
         return () => controller.abort();
-    }, [uuid]);
+    }, [uuid, loadSession]);
 
     const resetForNextGuest = useCallback(() => {
         setAnswers({});
@@ -139,7 +154,10 @@ export default function PublicSurveyPage() {
         setSubmitError('');
         setStage('form');
         window.scrollTo({ top: 0 });
-    }, []);
+        // Refresca preguntas/textos entre comensales; si falla, el formulario
+        // anterior sigue sirviendo y el submit se encarga de resincronizar.
+        loadSession().catch(() => { /* sin conexión momentánea: no pasa nada */ });
+    }, [loadSession]);
 
     // Modo kiosco: tras agradecer, la tablet queda lista para el siguiente.
     useEffect(() => {
@@ -154,10 +172,16 @@ export default function PublicSurveyPage() {
     };
 
     // El comentario abierto solo aparece si alguna calificación cae en el
-    // umbral configurado (ej. 1, 2 o 3 estrellas). Umbral 0 = nunca.
+    // umbral configurado (ej. 1, 2 o 3 estrellas). Umbral 0 = nunca. Las
+    // preguntas de opciones con menos de 5 opciones se normalizan a escala
+    // de 5 para que el umbral pese igual en todas.
     const umbral = config?.umbralComentario ?? 0;
-    const showComment = umbral > 0
-        && Object.values(answers).some(valor => valor <= umbral);
+    const showComment = umbral > 0 && questions.some(q => {
+        const valor = answers[q.idPregunta];
+        if (!valor) return false;
+        const max = q.tipo === 'opciones' ? Math.max(q.etiquetas.length, 1) : 5;
+        return (valor / max) * 5 <= umbral;
+    });
 
     const handleSubmit = async () => {
         if (!config || isSending) return;
@@ -200,6 +224,12 @@ export default function PublicSurveyPage() {
             if (data.success) {
                 setStage('sent');
                 window.scrollTo({ top: 0 });
+            } else if (data.message === 'Faltan preguntas por contestar' || data.message === 'Respuestas inválidas') {
+                // Las preguntas cambiaron en el portal mientras la tablet
+                // estaba abierta: se recargan y el comensal solo completa
+                // lo que falte (sus respuestas vigentes se conservan).
+                try { await loadSession(); } catch { /* reintentará con el mismo aviso */ }
+                setSubmitError('La encuesta se actualizó. Revisa tus respuestas e intenta de nuevo.');
             } else {
                 setSubmitError(data.message || 'No se pudo enviar la encuesta. Intenta de nuevo.');
             }
@@ -262,6 +292,22 @@ export default function PublicSurveyPage() {
     }
 
     if (!config) return null;
+
+    // Liga válida pero sin preguntas activas: mejor un aviso claro que un
+    // formulario vacío cuyo envío siempre fallaría.
+    if (questions.length === 0) {
+        return (
+            <main className="min-h-dvh flex flex-col items-center justify-center gap-4 px-8 text-center" style={{ backgroundColor: CANVAS }}>
+                <div className="h-20 w-20 rounded-full bg-white border-2 flex items-center justify-center" style={{ borderColor: BORDER }}>
+                    <UtensilsCrossed size={34} style={{ color: INK_MUTED }} />
+                </div>
+                <h1 className="text-2xl font-black" style={{ color: INK }}>Encuesta no disponible</h1>
+                <p className="text-base font-medium max-w-sm" style={{ color: INK_MUTED }}>
+                    Por el momento no hay preguntas activas. Vuelve a intentarlo más tarde.
+                </p>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-dvh pb-10" style={{ backgroundColor: CANVAS }}>
@@ -386,7 +432,9 @@ export default function PublicSurveyPage() {
                 </section>
                 {missingIds.length > 0 && (
                     <p className="text-sm font-bold text-red-600 text-center -mt-2">
-                        Te faltan {missingIds.length === 1 ? 'una pregunta' : `${missingIds.length} preguntas`} por contestar.
+                        {missingIds.length === 1
+                            ? 'Te falta una pregunta por contestar.'
+                            : `Te faltan ${missingIds.length} preguntas por contestar.`}
                     </p>
                 )}
 

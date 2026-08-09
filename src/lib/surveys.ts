@@ -1,5 +1,5 @@
 import { Connection } from 'mysql2/promise';
-import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import pool from '@/lib/db';
 
 /**
@@ -317,31 +317,27 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
-        // Config y preguntas base: solo si el proyecto arranca vacío, para no
-        // pisar lo que el restaurante ya personalizó.
-        const [configRows] = await connection.query<RowDataPacket[]>(
-            'SELECT IdConfig FROM tblEncuestasConfig LIMIT 1'
+        // Siembra inicial. El renglón de config vive SIEMPRE con IdConfig = 1:
+        // el INSERT IGNORE sobre esa PK fija hace de candado, así dos requests
+        // que estrenan el proyecto a la vez no duplican config ni preguntas
+        // (solo quien realmente insertó el renglón siembra las preguntas).
+        // Además, como el candado nunca se libera, las preguntas que el
+        // restaurante borre a propósito no reaparecen.
+        const c = DEFAULT_SURVEY_CONFIG;
+        const [configInsert] = await connection.query<ResultSetHeader>(
+            `INSERT IGNORE INTO tblEncuestasConfig
+                (IdConfig, Titulo, Subtitulo, Subtitulo2, UmbralComentario, TituloComentario, TextoComentario,
+                 RegaloActivo, TituloRegalo, TextoRegalo, TextoPromos, TextoBotonEnviar,
+                 TituloGracias, TextoGracias, FechaAct)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
+            [
+                c.Titulo, c.Subtitulo, c.Subtitulo2, c.UmbralComentario, c.TituloComentario,
+                c.TextoComentario, c.RegaloActivo, c.TituloRegalo, c.TextoRegalo, c.TextoPromos,
+                c.TextoBotonEnviar, c.TituloGracias, c.TextoGracias,
+            ]
         );
-        if (configRows.length === 0) {
-            const c = DEFAULT_SURVEY_CONFIG;
-            await connection.query(
-                `INSERT INTO tblEncuestasConfig
-                    (Titulo, Subtitulo, Subtitulo2, UmbralComentario, TituloComentario, TextoComentario,
-                     RegaloActivo, TituloRegalo, TextoRegalo, TextoPromos, TextoBotonEnviar,
-                     TituloGracias, TextoGracias, FechaAct)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now())`,
-                [
-                    c.Titulo, c.Subtitulo, c.Subtitulo2, c.UmbralComentario, c.TituloComentario,
-                    c.TextoComentario, c.RegaloActivo, c.TituloRegalo, c.TextoRegalo, c.TextoPromos,
-                    c.TextoBotonEnviar, c.TituloGracias, c.TextoGracias,
-                ]
-            );
-        }
 
-        const [questionRows] = await connection.query<RowDataPacket[]>(
-            'SELECT IdPregunta FROM tblEncuestasPreguntas LIMIT 1'
-        );
-        if (questionRows.length === 0) {
+        if (configInsert.affectedRows > 0) {
             for (const [index, q] of DEFAULT_SURVEY_QUESTIONS.entries()) {
                 await connection.query(
                     `INSERT INTO tblEncuestasPreguntas (Pregunta, TipoPregunta, Etiquetas, Orden, Activa, FechaAct)
