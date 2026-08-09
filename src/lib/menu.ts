@@ -43,6 +43,12 @@ export const PERMISSION_MENU: MenuPermSection[] = [
         ],
     },
     {
+        key: 'surveys', label: 'Encuestas', items: [
+            { key: 'surveysReport', label: 'Reporte de Encuestas', href: '/dashboard/surveys/report' },
+            { key: 'surveysConfig', label: 'Configurar Encuesta', href: '/dashboard/surveys/config' },
+        ],
+    },
+    {
         key: 'inventories', label: 'Inventarios', items: [
             { key: 'products', label: 'Productos', href: '/dashboard/inventories/products' },
             { key: 'inventoryCapture', label: 'Captura de Inventario', href: '/dashboard/inventories/capture' },

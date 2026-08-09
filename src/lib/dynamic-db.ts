@@ -2,7 +2,12 @@ import mysql, { Connection } from 'mysql2/promise';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 import { TEMPLATE_DB, syncDatabaseWithTemplate } from '@/lib/db-template';
-import { ensureRequisitionColumns } from '@/lib/requisitions';
+import {
+    ensureRequisitionColumns,
+    ensureRequisitionProfiles,
+    ensureRequisitionStatusHistory,
+} from '@/lib/requisitions';
+import { ensureSurveyTables } from '@/lib/surveys';
 
 interface ProjectConfig extends RowDataPacket {
     BaseDatos: string;
@@ -374,6 +379,9 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             await ensureQuotesTables(connection);
             await ensureWarehouseTables(connection);
             await ensureRequisitionColumns(connection);
+            await ensureRequisitionProfiles(connection);
+            await ensureRequisitionStatusHistory(connection);
+            await ensureSurveyTables(connection);
 
             // Sincronización aditiva con la BD plantilla (FG_Frijoles): replica
             // tablas, columnas y vistas nuevas de la plantilla hacia este proyecto.

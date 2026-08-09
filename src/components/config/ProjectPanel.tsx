@@ -22,6 +22,7 @@ interface ProjectSettings {
     QuotesEnabled: number;
     MinMaxEnabled: number;
     SchedulesEnabled: number;
+    SurveysEnabled: number;
 }
 
 /** Módulos opcionales que se pueden encender/apagar por proyecto. */
@@ -61,6 +62,11 @@ const MODULE_TOGGLES: { key: keyof ProjectSettings; label: string; hint: string 
         label: 'Habilitar Horarios',
         hint: 'Muestra el submenú Horarios.',
     },
+    {
+        key: 'SurveysEnabled',
+        label: 'Habilitar Encuestas',
+        hint: 'Muestra el menú Encuestas y activa la liga pública de la encuesta para tablet.',
+    },
 ];
 
 interface UserSettings {
@@ -88,7 +94,8 @@ export default function ProjectPanel() {
         POSConnectionEnabled: 1,
         QuotesEnabled: 1,
         MinMaxEnabled: 1,
-        SchedulesEnabled: 1
+        SchedulesEnabled: 1,
+        SurveysEnabled: 1
     });
     const [userData, setUserData] = useState<UserSettings>({
         CorreoElectronico: '',
@@ -204,7 +211,8 @@ export default function ProjectPanel() {
                         POSConnectionEnabled: projectData.POSConnectionEnabled,
                         QuotesEnabled: projectData.QuotesEnabled,
                         MinMaxEnabled: projectData.MinMaxEnabled,
-                        SchedulesEnabled: projectData.SchedulesEnabled
+                        SchedulesEnabled: projectData.SchedulesEnabled,
+                        SurveysEnabled: projectData.SurveysEnabled
                     },
                     userData: {
                         Usuario: userData.Usuario,
@@ -232,6 +240,7 @@ export default function ProjectPanel() {
                     parsed.quotesEnabled = projectData.QuotesEnabled;
                     parsed.minMaxEnabled = projectData.MinMaxEnabled;
                     parsed.schedulesEnabled = projectData.SchedulesEnabled;
+                    parsed.surveysEnabled = projectData.SurveysEnabled;
                     localStorage.setItem('project', JSON.stringify(parsed));
                 }
                 // Dispatch event to notify other components (Sidebar)

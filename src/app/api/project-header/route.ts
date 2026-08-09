@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         const [rows]: any = await connection.query(
             `SELECT Titulo, Logo64, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled,
                     RecetarioEnabled, PurchaseOrdersEnabled, POSConnectionEnabled,
-                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled
+                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled, SurveysEnabled
              FROM tblProyectos WHERE IdProyecto = ?`,
             [projectId]
         );

@@ -9,6 +9,7 @@ import type { Connection } from 'mysql2/promise';
  *  - QuotesEnabled: submenús Cotizaciones y Calendario de Eventos.
  *  - MinMaxEnabled: submenú Mínimos y Máximos.
  *  - SchedulesEnabled: submenú Horarios.
+ *  - SurveysEnabled: menú Encuestas completo y la liga pública de la encuesta.
  * Todas arrancan habilitadas (1) para no cambiar el comportamiento de proyectos existentes.
  */
 export const MODULE_FLAG_COLUMNS = [
@@ -18,6 +19,7 @@ export const MODULE_FLAG_COLUMNS = [
     'QuotesEnabled',
     'MinMaxEnabled',
     'SchedulesEnabled',
+    'SurveysEnabled',
 ] as const;
 
 export type ModuleFlagColumn = typeof MODULE_FLAG_COLUMNS[number];
@@ -30,6 +32,7 @@ export interface ProjectModuleFlags {
     quotesEnabled: number;
     minMaxEnabled: number;
     schedulesEnabled: number;
+    surveysEnabled: number;
 }
 
 /**
@@ -65,6 +68,7 @@ export function readModuleFlags(row: Record<string, unknown>): ProjectModuleFlag
         quotesEnabled: toFlag(row.QuotesEnabled),
         minMaxEnabled: toFlag(row.MinMaxEnabled),
         schedulesEnabled: toFlag(row.SchedulesEnabled),
+        surveysEnabled: toFlag(row.SurveysEnabled),
     };
 }
 
@@ -93,4 +97,5 @@ export const MENU_KEY_TO_FLAG: Record<string, FlagName> = {
  */
 export const MENU_SECTION_TO_FLAG: Record<string, FlagName> = {
     production: 'recetarioEnabled',
+    surveys: 'surveysEnabled',
 };

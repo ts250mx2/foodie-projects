@@ -34,6 +34,8 @@ import {
     Link2,
     Warehouse,
     PackageMinus,
+    Star,
+    BarChart3,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -95,6 +97,22 @@ export const menuItems: MenuSection[] = [
             { key: 'eventsCalendar', label: 'Calendario de Eventos', href: '/dashboard/sales/events-calendar', icon: CalendarDays, emoji: '📅' },
             // Oculto temporalmente del menú (la página sigue accesible en /dashboard/wansoft):
             // { key: 'wansoftSales', href: '/dashboard/wansoft', icon: TrendingUp, emoji: '📊', label: 'Ventas por Sucursal (Wansoft)' },
+        ],
+    },
+    {
+        // Encuestas de satisfacción: el comensal contesta desde una tablet en
+        // piso (liga pública por UUID, como las requisiciones). Toda la sección
+        // se oculta con la bandera SurveysEnabled de Configuración General.
+        title: 'surveys',
+        label: 'Encuestas',
+        icon: Star,
+        emoji: '⭐',
+        // violet-700: el header de página y las superficies que heredan este
+        // color pintan texto blanco encima (aguanta 4.5:1 con blanco).
+        color: '#6d28d9',
+        items: [
+            { key: 'surveysReport', label: 'Reporte de Encuestas', href: '/dashboard/surveys/report', icon: BarChart3, emoji: '📊' },
+            { key: 'surveysConfig', label: 'Configurar Encuesta', href: '/dashboard/surveys/config', icon: PenLine, emoji: '📝' },
         ],
     },
     {
@@ -190,6 +208,7 @@ const SEGMENT_TO_SECTION: Record<string, string> = {
     payroll: 'payroll',
     production: 'production',
     reportes: 'reportsAI',
+    surveys: 'surveys',
 };
 
 /** Devuelve color e icono del módulo para una ruta SIN locale (ej. /dashboard/sales/channels-capture) */

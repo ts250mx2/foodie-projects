@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         const [projectRows]: any = await connection.query(
             `SELECT Logo64, Proyecto, Titulo, ColorFondo1, ColorFondo2, ColorLetra, AppPriceCalculatorEnabled,
                     RecetarioEnabled, PurchaseOrdersEnabled, POSConnectionEnabled,
-                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled
+                    QuotesEnabled, MinMaxEnabled, SchedulesEnabled, SurveysEnabled
              FROM tblProyectos WHERE IdProyecto = ?`,
             [projectId]
         );
@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
                 POSConnectionEnabled: toFlag(projectRows[0].POSConnectionEnabled),
                 QuotesEnabled: toFlag(projectRows[0].QuotesEnabled),
                 MinMaxEnabled: toFlag(projectRows[0].MinMaxEnabled),
-                SchedulesEnabled: toFlag(projectRows[0].SchedulesEnabled)
+                SchedulesEnabled: toFlag(projectRows[0].SchedulesEnabled),
+                SurveysEnabled: toFlag(projectRows[0].SurveysEnabled)
             },
             userData: {
                 CorreoElectronico: userRows[0].CorreoElectronico || '',
@@ -105,7 +106,7 @@ export async function PUT(request: NextRequest) {
         await connection.query(
             `UPDATE tblProyectos SET Logo64 = ?, Titulo = ?, ColorFondo1 = ?, ColorFondo2 = ?, ColorLetra = ?,
                     AppPriceCalculatorEnabled = ?, RecetarioEnabled = ?, PurchaseOrdersEnabled = ?, POSConnectionEnabled = ?,
-                    QuotesEnabled = ?, MinMaxEnabled = ?, SchedulesEnabled = ?
+                    QuotesEnabled = ?, MinMaxEnabled = ?, SchedulesEnabled = ?, SurveysEnabled = ?
              WHERE IdProyecto = ?`,
             [
                 finalLogo64, projectData.Titulo, projectData.ColorFondo1, projectData.ColorFondo2, projectData.ColorLetra,
@@ -116,6 +117,7 @@ export async function PUT(request: NextRequest) {
                 toFlag(projectData.QuotesEnabled),
                 toFlag(projectData.MinMaxEnabled),
                 toFlag(projectData.SchedulesEnabled),
+                toFlag(projectData.SurveysEnabled),
                 projectId
             ]
         );

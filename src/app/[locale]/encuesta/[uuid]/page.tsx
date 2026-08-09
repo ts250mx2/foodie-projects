@@ -1,0 +1,490 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
+import {
+    Star,
+    UtensilsCrossed,
+    MessageCircle,
+    Gift,
+    Mail,
+    Send,
+    CheckCircle2,
+    LockKeyhole,
+    Loader2,
+} from 'lucide-react';
+import { INK, INK_MUTED, CANVAS, BORDER } from '@/components/requisitions/theme';
+
+/**
+ * Encuesta pública de satisfacción (tablet en piso o celular del comensal).
+ *
+ * SIN LOGIN: la única credencial es el UUID de la URL. Todo el contenido
+ * (textos, preguntas, umbral del comentario y bloque de regalo) viene de la
+ * configuración del proyecto vía /api/surveys/session. La liga puede traer
+ * ?s=IdSucursal para etiquetar de qué sucursal es la tablet.
+ */
+
+interface SurveyTheme {
+    titulo: string;
+    logo64: string | null;
+    colorFondo1: string;
+}
+
+interface SurveyConfig {
+    titulo: string;
+    subtitulo: string | null;
+    subtitulo2: string | null;
+    umbralComentario: number;
+    tituloComentario: string;
+    textoComentario: string | null;
+    regaloActivo: number;
+    tituloRegalo: string;
+    textoRegalo: string | null;
+    textoPromos: string;
+    textoBotonEnviar: string;
+    tituloGracias: string;
+    textoGracias: string | null;
+}
+
+interface SurveyQuestion {
+    idPregunta: number;
+    pregunta: string;
+    tipo: 'estrellas' | 'opciones';
+    etiquetas: string[];
+}
+
+interface SurveyBranch {
+    IdSucursal: number;
+    Sucursal: string;
+}
+
+type Stage = 'loading' | 'invalid' | 'form' | 'sent';
+
+/** Ámbar clásico de calificación: se lee igual con cualquier color de marca. */
+const STAR_FILL = '#f59e0b';
+/** Segundos que la pantalla de gracias espera antes de reiniciar para el siguiente comensal. */
+const KIOSK_RESET_SECONDS = 12;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export default function PublicSurveyPage() {
+    const params = useParams();
+    const uuid = (params?.uuid as string) || '';
+
+    const [stage, setStage] = useState<Stage>('loading');
+    const [theme, setTheme] = useState<SurveyTheme | null>(null);
+    const [config, setConfig] = useState<SurveyConfig | null>(null);
+    const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
+    const [branchId, setBranchId] = useState<number | null>(null);
+    const [branchName, setBranchName] = useState<string | null>(null);
+
+    const [answers, setAnswers] = useState<Record<number, number>>({});
+    const [comment, setComment] = useState('');
+    const [email, setEmail] = useState('');
+    const [wantsPromos, setWantsPromos] = useState(false);
+    const [missingIds, setMissingIds] = useState<number[]>([]);
+    const [emailError, setEmailError] = useState('');
+    const [submitError, setSubmitError] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+    useEffect(() => {
+        if (!uuid) {
+            setStage('invalid');
+            return;
+        }
+        const controller = new AbortController();
+        (async () => {
+            try {
+                const res = await fetch(`/api/surveys/session?uuid=${encodeURIComponent(uuid)}`, {
+                    signal: controller.signal,
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    setStage('invalid');
+                    return;
+                }
+                setTheme(data.project);
+                setConfig(data.config);
+                setQuestions(data.questions || []);
+
+                // ?s=IdSucursal en la liga etiqueta la sucursal de la tablet.
+                const sParam = Number(new URLSearchParams(window.location.search).get('s'));
+                if (Number.isInteger(sParam) && sParam > 0) {
+                    const branch = (data.branches || []).find((b: SurveyBranch) => b.IdSucursal === sParam);
+                    if (branch) {
+                        setBranchId(branch.IdSucursal);
+                        setBranchName(branch.Sucursal);
+                    }
+                }
+                setStage('form');
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    console.error('Error loading survey:', error);
+                    setStage('invalid');
+                }
+            }
+        })();
+        return () => controller.abort();
+    }, [uuid]);
+
+    const resetForNextGuest = useCallback(() => {
+        setAnswers({});
+        setComment('');
+        setEmail('');
+        setWantsPromos(false);
+        setMissingIds([]);
+        setEmailError('');
+        setSubmitError('');
+        setStage('form');
+        window.scrollTo({ top: 0 });
+    }, []);
+
+    // Modo kiosco: tras agradecer, la tablet queda lista para el siguiente.
+    useEffect(() => {
+        if (stage !== 'sent') return;
+        const id = setTimeout(resetForNextGuest, KIOSK_RESET_SECONDS * 1000);
+        return () => clearTimeout(id);
+    }, [stage, resetForNextGuest]);
+
+    const setAnswer = (idPregunta: number, valor: number) => {
+        setAnswers(prev => ({ ...prev, [idPregunta]: valor }));
+        setMissingIds(prev => prev.filter(id => id !== idPregunta));
+    };
+
+    // El comentario abierto solo aparece si alguna calificación cae en el
+    // umbral configurado (ej. 1, 2 o 3 estrellas). Umbral 0 = nunca.
+    const umbral = config?.umbralComentario ?? 0;
+    const showComment = umbral > 0
+        && Object.values(answers).some(valor => valor <= umbral);
+
+    const handleSubmit = async () => {
+        if (!config || isSending) return;
+        setSubmitError('');
+
+        const missing = questions.filter(q => !answers[q.idPregunta]).map(q => q.idPregunta);
+        if (missing.length > 0) {
+            setMissingIds(missing);
+            const first = questionRefs.current[missing[0]];
+            first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        const cleanEmail = email.trim();
+        if (cleanEmail && !EMAIL_PATTERN.test(cleanEmail)) {
+            setEmailError('Revisa el correo: no parece válido.');
+            return;
+        }
+        if (wantsPromos && !cleanEmail) {
+            setEmailError('Escribe tu correo para recibir tu regalo.');
+            return;
+        }
+        setEmailError('');
+
+        setIsSending(true);
+        try {
+            const res = await fetch('/api/surveys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    uuid,
+                    respuestas: questions.map(q => ({ idPregunta: q.idPregunta, valor: answers[q.idPregunta] })),
+                    comentario: showComment ? comment : null,
+                    correo: cleanEmail || null,
+                    aceptaPromos: wantsPromos,
+                    idSucursal: branchId,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setStage('sent');
+                window.scrollTo({ top: 0 });
+            } else {
+                setSubmitError(data.message || 'No se pudo enviar la encuesta. Intenta de nuevo.');
+            }
+        } catch (error) {
+            console.error('Error submitting survey:', error);
+            setSubmitError('No se pudo enviar la encuesta. Revisa la conexión e intenta de nuevo.');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    if (stage === 'loading') {
+        return (
+            <main className="min-h-dvh flex items-center justify-center" style={{ backgroundColor: CANVAS }}>
+                <Loader2 size={40} className="animate-spin" style={{ color: INK_MUTED }} />
+            </main>
+        );
+    }
+
+    if (stage === 'invalid') {
+        return (
+            <main className="min-h-dvh flex flex-col items-center justify-center gap-4 px-8 text-center" style={{ backgroundColor: CANVAS }}>
+                <div className="h-20 w-20 rounded-full bg-white border-2 flex items-center justify-center" style={{ borderColor: BORDER }}>
+                    <LockKeyhole size={36} style={{ color: INK_MUTED }} />
+                </div>
+                <h1 className="text-2xl font-black" style={{ color: INK }}>Liga no válida</h1>
+                <p className="text-base font-medium max-w-sm" style={{ color: INK_MUTED }}>
+                    Esta liga de encuesta no existe o fue desactivada. Pide al restaurante una liga nueva.
+                </p>
+            </main>
+        );
+    }
+
+    if (stage === 'sent' && config) {
+        return (
+            <main className="min-h-dvh flex items-center justify-center px-5" style={{ backgroundColor: CANVAS }}>
+                <div className="w-full max-w-xl bg-white rounded-3xl border-2 px-8 py-12 text-center flex flex-col items-center gap-5 shadow-sm" style={{ borderColor: BORDER }}>
+                    <div className="h-24 w-24 rounded-full flex items-center justify-center" style={{ backgroundColor: INK }}>
+                        <CheckCircle2 size={52} color="#ffffff" strokeWidth={2} />
+                    </div>
+                    <h1 className="text-3xl font-black uppercase tracking-tight leading-tight" style={{ color: INK }}>
+                        {config.tituloGracias}
+                    </h1>
+                    {config.textoGracias && (
+                        <p className="text-lg font-medium whitespace-pre-line" style={{ color: INK_MUTED }}>
+                            {config.textoGracias}
+                        </p>
+                    )}
+                    <button
+                        type="button"
+                        onClick={resetForNextGuest}
+                        className="mt-2 h-14 px-8 rounded-2xl font-bold text-base border-2 bg-white active:scale-[0.98] transition"
+                        style={{ borderColor: BORDER, color: INK }}
+                    >
+                        Contestar otra encuesta
+                    </button>
+                </div>
+            </main>
+        );
+    }
+
+    if (!config) return null;
+
+    return (
+        <main className="min-h-dvh pb-10" style={{ backgroundColor: CANVAS }}>
+            <div className="mx-auto w-full max-w-2xl px-4 pt-10 flex flex-col gap-5">
+                {/* Encabezado */}
+                <header className="flex flex-col items-center text-center gap-3">
+                    {theme?.logo64 ? (
+                        <img
+                            src={theme.logo64}
+                            alt=""
+                            className="h-20 w-20 rounded-full object-cover border-2 bg-white"
+                            style={{ borderColor: INK }}
+                        />
+                    ) : (
+                        <div className="h-20 w-20 rounded-full border-[3px] flex items-center justify-center bg-white" style={{ borderColor: INK }}>
+                            <UtensilsCrossed size={34} style={{ color: INK }} strokeWidth={2} />
+                        </div>
+                    )}
+                    <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight leading-none" style={{ color: INK }}>
+                        {config.titulo}
+                    </h1>
+                    <div>
+                        {config.subtitulo && (
+                            <p className="text-lg font-medium" style={{ color: INK_MUTED }}>{config.subtitulo}</p>
+                        )}
+                        {config.subtitulo2 && (
+                            <p className="text-lg font-bold" style={{ color: INK }}>{config.subtitulo2}</p>
+                        )}
+                        {(theme?.titulo || branchName) && (
+                            <p className="mt-1 text-[13px] font-semibold uppercase tracking-wider" style={{ color: INK_MUTED }}>
+                                {[theme?.titulo, branchName].filter(Boolean).join(' · ')}
+                            </p>
+                        )}
+                    </div>
+                </header>
+
+                {/* Preguntas */}
+                <section className="bg-white rounded-3xl border-2 px-5 sm:px-7 shadow-sm" style={{ borderColor: BORDER }}>
+                    {questions.map((question, index) => {
+                        const isMissing = missingIds.includes(question.idPregunta);
+                        const selected = answers[question.idPregunta];
+                        return (
+                            <div
+                                key={question.idPregunta}
+                                ref={el => { questionRefs.current[question.idPregunta] = el; }}
+                                className={`py-6 flex flex-col md:flex-row md:items-center gap-4 ${index > 0 ? 'border-t' : ''} ${isMissing ? 'rounded-2xl ring-2 ring-red-400 px-3 -mx-3' : ''}`}
+                                style={{ borderColor: '#e2e8f0' }}
+                            >
+                                <div className="flex items-start gap-3 md:w-[45%] shrink-0">
+                                    <span
+                                        className="h-9 w-9 rounded-full flex items-center justify-center text-white font-black text-base shrink-0"
+                                        style={{ backgroundColor: INK }}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    <p className="text-[17px] font-semibold leading-snug pt-1" style={{ color: INK }}>
+                                        {question.pregunta}
+                                    </p>
+                                </div>
+
+                                {question.tipo === 'estrellas' ? (
+                                    <div className="flex-1 grid grid-cols-5 gap-1">
+                                        {Array.from({ length: 5 }, (_, i) => {
+                                            const valor = i + 1;
+                                            const isActive = selected != null && valor <= selected;
+                                            return (
+                                                <button
+                                                    key={valor}
+                                                    type="button"
+                                                    onClick={() => setAnswer(question.idPregunta, valor)}
+                                                    className="flex flex-col items-center gap-1 py-1 rounded-xl active:scale-95 transition"
+                                                    aria-label={`${valor} de 5`}
+                                                    aria-pressed={selected === valor}
+                                                >
+                                                    <Star
+                                                        size={38}
+                                                        strokeWidth={1.8}
+                                                        fill={isActive ? STAR_FILL : 'none'}
+                                                        color={isActive ? STAR_FILL : INK}
+                                                    />
+                                                    <span className="text-sm font-bold" style={{ color: INK }}>{valor}</span>
+                                                    {question.etiquetas[i] && (
+                                                        <span className="text-[11px] font-medium leading-tight text-center" style={{ color: INK_MUTED }}>
+                                                            {question.etiquetas[i]}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${question.etiquetas.length}, minmax(0, 1fr))` }}>
+                                        {question.etiquetas.map((label, i) => {
+                                            // La primera opción vale más: con N opciones, valor N.
+                                            const valor = question.etiquetas.length - i;
+                                            const isActive = selected === valor;
+                                            return (
+                                                <button
+                                                    key={`${valor}-${label}`}
+                                                    type="button"
+                                                    onClick={() => setAnswer(question.idPregunta, valor)}
+                                                    className="flex flex-col items-center gap-1.5 py-1 rounded-xl active:scale-95 transition"
+                                                    aria-pressed={isActive}
+                                                >
+                                                    <span
+                                                        className="h-8 w-8 rounded-full border-2 flex items-center justify-center"
+                                                        style={{ borderColor: INK }}
+                                                    >
+                                                        {isActive && <span className="h-4 w-4 rounded-full" style={{ backgroundColor: INK }} />}
+                                                    </span>
+                                                    <span className="text-[11px] font-medium leading-tight text-center" style={{ color: INK_MUTED }}>
+                                                        {label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </section>
+                {missingIds.length > 0 && (
+                    <p className="text-sm font-bold text-red-600 text-center -mt-2">
+                        Te faltan {missingIds.length === 1 ? 'una pregunta' : `${missingIds.length} preguntas`} por contestar.
+                    </p>
+                )}
+
+                {/* Comentario abierto: solo con calificaciones bajas */}
+                {showComment && (
+                    <section className="bg-white rounded-3xl border-2 p-5 sm:p-7 shadow-sm flex flex-col sm:flex-row gap-4" style={{ borderColor: BORDER }}>
+                        <div className="h-14 w-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: INK }}>
+                            <MessageCircle size={26} color="#ffffff" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-2">
+                            <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: INK }}>
+                                {config.tituloComentario}
+                            </h2>
+                            {config.textoComentario && (
+                                <p className="text-[15px] font-medium" style={{ color: INK_MUTED }}>{config.textoComentario}</p>
+                            )}
+                            <textarea
+                                value={comment}
+                                onChange={e => setComment(e.target.value)}
+                                maxLength={1000}
+                                rows={4}
+                                placeholder="Escribe aquí..."
+                                className="mt-1 w-full rounded-2xl border-2 p-4 text-base font-medium resize-y focus:outline-none"
+                                style={{ borderColor: BORDER, color: INK }}
+                            />
+                        </div>
+                    </section>
+                )}
+
+                {/* Regalo + correo + enviar */}
+                <section className="bg-white rounded-3xl border-2 p-5 sm:p-7 shadow-sm flex flex-col gap-5" style={{ borderColor: BORDER }}>
+                    {config.regaloActivo === 1 && (
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="h-14 w-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: INK }}>
+                                <Gift size={26} color="#ffffff" />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-2">
+                                <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: INK }}>
+                                    {config.tituloRegalo}
+                                </h2>
+                                {config.textoRegalo && (
+                                    <p className="text-[15px] font-medium" style={{ color: INK_MUTED }}>{config.textoRegalo}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor="survey-email" className="text-sm font-bold" style={{ color: INK }}>
+                            Correo electrónico
+                        </label>
+                        <div className="relative">
+                            <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_MUTED }} />
+                            <input
+                                id="survey-email"
+                                type="email"
+                                inputMode="email"
+                                autoComplete="email"
+                                value={email}
+                                onChange={e => { setEmail(e.target.value); setEmailError(''); }}
+                                maxLength={255}
+                                placeholder="tuemail@correo.com"
+                                className="w-full h-14 rounded-2xl border-2 pl-12 pr-4 text-base font-medium focus:outline-none"
+                                style={{ borderColor: emailError ? '#dc2626' : BORDER, color: INK }}
+                            />
+                        </div>
+                        {emailError && <p className="text-sm font-bold text-red-600">{emailError}</p>}
+                        {config.regaloActivo === 1 && (
+                            <label className="flex items-center gap-3 mt-1 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={wantsPromos}
+                                    onChange={e => setWantsPromos(e.target.checked)}
+                                    className="h-5 w-5 rounded border-2 cursor-pointer"
+                                    style={{ accentColor: INK, borderColor: INK }}
+                                />
+                                <span className="text-[15px] font-medium" style={{ color: INK }}>{config.textoPromos}</span>
+                            </label>
+                        )}
+                    </div>
+
+                    {submitError && (
+                        <p className="text-sm font-bold text-red-600 text-center">{submitError}</p>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isSending}
+                        className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-wide flex items-center justify-center gap-3 text-white active:scale-[0.98] transition disabled:opacity-60 disabled:active:scale-100 shadow-sm"
+                        style={{ backgroundColor: INK }}
+                    >
+                        {isSending ? <Loader2 size={24} className="animate-spin" /> : <Send size={22} strokeWidth={2.2} />}
+                        {config.regaloActivo === 1 ? config.textoBotonEnviar : 'Enviar'}
+                        {config.regaloActivo === 1 && <Gift size={22} strokeWidth={2.2} />}
+                    </button>
+                </section>
+            </div>
+        </main>
+    );
+}

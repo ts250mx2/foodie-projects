@@ -127,6 +127,7 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
                     parsed.quotesEnabled = data.quotesEnabled;
                     parsed.minMaxEnabled = data.minMaxEnabled;
                     parsed.schedulesEnabled = data.schedulesEnabled;
+                    parsed.surveysEnabled = data.surveysEnabled;
                     localStorage.setItem('project', JSON.stringify(parsed));
                     window.dispatchEvent(new CustomEvent('project-settings-updated'));
                 }
