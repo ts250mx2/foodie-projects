@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import bcrypt from 'bcryptjs';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { OC_STATUS_PHANTOM } from '@/lib/warehouse';
 import {
@@ -8,6 +9,7 @@ import {
     MAX_REQUISITION_ITEMS,
     MAX_REQUISITION_QTY,
     MAX_SOLICITANTE_LEN,
+    recordRequisitionStatusChange,
     resolveRequisitionProvider,
     resolveRequisitionUuid,
     sanitizeText,
@@ -28,13 +30,13 @@ interface IncomingItem {
  *  - no se escribe en tblProductos ni en tblProveedoresProductos, así que una
  *    requisición no puede mover los precios del catálogo (a diferencia de una
  *    orden de compra normal, que sí actualiza el último precio del proveedor);
- *  - la orden nace Fantasma (Status 4, FechaAplicacion NULL): SIN SURTIR.
+ *  - la orden nace Creada (Status 4, FechaAplicacion NULL): SIN SURTIR.
  */
 export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { uuid, idSucursal, solicitante, area, notas, items } = body ?? {};
+        const { uuid, idSucursal, solicitante, area, idPerfil, pin, notas, items } = body ?? {};
 
         const project = await resolveRequisitionUuid(typeof uuid === 'string' ? uuid : '');
         if (!project) {
@@ -80,6 +82,28 @@ export async function POST(request: NextRequest) {
 
         const productIds = [...quantities.keys()];
         connection = await getProjectConnection(project.idProyecto);
+
+        // El PIN se revalida aquí, no solo en la pantalla de la tablet: si solo
+        // se comprobara allá, bastaría con llamar a este endpoint directamente
+        // para firmar un pedido a nombre de cualquier área.
+        if (idPerfil) {
+            // El perfil tiene que ser DE ESA sucursal: si no, el PIN de la
+            // cocina de una sucursal serviría para firmar en cualquier otra.
+            const [profileRows] = await connection.query(
+                'SELECT Perfil, PinHash FROM tblRequisicionPerfiles WHERE IdPerfil = ? AND IdSucursal = ?',
+                [Number(idPerfil), branchId]
+            );
+            const profile = (profileRows as RowDataPacket[])[0];
+            if (!profile) {
+                return NextResponse.json({ success: false, message: 'Perfil no válido para esa sucursal' }, { status: 400 });
+            }
+            if (profile.PinHash) {
+                const ok = typeof pin === 'string' && await bcrypt.compare(pin, profile.PinHash);
+                if (!ok) {
+                    return NextResponse.json({ success: false, message: 'PIN incorrecto' }, { status: 401 });
+                }
+            }
+        }
 
         const [branchRowsRaw] = await connection.query(
             'SELECT IdSucursal FROM tblSucursales WHERE IdSucursal = ? AND Status = 0',
@@ -144,6 +168,14 @@ export async function POST(request: NextRequest) {
                     [idOrdenCompra, row.IdProducto, cantidad, costo, cantidad * costo, units.get(row.IdProducto) || row.Unidad]
                 );
             }
+
+            // Primer renglón del track de estados: quién la levantó y cuándo.
+            await recordRequisitionStatusChange(connection, {
+                idOrdenCompra,
+                statusAnterior: null,
+                statusNuevo: OC_STATUS_PHANTOM,
+                usuario: cleanSolicitante,
+            });
 
             await connection.commit();
 

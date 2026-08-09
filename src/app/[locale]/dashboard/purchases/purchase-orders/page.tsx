@@ -20,7 +20,8 @@ import ThemedGridHeader, {
 import { useToast } from '@/contexts/ToastContext';
 import { useModuleColor } from '@/lib/use-module-color';
 import { sendPdfViaWhatsApp, normalizePhone } from '@/lib/whatsapp-share';
-import { MessageCircle } from 'lucide-react';
+// Avioncito de papel: el gesto de "enviar", sin atarlo a la marca de WhatsApp.
+import { Send } from 'lucide-react';
 import { FileText, Plus, Pencil, Trash2, Printer, Search, FolderOpen, DollarSign, Users, Package, X, Check, ArrowLeft, Download, PackageCheck, Ban, RotateCcw, Warehouse, Ghost } from 'lucide-react';
 
 type Product = {
@@ -1287,7 +1288,7 @@ export default function PurchaseOrdersPage() {
                                                 onClick={() => exportOrderToPDF(order)}
                                             />
                                             <RowActionButton
-                                                icon={MessageCircle}
+                                                icon={Send}
                                                 label="Enviar por WhatsApp"
                                                 onClick={() => sendOrderByWhatsApp(order)}
                                             />
@@ -1933,7 +1934,7 @@ export default function PurchaseOrdersPage() {
                                 <Button
                                     variant="solid"
                                     size="md"
-                                    leftIcon={MessageCircle}
+                                    leftIcon={Send}
                                     iconBox
                                     onClick={() => sendOrderByWhatsApp(whatsAppTarget)}
                                 >

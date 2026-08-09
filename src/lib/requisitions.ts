@@ -7,8 +7,10 @@ import pool from '@/lib/db';
  *
  * Una requisición es una orden de compra INTERNA levantada desde una tablet en
  * piso, sin login: el acceso es por un UUID de proyecto que va en la URL.
- * Nace como Fantasma (Status 4, FechaAplicacion NULL) — es decir, SIN SURTIR —
- * y el portal la aplica al inventario o la descarta desde Órdenes de Compra.
+ * Nace como Creada (Status 4, FechaAplicacion NULL) — es decir, SIN SURTIR — y
+ * el portal la mueve por su ciclo de vida desde Requisiciones
+ * (ver src/lib/requisition-status.ts): Aceptada, Salida de almacén (que es la
+ * que descarga existencias), Rechazada o Cancelada.
  *
  * El UUID vive en su propia columna (UUIDRequisicion) y NO reutiliza el
  * UUID general del proyecto: ese se asigna en el alta y hoy trae valores
@@ -157,6 +159,142 @@ export async function ensureRequisitionColumns(connection: Connection): Promise<
     } catch (e) {
         console.error('Error ensuring requisition schema:', e);
     }
+}
+
+/** Perfiles con los que arranca el módulo la primera vez. */
+export const DEFAULT_PROFILES = ['Cocina', 'Barra', 'Caja', 'Almacén', 'Limpieza'] as const;
+
+export const MAX_PROFILE_NAME_LEN = 60;
+/** El PIN es de dígitos: la tablet lo captura con teclado numérico. */
+export const PIN_PATTERN = /^\d{4,8}$/;
+
+/**
+ * Perfiles de requisición (Cocina, Barra, …) con PIN opcional, POR SUCURSAL:
+ * la cocina de una sucursal y la de otra son equipos distintos, con su propia
+ * gente y su propio PIN.
+ *
+ * El PIN no es una contraseña: la liga de la tablet ya es pública por diseño.
+ * Sirve para que un pedido quede firmado por quien realmente lo levanta y para
+ * que no cualquiera capture a nombre de otra área. Aun así se guarda hasheado,
+ * porque es un secreto compartido que la gente reutiliza en otros lados.
+ *
+ * Siembra los perfiles base en toda sucursal activa que no tenga ninguno. Eso
+ * cubre también las sucursales que se den de alta después. La contrapartida
+ * asumida: si alguien borra TODOS los perfiles de una sucursal, vuelven a
+ * aparecer — una sucursal sin perfiles no puede levantar requisiciones, así que
+ * ese estado no le sirve a nadie.
+ */
+export async function ensureRequisitionProfiles(connection: Connection): Promise<void> {
+    try {
+        const [tables] = await connection.query("SHOW TABLES LIKE 'tblRequisicionPerfiles'");
+
+        if ((tables as RowDataPacket[]).length === 0) {
+            await connection.query(`
+                CREATE TABLE \`tblRequisicionPerfiles\` (
+                  \`IdPerfil\` int NOT NULL AUTO_INCREMENT,
+                  \`IdSucursal\` int NOT NULL,
+                  \`Perfil\` varchar(60) NOT NULL,
+                  \`PinHash\` varchar(255) NULL,
+                  \`Orden\` int NOT NULL DEFAULT 0,
+                  \`FechaAct\` datetime DEFAULT NULL,
+                  PRIMARY KEY (\`IdPerfil\`),
+                  UNIQUE KEY \`uq_perfil_sucursal\` (\`IdSucursal\`, \`Perfil\`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            `);
+        } else {
+            // Migración de la versión sin sucursal: los perfiles existentes se
+            // quedan con la primera sucursal activa y la unicidad pasa a ser
+            // por (sucursal, nombre).
+            const [cols] = await connection.query<RowDataPacket[]>('SHOW COLUMNS FROM tblRequisicionPerfiles');
+            if (!cols.some(c => c.Field === 'IdSucursal')) {
+                await connection.query('ALTER TABLE tblRequisicionPerfiles ADD COLUMN IdSucursal INT NOT NULL DEFAULT 0 AFTER IdPerfil');
+                await connection.query('ALTER TABLE tblRequisicionPerfiles DROP INDEX uq_perfil').catch(() => {});
+                await connection.query(
+                    `UPDATE tblRequisicionPerfiles SET IdSucursal =
+                        COALESCE((SELECT MIN(IdSucursal) FROM tblSucursales WHERE Status = 0), 0)
+                     WHERE IdSucursal = 0`
+                );
+                await connection.query(
+                    'ALTER TABLE tblRequisicionPerfiles ADD UNIQUE KEY `uq_perfil_sucursal` (`IdSucursal`, `Perfil`)'
+                ).catch(() => {});
+            }
+        }
+
+        // Sucursales activas sin ningún perfil: se les siembran los base.
+        const [branches] = await connection.query<RowDataPacket[]>(
+            `SELECT s.IdSucursal FROM tblSucursales s
+             WHERE s.Status = 0
+               AND NOT EXISTS (SELECT 1 FROM tblRequisicionPerfiles p WHERE p.IdSucursal = s.IdSucursal)`
+        );
+
+        for (const branch of branches) {
+            for (const [index, nombre] of DEFAULT_PROFILES.entries()) {
+                await connection.query(
+                    'INSERT IGNORE INTO tblRequisicionPerfiles (IdSucursal, Perfil, PinHash, Orden, FechaAct) VALUES (?, ?, NULL, ?, Now())',
+                    [branch.IdSucursal, nombre, index]
+                );
+            }
+        }
+    } catch (e) {
+        console.error('Error ensuring requisition profiles:', e);
+    }
+}
+
+/**
+ * Bitácora de estados de la requisición: quién la movió, cuándo y por qué.
+ *
+ * Es la fuente del "track" que dibuja el modal de estado (línea de tiempo con
+ * los tiempos que pasó en cada etapa), así que guarda un renglón por CADA
+ * cambio, incluido el alta. Idempotente.
+ */
+export async function ensureRequisitionStatusHistory(connection: Connection): Promise<void> {
+    try {
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblOrdenesCompraEstatus\` (
+              \`IdEstatus\` int NOT NULL AUTO_INCREMENT,
+              \`IdOrdenCompra\` int NOT NULL,
+              \`StatusAnterior\` int DEFAULT NULL,
+              \`StatusNuevo\` int NOT NULL,
+              \`Notas\` varchar(500) DEFAULT NULL,
+              \`Usuario\` varchar(120) DEFAULT NULL,
+              \`FechaCambio\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdEstatus\`),
+              KEY \`idx_orden_fecha\` (\`IdOrdenCompra\`, \`FechaCambio\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+    } catch (e) {
+        console.error('Error ensuring requisition status history schema:', e);
+    }
+}
+
+export interface RequisitionStatusChange {
+    idOrdenCompra: number;
+    statusAnterior?: number | null;
+    statusNuevo: number;
+    notas?: string | null;
+    usuario?: string | null;
+}
+
+/**
+ * Registra un cambio de estado. Debe llamarse dentro de la misma transacción
+ * que mueve la orden: si el cambio se revierte, la bitácora también.
+ */
+export async function recordRequisitionStatusChange(
+    connection: Connection,
+    change: RequisitionStatusChange
+): Promise<void> {
+    await connection.query(
+        `INSERT INTO tblOrdenesCompraEstatus
+            (IdOrdenCompra, StatusAnterior, StatusNuevo, Notas, Usuario, FechaCambio)
+         VALUES (?, ?, ?, ?, ?, Now())`,
+        [
+            change.idOrdenCompra,
+            change.statusAnterior ?? null,
+            change.statusNuevo,
+            change.notas ?? null,
+            change.usuario ?? null,
+        ]
+    );
 }
 
 /** Busca o crea el proveedor sintético al que se cuelgan las requisiciones. */

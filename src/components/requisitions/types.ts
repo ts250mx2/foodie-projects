@@ -28,11 +28,23 @@ export interface CartLine {
     cantidad: number;
 }
 
-/** Quién levanta el pedido; se recuerda entre sesiones en la misma tablet. */
+/** Perfil de captura (Cocina, Barra, …) configurado desde el portal. */
+export interface RequisitionProfile {
+    IdPerfil: number;
+    /** Los perfiles son por sucursal: cada equipo tiene el suyo y su PIN. */
+    IdSucursal: number;
+    Perfil: string;
+    /** MySQL devuelve el booleano como 0/1. El PIN nunca viaja al cliente. */
+    TienePin: number;
+}
+
+/**
+ * Quién levanta el pedido; se recuerda entre sesiones en la misma tablet.
+ * El PIN NO se guarda: se pide cada vez que se cambia de perfil.
+ */
 export interface Requester {
     idSucursal: number;
     solicitante: string;
     area: string;
+    idPerfil: number | null;
 }
-
-export const REQUISITION_AREAS = ['Cocina', 'Barra', 'Caja', 'Almacén', 'Limpieza', 'Otro'] as const;

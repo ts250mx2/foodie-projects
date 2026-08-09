@@ -6,6 +6,7 @@ import QRCode from 'react-qr-code';
 import { Copy, Check, RefreshCw, TabletSmartphone } from 'lucide-react';
 import BaseModal from '@/components/BaseModal';
 import Button from '@/components/Button';
+import ProfileManager from './ProfileManager';
 
 interface RequisitionLinkModalProps {
     isOpen: boolean;
@@ -124,6 +125,10 @@ export default function RequisitionLinkModal({ isOpen, onClose, projectId, accen
                         </div>
                     </div>
                 )}
+
+                <div className="w-full border-t border-gray-100 pt-4">
+                    <ProfileManager projectId={projectId} accentColor={accentColor ?? '#0369a1'} />
+                </div>
 
                 <div className="w-full rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                     <p className="text-xs text-amber-900 leading-relaxed">

@@ -6,8 +6,13 @@ import { ResultSetHeader } from 'mysql2';
  *
  * Estados de tblOrdenesCompra:
  *  0 En Tránsito (legado) · 1 Surtido/Aplicada · 2 Eliminada · 3 Cancelada ·
- *  4 Fantasma (pendiente de aplicar) · 5 Descartada.
+ *  4 Fantasma (pendiente de aplicar) · 5 Descartada · 6 Aceptada.
  * Una orden con FechaAplicacion != NULL ya afectó el inventario.
+ *
+ * Las REQUISICIONES usan estos mismos códigos con otros nombres de cara al
+ * usuario (4 Creada, 6 Aceptada, 1 Salida de almacén, 5 Rechazada,
+ * 3 Cancelada): el ciclo de vida y sus transiciones viven en
+ * src/lib/requisition-status.ts.
  *
  * Las órdenes generadas desde la captura de compras llevan el marcador
  * "[Compra #N]" al inicio de Notas (mismo formato que el script
@@ -17,8 +22,10 @@ import { ResultSetHeader } from 'mysql2';
 
 export const OC_STATUS_APPLIED = 1;
 export const OC_STATUS_DELETED = 2;
+export const OC_STATUS_CANCELLED = 3;
 export const OC_STATUS_PHANTOM = 4;
 export const OC_STATUS_DISCARDED = 5;
+export const OC_STATUS_ACCEPTED = 6;
 
 export type MovementInput = {
     idSucursal: number;

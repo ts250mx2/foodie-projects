@@ -112,8 +112,12 @@ tblAlmacenMovimientos (kardex): IdMovimiento, IdSucursal, IdProducto,
   • Se genera al APLICAR una orden de compra (entrada), una salida interna (salida)
     o un ajuste manual de almacén. Filtra por FechaMovimiento con MONTH()/YEAR().
 tblOrdenesCompra: Status 0=En Tránsito, 1=Surtido/Aplicada, 2=Eliminada, 3=Cancelada,
-  4=Fantasma (pendiente de aplicar), 5=Descartada. EsSalida=1 → salida interna de
-  almacén (resta existencias; se aplica automáticamente al crearse).
+  4=Fantasma (pendiente de aplicar), 5=Descartada, 6=Aceptada. EsSalida=1 → salida
+  interna de almacén y EsInterna=1 → requisición: ambas restan existencias, pero
+  SOLO cuando alguien las mueve al estado "Salida de almacén" (Status 1).
+  En requisiciones esos Status se leen: 4=Creada, 6=Aceptada, 1=Salida de almacén,
+  5=Rechazada, 3=Cancelada; tblOrdenesCompraEstatus guarda el historial de cambios
+  (IdOrdenCompra, StatusAnterior, StatusNuevo, Notas, Usuario, FechaCambio).
   FechaAplicacion = cuándo afectó el almacén. Las capturas de compra (tblCompras)
   generan automáticamente su orden APLICADA, ligada con Notas '[Compra #N]'.
 

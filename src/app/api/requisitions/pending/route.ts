@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RowDataPacket } from 'mysql2';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { OC_STATUS_DELETED, OC_STATUS_DISCARDED } from '@/lib/warehouse';
+import { OC_STATUS_CANCELLED, OC_STATUS_DELETED, OC_STATUS_DISCARDED } from '@/lib/warehouse';
 
 /**
  * Bandeja de requisiciones del portal (campana del Header).
@@ -11,7 +11,8 @@ import { OC_STATUS_DELETED, OC_STATUS_DISCARDED } from '@/lib/warehouse';
  * requisición ya atendida. `count` cuenta únicamente las NO leídas — es lo que
  * enciende el badge y mantiene sonando la alarma.
  */
-const IGNORED_STATUSES = [OC_STATUS_DELETED, OC_STATUS_DISCARDED];
+// Rechazada (Descartada) y Cancelada ya se resolvieron: no vuelven a sonar.
+const IGNORED_STATUSES = [OC_STATUS_DELETED, OC_STATUS_DISCARDED, OC_STATUS_CANCELLED];
 
 /** Días que se conservan en la bandeja las requisiciones ya leídas. */
 const HISTORY_DAYS = 7;
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
              FROM tblOrdenesCompra oc
              LEFT JOIN tblSucursales s ON oc.IdSucursal = s.IdSucursal
              WHERE oc.EsRequisicion = 1
-               AND oc.Status NOT IN (?, ?)
+               AND oc.Status NOT IN (${IGNORED_STATUSES.map(() => '?').join(', ')})
                AND (oc.FechaRequisicionVista IS NULL
                     OR oc.FechaOrden >= DATE_SUB(NOW(), INTERVAL ? DAY))
              ORDER BY oc.FechaOrden DESC

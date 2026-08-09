@@ -17,6 +17,7 @@ import ThemedGridHeader, {
 } from '@/components/ThemedGridHeader';
 import { useToast } from '@/contexts/ToastContext';
 import RequisitionLinkModal from '@/components/requisitions/RequisitionLinkModal';
+import RequisitionStatusModal, { RequisitionStatusBadge } from '@/components/requisitions/RequisitionStatusModal';
 import { useModuleColor } from '@/lib/use-module-color';
 import { TabletSmartphone } from 'lucide-react';
 import {
@@ -29,11 +30,19 @@ import {
     Package,
     Check,
     PackageCheck,
-    Ban,
-    RotateCcw,
+    Cog,
+    CircleDashed,
     Warehouse,
-    Ghost,
 } from 'lucide-react';
+import {
+    REQ_STATUS_ACCEPTED,
+    REQ_STATUS_CANCELLED,
+    REQ_STATUS_CREATED,
+    REQ_STATUS_REJECTED,
+    REQ_STATUS_RELEASED,
+    isRequisitionLocked,
+    normalizeRequisitionStatus,
+} from '@/lib/requisition-status';
 
 type Product = {
     IdProducto: number;
@@ -72,15 +81,13 @@ type OutboundOrder = {
 };
 
 /**
- * Estados (mismos que órdenes de compra):
- *  1 Aplicada · 4 Fantasma (pendiente) · 5 Descartada.
- * Una salida aplicada RESTÓ existencias del almacén.
+ * Ciclo de vida (ver src/lib/requisition-status.ts):
+ *   Creada ──► Aceptada ──► Salida de almacén (resta existencias)
+ *      │           └─────► Cancelada
+ *      └─────────────────► Rechazada
+ * El cambio de estado se hace desde el modal que abre la celda "Estado".
  */
-const ST_APPLIED = 1;
-const ST_PHANTOM = 4;
-const ST_DISCARDED = 5;
-
-type StatusFilter = 'all' | 'pending' | 'applied' | 'discarded';
+type StatusFilter = 'all' | 'created' | 'accepted' | 'released' | 'closed';
 
 /** Unidades de medida disponibles para los renglones. */
 const UNITS = ['KG', 'G', 'MG', 'L', 'ML', 'PZA', 'CAJA', 'BOLSA', 'PAQUETE', 'LATA', 'BOTELLA', 'COSTAL', 'TARRO', 'BOTE', 'LITRO', 'ONZA', 'LIBRA', 'TON', 'M', 'CM', 'DOCENA', 'UNIDAD'];
@@ -108,6 +115,8 @@ export default function OutboundOrdersPage() {
     const locale = params.locale as string;
     const projectId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('project') || '{}').idProyecto : null;
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    // Requisición cuyo track de estados se está viendo (celda "Estado").
+    const [statusOrderId, setStatusOrderId] = useState<number | null>(null);
     // Mismo color que PageShell pinta en el encabezado de esta página.
     const moduleColor = useModuleColor() ?? '#0369a1';
 
@@ -250,11 +259,6 @@ export default function OutboundOrdersPage() {
             return;
         }
 
-        // Las salidas nuevas se aplican al almacén automáticamente al guardarse.
-        if (!editingOrder && !confirm('Al guardar, la salida se APLICARÁ automáticamente y restará las existencias del almacén. ¿Continuar?')) {
-            return;
-        }
-
         try {
             const res = await fetch('/api/purchases/purchase-orders', {
                 method: editingOrder ? 'PUT' : 'POST',
@@ -266,6 +270,8 @@ export default function OutboundOrdersPage() {
                     idSucursal: selectedBranch,
                     esInterna: false,
                     esSalida: true,
+                    // Firma el renglón "Creada" del track de estados.
+                    usuario: JSON.parse(localStorage.getItem('user') || '{}')?.nombreUsuario ?? null,
                     fechaProgramadaEntrega: fechaProgramada || null,
                     notas,
                     items: orderItems.map(item => ({
@@ -278,11 +284,13 @@ export default function OutboundOrdersPage() {
             });
             const data = await res.json();
             if (data.success) {
-                success(editingOrder ? 'Salida actualizada' : 'Salida aplicada al almacén — existencias restadas');
+                success(editingOrder
+                    ? 'Requisición actualizada'
+                    : 'Requisición creada — dale salida de almacén desde su estado para descargar existencias');
                 closeModal();
                 fetchOrders();
             } else {
-                toastError(data.message || 'Error al guardar la salida');
+                toastError(data.message || 'Error al guardar la requisición');
             }
         } catch (error) {
             console.error('Error saving outbound order:', error);
@@ -320,7 +328,7 @@ export default function OutboundOrdersPage() {
     };
 
     const handleDelete = async (order: OutboundOrder) => {
-        if (!confirm('¿Eliminar esta orden de salida?')) return;
+        if (!confirm('¿Eliminar esta requisición?')) return;
         try {
             const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}&id=${order.IdOrdenCompra}`, { method: 'DELETE' });
             const data = await res.json();
@@ -328,33 +336,6 @@ export default function OutboundOrdersPage() {
             else toastError(data.message || 'Error al eliminar la salida');
         } catch (error) {
             console.error('Error deleting outbound order:', error);
-        }
-    };
-
-    const handleOrderAction = async (order: OutboundOrder, action: 'apply' | 'discard' | 'restore') => {
-        if (!projectId) return;
-        const confirmations: Record<string, string> = {
-            apply: `¿Aplicar la salida OC-${order.IdOrdenCompra}? Se RESTARÁN las cantidades del almacén de ${order.Sucursal}.`,
-            discard: `¿Descartar la salida OC-${order.IdOrdenCompra}? No afectará el inventario (podrás restaurarla después).`,
-            restore: `¿Restaurar la salida OC-${order.IdOrdenCompra}? Volverá a estado Fantasma.`,
-        };
-        if (!confirm(confirmations[action])) return;
-
-        try {
-            const res = await fetch(`/api/purchases/purchase-orders?projectId=${projectId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idOrdenCompra: order.IdOrdenCompra, action, projectId }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                success(data.message || 'Salida actualizada');
-                fetchOrders();
-            } else {
-                toastError(data.message || 'Error al actualizar la salida');
-            }
-        } catch {
-            toastError('Error al actualizar la salida');
         }
     };
 
@@ -432,42 +413,21 @@ export default function OutboundOrdersPage() {
         }
     };
 
-    const getStatusLabel = (order: OutboundOrder) => {
-        switch (order.Status) {
-            case ST_APPLIED:
-                return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Aplicada
-                    </span>
-                );
-            case ST_PHANTOM:
-            case 0:
-                return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-100 text-[9px] font-black uppercase tracking-widest shadow-sm">
-                        <Ghost size={10} className="animate-pulse" />
-                        Fantasma
-                    </span>
-                );
-            case ST_DISCARDED:
-                return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200 text-[9px] font-black uppercase tracking-widest shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                        Descartada
-                    </span>
-                );
-            default: return null;
-        }
-    };
+    /** Estado del ciclo de vida, ya normalizado (0 legado cuenta como Creada). */
+    const statusOf = (order: OutboundOrder) => normalizeRequisitionStatus(order.Status);
 
-    const isPendingApplication = (order: OutboundOrder) =>
-        !order.FechaAplicacion && order.Status !== 3 && order.Status !== ST_DISCARDED;
+    /** Surtida = ya descargó almacén: no se edita ni se elimina. */
+    const isLocked = (order: OutboundOrder) => isRequisitionLocked(order.Status, order.FechaAplicacion);
+
+    const countByStatus = (status: number) => orders.filter(o => statusOf(o) === status).length;
 
     const matchesStatusFilter = (order: OutboundOrder) => {
+        const status = statusOf(order);
         switch (statusFilter) {
-            case 'pending': return isPendingApplication(order);
-            case 'applied': return Boolean(order.FechaAplicacion);
-            case 'discarded': return order.Status === ST_DISCARDED;
+            case 'created': return status === REQ_STATUS_CREATED;
+            case 'accepted': return status === REQ_STATUS_ACCEPTED;
+            case 'released': return status === REQ_STATUS_RELEASED;
+            case 'closed': return status === REQ_STATUS_REJECTED || status === REQ_STATUS_CANCELLED;
             default: return true;
         }
     };
@@ -480,19 +440,22 @@ export default function OutboundOrdersPage() {
         )
     );
 
-    const pendingCount = orders.filter(isPendingApplication).length;
+    const createdCount = countByStatus(REQ_STATUS_CREATED);
+    const acceptedCount = countByStatus(REQ_STATUS_ACCEPTED);
+    const releasedCount = countByStatus(REQ_STATUS_RELEASED);
+    const closedCount = countByStatus(REQ_STATUS_REJECTED) + countByStatus(REQ_STATUS_CANCELLED);
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-red-600 mb-4"></div>
-            <p className="text-gray-500 font-bold text-xl animate-pulse">Cargando salidas...</p>
+            <p className="text-gray-500 font-bold text-xl animate-pulse">Cargando requisiciones...</p>
         </div>
     );
 
     return (
         <PageShell
             title="Requisiciones"
-            subtitle="Material que sale del almacén — resta existencias al aplicarse"
+            subtitle="Material que sale del almacén — resta existencias al darles salida"
             icon={PackageMinus}
             className="!mt-3"
             actions={
@@ -558,26 +521,33 @@ export default function OutboundOrdersPage() {
             }
         >
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-2">
                     <PackageMinus size={14} className="text-gray-400" />
                     <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Salidas</p>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Requisiciones</p>
                         <p className="text-sm font-bold text-gray-900">{filteredOrders.length}</p>
                     </div>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-2">
-                    <Ghost size={14} className="text-violet-400" />
+                    <CircleDashed size={14} className="text-sky-500" />
                     <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Por Aplicar</p>
-                        <p className="text-sm font-bold text-gray-900">{pendingCount}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Creadas</p>
+                        <p className="text-sm font-bold text-gray-900">{createdCount}</p>
                     </div>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-2">
-                    <PackageCheck size={14} className="text-green-500" />
+                    <Cog size={14} className="text-amber-500 animate-spin [animation-duration:3s]" />
                     <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Aplicadas</p>
-                        <p className="text-sm font-bold text-gray-900">{orders.filter(o => Boolean(o.FechaAplicacion)).length}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Aceptadas</p>
+                        <p className="text-sm font-bold text-gray-900">{acceptedCount}</p>
+                    </div>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex items-center gap-2">
+                    <PackageCheck size={14} className="text-emerald-500" />
+                    <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Con salida</p>
+                        <p className="text-sm font-bold text-gray-900">{releasedCount}</p>
                     </div>
                 </div>
             </div>
@@ -601,7 +571,7 @@ export default function OutboundOrdersPage() {
                         <TableBody
                             loading={isLoading}
                             empty={!isLoading && filteredOrders.length === 0}
-                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Sin salidas para el periodo seleccionado'}
+                            emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Sin requisiciones para el periodo seleccionado'}
                             colSpan={7}
                         >
                             {filteredOrders.map((order) => (
@@ -613,7 +583,17 @@ export default function OutboundOrdersPage() {
                                         <span className="font-semibold text-gray-900">OC-{String(order.IdOrdenCompra).padStart(4, '0')}</span>
                                     </TableCell>
                                     <TableCell muted>{order.Sucursal}</TableCell>
-                                    <TableCell align="center">{getStatusLabel(order)}</TableCell>
+                                    <TableCell align="center">
+                                        {/* La celda de estado ES el acceso al track y al cambio de estado. */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setStatusOrderId(order.IdOrdenCompra)}
+                                            title="Ver track y cambiar estado"
+                                            className="rounded-full transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300"
+                                        >
+                                            <RequisitionStatusBadge status={order.Status} />
+                                        </button>
+                                    </TableCell>
                                     <TableCell align="center">
                                         <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
                                             {order.Renglones ?? '—'}
@@ -621,32 +601,11 @@ export default function OutboundOrdersPage() {
                                     </TableCell>
                                     <TableCell muted>{order.Notas || '—'}</TableCell>
                                     <TableCell align="right">
+                                        {/* Aplicar/descartar ya no viven aquí: son cambios de
+                                            estado. Una requisición con salida de almacén queda
+                                            congelada (ni editar ni eliminar). */}
                                         <div className="flex items-center justify-end gap-1">
-                                            {isPendingApplication(order) && (
-                                                <>
-                                                    <RowActionButton
-                                                        icon={PackageCheck}
-                                                        label="Aplicar salida (restar del almacén)"
-                                                        variant="default"
-                                                        onClick={() => handleOrderAction(order, 'apply')}
-                                                    />
-                                                    <RowActionButton
-                                                        icon={Ban}
-                                                        label="Descartar salida"
-                                                        variant="default"
-                                                        onClick={() => handleOrderAction(order, 'discard')}
-                                                    />
-                                                </>
-                                            )}
-                                            {order.Status === ST_DISCARDED && (
-                                                <RowActionButton
-                                                    icon={RotateCcw}
-                                                    label="Restaurar salida"
-                                                    variant="default"
-                                                    onClick={() => handleOrderAction(order, 'restore')}
-                                                />
-                                            )}
-                                            {!order.FechaAplicacion && (
+                                            {!isLocked(order) && (
                                                 <RowActionButton
                                                     icon={Pencil}
                                                     label="Editar"
@@ -660,7 +619,7 @@ export default function OutboundOrdersPage() {
                                                 variant="default"
                                                 onClick={() => exportOrderToPDF(order)}
                                             />
-                                            {!order.FechaAplicacion && (
+                                            {!isLocked(order) && (
                                                 <RowActionButton
                                                     icon={Trash2}
                                                     label="Eliminar"
@@ -679,7 +638,7 @@ export default function OutboundOrdersPage() {
                 {!isLoading && filteredOrders.length > 0 && (
                     <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
                         <span className="text-xs text-gray-400">
-                            {filteredOrders.length} de {orders.length} salidas
+                            {filteredOrders.length} de {orders.length} requisiciones
                         </span>
                     </div>
                 )}
@@ -690,7 +649,7 @@ export default function OutboundOrdersPage() {
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingOrder ? 'Editar Requisición' : 'Nueva Requisición'}
-                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : 'Se aplica automáticamente al guardarse: resta existencias del almacén'}
+                subtitle={editingOrder ? `Folio: OC-${editingOrder.IdOrdenCompra}` : undefined}
                 accentColor={moduleColor}
                 size="full"
                 headerVariant="primary"
@@ -715,13 +674,8 @@ export default function OutboundOrdersPage() {
                 }
             >
                 <div className="space-y-5">
-                    {/* ── Datos de la salida ─────────────────────────────────── */}
+                    {/* ── Datos de la requisición ────────────────────────────── */}
                     <div className="rounded-xl border border-gray-200 overflow-hidden">
-                        <div className="px-4 py-2.5 bg-red-50 border-b border-red-100">
-                            <span className="text-xs font-bold text-red-700 uppercase tracking-wide">
-                                Salida de almacén — al GUARDARSE se aplica automáticamente y RESTA existencias al costo promedio vigente
-                            </span>
-                        </div>
                         <div className="p-4">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <Select
@@ -888,14 +842,25 @@ export default function OutboundOrdersPage() {
                 projectId={projectId}
                 accentColor={moduleColor}
             />
+
+            {/* Track + cambio de estado (se abre desde la celda "Estado"). */}
+            <RequisitionStatusModal
+                isOpen={statusOrderId !== null}
+                onClose={() => setStatusOrderId(null)}
+                projectId={projectId}
+                idOrdenCompra={statusOrderId}
+                accentColor={moduleColor}
+                onChanged={fetchOrders}
+            />
             {/* Filtros de estado al pie: arriba desplazaban la tabla y
                 descuadraban el encabezado de la página. */}
             <div className="flex items-center gap-3 flex-wrap">
                 {([
                     { key: 'all', label: 'Todas' },
-                    { key: 'pending', label: `Por aplicar (${pendingCount})` },
-                    { key: 'applied', label: 'Aplicadas' },
-                    { key: 'discarded', label: 'Descartadas' },
+                    { key: 'created', label: `Creadas (${createdCount})` },
+                    { key: 'accepted', label: `Aceptadas (${acceptedCount})` },
+                    { key: 'released', label: `Con salida (${releasedCount})` },
+                    { key: 'closed', label: `Rechazadas / canceladas (${closedCount})` },
                 ] as { key: StatusFilter; label: string }[]).map(chip => {
                     const isActive = statusFilter === chip.key;
                     return (

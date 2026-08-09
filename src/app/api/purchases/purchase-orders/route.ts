@@ -7,7 +7,9 @@ import {
     OC_STATUS_APPLIED as STATUS_APPLIED,
     OC_STATUS_PHANTOM as STATUS_PHANTOM,
     OC_STATUS_DISCARDED as STATUS_DISCARDED,
+    OC_STATUS_ACCEPTED as STATUS_ACCEPTED,
 } from '@/lib/warehouse';
+import { recordRequisitionStatusChange } from '@/lib/requisitions';
 
 /**
  * Estados de tblOrdenesCompra: ver src/lib/warehouse.ts.
@@ -15,8 +17,9 @@ import {
  * y no puede editarse, eliminarse ni volver a aplicarse.
  */
 // Aplicable: cualquier orden que aún no afectó el inventario (FechaAplicacion NULL),
-// incluidas las "Surtido" legadas (Status 1 previo al módulo de almacén).
-const APPLICABLE_STATUSES = [0, STATUS_APPLIED, STATUS_PHANTOM];
+// incluidas las "Surtido" legadas (Status 1 previo al módulo de almacén) y las
+// requisiciones Aceptadas.
+const APPLICABLE_STATUSES = [0, STATUS_APPLIED, STATUS_PHANTOM, STATUS_ACCEPTED];
 
 /** Busca o crea un proveedor por nombre (para órdenes internas y salidas de almacén). */
 async function resolveNamedProvider(connection: Connection, name: string): Promise<number> {
@@ -231,8 +234,8 @@ export async function POST(request: NextRequest) {
             finalIdProveedor = await resolveNamedProvider(connection, body.providerName || 'ORDEN DE COMPRA INTERNA');
         }
 
-        // 1. Crea la orden como "Fantasma" (Status 4): pendiente de aplicar al
-        //    inventario o de descartarse. FechaOrden es Now().
+        // 1. Crea la orden como Fantasma/Creada (Status 4): pendiente de aplicar
+        //    al inventario o de descartarse. FechaOrden es Now().
         const [result] = await connection.query(
             'INSERT INTO tblOrdenesCompra (IdProveedor, IdSucursal, EsInterna, EsSalida, FechaOrden, FechaEntrega, FechaProgramadaEntrega, Status, Notas, FechaAct) VALUES (?, ?, ?, ?, Now(), ?, ?, ?, ?, Now())',
             [finalIdProveedor, idSucursal, esInterna ? 1 : 0, esSalida ? 1 : 0, fechaEntrega || null, fechaProgramadaEntrega || null, STATUS_PHANTOM, notas || null]
@@ -280,25 +283,17 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Las SALIDAS se aplican al almacén automáticamente al crearse:
-        // restan existencias al costo promedio vigente y quedan como Aplicadas.
-        if (esSalida) {
-            const [orderItems] = await connection.query(
-                `SELECT ocd.*, p.UnidadMedidaCompra, p.UnidadMedidaInventario
-                 FROM tblOrdenesCompraDetalle ocd
-                 JOIN tblProductos p ON ocd.IdProducto = p.IdProducto
-                 WHERE ocd.IdOrdenCompra = ?`,
-                [idOrdenCompra]
-            );
-            await applyOrderToWarehouse(
-                connection,
-                { IdOrdenCompra: idOrdenCompra, IdSucursal: idSucursal, EsSalida: 1 },
-                orderItems as any[]
-            );
-            await connection.query(
-                'UPDATE tblOrdenesCompra SET Status = ?, FechaAplicacion = Now(), FechaAct = Now() WHERE IdOrdenCompra = ?',
-                [STATUS_APPLIED, idOrdenCompra]
-            );
+        // Las salidas/requisiciones YA NO se aplican solas al guardarse: nacen
+        // Creadas y descargan almacén cuando alguien las mueve al estado
+        // "Salida de almacén" (POST /api/requisitions/status). Aquí solo queda
+        // el primer renglón de su bitácora de estados.
+        if (esSalida || esInterna) {
+            await recordRequisitionStatusChange(connection, {
+                idOrdenCompra,
+                statusAnterior: null,
+                statusNuevo: STATUS_PHANTOM,
+                usuario: body.usuario || null,
+            });
         }
 
         await connection.commit();
@@ -306,8 +301,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             id: idOrdenCompra,
-            applied: Boolean(esSalida),
-            message: esSalida ? 'Salida aplicada al almacén' : undefined,
+            applied: false,
         });
     } catch (error) {
         if (connection) await connection.rollback();

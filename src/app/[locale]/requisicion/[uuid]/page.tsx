@@ -13,6 +13,7 @@ import {
     Requester,
     RequisitionBranch,
     RequisitionProduct,
+    RequisitionProfile,
     RequisitionTheme,
 } from '@/components/requisitions/types';
 
@@ -28,6 +29,10 @@ export default function RequisitionPage() {
     const [stage, setStage] = useState<Stage>('loading');
     const [theme, setTheme] = useState<RequisitionTheme | null>(null);
     const [branches, setBranches] = useState<RequisitionBranch[]>([]);
+    const [profiles, setProfiles] = useState<RequisitionProfile[]>([]);
+    // El PIN vive solo en memoria: se revalida en el servidor al enviar y no
+    // se guarda en la tablet, que es un equipo compartido.
+    const [pin, setPin] = useState('');
     const [products, setProducts] = useState<RequisitionProduct[]>([]);
 
     const [requester, setRequester] = useState<Requester | null>(null);
@@ -55,6 +60,7 @@ export default function RequisitionPage() {
 
                 setTheme(data.project);
                 setBranches(data.branches || []);
+                setProfiles(data.profiles || []);
                 setProducts(data.products || []);
 
                 // La tablet recuerda quién pidió la última vez para no volver a
@@ -115,9 +121,26 @@ export default function RequisitionPage() {
         });
     }, []);
 
-    const handleConfirmRequester = (value: Requester) => {
-        setRequester(value);
+    /** Comprueba el PIN del perfil contra el servidor. Nunca se compara aquí. */
+    const verifyPin = async (idPerfil: number, candidate: string): Promise<boolean> => {
         try {
+            const res = await fetch('/api/requisitions/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uuid, idPerfil, pin: candidate }),
+            });
+            const data = await res.json();
+            return Boolean(data.success);
+        } catch {
+            return false;
+        }
+    };
+
+    const handleConfirmRequester = (value: Requester, verifiedPin: string) => {
+        setRequester(value);
+        setPin(verifiedPin);
+        try {
+            // El PIN NO se persiste: solo sucursal, perfil y nombre.
             localStorage.setItem(storageKey, JSON.stringify(value));
         } catch { /* almacenamiento no disponible */ }
         setStage('catalog');
@@ -137,6 +160,8 @@ export default function RequisitionPage() {
                     idSucursal: requester.idSucursal,
                     solicitante: requester.solicitante,
                     area: requester.area,
+                    idPerfil: requester.idPerfil,
+                    pin,
                     notas,
                     items: lines.map(line => ({
                         idProducto: line.producto.IdProducto,
@@ -220,6 +245,8 @@ export default function RequisitionPage() {
             <main className="min-h-dvh bg-[#eef1f5]">
                 <IdentityGate
                     branches={branches}
+                    profiles={profiles}
+                    onVerifyPin={verifyPin}
                     accent={accent}
                     initial={requester}
                     onConfirm={handleConfirmRequester}

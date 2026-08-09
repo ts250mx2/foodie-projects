@@ -43,8 +43,16 @@ export async function GET(request: NextRequest) {
              ORDER BY c.Categoria ASC, p.Producto ASC`
         );
 
+        // Perfiles con los que se puede firmar el pedido. Se manda si tienen
+        // PIN, NUNCA el PIN: la verificación ocurre en el servidor.
+        const [profiles] = await connection.query(
+            `SELECT IdPerfil, IdSucursal, Perfil, (PinHash IS NOT NULL) AS TienePin
+             FROM tblRequisicionPerfiles ORDER BY IdSucursal ASC, Orden ASC, Perfil ASC`
+        );
+
         return NextResponse.json({
             success: true,
+            profiles,
             project: {
                 titulo: project.titulo || project.proyecto,
                 logo64: project.logo64,
