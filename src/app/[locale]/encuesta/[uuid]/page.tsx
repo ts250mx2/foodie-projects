@@ -442,8 +442,11 @@ export default function PublicSurveyPage() {
                             >
                                 <div className="flex items-start gap-3 md:w-[45%] shrink-0">
                                     <span
-                                        className="h-9 w-9 rounded-full flex items-center justify-center text-white font-black text-base shrink-0"
-                                        style={{ backgroundColor: INK }}
+                                        // Color inline, no `text-white`: las reglas globales sin capa
+                                        // (span { color: inherit }) le ganan a las utilidades de
+                                        // Tailwind y el número heredaba tinta oscura sobre fondo oscuro.
+                                        className="h-9 w-9 rounded-full flex items-center justify-center font-black text-base shrink-0"
+                                        style={{ backgroundColor: INK, color: '#ffffff' }}
                                     >
                                         {index + 1}
                                     </span>
@@ -532,7 +535,7 @@ export default function PublicSurveyPage() {
                     })}
                 </section>
                 {missingIds.length > 0 && (
-                    <p className="text-sm font-bold text-red-600 text-center -mt-2">
+                    <p className="text-sm font-bold text-center -mt-2" style={{ color: '#dc2626' }}>
                         {missingIds.length === 1
                             ? 'Te falta una pregunta por contestar.'
                             : `Te faltan ${missingIds.length} preguntas por contestar.`}
@@ -553,7 +556,7 @@ export default function PublicSurveyPage() {
                             <div>
                                 <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: INK }}>
                                     {config.atencionTitulo}
-                                    {config.atencionObligatoria === 1 && <span className="text-red-600"> *</span>}
+                                    {config.atencionObligatoria === 1 && <span style={{ color: '#dc2626' }}> *</span>}
                                 </h2>
                                 {config.atencionTexto && (
                                     <p className="text-[15px] font-medium mt-1" style={{ color: INK_MUTED }}>
@@ -626,7 +629,7 @@ export default function PublicSurveyPage() {
                                 />
                             )}
 
-                            {attendantError && <p className="text-sm font-bold text-red-600">{attendantError}</p>}
+                            {attendantError && <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{attendantError}</p>}
                         </div>
                     </section>
                 )}
@@ -694,7 +697,7 @@ export default function PublicSurveyPage() {
                                 style={{ borderColor: emailError ? '#dc2626' : BORDER, color: INK }}
                             />
                         </div>
-                        {emailError && <p className="text-sm font-bold text-red-600">{emailError}</p>}
+                        {emailError && <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{emailError}</p>}
                         {config.regaloActivo === 1 && (
                             <label className="flex items-center gap-3 mt-1 cursor-pointer select-none">
                                 <input
@@ -710,15 +713,17 @@ export default function PublicSurveyPage() {
                     </div>
 
                     {submitError && (
-                        <p className="text-sm font-bold text-red-600 text-center">{submitError}</p>
+                        <p className="text-sm font-bold text-center" style={{ color: '#dc2626' }}>{submitError}</p>
                     )}
 
                     <button
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSending}
-                        className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-wide flex items-center justify-center gap-3 text-white active:scale-[0.98] transition disabled:opacity-60 disabled:active:scale-100 shadow-sm"
-                        style={{ backgroundColor: INK }}
+                        // Color inline, no `text-white`: button { color: inherit } global
+                        // (sin capa) pisa la utilidad y el texto se perdía en el fondo.
+                        className="w-full h-16 rounded-2xl font-black text-lg uppercase tracking-wide flex items-center justify-center gap-3 active:scale-[0.98] transition disabled:opacity-60 disabled:active:scale-100 shadow-sm"
+                        style={{ backgroundColor: INK, color: '#ffffff' }}
                     >
                         {isSending ? <Loader2 size={24} className="animate-spin" /> : <Send size={22} strokeWidth={2.2} />}
                         {config.regaloActivo === 1 ? config.textoBotonEnviar : 'Enviar'}
