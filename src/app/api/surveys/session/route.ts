@@ -100,6 +100,9 @@ export async function GET(request: NextRequest) {
                 atencionTexto: (cfg.AtencionTexto as string) || null,
                 atencionModo,
                 atencionObligatoria: cfg.AtencionObligatoria === 1 ? 1 : 0,
+                // Solo la bandera: el flyer pesa; la tablet arma el QR con el
+                // uuid y el flyer se sirve aparte en /api/surveys/flyer.
+                tieneFlyer: cfg.FlyerImagen ? 1 : 0,
             },
             attendants: attendants.map(a => ({ idAtendio: a.IdAtendio, nombre: a.Nombre })),
             questions: questionRows

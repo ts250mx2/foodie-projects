@@ -8,6 +8,8 @@ import {
     DEFAULT_SURVEY_CONFIG,
     MAX_CONFIG_TEXT_LEN,
     SURVEY_SCALE,
+    MAX_FLYER_DATA_LEN,
+    FLYER_DATA_URL_PATTERN,
 } from '@/lib/surveys';
 
 /**
@@ -39,6 +41,28 @@ export async function PUT(request: NextRequest) {
             ? umbralRaw
             : d.UmbralComentario;
 
+        // Flyer de promoción: data URL de imagen o vacío para quitarlo. El
+        // formato se valida completo (no basta el prefijo) porque el endpoint
+        // público lo decodifica y sirve como binario.
+        let flyer: string | null = null;
+        let flyerNombre: string | null = null;
+        if (typeof config.FlyerImagen === 'string' && config.FlyerImagen) {
+            if (config.FlyerImagen.length > MAX_FLYER_DATA_LEN) {
+                return NextResponse.json(
+                    { success: false, message: 'El flyer es demasiado grande (máximo ~4 MB)' },
+                    { status: 400 }
+                );
+            }
+            if (!FLYER_DATA_URL_PATTERN.test(config.FlyerImagen)) {
+                return NextResponse.json(
+                    { success: false, message: 'El flyer debe ser una imagen PNG, JPG, WEBP o GIF' },
+                    { status: 400 }
+                );
+            }
+            flyer = config.FlyerImagen;
+            flyerNombre = sanitizeSurveyText(config.FlyerNombre, 245);
+        }
+
         connection = await getProjectConnection(parseInt(projectId));
 
         const [rows] = await connection.query<RowDataPacket[]>(
@@ -64,6 +88,7 @@ export async function PUT(request: NextRequest) {
                 TituloGracias = ?, TextoGracias = ?,
                 AtencionActiva = ?, AtencionTitulo = ?, AtencionTexto = ?,
                 AtencionModo = ?, AtencionObligatoria = ?,
+                FlyerImagen = ?, FlyerNombre = ?,
                 FechaAct = Now()
              WHERE IdConfig = ?`,
             [
@@ -85,6 +110,8 @@ export async function PUT(request: NextRequest) {
                 optionalText(config.AtencionTexto),
                 parseAttendantMode(config.AtencionModo),
                 config.AtencionObligatoria === 1 || config.AtencionObligatoria === true ? 1 : 0,
+                flyer,
+                flyerNombre,
                 idConfig,
             ]
         );

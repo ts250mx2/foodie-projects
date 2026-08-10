@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
+import QRCode from 'react-qr-code';
 import {
     Star,
     UtensilsCrossed,
@@ -14,7 +15,7 @@ import {
     Loader2,
     UserRound,
 } from 'lucide-react';
-import { INK, INK_MUTED, CANVAS, BORDER } from '@/components/requisitions/theme';
+import { INK, INK_SOFT, INK_MUTED, CANVAS, BORDER } from '@/components/requisitions/theme';
 
 /**
  * Encuesta pública de satisfacción (tablet en piso o celular del comensal).
@@ -51,6 +52,8 @@ interface SurveyConfig {
     /** lista = solo predefinidos · texto = abierto · ambos = lista con "Otro". */
     atencionModo: 'lista' | 'texto' | 'ambos';
     atencionObligatoria: number;
+    /** 1 = hay flyer de promoción: la pantalla de gracias muestra el QR. */
+    tieneFlyer: number;
 }
 
 interface SurveyAttendant {
@@ -79,12 +82,15 @@ type Stage = 'loading' | 'invalid' | 'form' | 'sent';
 const STAR_FILL = '#f59e0b';
 /** Segundos que la pantalla de gracias espera antes de reiniciar para el siguiente comensal. */
 const KIOSK_RESET_SECONDS = 12;
+/** Con QR del regalo en pantalla, el comensal necesita tiempo de sacar su celular y escanear. */
+const KIOSK_RESET_FLYER_SECONDS = 30;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function PublicSurveyPage() {
     const params = useParams();
     const uuid = (params?.uuid as string) || '';
+    const locale = (params?.locale as string) || 'es';
 
     const [stage, setStage] = useState<Stage>('loading');
     const [theme, setTheme] = useState<SurveyTheme | null>(null);
@@ -196,9 +202,10 @@ export default function PublicSurveyPage() {
     // Modo kiosco: tras agradecer, la tablet queda lista para el siguiente.
     useEffect(() => {
         if (stage !== 'sent') return;
-        const id = setTimeout(resetForNextGuest, KIOSK_RESET_SECONDS * 1000);
+        const seconds = config?.tieneFlyer === 1 ? KIOSK_RESET_FLYER_SECONDS : KIOSK_RESET_SECONDS;
+        const id = setTimeout(resetForNextGuest, seconds * 1000);
         return () => clearTimeout(id);
-    }, [stage, resetForNextGuest]);
+    }, [stage, resetForNextGuest, config?.tieneFlyer]);
 
     const setAnswer = (idPregunta: number, valor: number) => {
         setAnswers(prev => ({ ...prev, [idPregunta]: valor }));
@@ -322,6 +329,12 @@ export default function PublicSurveyPage() {
     }
 
     if (stage === 'sent' && config) {
+        // QR al flyer de promoción: el comensal lo escanea con SU celular; la
+        // liga es la misma de la encuesta más /regalo, así que no expone nada
+        // que la tablet no tenga ya.
+        const giftUrl = config.tieneFlyer === 1 && typeof window !== 'undefined'
+            ? `${window.location.origin}/${locale}/encuesta/${uuid}/regalo`
+            : '';
         return (
             <main className="min-h-dvh flex items-center justify-center px-5" style={{ backgroundColor: CANVAS }}>
                 <div className="w-full max-w-xl bg-white rounded-3xl border-2 px-8 py-12 text-center flex flex-col items-center gap-5 shadow-sm" style={{ borderColor: BORDER }}>
@@ -335,6 +348,17 @@ export default function PublicSurveyPage() {
                         <p className="text-lg font-medium whitespace-pre-line" style={{ color: INK_MUTED }}>
                             {config.textoGracias}
                         </p>
+                    )}
+                    {giftUrl && (
+                        <div className="flex flex-col items-center gap-2.5">
+                            <div className="bg-white p-4 rounded-2xl border-2" style={{ borderColor: INK }}>
+                                <QRCode value={giftUrl} size={168} bgColor="transparent" fgColor={INK} />
+                            </div>
+                            <p className="text-base font-bold flex items-center gap-2" style={{ color: INK }}>
+                                <Gift size={18} strokeWidth={2.2} />
+                                Escanea con tu celular y llévate tu regalo
+                            </p>
+                        </div>
                     )}
                     <button
                         type="button"
@@ -369,7 +393,9 @@ export default function PublicSurveyPage() {
 
     return (
         <main className="min-h-dvh pb-10" style={{ backgroundColor: CANVAS }}>
-            <div className="mx-auto w-full max-w-2xl px-4 pt-10 flex flex-col gap-5">
+            {/* max-w-3xl: en tablet, 2xl dejaba las respuestas en una franja
+                demasiado estrecha para etiquetas como "Definitivamente sí". */}
+            <div className="mx-auto w-full max-w-3xl px-4 pt-10 flex flex-col gap-5">
                 {/* Encabezado */}
                 <header className="flex flex-col items-center text-center gap-3">
                     {theme?.logo64 ? (
@@ -427,7 +453,9 @@ export default function PublicSurveyPage() {
                                 </div>
 
                                 {question.tipo === 'estrellas' ? (
-                                    <div className="flex-1 grid grid-cols-5 gap-1">
+                                    /* min-w-0 en cada botón: sin él la celda del grid crece con
+                                       la etiqueta más larga y las etiquetas se encinan entre sí. */
+                                    <div className="flex-1 grid grid-cols-5 gap-1.5">
                                         {Array.from({ length: 5 }, (_, i) => {
                                             const valor = i + 1;
                                             const isActive = selected != null && valor <= selected;
@@ -436,7 +464,7 @@ export default function PublicSurveyPage() {
                                                     key={valor}
                                                     type="button"
                                                     onClick={() => setAnswer(question.idPregunta, valor)}
-                                                    className="flex flex-col items-center gap-1 py-1 rounded-xl active:scale-95 transition"
+                                                    className="min-w-0 flex flex-col items-center gap-1 px-0.5 py-1 rounded-xl active:scale-95 transition"
                                                     aria-label={`${valor} de 5`}
                                                     aria-pressed={selected === valor}
                                                 >
@@ -445,10 +473,14 @@ export default function PublicSurveyPage() {
                                                         strokeWidth={1.8}
                                                         fill={isActive ? STAR_FILL : 'none'}
                                                         color={isActive ? STAR_FILL : INK}
+                                                        className="shrink-0"
                                                     />
                                                     <span className="text-sm font-bold" style={{ color: INK }}>{valor}</span>
                                                     {question.etiquetas[i] && (
-                                                        <span className="text-[11px] font-medium leading-tight text-center" style={{ color: INK_MUTED }}>
+                                                        <span
+                                                            className="w-full text-[12px] font-semibold leading-tight text-center [overflow-wrap:anywhere] hyphens-auto"
+                                                            style={{ color: INK_SOFT }}
+                                                        >
                                                             {question.etiquetas[i]}
                                                         </span>
                                                     )}
@@ -457,7 +489,11 @@ export default function PublicSurveyPage() {
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${question.etiquetas.length}, minmax(0, 1fr))` }}>
+                                    /* Las opciones NO se reparten en N columnas fijas: con 5
+                                       etiquetas largas cada columna quedaba de ~60px y el texto
+                                       se salía encima de la vecina. Ahora cada una tiene ancho
+                                       mínimo usable y el renglón se acomoda solo. */
+                                    <div className="flex-1 flex flex-wrap gap-2">
                                         {question.etiquetas.map((label, i) => {
                                             // La primera opción vale más: con N opciones, valor N.
                                             const valor = question.etiquetas.length - i;
@@ -467,16 +503,23 @@ export default function PublicSurveyPage() {
                                                     key={`${valor}-${label}`}
                                                     type="button"
                                                     onClick={() => setAnswer(question.idPregunta, valor)}
-                                                    className="flex flex-col items-center gap-1.5 py-1 rounded-xl active:scale-95 transition"
+                                                    className="flex-1 min-w-[92px] flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-2xl border-2 transition active:scale-95"
+                                                    style={{
+                                                        borderColor: isActive ? INK : BORDER,
+                                                        backgroundColor: isActive ? INK : '#ffffff',
+                                                    }}
                                                     aria-pressed={isActive}
                                                 >
                                                     <span
-                                                        className="h-8 w-8 rounded-full border-2 flex items-center justify-center"
-                                                        style={{ borderColor: INK }}
+                                                        className="h-7 w-7 rounded-full border-2 flex items-center justify-center shrink-0"
+                                                        style={{ borderColor: isActive ? '#ffffff' : INK }}
                                                     >
-                                                        {isActive && <span className="h-4 w-4 rounded-full" style={{ backgroundColor: INK }} />}
+                                                        {isActive && <span className="h-3.5 w-3.5 rounded-full bg-white" />}
                                                     </span>
-                                                    <span className="text-[11px] font-medium leading-tight text-center" style={{ color: INK_MUTED }}>
+                                                    <span
+                                                        className="w-full text-[12px] font-semibold leading-tight text-center [overflow-wrap:anywhere] hyphens-auto"
+                                                        style={{ color: isActive ? '#ffffff' : INK }}
+                                                    >
                                                         {label}
                                                     </span>
                                                 </button>
@@ -535,7 +578,7 @@ export default function PublicSurveyPage() {
                                                     setAttendantError('');
                                                 }}
                                                 aria-pressed={isActive}
-                                                className="h-14 px-5 rounded-2xl border-2 font-bold text-base transition active:scale-95"
+                                                className="min-h-14 max-w-full px-5 py-3 rounded-2xl border-2 font-bold text-base text-center [overflow-wrap:anywhere] transition active:scale-95"
                                                 style={{
                                                     backgroundColor: isActive ? INK : '#ffffff',
                                                     borderColor: isActive ? INK : BORDER,
@@ -557,7 +600,7 @@ export default function PublicSurveyPage() {
                                                 setAttendantError('');
                                             }}
                                             aria-pressed={attendantId === OTHER_ATTENDANT}
-                                            className="h-14 px-5 rounded-2xl border-2 border-dashed font-bold text-base transition active:scale-95"
+                                            className="min-h-14 px-5 py-3 rounded-2xl border-2 border-dashed font-bold text-base transition active:scale-95"
                                             style={{
                                                 backgroundColor: attendantId === OTHER_ATTENDANT ? INK : '#ffffff',
                                                 borderColor: attendantId === OTHER_ATTENDANT ? INK : BORDER,

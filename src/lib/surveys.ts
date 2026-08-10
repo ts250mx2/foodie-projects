@@ -25,6 +25,9 @@ export const MAX_OPTION_LABEL_LEN = 60;
 export const MAX_COMMENT_LEN = 1000;
 export const MAX_EMAIL_LEN = 255;
 export const MAX_CONFIG_TEXT_LEN = 300;
+/** Flyer de promoción: data URL base64 (~4 MB de imagen ≈ 5.4M caracteres). */
+export const MAX_FLYER_DATA_LEN = 6_000_000;
+export const FLYER_DATA_URL_PATTERN = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
 export const MAX_ATTENDANT_NAME_LEN = 120;
 export const MAX_ATTENDANTS = 200;
 
@@ -302,6 +305,8 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
               \`TextoBotonEnviar\` varchar(300) DEFAULT NULL,
               \`TituloGracias\` varchar(300) DEFAULT NULL,
               \`TextoGracias\` varchar(300) DEFAULT NULL,
+              \`FlyerImagen\` longtext,
+              \`FlyerNombre\` varchar(245) DEFAULT NULL,
               \`FechaAct\` datetime DEFAULT NULL,
               PRIMARY KEY (\`IdConfig\`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -379,6 +384,8 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
         await addConfigColumn('AtencionTexto', 'varchar(300) DEFAULT NULL');
         await addConfigColumn('AtencionModo', "varchar(20) NOT NULL DEFAULT 'lista'");
         await addConfigColumn('AtencionObligatoria', 'tinyint NOT NULL DEFAULT 0');
+        await addConfigColumn('FlyerImagen', 'longtext NULL');
+        await addConfigColumn('FlyerNombre', 'varchar(245) DEFAULT NULL');
 
         const [answerCols] = await connection.query<RowDataPacket[]>('SHOW COLUMNS FROM tblEncuestasRespuestas');
         const answerNames = answerCols.map(c => c.Field);

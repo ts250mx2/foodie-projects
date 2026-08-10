@@ -13,6 +13,8 @@ import {
     TabletSmartphone,
     Check,
     Save,
+    Upload,
+    QrCode,
 } from 'lucide-react';
 import PageShell, { PageCard } from '@/components/PageShell';
 import Button from '@/components/Button';
@@ -62,6 +64,9 @@ interface SurveyConfigForm {
     AtencionTexto: string;
     AtencionModo: 'lista' | 'texto' | 'ambos';
     AtencionObligatoria: number;
+    /** Data URL del flyer; vacío = sin flyer (la tablet no muestra QR). */
+    FlyerImagen: string;
+    FlyerNombre: string;
 }
 
 /** Persona de la lista predefinida de "¿Quién te atendió?". */
@@ -91,7 +96,12 @@ const EMPTY_CONFIG: SurveyConfigForm = {
     AtencionTexto: '',
     AtencionModo: 'lista',
     AtencionObligatoria: 0,
+    FlyerImagen: '',
+    FlyerNombre: '',
 };
+
+/** Tope del archivo del flyer (el servidor rechaza ~4 MB de imagen). */
+const MAX_FLYER_FILE_BYTES = 4 * 1024 * 1024;
 
 /** Textos con los que se estrena el bloque al encenderlo por primera vez. */
 const DEFAULT_ATENCION_TITULO = '¿Quién te atendió?';
@@ -156,6 +166,8 @@ export default function SurveyConfigPage() {
                         AtencionActiva: data.config.AtencionActiva === 1 ? 1 : 0,
                         AtencionTitulo: data.config.AtencionTitulo || '',
                         AtencionTexto: data.config.AtencionTexto || '',
+                        FlyerImagen: data.config.FlyerImagen || '',
+                        FlyerNombre: data.config.FlyerNombre || '',
                         AtencionModo: data.config.AtencionModo === 'texto' || data.config.AtencionModo === 'ambos'
                             ? data.config.AtencionModo
                             : 'lista',
@@ -392,6 +404,31 @@ export default function SurveyConfigPage() {
 
     const setConfigField = (field: keyof SurveyConfigForm, value: string | number) => {
         setConfig(prev => ({ ...prev, [field]: value }));
+    };
+
+    // El flyer viaja como data URL dentro de la config (mismo mecanismo que el
+    // logo del proyecto) y se guarda con el botón Guardar Textos.
+    const handleFlyerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            toastError('El flyer debe ser una imagen (PNG, JPG, WEBP o GIF)');
+            return;
+        }
+        if (file.size > MAX_FLYER_FILE_BYTES) {
+            toastError('El flyer es demasiado grande: máximo 4 MB');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setConfig(prev => ({
+                ...prev,
+                FlyerImagen: reader.result as string,
+                FlyerNombre: file.name.slice(0, 245),
+            }));
+        };
+        reader.readAsDataURL(file);
     };
 
     const typeLabel = (tipo: 'estrellas' | 'opciones') =>
@@ -770,6 +807,70 @@ export default function SurveyConfigPage() {
                                     onChange={e => setConfigField('TextoGracias', e.target.value)}
                                     maxLength={300}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Flyer de promoción: QR en la pantalla de gracias */}
+                        <div className="rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                                <QrCode size={14} className="text-gray-500" />
+                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Flyer de promoción</span>
+                            </div>
+                            <div className="p-4 flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1 space-y-2">
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                        Sube la imagen de tu promoción. Al terminar la encuesta, la tablet muestra un
+                                        <strong> código QR</strong>: el comensal lo escanea con su celular y ve este flyer
+                                        para reclamar su regalo. Sin flyer, la pantalla de gracias no muestra QR.
+                                    </p>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            leftIcon={Upload}
+                                            onClick={() => document.getElementById('flyer-input')?.click()}
+                                        >
+                                            {config.FlyerImagen ? 'Cambiar Flyer' : 'Subir Flyer'}
+                                        </Button>
+                                        {config.FlyerImagen && (
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                leftIcon={Trash2}
+                                                onClick={() => setConfig(prev => ({ ...prev, FlyerImagen: '', FlyerNombre: '' }))}
+                                            >
+                                                Quitar
+                                            </Button>
+                                        )}
+                                        <input
+                                            id="flyer-input"
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp,image/gif"
+                                            onChange={handleFlyerUpload}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                    {config.FlyerNombre && (
+                                        <p className="text-[11px] text-gray-400">{config.FlyerNombre}</p>
+                                    )}
+                                    <p className="text-[11px] text-gray-400">
+                                        Imagen PNG, JPG, WEBP o GIF de hasta 4 MB. Se aplica al presionar Guardar Textos.
+                                    </p>
+                                </div>
+                                {config.FlyerImagen && (
+                                    <div className="w-full sm:w-44 shrink-0">
+                                        <div className="rounded-xl border-2 border-gray-200 overflow-hidden bg-gray-50">
+                                            <img
+                                                src={config.FlyerImagen}
+                                                alt="Vista previa del flyer"
+                                                className="w-full h-auto block"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center mt-1">
+                                            Vista previa
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
