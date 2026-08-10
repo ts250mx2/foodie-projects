@@ -6,6 +6,7 @@ import {
     Star,
     MessageCircle,
     Mail,
+    Phone,
     ClipboardList,
     TabletSmartphone,
     Download,
@@ -44,6 +45,9 @@ interface ReportSummary {
     promedioGeneral: number | null;
     totalComentarios: number;
     totalCorreos: number;
+    totalTelefonos: number;
+    /** Respuestas con al menos un dato de contacto (correo y/o teléfono). */
+    totalContactos: number;
     totalOptIn: number;
 }
 
@@ -68,6 +72,7 @@ interface ReportResponse {
     fecha: string;
     sucursal: string | null;
     correo: string | null;
+    telefono: string | null;
     aceptaPromos: boolean;
     comentario: string | null;
     /** Quién atendió (de la lista o escrito por el comensal). */
@@ -194,13 +199,14 @@ export default function SurveyReportPage() {
             const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
             return `"${safe.replace(/"/g, '""')}"`;
         };
-        const header = ['Fecha', 'Sucursal', 'Atendió', 'Promedio', 'Correo', 'AceptaPromos', 'Comentario', 'Respuestas'];
+        const header = ['Fecha', 'Sucursal', 'Atendió', 'Promedio', 'Correo', 'Teléfono', 'AceptaPromos', 'Comentario', 'Respuestas'];
         const rows = responses.map(r => [
             formatDate(r.fecha),
             r.sucursal || '',
             r.atendio || '',
             averageOf(r.detalle)?.toFixed(2) ?? '',
             r.correo || '',
+            r.telefono || '',
             r.aceptaPromos ? 'Sí' : 'No',
             r.comentario || '',
             r.detalle.map(d => `${d.pregunta}: ${d.valor}${d.etiqueta ? ` (${d.etiqueta})` : ''}`).join(' | '),
@@ -289,8 +295,8 @@ export default function SurveyReportPage() {
                         color="#0369a1"
                     />
                     <StatCard
-                        label="Correos captados"
-                        value={summary?.totalCorreos ?? '—'}
+                        label="Contactos captados"
+                        value={summary?.totalContactos ?? '—'}
                         icon={Mail}
                         trend={summary && summary.totalOptIn > 0 ? 'up' : undefined}
                         trendLabel={summary && summary.totalOptIn > 0 ? `${summary.totalOptIn} aceptan promos` : undefined}
@@ -415,7 +421,7 @@ export default function SurveyReportPage() {
                                 <ThemedGridHeaderCell>Sucursal</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell>Atendió</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell align="center">Calificación</ThemedGridHeaderCell>
-                                <ThemedGridHeaderCell>Correo</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Contacto</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell>Comentario</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell align="right">Ver</ThemedGridHeaderCell>
                             </ThemedGridHeader>
@@ -441,7 +447,7 @@ export default function SurveyReportPage() {
                                                 ) : '—'}
                                             </TableCell>
                                             <TableCell muted>
-                                                {response.correo || '—'}
+                                                {[response.correo, response.telefono].filter(Boolean).join(' · ') || '—'}
                                                 {response.aceptaPromos && (
                                                     <span className="ml-1.5 text-[10px] font-bold text-emerald-600 uppercase">promos</span>
                                                 )}
@@ -525,12 +531,22 @@ export default function SurveyReportPage() {
                             </div>
                         )}
 
-                        {viewing.correo && (
-                            <p className="text-sm text-gray-600">
-                                <Mail size={14} className="inline mr-1.5 -mt-0.5 text-gray-400" />
-                                {viewing.correo}
+                        {(viewing.correo || viewing.telefono) && (
+                            <p className="text-sm text-gray-600 flex items-center flex-wrap gap-x-4 gap-y-1">
+                                {viewing.correo && (
+                                    <span>
+                                        <Mail size={14} className="inline mr-1.5 -mt-0.5 text-gray-400" />
+                                        {viewing.correo}
+                                    </span>
+                                )}
+                                {viewing.telefono && (
+                                    <span>
+                                        <Phone size={14} className="inline mr-1.5 -mt-0.5 text-gray-400" />
+                                        {viewing.telefono}
+                                    </span>
+                                )}
                                 {viewing.aceptaPromos && (
-                                    <span className="ml-2 text-[11px] font-bold text-emerald-600 uppercase">acepta promociones</span>
+                                    <span className="text-[11px] font-bold text-emerald-600 uppercase">acepta promociones</span>
                                 )}
                             </p>
                         )}

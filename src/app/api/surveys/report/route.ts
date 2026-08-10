@@ -53,6 +53,9 @@ export async function GET(request: NextRequest) {
                 COUNT(*) AS TotalRespuestas,
                 SUM(CASE WHEN r.Comentario IS NOT NULL AND r.Comentario <> '' THEN 1 ELSE 0 END) AS TotalComentarios,
                 SUM(CASE WHEN r.Correo IS NOT NULL AND r.Correo <> '' THEN 1 ELSE 0 END) AS TotalCorreos,
+                SUM(CASE WHEN r.Telefono IS NOT NULL AND r.Telefono <> '' THEN 1 ELSE 0 END) AS TotalTelefonos,
+                SUM(CASE WHEN (r.Correo IS NOT NULL AND r.Correo <> '')
+                          OR (r.Telefono IS NOT NULL AND r.Telefono <> '') THEN 1 ELSE 0 END) AS TotalContactos,
                 SUM(CASE WHEN r.AceptaPromos = 1 THEN 1 ELSE 0 END) AS TotalOptIn
              FROM tblEncuestasRespuestas r
              WHERE ${where}`,
@@ -126,7 +129,7 @@ export async function GET(request: NextRequest) {
 
         const [responseRows] = await connection.query<RowDataPacket[]>(
             `SELECT
-                r.IdRespuesta, r.IdSucursal, s.Sucursal, r.Correo, r.AceptaPromos,
+                r.IdRespuesta, r.IdSucursal, s.Sucursal, r.Correo, r.Telefono, r.AceptaPromos,
                 r.Comentario, r.Atendio, r.Fecha
              FROM tblEncuestasRespuestas r
              LEFT JOIN tblSucursales s ON s.IdSucursal = r.IdSucursal
@@ -170,6 +173,8 @@ export async function GET(request: NextRequest) {
                 promedioGeneral: avgRows[0]?.Promedio != null ? Number(avgRows[0].Promedio) : null,
                 totalComentarios: Number(summary.TotalComentarios) || 0,
                 totalCorreos: Number(summary.TotalCorreos) || 0,
+                totalTelefonos: Number(summary.TotalTelefonos) || 0,
+                totalContactos: Number(summary.TotalContactos) || 0,
                 totalOptIn: Number(summary.TotalOptIn) || 0,
             },
             questions: questionRows.map(q => ({
@@ -194,6 +199,7 @@ export async function GET(request: NextRequest) {
                 fecha: r.Fecha,
                 sucursal: r.Sucursal || null,
                 correo: r.Correo || null,
+                telefono: r.Telefono || null,
                 aceptaPromos: r.AceptaPromos === 1,
                 comentario: r.Comentario || null,
                 atendio: r.Atendio || null,

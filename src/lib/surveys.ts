@@ -14,8 +14,9 @@ import pool from '@/lib/db';
  *
  * El contenido es configurable por proyecto: textos del encabezado, preguntas
  * (estrellas 1-5 u opciones), umbral que dispara el comentario abierto y el
- * bloque de regalo con captura de correo. Las respuestas guardan un snapshot
- * de la pregunta para que el reporte histórico sobreviva ediciones.
+ * bloque de regalo con captura de contacto (teléfono o correo, al menos uno).
+ * Las respuestas guardan un snapshot de la pregunta para que el reporte
+ * histórico sobreviva ediciones.
  */
 
 /** Topes defensivos: el envío de respuestas es un endpoint público. */
@@ -24,6 +25,7 @@ export const MAX_QUESTION_LEN = 255;
 export const MAX_OPTION_LABEL_LEN = 60;
 export const MAX_COMMENT_LEN = 1000;
 export const MAX_EMAIL_LEN = 255;
+export const MAX_PHONE_LEN = 20;
 export const MAX_CONFIG_TEXT_LEN = 300;
 /** Flyer de promoción: data URL base64 (~4 MB de imagen ≈ 5.4M caracteres). */
 export const MAX_FLYER_DATA_LEN = 6_000_000;
@@ -84,6 +86,15 @@ export function isValidSurveyUuid(uuid: unknown): uuid is string {
 
 export function isValidSurveyEmail(email: string): boolean {
     return email.length <= MAX_EMAIL_LEN && EMAIL_PATTERN.test(email);
+}
+
+/** Formato flexible ("+52 55 1234 5678", "(55) 1234-5678") pero 8-15 dígitos. */
+const PHONE_CHARS_PATTERN = /^\+?[\d\s\-().]+$/;
+
+export function isValidSurveyPhone(phone: string): boolean {
+    if (phone.length > MAX_PHONE_LEN || !PHONE_CHARS_PATTERN.test(phone)) return false;
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 8 && digits.length <= 15;
 }
 
 /**
@@ -179,11 +190,13 @@ export const DEFAULT_SURVEY_CONFIG = {
     TextoComentario: 'Cuéntanos qué sucedió. Queremos escucharte y mejorar.',
     RegaloActivo: 1,
     TituloRegalo: 'Tenemos un regalo para ti',
-    TextoRegalo: 'Déjanos tu correo y al enviar esta encuesta recibirás un regalo para disfrutar en tu próxima visita.',
+    TextoRegalo: 'Déjanos tu teléfono o tu correo y al enviar esta encuesta recibirás un regalo para disfrutar en tu próxima visita.',
     TextoPromos: 'Quiero recibir mi regalo y promociones especiales.',
     TextoBotonEnviar: 'Enviar y recibir mi regalo',
     TituloGracias: '¡Gracias por ayudarnos a mejorar!',
-    TextoGracias: 'Revisa tu correo. Tu regalo ya va en camino.',
+    // El regalo ya no llega por correo: se entrega en el flyer/QR de la
+    // pantalla de gracias, así que no hay texto default de "revisa tu correo".
+    TextoGracias: '',
     // Apagado de origen: las encuestas que ya corren no deben estrenar un
     // bloque nuevo sin que nadie lo haya configurado.
     AtencionActiva: 0,
@@ -331,6 +344,7 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
               \`IdRespuesta\` int NOT NULL AUTO_INCREMENT,
               \`IdSucursal\` int DEFAULT NULL,
               \`Correo\` varchar(255) DEFAULT NULL,
+              \`Telefono\` varchar(20) DEFAULT NULL,
               \`AceptaPromos\` tinyint NOT NULL DEFAULT 0,
               \`Comentario\` text,
               \`Fecha\` datetime DEFAULT NULL,
@@ -398,6 +412,23 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
         if (!answerNames.includes('Atendio')) {
             await connection.query('ALTER TABLE tblEncuestasRespuestas ADD COLUMN `Atendio` varchar(120) DEFAULT NULL');
         }
+        if (!answerNames.includes('Telefono')) {
+            await connection.query('ALTER TABLE tblEncuestasRespuestas ADD COLUMN `Telefono` varchar(20) DEFAULT NULL');
+        }
+
+        // El regalo dejó de llegar por correo: ahora se entrega con el flyer/QR
+        // de la pantalla de gracias. Los textos DEFAULT viejos que prometían un
+        // correo se migran aquí; los textos personalizados no se tocan (solo
+        // coincide la cadena exacta del default anterior).
+        await connection.query(
+            `UPDATE tblEncuestasConfig SET TextoGracias = NULL
+             WHERE TextoGracias = 'Revisa tu correo. Tu regalo ya va en camino.'`
+        );
+        await connection.query(
+            `UPDATE tblEncuestasConfig SET TextoRegalo = ?
+             WHERE TextoRegalo = 'Déjanos tu correo y al enviar esta encuesta recibirás un regalo para disfrutar en tu próxima visita.'`,
+            [DEFAULT_SURVEY_CONFIG.TextoRegalo]
+        );
 
         // Siembra inicial. El renglón de config vive SIEMPRE con IdConfig = 1:
         // el INSERT IGNORE sobre esa PK fija hace de candado, así dos requests

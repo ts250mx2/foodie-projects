@@ -747,7 +747,7 @@ export default function SurveyConfigPage() {
 
                         <div className="rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Regalo y correo</span>
+                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Regalo y contacto</span>
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                     <input
                                         type="checkbox"
@@ -819,9 +819,10 @@ export default function SurveyConfigPage() {
                             <div className="p-4 flex flex-col sm:flex-row gap-4">
                                 <div className="flex-1 space-y-2">
                                     <p className="text-sm text-gray-600 leading-relaxed">
-                                        Sube la imagen de tu promoción. Al terminar la encuesta, la tablet muestra un
-                                        <strong> código QR</strong>: el comensal lo escanea con su celular y ve este flyer
-                                        para reclamar su regalo. Sin flyer, la pantalla de gracias no muestra QR.
+                                        Sube la imagen de tu promoción. Al terminar la encuesta se muestra un
+                                        <strong> código QR</strong> para escanearlo con el celular y un
+                                        <strong> botón</strong> que abre este flyer para reclamar el regalo.
+                                        Sin flyer, la pantalla de gracias no muestra ninguno de los dos.
                                     </p>
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <Button

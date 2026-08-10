@@ -9,6 +9,7 @@ import {
     MessageCircle,
     Gift,
     Mail,
+    Phone,
     Send,
     CheckCircle2,
     LockKeyhole,
@@ -87,6 +88,14 @@ const KIOSK_RESET_FLYER_SECONDS = 30;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Mismo criterio que el servidor: formato flexible pero 8-15 dígitos.
+const PHONE_CHARS_PATTERN = /^\+?[\d\s\-().]+$/;
+const isValidPhone = (phone: string) => {
+    if (!PHONE_CHARS_PATTERN.test(phone)) return false;
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 8 && digits.length <= 15;
+};
+
 export default function PublicSurveyPage() {
     const params = useParams();
     const uuid = (params?.uuid as string) || '';
@@ -104,9 +113,11 @@ export default function PublicSurveyPage() {
     const [answers, setAnswers] = useState<Record<number, number>>({});
     const [comment, setComment] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [wantsPromos, setWantsPromos] = useState(false);
     const [missingIds, setMissingIds] = useState<number[]>([]);
-    const [emailError, setEmailError] = useState('');
+    // Un solo error para el bloque de contacto (teléfono y/o correo).
+    const [contactError, setContactError] = useState('');
     // Quién atendió: id de la lista, OTHER_ATTENDANT si eligió "Otro", o null.
     const [attendantId, setAttendantId] = useState<number | null>(null);
     const [attendantName, setAttendantName] = useState('');
@@ -185,9 +196,10 @@ export default function PublicSurveyPage() {
         setAnswers({});
         setComment('');
         setEmail('');
+        setPhone('');
         setWantsPromos(false);
         setMissingIds([]);
-        setEmailError('');
+        setContactError('');
         setSubmitError('');
         setAttendantId(null);
         setAttendantName('');
@@ -259,15 +271,22 @@ export default function PublicSurveyPage() {
         setAttendantError('');
 
         const cleanEmail = email.trim();
+        const cleanPhone = phone.trim();
         if (cleanEmail && !EMAIL_PATTERN.test(cleanEmail)) {
-            setEmailError('Revisa el correo: no parece válido.');
+            setContactError('Revisa el correo: no parece válido.');
             return;
         }
-        if (wantsPromos && !cleanEmail) {
-            setEmailError('Escribe tu correo para recibir tu regalo.');
+        if (cleanPhone && !isValidPhone(cleanPhone)) {
+            setContactError('Revisa el teléfono: no parece válido.');
             return;
         }
-        setEmailError('');
+        // Con regalo activo el contacto es obligatorio (por ahí llegan regalo
+        // y promociones); con el regalo apagado la encuesta sigue anónima.
+        if (config.regaloActivo === 1 && !cleanEmail && !cleanPhone) {
+            setContactError('Escribe tu teléfono o tu correo para enviar la encuesta.');
+            return;
+        }
+        setContactError('');
 
         setIsSending(true);
         try {
@@ -279,6 +298,7 @@ export default function PublicSurveyPage() {
                     respuestas: questions.map(q => ({ idPregunta: q.idPregunta, valor: answers[q.idPregunta] })),
                     comentario: showComment ? comment : null,
                     correo: cleanEmail || null,
+                    telefono: cleanPhone || null,
                     aceptaPromos: wantsPromos,
                     idSucursal: branchId,
                     idAtendio: selectedAttendantId,
@@ -358,6 +378,18 @@ export default function PublicSurveyPage() {
                                 <Gift size={18} strokeWidth={2.2} />
                                 Escanea con tu celular y llévate tu regalo
                             </p>
+                            {/* Quien contesta desde SU celular no puede escanear la
+                                pantalla que está viendo: el botón abre el mismo flyer. */}
+                            <a
+                                href={giftUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="h-14 px-8 rounded-2xl font-black text-base uppercase tracking-wide flex items-center justify-center gap-2.5 active:scale-[0.98] transition shadow-sm"
+                                style={{ backgroundColor: INK, color: '#ffffff' }}
+                            >
+                                <Gift size={20} strokeWidth={2.2} />
+                                Abrir mi regalo
+                            </a>
                         </div>
                     )}
                     <button
@@ -679,25 +711,54 @@ export default function PublicSurveyPage() {
                     )}
 
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="survey-email" className="text-sm font-bold" style={{ color: INK }}>
-                            Correo electrónico
-                        </label>
-                        <div className="relative">
-                            <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_MUTED }} />
-                            <input
-                                id="survey-email"
-                                type="email"
-                                inputMode="email"
-                                autoComplete="email"
-                                value={email}
-                                onChange={e => { setEmail(e.target.value); setEmailError(''); }}
-                                maxLength={255}
-                                placeholder="tuemail@correo.com"
-                                className="w-full h-14 rounded-2xl border-2 pl-12 pr-4 text-base font-medium focus:outline-none"
-                                style={{ borderColor: emailError ? '#dc2626' : BORDER, color: INK }}
-                            />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="survey-phone" className="text-sm font-bold" style={{ color: INK }}>
+                                    Teléfono
+                                </label>
+                                <div className="relative">
+                                    <Phone size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_MUTED }} />
+                                    <input
+                                        id="survey-phone"
+                                        type="tel"
+                                        inputMode="tel"
+                                        autoComplete="tel"
+                                        value={phone}
+                                        onChange={e => { setPhone(e.target.value); setContactError(''); }}
+                                        maxLength={20}
+                                        placeholder="55 1234 5678"
+                                        className="w-full h-14 rounded-2xl border-2 pl-12 pr-4 text-base font-medium focus:outline-none"
+                                        style={{ borderColor: contactError ? '#dc2626' : BORDER, color: INK }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="survey-email" className="text-sm font-bold" style={{ color: INK }}>
+                                    Correo electrónico
+                                </label>
+                                <div className="relative">
+                                    <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_MUTED }} />
+                                    <input
+                                        id="survey-email"
+                                        type="email"
+                                        inputMode="email"
+                                        autoComplete="email"
+                                        value={email}
+                                        onChange={e => { setEmail(e.target.value); setContactError(''); }}
+                                        maxLength={255}
+                                        placeholder="tuemail@correo.com"
+                                        className="w-full h-14 rounded-2xl border-2 pl-12 pr-4 text-base font-medium focus:outline-none"
+                                        style={{ borderColor: contactError ? '#dc2626' : BORDER, color: INK }}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        {emailError && <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{emailError}</p>}
+                        {config.regaloActivo === 1 && (
+                            <p className="text-[13px] font-medium" style={{ color: INK_MUTED }}>
+                                Déjanos al menos uno de los dos.
+                            </p>
+                        )}
+                        {contactError && <p className="text-sm font-bold" style={{ color: '#dc2626' }}>{contactError}</p>}
                         {config.regaloActivo === 1 && (
                             <label className="flex items-center gap-3 mt-1 cursor-pointer select-none">
                                 <input

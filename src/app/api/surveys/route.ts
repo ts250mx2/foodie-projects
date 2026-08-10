@@ -10,11 +10,13 @@ import {
     sanitizeSurveyComment,
     sanitizeSurveyText,
     isValidSurveyEmail,
+    isValidSurveyPhone,
     parseAttendantMode,
     attendantModeAllowsList,
     attendantModeAllowsText,
     MAX_SURVEY_QUESTIONS,
     MAX_EMAIL_LEN,
+    MAX_PHONE_LEN,
     MAX_ATTENDANT_NAME_LEN,
     SurveyQuestionType,
 } from '@/lib/surveys';
@@ -90,28 +92,48 @@ export async function POST(request: NextRequest) {
 
         const comentario = sanitizeSurveyComment(body.comentario);
 
-        // Correo: opcional; si viene mal formado se rechaza para no guardar
-        // basura en la lista de contactos del restaurante.
+        // Configuración vigente: manda sobre lo que exige el servidor (nunca
+        // el cliente). Sin renglón de config aplican los defaults.
+        const [configRows] = await connection.query<RowDataPacket[]>(
+            `SELECT RegaloActivo, AtencionActiva, AtencionModo, AtencionObligatoria
+             FROM tblEncuestasConfig ORDER BY IdConfig ASC LIMIT 1`
+        );
+        const cfg = configRows[0];
+        const regaloActivo = cfg?.RegaloActivo === 0 ? 0 : 1;
+
+        // Contacto: con regalo activo se exige teléfono O correo (al menos
+        // uno); con el regalo apagado la encuesta sigue siendo anónima. Si
+        // algo viene mal formado se rechaza para no guardar basura en la
+        // lista de contactos del restaurante.
         const correoRaw = sanitizeSurveyText(body.correo, MAX_EMAIL_LEN);
         if (correoRaw && !isValidSurveyEmail(correoRaw)) {
             return NextResponse.json({ success: false, message: 'Correo inválido' }, { status: 400 });
         }
         const correo = correoRaw ? correoRaw.toLowerCase() : null;
-        const aceptaPromos = correo && body.aceptaPromos ? 1 : 0;
+
+        const telefono = sanitizeSurveyText(body.telefono, MAX_PHONE_LEN);
+        if (telefono && !isValidSurveyPhone(telefono)) {
+            return NextResponse.json({ success: false, message: 'Teléfono inválido' }, { status: 400 });
+        }
+
+        if (regaloActivo === 1 && !correo && !telefono) {
+            return NextResponse.json(
+                { success: false, message: 'Comparte tu teléfono o tu correo para enviar la encuesta' },
+                { status: 400 }
+            );
+        }
+
+        const aceptaPromos = (correo || telefono) && body.aceptaPromos ? 1 : 0;
 
         // ── ¿Quién te atendió? ───────────────────────────────────────────
         // El modo lo manda la configuración, nunca el cliente: una tablet
         // desactualizada no puede colar texto libre donde solo hay lista.
-        const [atencionRows] = await connection.query<RowDataPacket[]>(
-            'SELECT AtencionActiva, AtencionModo, AtencionObligatoria FROM tblEncuestasConfig ORDER BY IdConfig ASC LIMIT 1'
-        );
-        const atencionCfg = atencionRows[0];
-        const atencionModo = parseAttendantMode(atencionCfg?.AtencionModo);
+        const atencionModo = parseAttendantMode(cfg?.AtencionModo);
 
         // Modo 'lista' sin nadie activo en la lista = bloque incontestable.
         // /api/surveys/session lo apaga en la tablet; aquí se apaga igual, o
         // una lista vacía marcada como obligatoria trabaría TODOS los envíos.
-        let atencionActiva = atencionCfg?.AtencionActiva === 1;
+        let atencionActiva = cfg?.AtencionActiva === 1;
         if (atencionActiva && atencionModo === 'lista') {
             const [activos] = await connection.query<RowDataPacket[]>(
                 'SELECT 1 FROM tblEncuestasAtendieron WHERE Activo = 1 LIMIT 1'
@@ -139,7 +161,7 @@ export async function POST(request: NextRequest) {
                 atendio = sanitizeSurveyText(body.atendio, MAX_ATTENDANT_NAME_LEN);
             }
 
-            if (atencionCfg?.AtencionObligatoria === 1 && !atendio) {
+            if (cfg?.AtencionObligatoria === 1 && !atendio) {
                 return NextResponse.json(
                     { success: false, message: 'Falta indicar quién te atendió' },
                     { status: 400 }
@@ -163,9 +185,9 @@ export async function POST(request: NextRequest) {
         try {
             const [inserted] = await connection.query<ResultSetHeader>(
                 `INSERT INTO tblEncuestasRespuestas
-                    (IdSucursal, Correo, AceptaPromos, Comentario, IdAtendio, Atendio, Fecha, FechaAct)
-                 VALUES (?, ?, ?, ?, ?, ?, Now(), Now())`,
-                [idSucursal, correo, aceptaPromos, comentario, idAtendio, atendio]
+                    (IdSucursal, Correo, Telefono, AceptaPromos, Comentario, IdAtendio, Atendio, Fecha, FechaAct)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, Now(), Now())`,
+                [idSucursal, correo, telefono, aceptaPromos, comentario, idAtendio, atendio]
             );
             const idRespuesta = inserted.insertId;
 
