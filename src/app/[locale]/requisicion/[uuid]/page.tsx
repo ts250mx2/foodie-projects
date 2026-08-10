@@ -197,6 +197,11 @@ export default function RequisitionPage() {
     const branchName = branches.find(b => b.IdSucursal === requester?.idSucursal)?.Sucursal ?? '';
     const totalUnidades = lines.reduce((sum, line) => sum + line.cantidad, 0);
 
+    // Categorías del perfil que firma el pedido. Sin perfil (o sin categorías
+    // configuradas) la tablet muestra el catálogo completo, como siempre.
+    const activeProfile = profiles.find(p => p.IdPerfil === requester?.idPerfil) ?? null;
+    const allowedCategoryIds = activeProfile?.Categorias ?? null;
+
     if (stage === 'loading') {
         return (
             <main className="min-h-dvh bg-[#eef1f5] flex flex-col items-center justify-center gap-4" style={{ color: INK_MUTED }}>
@@ -292,6 +297,7 @@ export default function RequisitionPage() {
                     products={products}
                     quantities={quantities}
                     accent={accent}
+                    allowedCategoryIds={allowedCategoryIds}
                     onAdd={handleAdd}
                     onOpenPad={setPadTarget}
                 />

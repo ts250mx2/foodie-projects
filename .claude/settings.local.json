@@ -34,7 +34,8 @@
       "Bash(Find 'src' -name \"*.tsx\" -type f)",
       "Bash(xargs grep -l \"text-center.*py-.*Cargando\\\\|isLoading.*<div\")",
       "Bash(xargs grep -l \"LoadingSpinner message=\")",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(Get-ChildItem -Recurse -Directory \"src\" | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"$PWD\\\\\", \"\"\\) })"
     ]
   }
 }

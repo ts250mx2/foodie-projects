@@ -10,8 +10,12 @@ import {
     sanitizeSurveyComment,
     sanitizeSurveyText,
     isValidSurveyEmail,
+    parseAttendantMode,
+    attendantModeAllowsList,
+    attendantModeAllowsText,
     MAX_SURVEY_QUESTIONS,
     MAX_EMAIL_LEN,
+    MAX_ATTENDANT_NAME_LEN,
     SurveyQuestionType,
 } from '@/lib/surveys';
 
@@ -95,6 +99,54 @@ export async function POST(request: NextRequest) {
         const correo = correoRaw ? correoRaw.toLowerCase() : null;
         const aceptaPromos = correo && body.aceptaPromos ? 1 : 0;
 
+        // ── ¿Quién te atendió? ───────────────────────────────────────────
+        // El modo lo manda la configuración, nunca el cliente: una tablet
+        // desactualizada no puede colar texto libre donde solo hay lista.
+        const [atencionRows] = await connection.query<RowDataPacket[]>(
+            'SELECT AtencionActiva, AtencionModo, AtencionObligatoria FROM tblEncuestasConfig ORDER BY IdConfig ASC LIMIT 1'
+        );
+        const atencionCfg = atencionRows[0];
+        const atencionModo = parseAttendantMode(atencionCfg?.AtencionModo);
+
+        // Modo 'lista' sin nadie activo en la lista = bloque incontestable.
+        // /api/surveys/session lo apaga en la tablet; aquí se apaga igual, o
+        // una lista vacía marcada como obligatoria trabaría TODOS los envíos.
+        let atencionActiva = atencionCfg?.AtencionActiva === 1;
+        if (atencionActiva && atencionModo === 'lista') {
+            const [activos] = await connection.query<RowDataPacket[]>(
+                'SELECT 1 FROM tblEncuestasAtendieron WHERE Activo = 1 LIMIT 1'
+            );
+            if (activos.length === 0) atencionActiva = false;
+        }
+
+        let idAtendio: number | null = null;
+        let atendio: string | null = null;
+
+        if (atencionActiva) {
+            const idAtendioRaw = Number(body.idAtendio);
+            if (attendantModeAllowsList(atencionModo) && Number.isInteger(idAtendioRaw) && idAtendioRaw > 0) {
+                const [personRows] = await connection.query<RowDataPacket[]>(
+                    'SELECT IdAtendio, Nombre FROM tblEncuestasAtendieron WHERE IdAtendio = ? AND Activo = 1',
+                    [idAtendioRaw]
+                );
+                if (personRows.length === 0) {
+                    return NextResponse.json({ success: false, message: 'Esa persona ya no está disponible' }, { status: 400 });
+                }
+                idAtendio = personRows[0].IdAtendio;
+                // Snapshot del nombre: el reporte no se rompe si luego se borra.
+                atendio = personRows[0].Nombre;
+            } else if (attendantModeAllowsText(atencionModo)) {
+                atendio = sanitizeSurveyText(body.atendio, MAX_ATTENDANT_NAME_LEN);
+            }
+
+            if (atencionCfg?.AtencionObligatoria === 1 && !atendio) {
+                return NextResponse.json(
+                    { success: false, message: 'Falta indicar quién te atendió' },
+                    { status: 400 }
+                );
+            }
+        }
+
         // Sucursal: viene del parámetro ?s= de la liga; si no existe o está
         // inactiva se guarda sin sucursal en lugar de rechazar la encuesta.
         let idSucursal: number | null = null;
@@ -111,9 +163,9 @@ export async function POST(request: NextRequest) {
         try {
             const [inserted] = await connection.query<ResultSetHeader>(
                 `INSERT INTO tblEncuestasRespuestas
-                    (IdSucursal, Correo, AceptaPromos, Comentario, Fecha, FechaAct)
-                 VALUES (?, ?, ?, ?, Now(), Now())`,
-                [idSucursal, correo, aceptaPromos, comentario]
+                    (IdSucursal, Correo, AceptaPromos, Comentario, IdAtendio, Atendio, Fecha, FechaAct)
+                 VALUES (?, ?, ?, ?, ?, ?, Now(), Now())`,
+                [idSucursal, correo, aceptaPromos, comentario, idAtendio, atendio]
             );
             const idRespuesta = inserted.insertId;
 

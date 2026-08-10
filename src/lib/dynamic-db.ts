@@ -4,6 +4,7 @@ import { RowDataPacket } from 'mysql2';
 import { TEMPLATE_DB, syncDatabaseWithTemplate } from '@/lib/db-template';
 import {
     ensureRequisitionColumns,
+    ensureRequisitionProfileCategories,
     ensureRequisitionProfiles,
     ensureRequisitionStatusHistory,
 } from '@/lib/requisitions';
@@ -380,6 +381,7 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             await ensureWarehouseTables(connection);
             await ensureRequisitionColumns(connection);
             await ensureRequisitionProfiles(connection);
+            await ensureRequisitionProfileCategories(connection);
             await ensureRequisitionStatusHistory(connection);
             await ensureSurveyTables(connection);
 

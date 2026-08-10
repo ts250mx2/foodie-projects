@@ -12,6 +12,7 @@ import {
     CheckCircle2,
     LockKeyhole,
     Loader2,
+    UserRound,
 } from 'lucide-react';
 import { INK, INK_MUTED, CANVAS, BORDER } from '@/components/requisitions/theme';
 
@@ -44,7 +45,21 @@ interface SurveyConfig {
     textoBotonEnviar: string;
     tituloGracias: string;
     textoGracias: string | null;
+    atencionActiva: number;
+    atencionTitulo: string;
+    atencionTexto: string | null;
+    /** lista = solo predefinidos · texto = abierto · ambos = lista con "Otro". */
+    atencionModo: 'lista' | 'texto' | 'ambos';
+    atencionObligatoria: number;
 }
+
+interface SurveyAttendant {
+    idAtendio: number;
+    nombre: string;
+}
+
+/** Marca de "Otro" en el selector: no es un id real de la lista. */
+const OTHER_ATTENDANT = -1;
 
 interface SurveyQuestion {
     idPregunta: number;
@@ -78,16 +93,23 @@ export default function PublicSurveyPage() {
     const [branchId, setBranchId] = useState<number | null>(null);
     const [branchName, setBranchName] = useState<string | null>(null);
 
+    const [attendants, setAttendants] = useState<SurveyAttendant[]>([]);
+
     const [answers, setAnswers] = useState<Record<number, number>>({});
     const [comment, setComment] = useState('');
     const [email, setEmail] = useState('');
     const [wantsPromos, setWantsPromos] = useState(false);
     const [missingIds, setMissingIds] = useState<number[]>([]);
     const [emailError, setEmailError] = useState('');
+    // Quién atendió: id de la lista, OTHER_ATTENDANT si eligió "Otro", o null.
+    const [attendantId, setAttendantId] = useState<number | null>(null);
+    const [attendantName, setAttendantName] = useState('');
+    const [attendantError, setAttendantError] = useState('');
     const [submitError, setSubmitError] = useState('');
     const [isSending, setIsSending] = useState(false);
 
     const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const attendantRef = useRef<HTMLElement | null>(null);
 
     /**
      * Carga (o recarga) la configuración y preguntas vigentes. La tablet vive
@@ -101,6 +123,15 @@ export default function PublicSurveyPage() {
 
         setTheme(data.project);
         setConfig(data.config);
+        const nextAttendants: SurveyAttendant[] = data.attendants || [];
+        setAttendants(nextAttendants);
+        // Si la persona elegida desapareció de la lista mientras la tablet
+        // estaba abierta, se limpia en vez de mandar un id que ya no existe.
+        setAttendantId(prev =>
+            prev === null || prev === OTHER_ATTENDANT || nextAttendants.some(a => a.idAtendio === prev)
+                ? prev
+                : null
+        );
         const nextQuestions: SurveyQuestion[] = data.questions || [];
         setQuestions(nextQuestions);
         // Poda respuestas de preguntas que ya no existen o se desactivaron.
@@ -152,6 +183,9 @@ export default function PublicSurveyPage() {
         setMissingIds([]);
         setEmailError('');
         setSubmitError('');
+        setAttendantId(null);
+        setAttendantName('');
+        setAttendantError('');
         setStage('form');
         window.scrollTo({ top: 0 });
         // Refresca preguntas/textos entre comensales; si falla, el formulario
@@ -183,6 +217,19 @@ export default function PublicSurveyPage() {
         return (valor / max) * 5 <= umbral;
     });
 
+    // Nombre que se manda cuando el comensal escribe en lugar de elegir.
+    const showAttendant = config?.atencionActiva === 1;
+    const hasAttendantList = attendants.length > 0;
+    const showAttendantList = showAttendant && config?.atencionModo !== 'texto' && hasAttendantList;
+    // En 'ambos' el texto abierto sale al tocar "Otro"; si la lista quedó
+    // vacía, el bloque se comporta como texto abierto en vez de no ofrecer nada.
+    const showAttendantText = showAttendant && (
+        config?.atencionModo === 'texto' ||
+        (config?.atencionModo === 'ambos' && (attendantId === OTHER_ATTENDANT || !hasAttendantList))
+    );
+    const selectedAttendantId = attendantId !== null && attendantId > 0 ? attendantId : null;
+    const typedAttendant = showAttendantText ? attendantName.trim() : '';
+
     const handleSubmit = async () => {
         if (!config || isSending) return;
         setSubmitError('');
@@ -194,6 +241,15 @@ export default function PublicSurveyPage() {
             first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
+
+        if (showAttendant && config.atencionObligatoria === 1 && !selectedAttendantId && !typedAttendant) {
+            setAttendantError(config.atencionModo === 'texto'
+                ? 'Escribe quién te atendió.'
+                : 'Elige quién te atendió.');
+            attendantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        setAttendantError('');
 
         const cleanEmail = email.trim();
         if (cleanEmail && !EMAIL_PATTERN.test(cleanEmail)) {
@@ -218,6 +274,8 @@ export default function PublicSurveyPage() {
                     correo: cleanEmail || null,
                     aceptaPromos: wantsPromos,
                     idSucursal: branchId,
+                    idAtendio: selectedAttendantId,
+                    atendio: typedAttendant || null,
                 }),
             });
             const data = await res.json();
@@ -436,6 +494,98 @@ export default function PublicSurveyPage() {
                             ? 'Te falta una pregunta por contestar.'
                             : `Te faltan ${missingIds.length} preguntas por contestar.`}
                     </p>
+                )}
+
+                {/* ¿Quién te atendió? — lista predefinida, texto abierto o ambos */}
+                {showAttendant && (
+                    <section
+                        ref={attendantRef}
+                        className={`bg-white rounded-3xl border-2 p-5 sm:p-7 shadow-sm flex flex-col sm:flex-row gap-4 ${attendantError ? 'ring-2 ring-red-400' : ''}`}
+                        style={{ borderColor: BORDER }}
+                    >
+                        <div className="h-14 w-14 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: INK }}>
+                            <UserRound size={26} color="#ffffff" />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-3">
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: INK }}>
+                                    {config.atencionTitulo}
+                                    {config.atencionObligatoria === 1 && <span className="text-red-600"> *</span>}
+                                </h2>
+                                {config.atencionTexto && (
+                                    <p className="text-[15px] font-medium mt-1" style={{ color: INK_MUTED }}>
+                                        {config.atencionTexto}
+                                    </p>
+                                )}
+                            </div>
+
+                            {showAttendantList && (
+                                <div className="flex flex-wrap gap-2">
+                                    {attendants.map(person => {
+                                        const isActive = attendantId === person.idAtendio;
+                                        return (
+                                            <button
+                                                key={person.idAtendio}
+                                                type="button"
+                                                onClick={() => {
+                                                    // Volver a tocar deselecciona: nadie queda obligado
+                                                    // a dejar señalada a una persona por error.
+                                                    setAttendantId(isActive ? null : person.idAtendio);
+                                                    setAttendantName('');
+                                                    setAttendantError('');
+                                                }}
+                                                aria-pressed={isActive}
+                                                className="h-14 px-5 rounded-2xl border-2 font-bold text-base transition active:scale-95"
+                                                style={{
+                                                    backgroundColor: isActive ? INK : '#ffffff',
+                                                    borderColor: isActive ? INK : BORDER,
+                                                    color: isActive ? '#ffffff' : INK,
+                                                }}
+                                            >
+                                                {person.nombre}
+                                            </button>
+                                        );
+                                    })}
+
+                                    {config.atencionModo === 'ambos' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const isOther = attendantId === OTHER_ATTENDANT;
+                                                setAttendantId(isOther ? null : OTHER_ATTENDANT);
+                                                if (isOther) setAttendantName('');
+                                                setAttendantError('');
+                                            }}
+                                            aria-pressed={attendantId === OTHER_ATTENDANT}
+                                            className="h-14 px-5 rounded-2xl border-2 border-dashed font-bold text-base transition active:scale-95"
+                                            style={{
+                                                backgroundColor: attendantId === OTHER_ATTENDANT ? INK : '#ffffff',
+                                                borderColor: attendantId === OTHER_ATTENDANT ? INK : BORDER,
+                                                color: attendantId === OTHER_ATTENDANT ? '#ffffff' : INK_MUTED,
+                                            }}
+                                        >
+                                            Otro…
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {showAttendantText && (
+                                <input
+                                    type="text"
+                                    value={attendantName}
+                                    onChange={e => { setAttendantName(e.target.value); setAttendantError(''); }}
+                                    maxLength={120}
+                                    autoComplete="off"
+                                    placeholder="Escribe el nombre"
+                                    className="w-full h-14 rounded-2xl border-2 px-4 text-base font-medium focus:outline-none"
+                                    style={{ borderColor: attendantError ? '#dc2626' : BORDER, color: INK }}
+                                />
+                            )}
+
+                            {attendantError && <p className="text-sm font-bold text-red-600">{attendantError}</p>}
+                        </div>
+                    </section>
                 )}
 
                 {/* Comentario abierto: solo con calificaciones bajas */}

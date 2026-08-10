@@ -57,6 +57,19 @@ interface SurveyConfigForm {
     TextoBotonEnviar: string;
     TituloGracias: string;
     TextoGracias: string;
+    AtencionActiva: number;
+    AtencionTitulo: string;
+    AtencionTexto: string;
+    AtencionModo: 'lista' | 'texto' | 'ambos';
+    AtencionObligatoria: number;
+}
+
+/** Persona de la lista predefinida de "¿Quién te atendió?". */
+interface SurveyAttendantRow {
+    IdAtendio: number;
+    Nombre: string;
+    Orden: number;
+    Activo: number;
 }
 
 const EMPTY_CONFIG: SurveyConfigForm = {
@@ -73,7 +86,16 @@ const EMPTY_CONFIG: SurveyConfigForm = {
     TextoBotonEnviar: '',
     TituloGracias: '',
     TextoGracias: '',
+    AtencionActiva: 0,
+    AtencionTitulo: '',
+    AtencionTexto: '',
+    AtencionModo: 'lista',
+    AtencionObligatoria: 0,
 };
+
+/** Textos con los que se estrena el bloque al encenderlo por primera vez. */
+const DEFAULT_ATENCION_TITULO = '¿Quién te atendió?';
+const DEFAULT_ATENCION_TEXTO = 'Nos ayuda a reconocer a nuestro equipo.';
 
 const FALLBACK_MODULE_COLOR = '#6d28d9';
 const SCALE = 5;
@@ -86,6 +108,9 @@ export default function SurveyConfigPage() {
         : null;
 
     const [questions, setQuestions] = useState<SurveyQuestionRow[]>([]);
+    const [attendants, setAttendants] = useState<SurveyAttendantRow[]>([]);
+    const [newAttendant, setNewAttendant] = useState('');
+    const [renamingAttendant, setRenamingAttendant] = useState<{ id: number; nombre: string } | null>(null);
     const [config, setConfig] = useState<SurveyConfigForm>(EMPTY_CONFIG);
     // Sin carga exitosa no se permite guardar textos: guardaría el formulario
     // vacío encima de lo que el proyecto ya tiene configurado.
@@ -128,8 +153,16 @@ export default function SurveyConfigPage() {
                         TextoBotonEnviar: data.config.TextoBotonEnviar || '',
                         TituloGracias: data.config.TituloGracias || '',
                         TextoGracias: data.config.TextoGracias || '',
+                        AtencionActiva: data.config.AtencionActiva === 1 ? 1 : 0,
+                        AtencionTitulo: data.config.AtencionTitulo || '',
+                        AtencionTexto: data.config.AtencionTexto || '',
+                        AtencionModo: data.config.AtencionModo === 'texto' || data.config.AtencionModo === 'ambos'
+                            ? data.config.AtencionModo
+                            : 'lista',
+                        AtencionObligatoria: data.config.AtencionObligatoria === 1 ? 1 : 0,
                     });
                 }
+                setAttendants(data.attendants || []);
             }
         } catch (error) {
             console.error('Error fetching survey config:', error);
@@ -274,6 +307,66 @@ export default function SurveyConfigPage() {
             console.error('Error deleting question:', error);
             toastError('No se pudo eliminar la pregunta');
         }
+    };
+
+    /* ── Quién atendió ──────────────────────────────────────────────────── */
+
+    /** Llama al API de la lista y recarga; devuelve si salió bien. */
+    const runAttendant = async (input: RequestInfo, init?: RequestInit) => {
+        try {
+            const res = await fetch(input, init);
+            const data = await res.json();
+            if (!data.success) {
+                toastError(data.message || 'No se pudo actualizar la lista');
+                return false;
+            }
+            await fetchAll();
+            return true;
+        } catch (error) {
+            console.error('Error updating attendants:', error);
+            toastError('No se pudo actualizar la lista');
+            return false;
+        }
+    };
+
+    const handleAddAttendant = async () => {
+        const nombre = newAttendant.trim();
+        if (!nombre) return;
+        const ok = await runAttendant('/api/surveys/attendants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, nombre }),
+        });
+        if (ok) setNewAttendant('');
+    };
+
+    const handleRenameAttendant = async () => {
+        if (!renamingAttendant || !renamingAttendant.nombre.trim()) return;
+        const ok = await runAttendant('/api/surveys/attendants', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, idAtendio: renamingAttendant.id, nombre: renamingAttendant.nombre.trim() }),
+        });
+        if (ok) setRenamingAttendant(null);
+    };
+
+    const handleToggleAttendant = async (person: SurveyAttendantRow) => {
+        await runAttendant('/api/surveys/attendants', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, idAtendio: person.IdAtendio, activo: person.Activo === 1 ? 0 : 1 }),
+        });
+    };
+
+    const handleDeleteAttendant = async (person: SurveyAttendantRow) => {
+        const confirmed = window.confirm(
+            `¿Eliminar a "${person.Nombre}" de la lista? Las encuestas ya contestadas conservan su nombre en el reporte.`
+        );
+        if (!confirmed) return;
+        await runAttendant(
+            `/api/surveys/attendants?projectId=${projectId}&idAtendio=${person.IdAtendio}`,
+            { method: 'DELETE' }
+        );
     };
 
     /* ── Textos ─────────────────────────────────────────────────────────── */
@@ -464,6 +557,154 @@ export default function SurveyConfigPage() {
                                     onChange={e => setConfigField('TextoComentario', e.target.value)}
                                     maxLength={300}
                                 />
+                            </div>
+                        </div>
+
+                        {/* ¿Quién te atendió?: lista predefinida y/o texto abierto */}
+                        <div className="rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Quién atendió</span>
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.AtencionActiva === 1}
+                                        onChange={e => {
+                                            const activa = e.target.checked ? 1 : 0;
+                                            // Al encenderlo por primera vez estrena textos: guardar
+                                            // el bloque en blanco dejaría la encuesta sin título.
+                                            setConfig(prev => ({
+                                                ...prev,
+                                                AtencionActiva: activa,
+                                                AtencionTitulo: activa && !prev.AtencionTitulo ? DEFAULT_ATENCION_TITULO : prev.AtencionTitulo,
+                                                AtencionTexto: activa && !prev.AtencionTexto ? DEFAULT_ATENCION_TEXTO : prev.AtencionTexto,
+                                            }));
+                                        }}
+                                        className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
+                                    />
+                                    <span className="text-xs font-semibold text-gray-600">Preguntar quién atendió</span>
+                                </label>
+                            </div>
+                            <div className="p-4 flex flex-col gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                    <Input
+                                        label="Título"
+                                        value={config.AtencionTitulo}
+                                        onChange={e => setConfigField('AtencionTitulo', e.target.value)}
+                                        maxLength={300}
+                                        disabled={config.AtencionActiva === 0}
+                                    />
+                                    <Input
+                                        label="Texto de apoyo"
+                                        value={config.AtencionTexto}
+                                        onChange={e => setConfigField('AtencionTexto', e.target.value)}
+                                        maxLength={300}
+                                        disabled={config.AtencionActiva === 0}
+                                    />
+                                    <Select
+                                        label="Cómo se contesta"
+                                        value={config.AtencionModo}
+                                        onChange={e => setConfigField('AtencionModo', e.target.value)}
+                                        disabled={config.AtencionActiva === 0}
+                                        hint="La lista predefinida evita nombres mal escritos."
+                                    >
+                                        <option value="lista">Solo lista predefinida</option>
+                                        <option value="texto">Solo texto abierto</option>
+                                        <option value="ambos">Lista con opción &quot;Otro&quot;</option>
+                                    </Select>
+                                    <div className="flex items-end pb-2">
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={config.AtencionObligatoria === 1}
+                                                onChange={e => setConfigField('AtencionObligatoria', e.target.checked ? 1 : 0)}
+                                                disabled={config.AtencionActiva === 0}
+                                                className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer disabled:opacity-50"
+                                            />
+                                            <span className="text-xs font-semibold text-gray-600">Obligatorio</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Lista predefinida: solo estorba en modo texto abierto. */}
+                                {config.AtencionModo !== 'texto' && (
+                                    <div className={config.AtencionActiva === 0 ? 'opacity-50 pointer-events-none' : ''}>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                                            Personas ({attendants.filter(a => a.Activo === 1).length} activas)
+                                        </p>
+                                        <ul className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden max-h-64 overflow-y-auto">
+                                            {attendants.length === 0 && (
+                                                <li className="px-3 py-3 text-center text-xs text-gray-500">
+                                                    Sin personas. Agrega la primera abajo.
+                                                </li>
+                                            )}
+                                            {attendants.map(person => (
+                                                <li key={person.IdAtendio} className="px-3 py-2 bg-white flex items-center gap-2">
+                                                    {renamingAttendant?.id === person.IdAtendio ? (
+                                                        <>
+                                                            <input
+                                                                value={renamingAttendant.nombre}
+                                                                onChange={e => setRenamingAttendant({ ...renamingAttendant, nombre: e.target.value })}
+                                                                onKeyDown={e => {
+                                                                    if (e.key === 'Enter') handleRenameAttendant();
+                                                                    if (e.key === 'Escape') setRenamingAttendant(null);
+                                                                }}
+                                                                autoFocus
+                                                                maxLength={120}
+                                                                className="flex-1 h-9 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-900"
+                                                            />
+                                                            <RowActionButton icon={Check} label="Guardar" onClick={handleRenameAttendant} />
+                                                            <RowActionButton icon={Trash2} label="Cancelar" onClick={() => setRenamingAttendant(null)} />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className={`flex-1 text-sm font-semibold truncate ${person.Activo === 1 ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                                                                {person.Nombre}
+                                                            </span>
+                                                            <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={person.Activo === 1}
+                                                                    onChange={() => handleToggleAttendant(person)}
+                                                                    className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
+                                                                />
+                                                                <span className="text-[11px] font-semibold text-gray-500">Activa</span>
+                                                            </label>
+                                                            <RowActionButton
+                                                                icon={Pencil}
+                                                                label="Cambiar nombre"
+                                                                variant="edit"
+                                                                onClick={() => setRenamingAttendant({ id: person.IdAtendio, nombre: person.Nombre })}
+                                                            />
+                                                            <RowActionButton
+                                                                icon={Trash2}
+                                                                label="Eliminar"
+                                                                variant="delete"
+                                                                onClick={() => handleDeleteAttendant(person)}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <input
+                                                value={newAttendant}
+                                                onChange={e => setNewAttendant(e.target.value)}
+                                                onKeyDown={e => { if (e.key === 'Enter') handleAddAttendant(); }}
+                                                placeholder="Nombre (ej. Ana G.)"
+                                                maxLength={120}
+                                                className="flex-1 h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-900"
+                                            />
+                                            <Button leftIcon={Plus} onClick={handleAddAttendant} size="sm" variant="secondary" disabled={!newAttendant.trim()}>
+                                                Agregar
+                                            </Button>
+                                        </div>
+                                        <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+                                            Desactivar a alguien lo quita de la tablet sin borrar su historial. La lista se guarda al
+                                            momento; el resto de este bloque, con el botón Guardar.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

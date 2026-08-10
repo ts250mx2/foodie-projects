@@ -36,6 +36,17 @@ export interface RequisitionProfile {
     Perfil: string;
     /** MySQL devuelve el booleano como 0/1. El PIN nunca viaja al cliente. */
     TienePin: number;
+    /**
+     * Categorías que el perfil ve al frente en la tablet (IdCategoria; 0 = sin
+     * categoría). Vacío = ve el catálogo completo.
+     */
+    Categorias: number[];
+}
+
+/** Categoría de insumos ofrecida al configurar un perfil. */
+export interface RequisitionCategory {
+    IdCategoria: number;
+    Categoria: string;
 }
 
 /**

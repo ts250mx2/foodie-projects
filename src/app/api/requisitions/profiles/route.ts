@@ -2,14 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { MAX_PROFILE_NAME_LEN, PIN_PATTERN, sanitizeText } from '@/lib/requisitions';
+import {
+    MAX_PROFILE_NAME_LEN,
+    PIN_PATTERN,
+    listRequisitionCategories,
+    parseCategoryCsv,
+    replaceProfileCategories,
+    sanitizeCategoryIds,
+    sanitizeText,
+} from '@/lib/requisitions';
 
 /**
  * Administración de perfiles de requisición (Cocina, Barra, …) desde el portal.
  *
  * Nunca devuelve el PIN, ni siquiera hasheado: solo si el perfil tiene uno.
  * Un PIN olvidado se reemplaza, no se consulta.
+ *
+ * Cada perfil puede acotar las categorías que la tablet le muestra al frente.
+ * Sin categorías configuradas ve el catálogo completo.
  */
+
+/** Perfiles + sus categorías, en una sola consulta. */
+const PROFILE_COLUMNS = `
+    p.IdPerfil, p.IdSucursal, p.Perfil, (p.PinHash IS NOT NULL) AS TienePin,
+    (SELECT GROUP_CONCAT(pc.IdCategoria)
+       FROM tblRequisicionPerfilesCategorias pc
+      WHERE pc.IdPerfil = p.IdPerfil) AS CategoriasCsv
+`;
 
 const errorDuplicado = (perfil: string | null) =>
     NextResponse.json(
@@ -36,16 +55,25 @@ export async function GET(request: NextRequest) {
         // Sin idSucursal devuelve todas: el portal las agrupa por sucursal.
         const [rows] = idSucursal
             ? await connection.query(
-                `SELECT IdPerfil, IdSucursal, Perfil, (PinHash IS NOT NULL) AS TienePin
-                 FROM tblRequisicionPerfiles WHERE IdSucursal = ? ORDER BY Orden ASC, Perfil ASC`,
+                `SELECT ${PROFILE_COLUMNS}
+                 FROM tblRequisicionPerfiles p WHERE p.IdSucursal = ? ORDER BY p.Orden ASC, p.Perfil ASC`,
                 [idSucursal]
             )
             : await connection.query(
-                `SELECT IdPerfil, IdSucursal, Perfil, (PinHash IS NOT NULL) AS TienePin
-                 FROM tblRequisicionPerfiles ORDER BY IdSucursal ASC, Orden ASC, Perfil ASC`
+                `SELECT ${PROFILE_COLUMNS}
+                 FROM tblRequisicionPerfiles p ORDER BY p.IdSucursal ASC, p.Orden ASC, p.Perfil ASC`
             );
 
-        return NextResponse.json({ success: true, data: rows as RowDataPacket[] });
+        const profiles = (rows as RowDataPacket[]).map(({ CategoriasCsv, ...profile }) => ({
+            ...profile,
+            Categorias: parseCategoryCsv(CategoriasCsv),
+        }));
+
+        // El catálogo de categorías viaja junto: es lo que el portal ofrece
+        // para configurar, y sale de los insumos reales del proyecto.
+        const categorias = await listRequisitionCategories(connection);
+
+        return NextResponse.json({ success: true, data: profiles, categorias });
     } catch (error) {
         console.error('Error listing requisition profiles:', error);
         return NextResponse.json({ success: false, message: 'Error al cargar los perfiles' }, { status: 500 });
@@ -105,7 +133,7 @@ export async function PATCH(request: NextRequest) {
     let nombre: string | null = null;
     try {
         const body = await request.json();
-        const { projectId, idPerfil, perfil, pin } = body;
+        const { projectId, idPerfil, perfil, pin, categorias } = body;
 
         if (!projectId || !idPerfil) {
             return NextResponse.json({ success: false, message: 'Faltan datos del perfil' }, { status: 400 });
@@ -113,7 +141,9 @@ export async function PATCH(request: NextRequest) {
 
         const cambiaNombre = perfil !== undefined;
         const cambiaPin = Object.prototype.hasOwnProperty.call(body, 'pin');
-        if (!cambiaNombre && !cambiaPin) {
+        // Arreglo vacío ES un cambio válido: devuelve el perfil a "ve todo".
+        const cambiaCategorias = Object.prototype.hasOwnProperty.call(body, 'categorias');
+        if (!cambiaNombre && !cambiaPin && !cambiaCategorias) {
             return NextResponse.json({ success: false, message: 'Nada que actualizar' }, { status: 400 });
         }
 
@@ -135,14 +165,20 @@ export async function PATCH(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
 
-        const sets: string[] = [];
-        const values: unknown[] = [];
-        if (cambiaNombre) { sets.push('Perfil = ?'); values.push(nombre); }
-        if (cambiaPin) { sets.push('PinHash = ?'); values.push(pinHash); }
-        sets.push('FechaAct = Now()');
-        values.push(idPerfil);
+        if (cambiaNombre || cambiaPin) {
+            const sets: string[] = [];
+            const values: unknown[] = [];
+            if (cambiaNombre) { sets.push('Perfil = ?'); values.push(nombre); }
+            if (cambiaPin) { sets.push('PinHash = ?'); values.push(pinHash); }
+            sets.push('FechaAct = Now()');
+            values.push(idPerfil);
 
-        await connection.query(`UPDATE tblRequisicionPerfiles SET ${sets.join(', ')} WHERE IdPerfil = ?`, values);
+            await connection.query(`UPDATE tblRequisicionPerfiles SET ${sets.join(', ')} WHERE IdPerfil = ?`, values);
+        }
+
+        if (cambiaCategorias) {
+            await replaceProfileCategories(connection, Number(idPerfil), sanitizeCategoryIds(categorias));
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -167,7 +203,9 @@ export async function DELETE(request: NextRequest) {
 
         connection = await getProjectConnection(parseInt(projectId));
         // Borrado real: las requisiciones guardan el área como texto, así que
-        // eliminar el perfil no deja histórico huérfano.
+        // eliminar el perfil no deja histórico huérfano. Sus categorías se van
+        // con él: sin FK que las limpie, quedarían apuntando a la nada.
+        await connection.query('DELETE FROM tblRequisicionPerfilesCategorias WHERE IdPerfil = ?', [idPerfil]);
         await connection.query('DELETE FROM tblRequisicionPerfiles WHERE IdPerfil = ?', [idPerfil]);
 
         return NextResponse.json({ success: true });

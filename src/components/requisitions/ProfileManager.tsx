@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, KeyRound, Pencil, Plus, Trash2, X, ShieldOff } from 'lucide-react';
+import { Check, KeyRound, LayoutGrid, Pencil, Plus, Trash2, X, ShieldOff } from 'lucide-react';
 import Button from '@/components/Button';
+import { RequisitionCategory } from './types';
 
 export interface RequisitionProfile {
     IdPerfil: number;
@@ -10,6 +11,8 @@ export interface RequisitionProfile {
     Perfil: string;
     /** MySQL devuelve el booleano como 0/1. */
     TienePin: number;
+    /** Categorías que ve en la tablet. Vacío = todas. */
+    Categorias: number[];
 }
 
 interface Branch {
@@ -24,6 +27,7 @@ interface ProfileManagerProps {
 
 type Draft = { idPerfil: number; nombre: string } | null;
 type PinDraft = { idPerfil: number; nombre: string; pin: string } | null;
+type CategoryDraft = { idPerfil: number; nombre: string; seleccion: number[] } | null;
 
 /**
  * Perfiles con los que el personal firma sus requisiciones desde la tablet.
@@ -34,6 +38,7 @@ type PinDraft = { idPerfil: number; nombre: string; pin: string } | null;
  */
 export default function ProfileManager({ projectId, accentColor }: ProfileManagerProps) {
     const [profiles, setProfiles] = useState<RequisitionProfile[]>([]);
+    const [categories, setCategories] = useState<RequisitionCategory[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
     // Sucursal cuyos perfiles se están administrando. Con una sola, se fija sola.
     const [idSucursal, setIdSucursal] = useState<number | null>(null);
@@ -43,6 +48,7 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
     const [nuevoNombre, setNuevoNombre] = useState('');
     const [renaming, setRenaming] = useState<Draft>(null);
     const [pinDraft, setPinDraft] = useState<PinDraft>(null);
+    const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(null);
 
     const load = useCallback(async () => {
         if (!projectId) return;
@@ -55,8 +61,12 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
             const perfilesData = await perfilesRes.json();
             const sucursalesData = await sucursalesRes.json();
 
-            if (perfilesData.success) setProfiles(perfilesData.data || []);
-            else setError(perfilesData.message || 'No se pudieron cargar los perfiles');
+            if (perfilesData.success) {
+                setProfiles(perfilesData.data || []);
+                setCategories(perfilesData.categorias || []);
+            } else {
+                setError(perfilesData.message || 'No se pudieron cargar los perfiles');
+            }
 
             if (sucursalesData.success) {
                 const lista: Branch[] = sucursalesData.data || [];
@@ -118,6 +128,27 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
             body: JSON.stringify({ projectId, idPerfil: pinDraft.idPerfil, pin: pinDraft.pin || null }),
         });
         if (ok) setPinDraft(null);
+    };
+
+    /** Lista vacía = el perfil vuelve a ver el catálogo completo. */
+    const guardarCategorias = async () => {
+        if (!categoryDraft) return;
+        const ok = await run('/api/requisitions/profiles', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, idPerfil: categoryDraft.idPerfil, categorias: categoryDraft.seleccion }),
+        });
+        if (ok) setCategoryDraft(null);
+    };
+
+    const alternarCategoria = (idCategoria: number) => {
+        setCategoryDraft(draft => {
+            if (!draft) return draft;
+            const seleccion = draft.seleccion.includes(idCategoria)
+                ? draft.seleccion.filter(id => id !== idCategoria)
+                : [...draft.seleccion, idCategoria];
+            return { ...draft, seleccion };
+        });
     };
 
     const quitarPin = async (profile: RequisitionProfile) => {
@@ -186,6 +217,8 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
                 {perfilesDeSucursal.map(profile => {
                     const editando = renaming?.idPerfil === profile.IdPerfil;
                     const cambiandoPin = pinDraft?.idPerfil === profile.IdPerfil;
+                    const configurandoCategorias = categoryDraft?.idPerfil === profile.IdPerfil;
+                    const totalCategorias = profile.Categorias?.length ?? 0;
 
                     return (
                         <li key={profile.IdPerfil} className="px-3 py-2.5 bg-white">
@@ -224,15 +257,88 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
                                         <X size={16} />
                                     </button>
                                 </div>
+                            ) : configurandoCategorias ? (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                                            Categorías de {categoryDraft!.nombre}
+                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                            <button type="button" onClick={guardarCategorias} className="h-8 w-8 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: accentColor }} title="Guardar categorías">
+                                                <Check size={15} strokeWidth={3} />
+                                            </button>
+                                            <button type="button" onClick={() => setCategoryDraft(null)} className="h-8 w-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500" title="Cancelar">
+                                                <X size={15} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {categories.length === 0 ? (
+                                        <p className="text-[11px] text-gray-500">
+                                            Este proyecto todavía no tiene insumos con categoría.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">
+                                                {categories.map(categoria => {
+                                                    const activa = categoryDraft!.seleccion.includes(categoria.IdCategoria);
+                                                    return (
+                                                        <button
+                                                            key={categoria.IdCategoria}
+                                                            type="button"
+                                                            onClick={() => alternarCategoria(categoria.IdCategoria)}
+                                                            className="h-8 px-2.5 rounded-lg text-[11px] font-bold border-2 transition-colors"
+                                                            style={{
+                                                                backgroundColor: activa ? accentColor : '#ffffff',
+                                                                borderColor: activa ? accentColor : '#e5e7eb',
+                                                                color: activa ? '#ffffff' : '#6b7280',
+                                                            }}
+                                                        >
+                                                            {categoria.Categoria}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-[11px] text-gray-500">
+                                                    {categoryDraft!.seleccion.length === 0
+                                                        ? 'Sin selección: la tablet mostrará todas las categorías.'
+                                                        : `${categoryDraft!.seleccion.length} seleccionadas; el resto aparece aparte en la tablet.`}
+                                                </p>
+                                                {categoryDraft!.seleccion.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCategoryDraft({ ...categoryDraft!, seleccion: [] })}
+                                                        className="shrink-0 text-[11px] font-semibold text-gray-500 hover:text-rose-600 transition-colors"
+                                                    >
+                                                        Limpiar
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 min-w-0">
                                         <span className="block text-sm font-semibold text-gray-900 truncate">{profile.Perfil}</span>
-                                        <span className="block text-[11px] font-medium" style={{ color: profile.TienePin ? '#047857' : '#9ca3af' }}>
-                                            {profile.TienePin ? 'Con PIN' : 'Sin PIN'}
+                                        <span className="block text-[11px] font-medium">
+                                            <span style={{ color: profile.TienePin ? '#047857' : '#9ca3af' }}>
+                                                {profile.TienePin ? 'Con PIN' : 'Sin PIN'}
+                                            </span>
+                                            <span className="text-gray-300"> · </span>
+                                            <span style={{ color: totalCategorias > 0 ? '#0369a1' : '#9ca3af' }}>
+                                                {totalCategorias > 0
+                                                    ? `${totalCategorias} ${totalCategorias === 1 ? 'categoría' : 'categorías'}`
+                                                    : 'Todas las categorías'}
+                                            </span>
                                         </span>
                                     </div>
 
+                                    <button type="button" onClick={() => setCategoryDraft({ idPerfil: profile.IdPerfil, nombre: profile.Perfil, seleccion: profile.Categorias ?? [] })}
+                                        className="h-8 w-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:border-gray-300 transition-colors" title="Categorías que ve en la tablet">
+                                        <LayoutGrid size={14} />
+                                    </button>
                                     <button type="button" onClick={() => setRenaming({ idPerfil: profile.IdPerfil, nombre: profile.Perfil })}
                                         className="h-8 w-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:border-gray-300 transition-colors" title="Cambiar nombre">
                                         <Pencil size={14} />
@@ -276,6 +382,7 @@ export default function ProfileManager({ projectId, accentColor }: ProfileManage
             <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
                 El PIN se guarda cifrado y no se puede consultar: si se olvida, se reemplaza. Sirve para que el pedido
                 quede firmado por quien lo levanta, no como contraseña — la liga de la tablet sigue siendo pública.
+                Las categorías acotan lo que el perfil ve al frente; las demás siguen disponibles, aparte.
             </p>
         </div>
     );

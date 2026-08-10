@@ -10,11 +10,24 @@ interface ProductGridProps {
     products: RequisitionProduct[];
     quantities: Map<number, number>;
     accent: string;
+    /**
+     * Categorías del perfil (IdCategoria; 0 = sin categoría). Vacío o null =
+     * el perfil ve el catálogo completo sin separaciones.
+     */
+    allowedCategoryIds?: number[] | null;
     onAdd: (product: RequisitionProduct) => void;
     onOpenPad: (product: RequisitionProduct) => void;
 }
 
 const ALL_CATEGORIES = '__all__';
+
+/** Insumos sin categoría: se agrupan bajo un id propio para poder asignarlos. */
+const UNCATEGORIZED_ID = 0;
+const UNCATEGORIZED_LABEL = 'Sin categoría';
+
+type CategoryOption = { id: number; label: string };
+
+const categoryIdOf = (product: RequisitionProduct) => product.IdCategoria ?? UNCATEGORIZED_ID;
 
 /** Verde de "ya va en el pedido": 4.9:1 sobre blanco, legible como texto. */
 const IN_CART = '#047857';
@@ -25,30 +38,92 @@ function normalize(value: string): string {
     return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 }
 
-export default function ProductGrid({ products, quantities, accent, onAdd, onOpenPad }: ProductGridProps) {
+export default function ProductGrid({
+    products,
+    quantities,
+    accent,
+    allowedCategoryIds,
+    onAdd,
+    onOpenPad,
+}: ProductGridProps) {
     const [search, setSearch] = useState('');
+    // Arranca en "Todos", que con perfil acotado significa "todas las suyas".
     const [category, setCategory] = useState<string>(ALL_CATEGORIES);
 
     const accentInk = foregroundFor(accent);
 
-    const categories = useMemo(() => {
-        const unique = new Set<string>();
-        products.forEach(p => unique.add(p.Categoria || 'Sin categoría'));
-        return [...unique].sort((a, b) => a.localeCompare(b, 'es'));
-    }, [products]);
+    /**
+     * Las categorías del perfil van al frente y las demás detrás, en su propio
+     * espacio: la tablet no esconde nada, solo ordena por lo que a ese equipo
+     * le toca pedir.
+     */
+    const { own, others, hasScope } = useMemo(() => {
+        const byId = new Map<number, string>();
+        products.forEach(p => {
+            const id = categoryIdOf(p);
+            if (!byId.has(id)) byId.set(id, p.Categoria || UNCATEGORIZED_LABEL);
+        });
+
+        const all: CategoryOption[] = [...byId.entries()]
+            .map(([id, label]) => ({ id, label }))
+            .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+
+        const scope = new Set(allowedCategoryIds ?? []);
+        // Un perfil cuyas categorías ya no existen en el catálogo se trata como
+        // sin configurar: mejor mostrarle todo que dejarlo sin nada que pedir.
+        const scoped = all.filter(option => scope.has(option.id));
+        if (scoped.length === 0) return { own: all, others: [] as CategoryOption[], hasScope: false };
+
+        return { own: scoped, others: all.filter(option => !scope.has(option.id)), hasScope: true };
+    }, [products, allowedCategoryIds]);
+
+    const ownIds = useMemo(() => new Set(own.map(option => option.id)), [own]);
+
+    /**
+     * Coincidencias de la búsqueda que quedaron fuera del alcance del perfil.
+     * Sin esto, buscar "servilleta" en Cocina no devuelve nada y parece que el
+     * insumo no existe, cuando solo vive en otra área.
+     */
+    const outsideMatches = useMemo(() => {
+        const term = normalize(search.trim());
+        if (!hasScope || !term || category !== ALL_CATEGORIES) return [] as Array<CategoryOption & { count: number }>;
+
+        const counts = new Map<number, { label: string; count: number }>();
+        products.forEach(product => {
+            const id = categoryIdOf(product);
+            if (ownIds.has(id)) return;
+            const matches =
+                normalize(product.Producto).includes(term) ||
+                normalize(product.Codigo || '').includes(term);
+            if (!matches) return;
+            const entry = counts.get(id);
+            if (entry) entry.count += 1;
+            else counts.set(id, { label: product.Categoria || UNCATEGORIZED_LABEL, count: 1 });
+        });
+
+        return [...counts.entries()]
+            .map(([id, { label, count }]) => ({ id, label, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [products, search, category, hasScope, ownIds]);
 
     const visible = useMemo(() => {
         const term = normalize(search.trim());
         return products.filter(product => {
-            const productCategory = product.Categoria || 'Sin categoría';
-            if (category !== ALL_CATEGORIES && productCategory !== category) return false;
+            const id = categoryIdOf(product);
+            // "Todos" respeta el alcance del perfil; una categoría concreta
+            // manda sobre él (así se llega a lo de las otras áreas).
+            if (category === ALL_CATEGORIES) {
+                if (hasScope && !ownIds.has(id)) return false;
+            } else if (String(id) !== category) {
+                return false;
+            }
             if (!term) return true;
             return (
                 normalize(product.Producto).includes(term) ||
                 normalize(product.Codigo || '').includes(term)
             );
         });
-    }, [products, search, category]);
+    }, [products, search, category, hasScope, ownIds]);
 
     return (
         <div className="flex flex-col min-h-0 flex-1">
@@ -79,15 +154,16 @@ export default function ProductGrid({ products, quantities, accent, onAdd, onOpe
                 </div>
             </div>
 
-            <div className="flex gap-2.5 overflow-x-auto px-4 pb-3 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {[ALL_CATEGORIES, ...categories].map(option => {
-                    const isActive = category === option;
-                    const label = option === ALL_CATEGORIES ? 'Todos' : option;
+            <div className="flex items-center gap-2.5 overflow-x-auto px-4 pb-3 shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {[{ id: ALL_CATEGORIES, label: hasScope ? 'Todos los míos' : 'Todos' },
+                  ...own.map(option => ({ id: String(option.id), label: option.label }))
+                ].map(option => {
+                    const isActive = category === option.id;
                     return (
                         <button
-                            key={option}
+                            key={option.id}
                             type="button"
-                            onClick={() => setCategory(option)}
+                            onClick={() => setCategory(option.id)}
                             className="h-14 px-6 rounded-full border-2 font-bold whitespace-nowrap shrink-0 transition active:scale-95"
                             style={{
                                 backgroundColor: isActive ? accent : '#ffffff',
@@ -95,13 +171,65 @@ export default function ProductGrid({ products, quantities, accent, onAdd, onOpe
                                 color: isActive ? accentInk : INK,
                             }}
                         >
-                            {label}
+                            {option.label}
                         </button>
                     );
                 })}
+
+                {/* El espacio de las categorías que NO son de este perfil:
+                    separadas y en gris, pero alcanzables de un toque. */}
+                {others.length > 0 && (
+                    <>
+                        <span className="shrink-0 flex items-center gap-2.5 pl-2.5" aria-hidden="true">
+                            <span className="h-10 w-0.5 rounded-full bg-slate-300" />
+                        </span>
+                        <span className="shrink-0 text-[13px] font-bold uppercase tracking-wide pr-1" style={{ color: INK_MUTED }}>
+                            Otras áreas
+                        </span>
+                        {others.map(option => {
+                            const isActive = category === String(option.id);
+                            return (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    onClick={() => setCategory(String(option.id))}
+                                    className="h-14 px-6 rounded-full border-2 border-dashed font-bold whitespace-nowrap shrink-0 transition active:scale-95"
+                                    style={{
+                                        backgroundColor: isActive ? accent : '#f1f5f9',
+                                        borderColor: isActive ? accent : '#cbd5e1',
+                                        color: isActive ? accentInk : INK_MUTED,
+                                    }}
+                                >
+                                    {option.label}
+                                </button>
+                            );
+                        })}
+                    </>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 pb-6 min-h-0">
+                {outsideMatches.length > 0 && (
+                    <div className="mb-3 rounded-2xl border-2 border-dashed border-slate-300 bg-white px-4 py-3">
+                        <p className="text-[15px] font-semibold" style={{ color: INK_MUTED }}>
+                            También hay coincidencias en otras áreas:
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                            {outsideMatches.map(option => (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    onClick={() => setCategory(String(option.id))}
+                                    className="h-12 px-5 rounded-full border-2 border-dashed border-slate-300 bg-slate-100 font-bold whitespace-nowrap transition active:scale-95"
+                                    style={{ color: INK }}
+                                >
+                                    {option.label} · {option.count}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {visible.length === 0 ? (
                     <p className="text-center py-16 text-lg font-medium" style={{ color: INK_MUTED }}>
                         No hay insumos que coincidan.

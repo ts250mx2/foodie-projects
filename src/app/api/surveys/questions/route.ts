@@ -38,9 +38,18 @@ export async function GET(request: NextRequest) {
              ORDER BY Orden ASC, IdPregunta ASC`
         );
 
+        // Lista de "quién te atendió": viaja aquí para que el configurador
+        // arme toda la pantalla con una sola llamada.
+        const [attendantRows] = await connection.query<RowDataPacket[]>(
+            `SELECT IdAtendio, Nombre, Orden, Activo
+             FROM tblEncuestasAtendieron
+             ORDER BY Orden ASC, Nombre ASC`
+        );
+
         return NextResponse.json({
             success: true,
             config: configRows[0] || null,
+            attendants: attendantRows,
             questions: questionRows.map(q => ({
                 IdPregunta: q.IdPregunta,
                 Pregunta: q.Pregunta,

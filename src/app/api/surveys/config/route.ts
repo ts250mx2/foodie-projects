@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import type { Connection } from 'mysql2/promise';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { sanitizeSurveyText, DEFAULT_SURVEY_CONFIG, MAX_CONFIG_TEXT_LEN, SURVEY_SCALE } from '@/lib/surveys';
+import {
+    sanitizeSurveyText,
+    parseAttendantMode,
+    DEFAULT_SURVEY_CONFIG,
+    MAX_CONFIG_TEXT_LEN,
+    SURVEY_SCALE,
+} from '@/lib/surveys';
 
 /**
  * Textos y comportamiento de la encuesta (portal autenticado).
@@ -55,7 +61,10 @@ export async function PUT(request: NextRequest) {
                 Titulo = ?, Subtitulo = ?, Subtitulo2 = ?, UmbralComentario = ?,
                 TituloComentario = ?, TextoComentario = ?, RegaloActivo = ?,
                 TituloRegalo = ?, TextoRegalo = ?, TextoPromos = ?, TextoBotonEnviar = ?,
-                TituloGracias = ?, TextoGracias = ?, FechaAct = Now()
+                TituloGracias = ?, TextoGracias = ?,
+                AtencionActiva = ?, AtencionTitulo = ?, AtencionTexto = ?,
+                AtencionModo = ?, AtencionObligatoria = ?,
+                FechaAct = Now()
              WHERE IdConfig = ?`,
             [
                 titulo,
@@ -71,6 +80,11 @@ export async function PUT(request: NextRequest) {
                 text(config.TextoBotonEnviar, d.TextoBotonEnviar),
                 text(config.TituloGracias, d.TituloGracias),
                 optionalText(config.TextoGracias),
+                config.AtencionActiva === 1 || config.AtencionActiva === true ? 1 : 0,
+                text(config.AtencionTitulo, d.AtencionTitulo),
+                optionalText(config.AtencionTexto),
+                parseAttendantMode(config.AtencionModo),
+                config.AtencionObligatoria === 1 || config.AtencionObligatoria === true ? 1 : 0,
                 idConfig,
             ]
         );

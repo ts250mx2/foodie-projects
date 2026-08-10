@@ -108,10 +108,26 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // Quién atendió: se agrupa por NOMBRE y no por IdAtendio para que la
+        // misma persona no salga partida en dos cuando unas encuestas la
+        // eligieron de la lista y otras la escribieron a mano.
+        const [attendantRows] = await connection.query<RowDataPacket[]>(
+            `SELECT
+                r.Atendio AS Nombre,
+                COUNT(DISTINCT r.IdRespuesta) AS Total,
+                AVG(d.Valor) AS Promedio
+             FROM tblEncuestasRespuestas r
+             LEFT JOIN tblEncuestasRespuestasDetalle d ON d.IdRespuesta = r.IdRespuesta
+             WHERE ${where} AND r.Atendio IS NOT NULL AND r.Atendio <> ''
+             GROUP BY r.Atendio
+             ORDER BY Total DESC, Nombre ASC`,
+            params
+        );
+
         const [responseRows] = await connection.query<RowDataPacket[]>(
             `SELECT
                 r.IdRespuesta, r.IdSucursal, s.Sucursal, r.Correo, r.AceptaPromos,
-                r.Comentario, r.Fecha
+                r.Comentario, r.Atendio, r.Fecha
              FROM tblEncuestasRespuestas r
              LEFT JOIN tblSucursales s ON s.IdSucursal = r.IdSucursal
              WHERE ${where}
@@ -168,6 +184,11 @@ export async function GET(request: NextRequest) {
                     etiqueta: labelMap.get(`${q.IdPregunta}:${i + 1}`)?.etiqueta ?? null,
                 })),
             })),
+            attendants: attendantRows.map(a => ({
+                nombre: a.Nombre,
+                total: Number(a.Total) || 0,
+                promedio: a.Promedio !== null ? Number(a.Promedio) : null,
+            })),
             responses: responseRows.map(r => ({
                 idRespuesta: r.IdRespuesta,
                 fecha: r.Fecha,
@@ -175,6 +196,7 @@ export async function GET(request: NextRequest) {
                 correo: r.Correo || null,
                 aceptaPromos: r.AceptaPromos === 1,
                 comentario: r.Comentario || null,
+                atendio: r.Atendio || null,
                 detalle: (detailsByResponse.get(r.IdRespuesta) || []).map(d => ({
                     pregunta: d.Pregunta,
                     tipo: d.TipoPregunta === 'opciones' ? 'opciones' : 'estrellas',

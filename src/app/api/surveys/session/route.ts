@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RowDataPacket } from 'mysql2';
 import type { Connection } from 'mysql2/promise';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { resolveSurveyUuid, parseQuestionLabels, DEFAULT_SURVEY_CONFIG } from '@/lib/surveys';
+import {
+    resolveSurveyUuid,
+    parseQuestionLabels,
+    parseAttendantMode,
+    attendantModeAllowsList,
+    DEFAULT_SURVEY_CONFIG,
+} from '@/lib/surveys';
 
 /**
  * Arranque de la página pública de la encuesta (tablet en piso).
@@ -51,6 +57,19 @@ export async function GET(request: NextRequest) {
             'SELECT IdSucursal, Sucursal FROM tblSucursales WHERE Status = 0 ORDER BY Sucursal ASC'
         );
 
+        // "¿Quién te atendió?": el bloque solo viaja si está encendido, y la
+        // lista solo si el modo la usa (en 'texto' no hay nada que mandar).
+        const atencionActiva = cfg.AtencionActiva === 1;
+        const atencionModo = parseAttendantMode(cfg.AtencionModo);
+        let attendants: RowDataPacket[] = [];
+        if (atencionActiva && attendantModeAllowsList(atencionModo)) {
+            const [attendantRows] = await connection.query<RowDataPacket[]>(
+                `SELECT IdAtendio, Nombre FROM tblEncuestasAtendieron
+                 WHERE Activo = 1 ORDER BY Orden ASC, Nombre ASC`
+            );
+            attendants = attendantRows;
+        }
+
         return NextResponse.json({
             success: true,
             project: {
@@ -74,7 +93,15 @@ export async function GET(request: NextRequest) {
                 textoBotonEnviar: cfg.TextoBotonEnviar || d.TextoBotonEnviar,
                 tituloGracias: cfg.TituloGracias || d.TituloGracias,
                 textoGracias: optional(cfg.TextoGracias, d.TextoGracias),
+                // Un modo 'lista' sin nadie en la lista no se puede contestar:
+                // se apaga el bloque en vez de mostrar un hueco vacío.
+                atencionActiva: atencionActiva && (atencionModo !== 'lista' || attendants.length > 0) ? 1 : 0,
+                atencionTitulo: cfg.AtencionTitulo || d.AtencionTitulo,
+                atencionTexto: (cfg.AtencionTexto as string) || null,
+                atencionModo,
+                atencionObligatoria: cfg.AtencionObligatoria === 1 ? 1 : 0,
             },
+            attendants: attendants.map(a => ({ idAtendio: a.IdAtendio, nombre: a.Nombre })),
             questions: questionRows
                 .map(q => ({
                     idPregunta: q.IdPregunta,

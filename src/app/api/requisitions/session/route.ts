@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { RowDataPacket } from 'mysql2';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { resolveRequisitionUuid } from '@/lib/requisitions';
+import { parseCategoryCsv, resolveRequisitionUuid } from '@/lib/requisitions';
 
 /**
  * Arranque de la página pública de requisiciones (tablet de cocina).
@@ -44,11 +45,21 @@ export async function GET(request: NextRequest) {
         );
 
         // Perfiles con los que se puede firmar el pedido. Se manda si tienen
-        // PIN, NUNCA el PIN: la verificación ocurre en el servidor.
-        const [profiles] = await connection.query(
-            `SELECT IdPerfil, IdSucursal, Perfil, (PinHash IS NOT NULL) AS TienePin
-             FROM tblRequisicionPerfiles ORDER BY IdSucursal ASC, Orden ASC, Perfil ASC`
+        // PIN, NUNCA el PIN: la verificación ocurre en el servidor. Categorias
+        // acota lo que la tablet muestra al frente; vacío = catálogo completo.
+        const [profileRows] = await connection.query(
+            `SELECT p.IdPerfil, p.IdSucursal, p.Perfil, (p.PinHash IS NOT NULL) AS TienePin,
+                    (SELECT GROUP_CONCAT(pc.IdCategoria)
+                       FROM tblRequisicionPerfilesCategorias pc
+                      WHERE pc.IdPerfil = p.IdPerfil) AS CategoriasCsv
+             FROM tblRequisicionPerfiles p
+             ORDER BY p.IdSucursal ASC, p.Orden ASC, p.Perfil ASC`
         );
+
+        const profiles = (profileRows as RowDataPacket[]).map(({ CategoriasCsv, ...profile }) => ({
+            ...profile,
+            Categorias: parseCategoryCsv(CategoriasCsv),
+        }));
 
         return NextResponse.json({
             success: true,

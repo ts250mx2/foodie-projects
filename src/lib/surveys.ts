@@ -25,6 +25,33 @@ export const MAX_OPTION_LABEL_LEN = 60;
 export const MAX_COMMENT_LEN = 1000;
 export const MAX_EMAIL_LEN = 255;
 export const MAX_CONFIG_TEXT_LEN = 300;
+export const MAX_ATTENDANT_NAME_LEN = 120;
+export const MAX_ATTENDANTS = 200;
+
+/**
+ * Cómo se captura quién atendió al comensal:
+ *  - 'lista'  → solo nombres predefinidos por el restaurante;
+ *  - 'texto'  → solo texto abierto (el comensal escribe el nombre);
+ *  - 'ambos'  → la lista, con un "Otro" que abre el texto abierto.
+ */
+export const SURVEY_ATTENDANT_MODES = ['lista', 'texto', 'ambos'] as const;
+export type SurveyAttendantMode = typeof SURVEY_ATTENDANT_MODES[number];
+
+export function parseAttendantMode(value: unknown): SurveyAttendantMode {
+    return SURVEY_ATTENDANT_MODES.includes(value as SurveyAttendantMode)
+        ? (value as SurveyAttendantMode)
+        : 'lista';
+}
+
+/** El texto abierto solo se acepta en los modos que lo ofrecen. */
+export function attendantModeAllowsText(mode: SurveyAttendantMode): boolean {
+    return mode === 'texto' || mode === 'ambos';
+}
+
+/** La lista predefinida solo se ofrece en los modos que la usan. */
+export function attendantModeAllowsList(mode: SurveyAttendantMode): boolean {
+    return mode === 'lista' || mode === 'ambos';
+}
 
 /** Escala de las preguntas de estrellas y tope de opciones por pregunta. */
 export const SURVEY_SCALE = 5;
@@ -154,6 +181,13 @@ export const DEFAULT_SURVEY_CONFIG = {
     TextoBotonEnviar: 'Enviar y recibir mi regalo',
     TituloGracias: '¡Gracias por ayudarnos a mejorar!',
     TextoGracias: 'Revisa tu correo. Tu regalo ya va en camino.',
+    // Apagado de origen: las encuestas que ya corren no deben estrenar un
+    // bloque nuevo sin que nadie lo haya configurado.
+    AtencionActiva: 0,
+    AtencionTitulo: '¿Quién te atendió?',
+    AtencionTexto: 'Nos ayuda a reconocer a nuestro equipo.',
+    AtencionModo: 'lista',
+    AtencionObligatoria: 0,
 } as const;
 
 /** Preguntas con las que arranca el módulo la primera vez. */
@@ -302,6 +336,20 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
+        // Personas que pueden haber atendido: lista predefinida que el
+        // restaurante administra desde el configurador.
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblEncuestasAtendieron\` (
+              \`IdAtendio\` int NOT NULL AUTO_INCREMENT,
+              \`Nombre\` varchar(120) NOT NULL,
+              \`Orden\` int NOT NULL DEFAULT 0,
+              \`Activo\` tinyint NOT NULL DEFAULT 1,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdAtendio\`),
+              KEY \`idx_activo_orden\` (\`Activo\`, \`Orden\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS \`tblEncuestasRespuestasDetalle\` (
               \`IdDetalle\` int NOT NULL AUTO_INCREMENT,
@@ -316,6 +364,33 @@ export async function ensureSurveyTables(connection: Connection): Promise<void> 
               KEY \`idx_pregunta\` (\`IdPregunta\`, \`Valor\`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+
+        // Columnas agregadas después del alta del módulo (proyectos que ya
+        // tenían las tablas creadas). Idempotente, como el resto.
+        const [configCols] = await connection.query<RowDataPacket[]>('SHOW COLUMNS FROM tblEncuestasConfig');
+        const configNames = configCols.map(c => c.Field);
+        const addConfigColumn = async (name: string, ddl: string) => {
+            if (!configNames.includes(name)) {
+                await connection.query(`ALTER TABLE tblEncuestasConfig ADD COLUMN \`${name}\` ${ddl}`);
+            }
+        };
+        await addConfigColumn('AtencionActiva', 'tinyint NOT NULL DEFAULT 0');
+        await addConfigColumn('AtencionTitulo', 'varchar(300) DEFAULT NULL');
+        await addConfigColumn('AtencionTexto', 'varchar(300) DEFAULT NULL');
+        await addConfigColumn('AtencionModo', "varchar(20) NOT NULL DEFAULT 'lista'");
+        await addConfigColumn('AtencionObligatoria', 'tinyint NOT NULL DEFAULT 0');
+
+        const [answerCols] = await connection.query<RowDataPacket[]>('SHOW COLUMNS FROM tblEncuestasRespuestas');
+        const answerNames = answerCols.map(c => c.Field);
+        // IdAtendio queda NULL cuando el comensal escribió el nombre a mano;
+        // Atendio guarda siempre el texto, así el reporte sobrevive a que la
+        // persona se borre de la lista.
+        if (!answerNames.includes('IdAtendio')) {
+            await connection.query('ALTER TABLE tblEncuestasRespuestas ADD COLUMN `IdAtendio` int DEFAULT NULL');
+        }
+        if (!answerNames.includes('Atendio')) {
+            await connection.query('ALTER TABLE tblEncuestasRespuestas ADD COLUMN `Atendio` varchar(120) DEFAULT NULL');
+        }
 
         // Siembra inicial. El renglón de config vive SIEMPRE con IdConfig = 1:
         // el INSERT IGNORE sobre esa PK fija hace de candado, así dos requests

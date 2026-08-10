@@ -10,6 +10,7 @@ import {
     TabletSmartphone,
     Download,
     Eye,
+    UserRound,
 } from 'lucide-react';
 import {
     ResponsiveContainer,
@@ -69,7 +70,16 @@ interface ReportResponse {
     correo: string | null;
     aceptaPromos: boolean;
     comentario: string | null;
+    /** Quién atendió (de la lista o escrito por el comensal). */
+    atendio: string | null;
     detalle: ReportResponseDetail[];
+}
+
+/** Desempeño por persona que atendió, dentro del periodo filtrado. */
+interface ReportAttendant {
+    nombre: string;
+    total: number;
+    promedio: number | null;
 }
 
 interface ReportBranch {
@@ -129,6 +139,7 @@ export default function SurveyReportPage() {
     const [summary, setSummary] = useState<ReportSummary | null>(null);
     const [questions, setQuestions] = useState<ReportQuestion[]>([]);
     const [responses, setResponses] = useState<ReportResponse[]>([]);
+    const [attendants, setAttendants] = useState<ReportAttendant[]>([]);
     const [branches, setBranches] = useState<ReportBranch[]>([]);
     const [isTruncated, setIsTruncated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -147,6 +158,7 @@ export default function SurveyReportPage() {
                 setSummary(data.summary);
                 setQuestions(data.questions || []);
                 setResponses(data.responses || []);
+                setAttendants(data.attendants || []);
                 setBranches(data.branches || []);
                 setIsTruncated(Boolean(data.truncated));
             }
@@ -182,10 +194,11 @@ export default function SurveyReportPage() {
             const safe = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
             return `"${safe.replace(/"/g, '""')}"`;
         };
-        const header = ['Fecha', 'Sucursal', 'Promedio', 'Correo', 'AceptaPromos', 'Comentario', 'Respuestas'];
+        const header = ['Fecha', 'Sucursal', 'Atendió', 'Promedio', 'Correo', 'AceptaPromos', 'Comentario', 'Respuestas'];
         const rows = responses.map(r => [
             formatDate(r.fecha),
             r.sucursal || '',
+            r.atendio || '',
             averageOf(r.detalle)?.toFixed(2) ?? '',
             r.correo || '',
             r.aceptaPromos ? 'Sí' : 'No',
@@ -357,6 +370,42 @@ export default function SurveyReportPage() {
                     </div>
                 )}
 
+                {/* Quién atendió: solo aparece si hay encuestas que lo capturaron */}
+                {attendants.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
+                        <div className="flex items-center gap-2">
+                            <UserRound size={15} className="text-gray-400" />
+                            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Quién atendió
+                            </p>
+                            <span className="text-[11px] text-gray-400">
+                                {attendants.length} persona{attendants.length === 1 ? '' : 's'} en el periodo
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {attendants.map(person => (
+                                <div
+                                    key={person.nombre}
+                                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-gray-800 truncate">{person.nombre}</p>
+                                        <p className="text-[11px] text-gray-500">
+                                            {person.total} encuesta{person.total === 1 ? '' : 's'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end shrink-0">
+                                        {person.promedio != null && <StarRow value={person.promedio} size={12} />}
+                                        <span className="text-xs font-bold text-gray-600 tabular-nums mt-0.5">
+                                            {person.promedio != null ? person.promedio.toFixed(1) : '—'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Respuestas individuales */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 380px)' }}>
@@ -364,6 +413,7 @@ export default function SurveyReportPage() {
                             <ThemedGridHeader accentColor={moduleColor}>
                                 <ThemedGridHeaderCell>Fecha</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell>Sucursal</ThemedGridHeaderCell>
+                                <ThemedGridHeaderCell>Atendió</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell align="center">Calificación</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell>Correo</ThemedGridHeaderCell>
                                 <ThemedGridHeaderCell>Comentario</ThemedGridHeaderCell>
@@ -373,7 +423,7 @@ export default function SurveyReportPage() {
                                 loading={isLoading}
                                 empty={!isLoading && responses.length === 0}
                                 emptyMessage="Sin respuestas en el periodo seleccionado"
-                                colSpan={6}
+                                colSpan={7}
                             >
                                 {responses.map(response => {
                                     const avg = averageOf(response.detalle);
@@ -381,6 +431,7 @@ export default function SurveyReportPage() {
                                         <TableRow key={response.idRespuesta} onClick={() => setViewing(response)}>
                                             <TableCell>{formatDate(response.fecha)}</TableCell>
                                             <TableCell muted>{response.sucursal || '—'}</TableCell>
+                                            <TableCell muted>{response.atendio || '—'}</TableCell>
                                             <TableCell align="center">
                                                 {avg != null ? (
                                                     <span className="inline-flex items-center gap-1.5">
@@ -442,6 +493,13 @@ export default function SurveyReportPage() {
             >
                 {viewing && (
                     <div className="space-y-4">
+                        {viewing.atendio && (
+                            <p className="text-sm text-gray-600">
+                                <UserRound size={14} className="inline mr-1.5 -mt-0.5 text-gray-400" />
+                                Atendió: <span className="font-semibold text-gray-800">{viewing.atendio}</span>
+                            </p>
+                        )}
+
                         <div className="space-y-2.5">
                             {viewing.detalle.map((d, i) => (
                                 <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2">

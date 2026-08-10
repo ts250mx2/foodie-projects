@@ -241,6 +241,92 @@ export async function ensureRequisitionProfiles(connection: Connection): Promise
 }
 
 /**
+ * Categorías visibles por perfil de captura.
+ *
+ * Un perfil SIN renglones aquí ve el catálogo completo — es el caso normal y
+ * por eso no se siembra nada al crear el perfil. Cuando sí tiene categorías,
+ * la tablet muestra las suyas al frente y el resto detrás, separadas: nunca se
+ * esconden, porque cocina a veces necesita algo de otra área y la tablet no
+ * tiene a quién pedirle permiso.
+ *
+ * IdCategoria 0 representa "Sin categoría" (insumos con IdCategoria NULL).
+ * Idempotente.
+ */
+export async function ensureRequisitionProfileCategories(connection: Connection): Promise<void> {
+    try {
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS \`tblRequisicionPerfilesCategorias\` (
+              \`IdPerfilCategoria\` int NOT NULL AUTO_INCREMENT,
+              \`IdPerfil\` int NOT NULL,
+              \`IdCategoria\` int NOT NULL,
+              \`FechaAct\` datetime DEFAULT NULL,
+              PRIMARY KEY (\`IdPerfilCategoria\`),
+              UNIQUE KEY \`uq_perfil_categoria\` (\`IdPerfil\`, \`IdCategoria\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+    } catch (e) {
+        console.error('Error ensuring requisition profile categories schema:', e);
+    }
+}
+
+/** Tope defensivo por si llega una lista absurda desde el portal. */
+export const MAX_PROFILE_CATEGORIES = 300;
+
+/** Normaliza la lista de categorías que manda el portal: enteros ≥ 0, sin repetir. */
+export function sanitizeCategoryIds(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+    const unique = new Set<number>();
+    for (const raw of value) {
+        const id = Number(raw);
+        if (Number.isInteger(id) && id >= 0) unique.add(id);
+        if (unique.size >= MAX_PROFILE_CATEGORIES) break;
+    }
+    return [...unique];
+}
+
+/** Reemplaza el juego de categorías del perfil. Lista vacía = ve todo. */
+export async function replaceProfileCategories(
+    connection: Connection,
+    idPerfil: number,
+    categorias: number[]
+): Promise<void> {
+    await connection.query('DELETE FROM tblRequisicionPerfilesCategorias WHERE IdPerfil = ?', [idPerfil]);
+    if (categorias.length === 0) return;
+
+    await connection.query(
+        `INSERT INTO tblRequisicionPerfilesCategorias (IdPerfil, IdCategoria, FechaAct)
+         VALUES ${categorias.map(() => '(?, ?, Now())').join(', ')}`,
+        categorias.flatMap(id => [idPerfil, id])
+    );
+}
+
+/**
+ * Categorías de los insumos activos del proyecto — lo mismo que verá la
+ * tablet. Se arma del catálogo real y no de tblCategorias completa para no
+ * ofrecer categorías que aquí no tienen ni un insumo.
+ */
+export async function listRequisitionCategories(
+    connection: Connection
+): Promise<Array<{ IdCategoria: number; Categoria: string }>> {
+    const [rows] = await connection.query<RowDataPacket[]>(
+        `SELECT DISTINCT
+            COALESCE(p.IdCategoria, 0) AS IdCategoria,
+            COALESCE(c.Categoria, 'Sin categoría') AS Categoria
+         FROM tblProductos p
+         LEFT JOIN BDFoodieProjects.tblCategorias c ON p.IdCategoria = c.IdCategoria
+         WHERE p.Status = 0 AND p.IdTipoProducto = 0
+         ORDER BY Categoria ASC`
+    );
+    return rows.map(row => ({ IdCategoria: Number(row.IdCategoria), Categoria: String(row.Categoria) }));
+}
+
+/** Convierte el GROUP_CONCAT de categorías en arreglo de números. */
+export function parseCategoryCsv(value: unknown): number[] {
+    if (typeof value !== 'string' || !value) return [];
+    return value.split(',').map(Number).filter(Number.isInteger);
+}
+
+/**
  * Bitácora de estados de la requisición: quién la movió, cuándo y por qué.
  *
  * Es la fuente del "track" que dibuja el modal de estado (línea de tiempo con
