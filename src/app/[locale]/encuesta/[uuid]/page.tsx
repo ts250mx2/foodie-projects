@@ -722,7 +722,9 @@ export default function PublicSurveyPage() {
                                         id="survey-phone"
                                         type="tel"
                                         inputMode="tel"
-                                        autoComplete="tel"
+                                        // Tablet compartida: sin autocompletar, o el navegador
+                                        // sugeriría los datos de comensales anteriores.
+                                        autoComplete="off"
                                         value={phone}
                                         onChange={e => { setPhone(e.target.value); setContactError(''); }}
                                         maxLength={20}
@@ -742,7 +744,7 @@ export default function PublicSurveyPage() {
                                         id="survey-email"
                                         type="email"
                                         inputMode="email"
-                                        autoComplete="email"
+                                        autoComplete="off"
                                         value={email}
                                         onChange={e => { setEmail(e.target.value); setContactError(''); }}
                                         maxLength={255}
