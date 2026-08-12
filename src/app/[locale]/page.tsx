@@ -129,7 +129,7 @@ export default function LandingPage() {
               style={{ backgroundColor: f.bg }}
             >
               <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#ffffff' }}>
+                <svg width="16" height="16" className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#ffffff' }}>
                   {f.icon}
                 </svg>
               </div>

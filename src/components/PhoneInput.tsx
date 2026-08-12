@@ -102,7 +102,7 @@ export default function PhoneInput({
                     ) : (
                         <span className="text-gray-400">Code</span>
                     )}
-                    <svg
+                    <svg width="16" height="16"
                         className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                         fill="none"
                         stroke="currentColor"

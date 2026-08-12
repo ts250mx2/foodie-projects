@@ -257,7 +257,7 @@ export default function ScheduleTimelineModal({
                         </select>
 
                         <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                            <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg width="24" height="24" className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
