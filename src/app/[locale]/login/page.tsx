@@ -118,7 +118,9 @@ export default function LoginPage() {
             </div>
 
             {/* ── Logo top-left ── */}
-            <div className="absolute top-0 left-0 z-30 rounded-br-[3.5rem] px-8 py-5 shadow-md flex items-center justify-center"
+            {/* En celular la tarjeta se achica: con el padding y el logo de
+                escritorio ocupaba más de la mitad del ancho de pantalla. */}
+            <div className="absolute top-0 left-0 z-30 rounded-br-[2rem] sm:rounded-br-[3.5rem] px-4 py-3 sm:px-8 sm:py-5 shadow-md flex items-center justify-center"
                 style={{ backgroundColor: CREAM }}>
                 <Image
                     src="/images/foodie-solutions-logo.png"
@@ -126,7 +128,7 @@ export default function LoginPage() {
                     width={140}
                     height={60}
                     priority
-                    className="h-auto object-contain"
+                    className="h-auto w-[96px] sm:w-[140px] object-contain"
                 />
             </div>
 

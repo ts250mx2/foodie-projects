@@ -22,6 +22,14 @@ interface GeoShapeProps {
     color?: string;
     /** Grosor del anillo en px (solo para variant="donut") */
     ring?: number;
+    /**
+     * Tope del lado mayor como % del ancho de pantalla. Estas formas se
+     * dibujan en px fijos pensados para escritorio: sin tope, un acento de
+     * 320px se come casi toda la pantalla de un celular de 360px. En pantallas
+     * anchas el tope no aplica (45vw de 1440px son 648px), así que el diseño
+     * de escritorio queda igual. Pasa 0 para desactivarlo.
+     */
+    maxVw?: number;
     className?: string;
     style?: React.CSSProperties;
 }
@@ -44,6 +52,7 @@ export default function GeoShape({
     size = 120,
     color = 'currentColor',
     ring = 16,
+    maxVw = 45,
     className = '',
     style,
 }: GeoShapeProps) {
@@ -55,13 +64,18 @@ export default function GeoShape({
     if (variant === 'half-top' || variant === 'half-bottom') height = size / 2;
     if (variant === 'half-left' || variant === 'half-right') width = size / 2;
 
+    // El tope se reparte proporcionalmente entre los dos lados para que la
+    // forma conserve su proporción al encogerse.
+    const cap = (side: number) =>
+        maxVw > 0 ? `min(${side}px, ${((side / size) * maxVw).toFixed(2)}vw)` : `${side}px`;
+
     return (
         <span
             aria-hidden="true"
             className={`block pointer-events-none ${className}`}
             style={{
-                width,
-                height,
+                width: cap(width),
+                height: cap(height),
                 borderRadius: RADIUS[variant],
                 background: isDonut ? 'transparent' : color,
                 border: isDonut ? `${ring}px solid ${color}` : undefined,
