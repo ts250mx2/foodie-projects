@@ -9,6 +9,7 @@ import { FcDocument } from 'react-icons/fc';
 import { useTheme } from '@/contexts/ThemeContext';
 import AgentChart from '@/components/dashboard/AgentChart';
 import PageShell from '@/components/PageShell';
+import { chatStorageKey, clearLegacyChatHistory, currentProjectId } from '@/lib/ai-chat-storage';
 
 // Botones de navegación que el agente embebe como ```nav {json}```.
 export function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
@@ -53,7 +54,7 @@ const CLAUDE_MODELS: { id: ClaudeModel; label: string; badge: string }[] = [
     { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  badge: '🪶' },
 ];
 
-const CHAT_STORAGE_KEY = 'foodie-guru-chat-v2';
+// La conversación se guarda por proyecto; ver src/lib/ai-chat-storage.ts.
 
 interface AiAgentProps {
     mode?: 'floating' | 'embedded';
@@ -651,14 +652,24 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     const [isLoading,     setIsLoading]     = useState(false);
     const [model,         setModel]         = useState<ClaudeModel>('claude-sonnet-4-6');
     const [hydrated,      setHydrated]      = useState(false);
+    // Llave de guardado del proyecto en sesión; null = no persistir.
+    const [storageKey,    setStorageKey]    = useState<string | null>(null);
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamPhase,   setStreamPhase]   = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // ── Load persisted conversation ────────────────────────────────────────
+    // ── Load persisted conversation (solo la del proyecto en sesión) ───────
     useEffect(() => {
+        // Restos de la versión que guardaba sin proyecto: se van siempre, aunque
+        // no haya sesión, para que no reaparezcan en el siguiente login.
+        clearLegacyChatHistory();
+
+        const idProyecto = currentProjectId();
+        if (idProyecto === null) { setHydrated(true); return; }
+        setStorageKey(chatStorageKey(idProyecto));
+
         try {
-            const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+            const saved = localStorage.getItem(chatStorageKey(idProyecto));
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed.messages)) setMessages(parsed.messages);
@@ -670,15 +681,16 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
 
     // ── Persist conversation on change ────────────────────────────────────
     useEffect(() => {
-        if (!hydrated) return;
+        // Sin proyecto no se guarda nada: no hay a quién pertenezca la charla.
+        if (!hydrated || !storageKey) return;
         try {
             if (messages.length > 0) {
-                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ messages, model }));
+                localStorage.setItem(storageKey, JSON.stringify({ messages, model }));
             } else {
-                localStorage.removeItem(CHAT_STORAGE_KEY);
+                localStorage.removeItem(storageKey);
             }
         } catch { }
-    }, [messages, model, hydrated]);
+    }, [messages, model, hydrated, storageKey]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -816,7 +828,9 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
 
     const handleClear = () => {
         setMessages([]);
-        localStorage.removeItem(CHAT_STORAGE_KEY);
+        if (storageKey) {
+            try { localStorage.removeItem(storageKey); } catch { }
+        }
     };
 
     // Navega a una pantalla del dashboard (desde un bloque ```nav del agente).

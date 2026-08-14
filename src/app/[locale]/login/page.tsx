@@ -9,6 +9,7 @@ import AuthFooter from '@/components/AuthFooter';
 import GeoShape from '@/components/brand/GeoShape';
 import { useTranslations, useLocale } from 'next-intl';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { clearAllChatHistory } from '@/lib/ai-chat-storage';
 
 // Paleta del PDF (hex explícitos: los vars --color-brand-green/orange están cruzados en globals.css)
 const BLUE = '#3b3be8';
@@ -62,6 +63,9 @@ export default function LoginPage() {
 
             if (data.success) {
                 setMessage(t('loginSuccess'));
+                // Sesión nueva, historial en blanco: cubre a quien cerró el
+                // navegador sin cerrar sesión y dejó su charla con el agente.
+                clearAllChatHistory();
                 if (data.project) localStorage.setItem('project', JSON.stringify(data.project));
                 
                 // Agregamos isEmployee e isAdmin al objeto user

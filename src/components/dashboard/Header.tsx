@@ -8,6 +8,7 @@ import { Menu, LogOut, ChevronRight, User, CreditCard } from 'lucide-react';
 import BillingModal from './BillingModal';
 import RequisitionBell from './RequisitionBell';
 import LanguageSwitcher from '../LanguageSwitcher';
+import { clearAllChatHistory } from '@/lib/ai-chat-storage';
 
 interface HeaderProps {
     userName: string;
@@ -177,6 +178,9 @@ export default function Header({ userName: initialUserName, onLogout, onToggleSi
             localStorage.removeItem('user');
             localStorage.removeItem('project');
             localStorage.removeItem('permissions');
+            // La charla con el agente lleva ventas, costos y nómina en texto
+            // plano: en una computadora compartida no puede quedarse ahí.
+            clearAllChatHistory();
             onLogout ? onLogout() : router.push('/');
         }
     };
