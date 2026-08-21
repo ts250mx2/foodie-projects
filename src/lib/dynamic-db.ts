@@ -179,7 +179,16 @@ async function ensureQuotesTables(connection: Connection) {
         if (!cotNames.includes('Platillo')) {
             await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN Platillo varchar(255) DEFAULT NULL AFTER IdPlatillo');
         }
-        // Hora del evento (formato HH:MM) y estatus del evento (pendiente | confirmada).
+        // Contacto y dirección del evento: se capturan en la pestaña de datos
+        // del evento y la dirección es la que se abre en Google Maps.
+        if (!cotNames.includes('Contacto')) {
+            await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN Contacto varchar(160) DEFAULT NULL');
+        }
+        if (!cotNames.includes('DireccionEvento')) {
+            await connection.query('ALTER TABLE tblCotizaciones ADD COLUMN DireccionEvento varchar(300) DEFAULT NULL');
+        }
+        // Hora del evento (formato HH:MM) y estatus del evento
+        // (pendiente | confirmada | terminada).
         if (!cotNames.includes('HoraEvento')) {
             await connection.query("ALTER TABLE tblCotizaciones ADD COLUMN HoraEvento varchar(5) DEFAULT NULL AFTER FechaEvento");
         }

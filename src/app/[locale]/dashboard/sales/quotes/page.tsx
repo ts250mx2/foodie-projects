@@ -1,13 +1,21 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Pencil, Trash2, Search, AlertTriangle, FileText, X, CheckCircle2, Clock, BookOpen, UtensilsCrossed, Tag, LayoutGrid, ShoppingCart, Eye, BookMarked, Save } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, AlertTriangle, FileText, X, CheckCircle2, Clock, BookOpen, UtensilsCrossed, Tag, LayoutGrid, ShoppingCart, Eye, BookMarked, Save, MapPin, Wallet, Flag, ExternalLink, Minus } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
-import { computeQuoteTotals, computeDishLineTotals } from '@/lib/quotes';
+import {
+    computeQuoteTotals,
+    computeDishLineTotals,
+    allowedQuoteStatuses,
+    parseQuoteStatus,
+    isQuoteClosed,
+    QUOTE_STATUS_LABEL,
+    QuoteStatus,
+} from '@/lib/quotes';
 
 interface Dish {
     idPlatillo: number;
@@ -35,6 +43,8 @@ interface Quote {
     CostoTotal: number;
     UtilidadEstimada: number;
     UtilidadReal: number;
+    Contacto: string | null;
+    DireccionEvento: string | null;
     Notas: string | null;
 }
 
@@ -47,8 +57,28 @@ interface QuoteTemplate {
     datos: { platillos?: DishRow[]; gastos?: GastoRow[]; notas?: string } | null;
 }
 
-const EMPTY_FORM = { nombreEvento: '', fechaEvento: '', horaEvento: '', estatus: 'pendiente', recaudacion: '', notas: '' };
+const EMPTY_FORM = {
+    nombreEvento: '', fechaEvento: '', horaEvento: '', estatus: 'pendiente',
+    recaudacion: '', notas: '', contacto: '', direccionEvento: '',
+};
 const EMPTY_DISH: DishRow = { idPlatillo: '', platillo: '', tipo: '', unidad: '', cantidad: '', costoUnitario: '', precioUnitario: '' };
+
+/** Pestañas del editor: cada una es un paso distinto de armar el evento. */
+type EditorTab = 'carrito' | 'gastos' | 'evento';
+
+const EDITOR_TABS: { id: EditorTab; label: string; icon: React.ElementType }[] = [
+    { id: 'carrito', label: 'Carrito', icon: ShoppingCart },
+    { id: 'gastos', label: 'Gastos', icon: Wallet },
+    { id: 'evento', label: 'Datos del evento', icon: MapPin },
+];
+
+/** Liga de búsqueda en Google Maps para la dirección capturada. */
+const mapsSearchUrl = (address: string) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+/** Mapa embebido: no necesita API key, solo la dirección como consulta. */
+const mapsEmbedUrl = (address: string) =>
+    `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
 
 type CatalogFilter = 'all' | '1' | '2' | '0';
 
@@ -90,6 +120,14 @@ export default function QuotesPage() {
     const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>('all');
     // Filtro de productos por categoría ('' = todas las categorías)
     const [selectedCategory, setSelectedCategory] = useState('');
+
+    // Pestaña visible del editor (carrito / gastos / datos del evento)
+    const [activeTab, setActiveTab] = useState<EditorTab>('carrito');
+
+    // Cierre del evento: cotización que se va a terminar y su recaudación real.
+    const [closingQuote, setClosingQuote] = useState<Quote | null>(null);
+    const [closingAmount, setClosingAmount] = useState('');
+    const [isClosing, setIsClosing] = useState(false);
 
     // Overlays internos del editor
     const [showSummary, setShowSummary] = useState(false);
@@ -201,6 +239,7 @@ export default function QuotesPage() {
         setCatalogSearch('');
         setCatalogFilter('all');
         setSelectedCategory('');
+        setActiveTab('carrito');
         setShowSummary(false);
         setShowTemplates(false);
         setTemplateName('');
@@ -223,9 +262,11 @@ export default function QuotesPage() {
             nombreEvento: q.NombreEvento || '',
             fechaEvento: q.FechaEvento ? String(q.FechaEvento).substring(0, 10) : '',
             horaEvento: q.HoraEvento ? String(q.HoraEvento).substring(0, 5) : '',
-            estatus: q.EstatusEvento === 'confirmada' ? 'confirmada' : 'pendiente',
+            estatus: parseQuoteStatus(q.EstatusEvento),
             recaudacion: String(q.Recaudacion ?? ''),
             notas: q.Notas || '',
+            contacto: q.Contacto || '',
+            direccionEvento: q.DireccionEvento || '',
         });
         setPlatillos([]);
         setGastos([]);
@@ -275,6 +316,23 @@ export default function QuotesPage() {
 
     const handleSubmit = async () => {
         if (!formData.nombreEvento.trim()) return;
+
+        // Guardar sin carrito o sin gastos casi siempre es un descuido: la
+        // cotización quedaría en cero o sin costos operativos. Se avisa qué
+        // falta y se deja seguir a quien de verdad lo quiera así.
+        const faltantes = [
+            platillos.length === 0 ? 'el carrito (platillos y productos)' : null,
+            gastos.length === 0 ? 'los gastos operativos' : null,
+        ].filter(Boolean);
+        if (faltantes.length > 0) {
+            const aviso = `No has capturado ${faltantes.join(' ni ')}.\n\n¿Guardar la cotización así?`;
+            if (!window.confirm(aviso)) {
+                // Deja al usuario parado en la pestaña que le falta.
+                setActiveTab(platillos.length === 0 ? 'carrito' : 'gastos');
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
             const payload = {
@@ -285,6 +343,8 @@ export default function QuotesPage() {
                 estatus: formData.estatus,
                 recaudacion: Number(formData.recaudacion) || 0,
                 notas: formData.notas || null,
+                contacto: formData.contacto.trim() || null,
+                direccionEvento: formData.direccionEvento.trim() || null,
                 platillos: platillos
                     .filter((p) => p.idPlatillo || p.platillo.trim() || p.cantidad)
                     .map((p) => ({
@@ -396,16 +456,62 @@ export default function QuotesPage() {
 
     // Cambia el estatus de una cotización directamente desde la tabla.
     const changeStatus = async (q: Quote, estatus: string) => {
+        // Terminar el evento no es un cambio de estatus más: cierra la
+        // cotización y exige la recaudación real, así que abre su propio paso.
+        if (estatus === 'terminada') {
+            setClosingQuote(q);
+            setClosingAmount(String(q.Recaudacion || ''));
+            return;
+        }
+
         setQuotes((prev) => prev.map((x) => x.IdCotizacion === q.IdCotizacion ? { ...x, EstatusEvento: estatus } : x));
         try {
-            await fetch(`/api/sales/quotes/${q.IdCotizacion}`, {
+            const res = await fetch(`/api/sales/quotes/${q.IdCotizacion}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ projectId: project.idProyecto, estatus }),
             });
+            if (!res.ok) fetchQuotes();
         } catch (e) {
             console.error('Error updating status:', e);
             fetchQuotes();
+        }
+    };
+
+    /** Cierra el evento con su recaudación real (Confirmada → Terminada). */
+    const confirmClose = async () => {
+        if (!closingQuote) return;
+        const recaudacionReal = Number(closingAmount);
+        if (!Number.isFinite(recaudacionReal) || recaudacionReal < 0) return;
+
+        setIsClosing(true);
+        try {
+            const res = await fetch(`/api/sales/quotes/${closingQuote.IdCotizacion}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: project.idProyecto,
+                    estatus: 'terminada',
+                    recaudacion: recaudacionReal,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                await fetchQuotes();
+                setClosingQuote(null);
+                setClosingAmount('');
+                // El editor abierto sobre esa misma cotización debe reflejarlo.
+                if (editing?.IdCotizacion === closingQuote.IdCotizacion) {
+                    setFormData((f) => ({ ...f, estatus: 'terminada', recaudacion: String(recaudacionReal) }));
+                }
+            } else {
+                alert(data.message || 'No se pudo terminar el evento');
+            }
+        } catch (e) {
+            console.error('Error closing event:', e);
+            alert('No se pudo terminar el evento');
+        } finally {
+            setIsClosing(false);
         }
     };
 
@@ -446,6 +552,10 @@ export default function QuotesPage() {
         return row ? Number(row.cantidad) || 0 : 0;
     };
 
+    // Evento cerrado (Terminado): ya tiene recaudación real, así que el editor
+    // muestra los KPIs reales y bloquea el regreso a estatus anteriores.
+    const cerrada = isQuoteClosed(formData.estatus);
+
     return (
         <PageShell
             title="Cotizaciones de Eventos"
@@ -478,7 +588,8 @@ export default function QuotesPage() {
                             <ThemedGridHeaderCell>Estatus</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Platillos</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Costo total</ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell align="right">Recaudación</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">Recaudación esperada</ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell align="right">Recaudación real</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Utilidad</ThemedGridHeaderCell>
                             <ThemedGridHeaderCell align="right">Acciones</ThemedGridHeaderCell>
                         </ThemedGridHeader>
@@ -486,7 +597,7 @@ export default function QuotesPage() {
                             loading={isLoading}
                             empty={filtered.length === 0}
                             emptyMessage={searchTerm ? 'Sin resultados para tu búsqueda' : 'Aún no hay cotizaciones. Crea la primera.'}
-                            colSpan={8}
+                            colSpan={9}
                         >
                             {filtered.map((q) => (
                                 <TableRow key={q.IdCotizacion}>
@@ -499,17 +610,29 @@ export default function QuotesPage() {
                                     </TableCell>
                                     <TableCell>
                                         <StatusSelect
-                                            value={q.EstatusEvento === 'confirmada' ? 'confirmada' : 'pendiente'}
+                                            value={q.EstatusEvento || 'pendiente'}
                                             onChange={(v) => changeStatus(q, v)}
                                         />
                                     </TableCell>
                                     <TableCell align="right">{q.CantidadPlatillos}</TableCell>
                                     <TableCell align="right">{money(Number(q.CostoTotal))}</TableCell>
-                                    <TableCell align="right">{money(Number(q.Recaudacion))}</TableCell>
+                                    <TableCell align="right">{money(Number(q.IngresoEstimado))}</TableCell>
                                     <TableCell align="right">
-                                        <span className={`font-semibold ${Number(q.UtilidadReal) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                            {money(Number(q.UtilidadReal))}
-                                        </span>
+                                        {/* La recaudación real solo existe cuando el evento terminó. */}
+                                        {isQuoteClosed(q.EstatusEvento)
+                                            ? <span className="font-semibold text-violet-700">{money(Number(q.Recaudacion))}</span>
+                                            : <span className="text-gray-300">—</span>}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        {isQuoteClosed(q.EstatusEvento) ? (
+                                            <span className={`font-semibold ${Number(q.UtilidadReal) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} title="Utilidad real">
+                                                {money(Number(q.UtilidadReal))}
+                                            </span>
+                                        ) : (
+                                            <span className={`font-semibold ${Number(q.UtilidadEstimada) >= 0 ? 'text-emerald-600/70' : 'text-rose-600/70'}`} title="Utilidad estimada (el evento aún no termina)">
+                                                {money(Number(q.UtilidadEstimada))} <span className="text-[10px] text-gray-400">est.</span>
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell align="right">
                                         <div className="flex items-center justify-end gap-1">
@@ -585,11 +708,28 @@ export default function QuotesPage() {
                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estatus</label>
                             <select
                                 value={formData.estatus}
-                                onChange={(e) => setFormData({ ...formData, estatus: e.target.value })}
-                                className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 text-gray-800"
+                                onChange={(e) => {
+                                    // Terminar cierra el evento y pide la recaudación real:
+                                    // se hace en su propio paso, no cambiando el select.
+                                    if (e.target.value === 'terminada') {
+                                        if (editing) {
+                                            setClosingQuote(editing);
+                                            setClosingAmount(String(editing.Recaudacion || ''));
+                                        }
+                                        return;
+                                    }
+                                    setFormData({ ...formData, estatus: e.target.value });
+                                }}
+                                disabled={cerrada}
+                                className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 text-gray-800 disabled:bg-gray-50 disabled:text-gray-500"
                             >
-                                <option value="pendiente">Pendiente</option>
-                                <option value="confirmada">Confirmada</option>
+                                {/* Solo los estatus alcanzables desde el actual. Una cotización
+                                    nueva no puede nacer terminada: primero se confirma. */}
+                                {allowedQuoteStatuses(editing ? editing.EstatusEvento : 'pendiente')
+                                    .filter((s) => editing || s !== 'terminada')
+                                    .map((s) => (
+                                        <option key={s} value={s}>{QUOTE_STATUS_LABEL[s]}</option>
+                                    ))}
                             </select>
                         </div>
                     </div>
@@ -598,9 +738,47 @@ export default function QuotesPage() {
                             <CheckCircle2 size={12} /> Al confirmarla aparecerá en el Calendario de Eventos.
                         </p>
                     )}
+                    {cerrada && (
+                        <p className="text-[11px] text-violet-600 flex items-center gap-1 -mt-2">
+                            <Flag size={12} /> Evento terminado: su recaudación real ya quedó registrada.
+                        </p>
+                    )}
 
+                    {/* ── Pestañas del editor ──────────────────────────── */}
+                    <div className="flex items-center gap-1 border-b border-gray-200 overflow-x-auto">
+                        {EDITOR_TABS.map((t) => {
+                            const Icon = t.icon;
+                            const isActive = activeTab === t.id;
+                            const count = t.id === 'carrito' ? platillos.length : t.id === 'gastos' ? gastos.length : 0;
+                            const vacia = t.id !== 'evento' && count === 0;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setActiveTab(t.id)}
+                                    className={`shrink-0 px-4 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 transition-colors ${
+                                        isActive
+                                            ? 'border-blue-600 text-blue-700'
+                                            : 'border-transparent text-gray-400 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <Icon size={14} />
+                                    {t.label}
+                                    {count > 0 && (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-gray-900 text-[10px] leading-none" style={{ color: '#ffffff' }}>
+                                            {count}
+                                        </span>
+                                    )}
+                                    {/* Punto ámbar: esa pestaña sigue vacía. */}
+                                    {vacia && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Sin capturar" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* ── Pestaña: Carrito (catálogo tipo POS + líneas) ─── */}
+                    {activeTab === 'carrito' && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                        {/* ── Catálogo (clic para agregar) ─────────────────── */}
+                        {/* Catálogo en tarjetas: se toca el producto y cae al carrito */}
                         <div className="rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 space-y-2">
                                 <div className="flex items-center gap-2">
@@ -614,6 +792,9 @@ export default function QuotesPage() {
                                             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 bg-white focus:outline-none focus:border-blue-500 text-gray-700"
                                         />
                                     </div>
+                                    <button onClick={addManual} className="shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+                                        <Plus size={13} /> Manual
+                                    </button>
                                 </div>
                                 <div className="flex items-center gap-1 flex-wrap">
                                     {CATALOG_FILTERS.map((f) => {
@@ -629,7 +810,6 @@ export default function QuotesPage() {
                                             </button>
                                         );
                                     })}
-                                    {/* Productos: selector por categoría (con icono de la categoría) */}
                                     <select
                                         value={catalogFilter === '0' ? selectedCategory : '__none'}
                                         onChange={(e) => {
@@ -646,219 +826,367 @@ export default function QuotesPage() {
                                     </select>
                                 </div>
                             </div>
-                            <div className="max-h-[46vh] overflow-y-auto divide-y divide-gray-50">
-                                {catalogItems.length === 0 && (
+
+                            <div className="max-h-[46vh] overflow-y-auto p-2">
+                                {catalogItems.length === 0 ? (
                                     <p className="p-6 text-xs text-gray-400 text-center">Sin resultados en el catálogo.</p>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {catalogItems.map((d) => {
+                                            const meta = TIPO_META[String(d.tipo)] || TIPO_META[''];
+                                            const Icon = meta.icon;
+                                            const qty = inCartQty(d.idPlatillo);
+                                            const isProduct = d.tipo === 0;
+                                            const tipoLabel = isProduct
+                                                ? (d.categoria || 'Sin categoría')
+                                                : d.tipo === 1 ? 'Platillo' : 'Sub-receta';
+                                            return (
+                                                <button
+                                                    key={d.idPlatillo}
+                                                    onClick={() => addFromCatalog(d)}
+                                                    title={d.platillo}
+                                                    className={`relative rounded-xl border-2 bg-white p-2.5 text-left flex flex-col gap-1.5 min-h-[112px] transition-all active:scale-[0.97] hover:shadow-md ${
+                                                        qty > 0 ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200 hover:border-blue-300'
+                                                    }`}
+                                                >
+                                                    <span className={`w-8 h-8 rounded-lg grid place-items-center ${meta.cls}`}>
+                                                        {isProduct
+                                                            ? <span className="text-base leading-none select-none">{d.categoriaIcono || '📦'}</span>
+                                                            : <Icon size={15} />}
+                                                    </span>
+                                                    <span className="text-[11px] font-bold text-gray-800 uppercase leading-tight line-clamp-2">
+                                                        {d.platillo}
+                                                    </span>
+                                                    <span className="mt-auto block text-[10px] text-gray-400 truncate">
+                                                        {tipoLabel} · {d.unidad || 'pza'}
+                                                    </span>
+                                                    <span className="flex items-baseline justify-between gap-1">
+                                                        <span className="text-[10px] text-gray-500">C: {money(d.costo)}</span>
+                                                        {d.tipo === 1 && (
+                                                            <span className="text-[10px] font-bold text-emerald-600">{money(d.precio)}</span>
+                                                        )}
+                                                    </span>
+                                                    {qty > 0 && (
+                                                        <span className="absolute -top-2 -right-2 min-w-6 h-6 px-1.5 rounded-full bg-emerald-500 grid place-items-center text-[11px] font-black shadow" style={{ color: '#ffffff' }}>
+                                                            {qty}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 )}
-                                {catalogItems.map((d) => {
-                                    const meta = TIPO_META[String(d.tipo)] || TIPO_META[''];
-                                    const Icon = meta.icon;
-                                    const qty = inCartQty(d.idPlatillo);
-                                    const isProduct = d.tipo === 0;
-                                    // Productos: icono y nombre de su categoría; platillos/sub-recetas: su tipo.
-                                    const tipoLabel = isProduct
-                                        ? (d.categoria || 'Sin categoría')
-                                        : d.tipo === 1 ? 'Platillo' : 'Sub-receta';
-                                    return (
-                                        <button
-                                            key={d.idPlatillo}
-                                            onClick={() => addFromCatalog(d)}
-                                            className={`w-full text-left px-3 py-2 flex items-center gap-2.5 hover:bg-blue-50/60 transition-colors group ${qty > 0 ? 'bg-emerald-50/60' : ''}`}
-                                        >
-                                            <span className={`shrink-0 w-7 h-7 rounded-lg grid place-items-center ${meta.cls}`}>
-                                                {isProduct
-                                                    ? <span className="text-sm leading-none select-none">{d.categoriaIcono || '📦'}</span>
-                                                    : <Icon size={14} />}
-                                            </span>
-                                            <span className="flex-1 min-w-0">
-                                                <span className="block text-xs font-bold text-gray-800 truncate uppercase">{d.platillo}</span>
-                                                <span className="block text-[10px] text-gray-400 truncate">
-                                                    <span className="font-semibold text-gray-500">{tipoLabel}</span>
-                                                    {' · '}{d.unidad || 'pza'} · C: {money(d.costo)}
-                                                    {d.tipo === 1 && <span className="text-emerald-600 font-semibold"> · P: {money(d.precio)}</span>}
-                                                </span>
-                                            </span>
-                                            {qty > 0 ? (
-                                                <span className="shrink-0 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                                                    <ShoppingCart size={10} /> {qty}
-                                                </span>
-                                            ) : (
-                                                <Plus size={15} className="shrink-0 text-gray-300 group-hover:text-blue-500" />
-                                            )}
-                                        </button>
-                                    );
-                                })}
                             </div>
                         </div>
 
-                        {/* ── Carrito (líneas editables) ───────────────────── */}
-                        <div className="space-y-4">
-                            <div className="rounded-xl border border-gray-200 overflow-hidden">
-                                <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
-                                        <ShoppingCart size={13} />
-                                        Carrito ({platillos.length})
-                                    </span>
-                                    <button onClick={addManual} className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-                                        <Plus size={13} /> Concepto manual
-                                    </button>
-                                </div>
-                                <div className="max-h-[46vh] overflow-y-auto p-2 space-y-2">
-                                    {platillos.length === 0 && (
-                                        <p className="p-4 text-xs text-gray-400 text-center">
-                                            El carrito está vacío. Haz clic en un concepto del catálogo o agrega uno manual.
-                                        </p>
-                                    )}
-                                    {platillos.map((p, i) => {
-                                        const isManual = p.idPlatillo === '';
-                                        const meta = TIPO_META[p.tipo] || TIPO_META[''];
-                                        const Icon = meta.icon;
-                                        const line = computeDishLineTotals({
-                                            cantidad: Number(p.cantidad) || 0,
-                                            costoUnitario: Number(p.costoUnitario) || 0,
-                                            precioUnitario: Number(p.precioUnitario) || 0,
-                                        });
-                                        return (
-                                            <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/40 p-2.5 space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`shrink-0 w-6 h-6 rounded-md grid place-items-center ${meta.cls}`}>
-                                                        <Icon size={12} />
-                                                    </span>
-                                                    {isManual ? (
-                                                        <input
-                                                            type="text"
-                                                            value={p.platillo}
-                                                            onChange={(e) => updateDish(i, 'platillo', e.target.value)}
-                                                            placeholder="Nombre del concepto (ej. Servicio de barra libre)"
-                                                            className="flex-1 min-w-0 text-xs font-bold rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-blue-500 uppercase"
-                                                        />
-                                                    ) : (
-                                                        <span className="flex-1 min-w-0 text-xs font-bold text-gray-800 truncate uppercase">{p.platillo}</span>
-                                                    )}
-                                                    <button onClick={() => removeDish(i)} className="shrink-0 p-1.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar concepto">
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                                                    <LabeledField label="Cantidad">
+                        {/* Carrito: líneas editables */}
+                        <div className="rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                                    <ShoppingCart size={13} />
+                                    Carrito ({platillos.length})
+                                </span>
+                                <span className="text-xs font-bold text-gray-500 tabular-nums">{money(totals.ingresoEstimado)}</span>
+                            </div>
+                            <div className="max-h-[52vh] overflow-y-auto p-2 space-y-2">
+                                {platillos.length === 0 && (
+                                    <p className="p-4 text-xs text-gray-400 text-center">
+                                        El carrito está vacío. Toca un producto del catálogo o agrega uno manual.
+                                    </p>
+                                )}
+                                {platillos.map((p, i) => {
+                                    const isManual = p.idPlatillo === '';
+                                    const meta = TIPO_META[p.tipo] || TIPO_META[''];
+                                    const Icon = meta.icon;
+                                    const cantidad = Number(p.cantidad) || 0;
+                                    const line = computeDishLineTotals({
+                                        cantidad,
+                                        costoUnitario: Number(p.costoUnitario) || 0,
+                                        precioUnitario: Number(p.precioUnitario) || 0,
+                                    });
+                                    return (
+                                        <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/40 p-2.5 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`shrink-0 w-6 h-6 rounded-md grid place-items-center ${meta.cls}`}>
+                                                    <Icon size={12} />
+                                                </span>
+                                                {isManual ? (
+                                                    <input
+                                                        type="text"
+                                                        value={p.platillo}
+                                                        onChange={(e) => updateDish(i, 'platillo', e.target.value)}
+                                                        placeholder="Nombre del concepto (ej. Servicio de barra libre)"
+                                                        className="flex-1 min-w-0 text-xs font-bold rounded-lg border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-blue-500 uppercase"
+                                                    />
+                                                ) : (
+                                                    <span className="flex-1 min-w-0 text-xs font-bold text-gray-800 truncate uppercase">{p.platillo}</span>
+                                                )}
+                                                <button onClick={() => removeDish(i)} className="shrink-0 p-1.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar concepto">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                                <LabeledField label="Cantidad">
+                                                    {/* Stepper: en un POS se ajusta a toques, sin teclado. */}
+                                                    <div className="flex items-center rounded-lg border border-gray-200 bg-white overflow-hidden">
+                                                        <button
+                                                            onClick={() => updateDish(i, 'cantidad', String(Math.max(0, cantidad - 1)))}
+                                                            className="px-1.5 py-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100"
+                                                            aria-label="Restar uno"
+                                                        >
+                                                            <Minus size={12} />
+                                                        </button>
                                                         <input
                                                             type="number" min="0" placeholder="0"
                                                             value={p.cantidad}
                                                             onChange={(e) => updateDish(i, 'cantidad', e.target.value)}
-                                                            className="w-full text-xs text-right rounded-lg border border-gray-200 px-1.5 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                            className="w-full min-w-0 text-xs text-center border-0 py-1.5 focus:outline-none tabular-nums"
                                                         />
-                                                    </LabeledField>
-                                                    <LabeledField label="Unidad">
-                                                        <input
-                                                            type="text" placeholder="pza"
-                                                            value={p.unidad}
-                                                            onChange={(e) => updateDish(i, 'unidad', e.target.value)}
-                                                            className="w-full text-xs rounded-lg border border-gray-200 px-1.5 py-1.5 bg-white focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </LabeledField>
-                                                    <LabeledField label="Costo">
-                                                        <input
-                                                            type="number" min="0" step="0.01" placeholder="0.00"
-                                                            value={p.costoUnitario}
-                                                            onChange={(e) => updateDish(i, 'costoUnitario', e.target.value)}
-                                                            className="w-full text-xs text-right rounded-lg border border-gray-200 px-1.5 py-1.5 bg-white focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </LabeledField>
-                                                    <LabeledField label="Precio">
-                                                        <input
-                                                            type="number" min="0" step="0.01" placeholder="0.00"
-                                                            value={p.precioUnitario}
-                                                            onChange={(e) => updateDish(i, 'precioUnitario', e.target.value)}
-                                                            className="w-full text-xs text-right rounded-lg border border-gray-200 px-1.5 py-1.5 bg-white focus:outline-none focus:border-blue-500"
-                                                        />
-                                                    </LabeledField>
-                                                    <LabeledField label="Total">
-                                                        <div className="text-xs text-right font-semibold text-gray-800 px-1.5 py-1.5 tabular-nums">{money(line.total)}</div>
-                                                    </LabeledField>
-                                                    <LabeledField label="Recaud.">
-                                                        <div className={`text-xs text-right font-semibold px-1.5 py-1.5 tabular-nums ${line.recaudacion >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{money(line.recaudacion)}</div>
-                                                    </LabeledField>
-                                                </div>
+                                                        <button
+                                                            onClick={() => updateDish(i, 'cantidad', String(cantidad + 1))}
+                                                            className="px-1.5 py-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-100"
+                                                            aria-label="Sumar uno"
+                                                        >
+                                                            <Plus size={12} />
+                                                        </button>
+                                                    </div>
+                                                </LabeledField>
+                                                <LabeledField label="Unidad">
+                                                    <input
+                                                        type="text" placeholder="pza"
+                                                        value={p.unidad}
+                                                        onChange={(e) => updateDish(i, 'unidad', e.target.value)}
+                                                        className="w-full text-xs rounded-lg border border-gray-200 px-1.5 py-1.5 bg-white focus:outline-none focus:border-blue-500"
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Costo unitario">
+                                                    <MoneyInput
+                                                        value={p.costoUnitario}
+                                                        onChange={(v) => updateDish(i, 'costoUnitario', v)}
+                                                    />
+                                                </LabeledField>
+                                                <LabeledField label="Precio unitario">
+                                                    <MoneyInput
+                                                        value={p.precioUnitario}
+                                                        onChange={(v) => updateDish(i, 'precioUnitario', v)}
+                                                    />
+                                                </LabeledField>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                                {/* Totales siempre visibles al pie del carrito */}
-                                <div className="px-3 py-3 border-t border-gray-100 bg-gray-50 grid grid-cols-3 gap-2">
-                                    <div className="rounded-xl px-2 py-2.5 text-center shadow-sm" style={{ backgroundColor: '#111827' }}>
-                                        <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#9ca3af' }}>Costo total</p>
-                                        <p className="text-sm sm:text-base font-black tabular-nums leading-tight" style={{ color: '#ffffff' }}>{money(totals.costoTotal)}</p>
-                                    </div>
-                                    <div className="rounded-xl px-2 py-2.5 text-center shadow-sm" style={{ backgroundColor: '#2563eb' }}>
-                                        <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#bfdbfe' }}>Recaudación total</p>
-                                        <p className="text-sm sm:text-base font-black tabular-nums leading-tight" style={{ color: '#ffffff' }}>{money(totals.ingresoEstimado - totals.costoPlatillos)}</p>
-                                    </div>
-                                    <div className="rounded-xl px-2 py-2.5 text-center shadow-sm" style={{ backgroundColor: totals.utilidadEstimada >= 0 ? '#059669' : '#e11d48' }}>
-                                        <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.75)' }}>Utilidad est.</p>
-                                        <p className="text-sm sm:text-base font-black tabular-nums leading-tight" style={{ color: '#ffffff' }}>{money(totals.utilidadEstimada)}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Gastos operativos */}
-                            <div className="rounded-xl border border-gray-200 overflow-hidden">
-                                <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">Gastos operativos</span>
-                                    <button onClick={addGasto} className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-                                        <Plus size={13} /> Agregar gasto
-                                    </button>
-                                </div>
-                                <div className="p-2 space-y-2">
-                                    {gastos.length === 0 && (
-                                        <p className="p-2 text-xs text-gray-400 text-center">Sin gastos. Agrega meseros, mobiliario, transporte…</p>
-                                    )}
-                                    {gastos.map((g, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={g.concepto}
-                                                onChange={(e) => updateGasto(i, 'concepto', e.target.value)}
-                                                placeholder="Concepto"
-                                                className="flex-1 text-xs rounded-lg border border-gray-200 px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
-                                            />
-                                            <input
-                                                type="number" min="0" step="0.01"
-                                                value={g.monto}
-                                                onChange={(e) => updateGasto(i, 'monto', e.target.value)}
-                                                placeholder="0.00"
-                                                className="w-28 text-xs text-right rounded-lg border border-gray-200 px-2.5 py-1.5 focus:outline-none focus:border-blue-500"
-                                            />
-                                            <button onClick={() => removeGasto(i)} className="p-1.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar gasto">
-                                                <X size={14} />
-                                            </button>
+                                            <div className="flex items-center justify-between gap-3 pt-1 border-t border-gray-200/70">
+                                                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                                    Total línea
+                                                </span>
+                                                <span className="flex items-center gap-3">
+                                                    <span className="text-xs font-bold text-gray-800 tabular-nums">{money(line.total)}</span>
+                                                    <span className={`text-[11px] font-semibold tabular-nums ${line.recaudacion >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                        margen {money(line.recaudacion)}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Recaudación y notas */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <Input
-                                    label="Recaudación del evento"
-                                    type="number" min="0" step="0.01"
-                                    value={formData.recaudacion}
-                                    onChange={(e) => setFormData({ ...formData, recaudacion: e.target.value })}
-                                    placeholder="0.00"
-                                    hint="Lo realmente recaudado tras el evento."
-                                />
-                                <div className="w-full flex flex-col gap-1">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notas</label>
-                                    <textarea
-                                        value={formData.notas}
-                                        onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
-                                        rows={2}
-                                        placeholder="Observaciones (opcional)"
-                                        className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-blue-500 text-gray-800"
-                                    />
-                                </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
+                    )}
+
+                    {/* ── Pestaña: Gastos operativos ───────────────────── */}
+                    {activeTab === 'gastos' && (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                                <Wallet size={13} />
+                                Gastos operativos ({gastos.length})
+                            </span>
+                            <span className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-gray-500 tabular-nums">{money(totals.gastosOperativos)}</span>
+                                <button onClick={addGasto} className="text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+                                    <Plus size={13} /> Agregar gasto
+                                </button>
+                            </span>
+                        </div>
+                        <div className="p-3 space-y-2 max-h-[52vh] overflow-y-auto">
+                            {gastos.length === 0 && (
+                                <div className="py-8 text-center">
+                                    <Wallet size={28} className="mx-auto text-gray-200 mb-2" />
+                                    <p className="text-xs text-gray-400">
+                                        Sin gastos capturados. Agrega meseros, mobiliario, transporte, renta…
+                                    </p>
+                                    <button onClick={addGasto} className="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+                                        <Plus size={13} /> Agregar el primero
+                                    </button>
+                                </div>
+                            )}
+                            {gastos.map((g, i) => (
+                                <div key={i} className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={g.concepto}
+                                        onChange={(e) => updateGasto(i, 'concepto', e.target.value)}
+                                        placeholder="Concepto (ej. Meseros)"
+                                        className="flex-1 text-xs rounded-lg border border-gray-200 px-2.5 py-2 focus:outline-none focus:border-blue-500"
+                                    />
+                                    <div className="w-36 shrink-0">
+                                        <MoneyInput value={g.monto} onChange={(v) => updateGasto(i, 'monto', v)} />
+                                    </div>
+                                    <button onClick={() => removeGasto(i)} className="p-1.5 text-gray-300 hover:text-rose-500 rounded-lg hover:bg-rose-50" aria-label="Quitar gasto">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+
+                    {/* ── Pestaña: Datos del evento ────────────────────── */}
+                    {activeTab === 'evento' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                        <div className="space-y-3">
+                            <Input
+                                label="Nombre de contacto"
+                                value={formData.contacto}
+                                onChange={(e) => setFormData({ ...formData, contacto: e.target.value })}
+                                placeholder="Ej. Laura Martínez (novia)"
+                                hint="Con quién se ve el día del evento."
+                            />
+
+                            <div className="w-full flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                                    <MapPin size={12} /> Dirección del evento
+                                </label>
+                                <textarea
+                                    value={formData.direccionEvento}
+                                    onChange={(e) => setFormData({ ...formData, direccionEvento: e.target.value })}
+                                    rows={3}
+                                    placeholder="Calle y número, colonia, ciudad&#10;Ej. Av. Chapultepec 480, Americana, Guadalajara"
+                                    className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-blue-500 text-gray-800 resize-y"
+                                />
+                                <p className="text-[11px] text-gray-400">
+                                    Escríbela como se la dictarías a un taxi. Abajo se ve en el mapa para confirmar que es el lugar correcto.
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    leftIcon={ExternalLink}
+                                    disabled={!formData.direccionEvento.trim()}
+                                    onClick={() => window.open(mapsSearchUrl(formData.direccionEvento.trim()), '_blank', 'noopener,noreferrer')}
+                                >
+                                    Abrir en Google Maps
+                                </Button>
+                                {formData.direccionEvento.trim() && (
+                                    <button
+                                        onClick={() => navigator.clipboard?.writeText(formData.direccionEvento.trim())}
+                                        className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+                                    >
+                                        Copiar dirección
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="w-full flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notas</label>
+                                <textarea
+                                    value={formData.notas}
+                                    onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+                                    rows={3}
+                                    placeholder="Observaciones: montaje, alergias, horarios de acceso…"
+                                    className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-blue-500 text-gray-800 resize-y"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Mapa: confirma de un vistazo que la dirección existe */}
+                        <div className="rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+                            <div className="px-3 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                                    <MapPin size={13} /> Ubicación
+                                </span>
+                                {formData.direccionEvento.trim() && (
+                                    <a
+                                        href={mapsSearchUrl(formData.direccionEvento.trim())}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1"
+                                    >
+                                        Cómo llegar <ExternalLink size={11} />
+                                    </a>
+                                )}
+                            </div>
+                            {formData.direccionEvento.trim() ? (
+                                <iframe
+                                    key={formData.direccionEvento.trim()}
+                                    title="Mapa del evento"
+                                    src={mapsEmbedUrl(formData.direccionEvento.trim())}
+                                    className="w-full h-[300px] border-0"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                />
+                            ) : (
+                                <div className="h-[300px] grid place-items-center text-center px-6">
+                                    <div>
+                                        <MapPin size={30} className="mx-auto text-gray-300 mb-2" />
+                                        <p className="text-xs text-gray-400">
+                                            Escribe la dirección y aquí aparecerá el mapa del lugar.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    )}
+
+                    {/* ── KPIs del evento (siempre visibles) ───────────── */}
+                    <div className={`grid gap-2 ${cerrada ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-3'}`}>
+                        <KpiCard
+                            label="Costo total"
+                            hint="Platillos + gastos"
+                            value={money(totals.costoTotal)}
+                            bg="#111827"
+                            labelColor="#9ca3af"
+                        />
+                        <KpiCard
+                            label="Recaudación esperada"
+                            hint="Lo que cobrarás según el carrito"
+                            value={money(totals.ingresoEstimado)}
+                            bg="#2563eb"
+                            labelColor="#bfdbfe"
+                        />
+                        <KpiCard
+                            label="Utilidad est."
+                            hint="Esperada − costo total"
+                            value={money(totals.utilidadEstimada)}
+                            bg={totals.utilidadEstimada >= 0 ? '#059669' : '#e11d48'}
+                            labelColor="rgba(255,255,255,0.75)"
+                        />
+                        {cerrada && (
+                            <>
+                                <KpiCard
+                                    label="Recaudación real"
+                                    hint="Lo que de verdad se cobró"
+                                    value={money(Number(formData.recaudacion) || 0)}
+                                    bg="#7c3aed"
+                                    labelColor="#ddd6fe"
+                                />
+                                <KpiCard
+                                    label="Utilidad real"
+                                    hint="Real − costo total"
+                                    value={money(totals.utilidadReal)}
+                                    bg={totals.utilidadReal >= 0 ? '#047857' : '#be123c'}
+                                    labelColor="rgba(255,255,255,0.75)"
+                                />
+                            </>
+                        )}
+                    </div>
+                    {!cerrada && (
+                        <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                            <Flag size={12} />
+                            La recaudación real y la utilidad real aparecen cuando el evento se marque como Terminado.
+                        </p>
+                    )}
                 </div>
 
                 {/* ── Overlay: Resumen ─────────────────────────────────────── */}
@@ -875,16 +1203,16 @@ export default function QuotesPage() {
                             <div className="p-5 space-y-3">
                                 <SummaryRow label="Total de platillos" value={String(totals.cantidadPlatillos)} />
                                 <SummaryRow label="Costo de platillos" value={money(totals.costoPlatillos)} hint="Σ cantidad × costo unitario" />
-                                <SummaryRow label="Ingreso estimado" value={money(totals.ingresoEstimado)} hint="Σ cantidad × precio unitario" />
-                                <SummaryRow label="Recaudación de platillos" value={money(totals.ingresoEstimado - totals.costoPlatillos)} hint="Σ (cant × precio) − (cant × costo)" positive={(totals.ingresoEstimado - totals.costoPlatillos) >= 0} />
+                                <SummaryRow label="Recaudación esperada" value={money(totals.ingresoEstimado)} hint="Σ cantidad × precio unitario" />
+                                <SummaryRow label="Margen de platillos" value={money(totals.ingresoEstimado - totals.costoPlatillos)} hint="Recaudación esperada − costo de platillos (sin gastos)" positive={(totals.ingresoEstimado - totals.costoPlatillos) >= 0} />
                                 <SummaryRow label="Gastos operativos" value={money(totals.gastosOperativos)} />
                                 <div className="border-t border-gray-200 my-1" />
                                 <SummaryRow label="Costo total" value={money(totals.costoTotal)} strong />
-                                <SummaryRow label="Utilidad estimada" value={money(totals.utilidadEstimada)} positive={totals.utilidadEstimada >= 0} />
+                                <SummaryRow label="Utilidad estimada" value={money(totals.utilidadEstimada)} hint="Recaudación esperada − costo total" positive={totals.utilidadEstimada >= 0} />
                                 <div className="border-t border-gray-200 my-1" />
-                                <SummaryRow label="Recaudación" value={money(Number(formData.recaudacion) || 0)} />
-                                <SummaryRow label="Utilidad real" value={money(totals.utilidadReal)} positive={totals.utilidadReal >= 0} strong />
-                                <SummaryRow label="Margen real" value={`${totals.margenReal.toFixed(1)}%`} positive={totals.margenReal >= 0} />
+                                <SummaryRow label="Recaudación real" value={cerrada ? money(Number(formData.recaudacion) || 0) : 'Pendiente de cierre'} hint="Se captura al terminar el evento" />
+                                <SummaryRow label="Utilidad real" value={cerrada ? money(totals.utilidadReal) : '—'} hint="Recaudación real − costo total" positive={cerrada ? totals.utilidadReal >= 0 : undefined} strong />
+                                <SummaryRow label="Margen real" value={cerrada ? `${totals.margenReal.toFixed(1)}%` : '—'} positive={cerrada ? totals.margenReal >= 0 : undefined} />
                             </div>
                         </div>
                     </div>
@@ -1005,6 +1333,91 @@ export default function QuotesPage() {
                 )}
             </BaseModal>
 
+            {/* Terminar evento: pide la recaudación real y cierra la cotización */}
+            <BaseModal
+                isOpen={closingQuote !== null}
+                onClose={() => { setClosingQuote(null); setClosingAmount(''); }}
+                title="Terminar evento"
+                subtitle={closingQuote?.NombreEvento}
+                size="md"
+                footer={
+                    <div className="flex items-center justify-end gap-2.5">
+                        <Button variant="secondary" size="md" onClick={() => { setClosingQuote(null); setClosingAmount(''); }} disabled={isClosing}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="solid"
+                            size="md"
+                            leftIcon={Flag}
+                            iconBox
+                            isLoading={isClosing}
+                            disabled={closingAmount.trim() === '' || !Number.isFinite(Number(closingAmount)) || Number(closingAmount) < 0}
+                            onClick={confirmClose}
+                        >
+                            Terminar evento
+                        </Button>
+                    </div>
+                }
+            >
+                {closingQuote && (() => {
+                    const costoTotal = Number(closingQuote.CostoTotal) || 0;
+                    const real = Number(closingAmount) || 0;
+                    const utilidad = real - costoTotal;
+                    return (
+                        <div className="space-y-4">
+                            <p className="text-sm text-gray-600">
+                                Al terminar el evento se guarda lo que <strong>realmente se recaudó</strong>. Con ese
+                                dato la utilidad estimada se convierte en utilidad real. El estatus ya no se puede
+                                cambiar después.
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-2 text-center">
+                                <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Costo total</p>
+                                    <p className="text-base font-black text-gray-900 tabular-nums">{money(costoTotal)}</p>
+                                </div>
+                                <div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5">
+                                    <p className="text-[10px] font-black uppercase tracking-wider text-blue-500">Recaudación esperada</p>
+                                    <p className="text-base font-black text-blue-700 tabular-nums">{money(Number(closingQuote.IngresoEstimado) || 0)}</p>
+                                </div>
+                            </div>
+
+                            <div className="w-full flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                    Recaudación real del evento <span className="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    autoFocus
+                                    value={closingAmount}
+                                    onChange={(e) => {
+                                        const limpio = e.target.value.replace(/[^0-9.]/g, '');
+                                        if ((limpio.match(/\./g) || []).length > 1) return;
+                                        setClosingAmount(limpio);
+                                    }}
+                                    placeholder="0.00"
+                                    className="w-full text-lg text-right font-bold rounded-lg border-2 border-gray-200 px-3 py-2.5 focus:outline-none focus:border-violet-500 text-gray-900 tabular-nums"
+                                />
+                                <p className="text-[11px] text-gray-400">Total cobrado al cliente, incluyendo anticipos.</p>
+                            </div>
+
+                            {closingAmount.trim() !== '' && (
+                                <div
+                                    className="rounded-xl px-4 py-3 text-center"
+                                    style={{ backgroundColor: utilidad >= 0 ? '#047857' : '#be123c' }}
+                                >
+                                    <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                                        Utilidad real que quedará registrada
+                                    </p>
+                                    <p className="text-xl font-black tabular-nums" style={{ color: '#ffffff' }}>{money(utilidad)}</p>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+            </BaseModal>
+
             {/* Delete Modal */}
             <BaseModal
                 isOpen={isDeleteModalOpen}
@@ -1029,6 +1442,46 @@ export default function QuotesPage() {
     );
 }
 
+/**
+ * Captura de dinero. Se escribe libre (solo dígitos y un punto) y al salir del
+ * campo se formatea como moneda; al volver a entrar se muestra el número pelón
+ * para poder editarlo sin pelearse con comas ni el signo.
+ */
+function MoneyInput({ value, onChange, placeholder = '0.00' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+    const [isFocused, setIsFocused] = useState(false);
+    const numero = Number(value);
+    const display = isFocused || !value || !Number.isFinite(numero) ? value : money(numero);
+
+    return (
+        <input
+            type="text"
+            inputMode="decimal"
+            value={display}
+            placeholder={placeholder}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onChange={(e) => {
+                const limpio = e.target.value.replace(/[^0-9.]/g, '');
+                // Un solo punto decimal: "12.3.4" no es un monto.
+                if ((limpio.match(/\./g) || []).length > 1) return;
+                onChange(limpio);
+            }}
+            className="w-full text-xs text-right rounded-lg border border-gray-200 px-2 py-1.5 bg-white focus:outline-none focus:border-blue-500 tabular-nums"
+        />
+    );
+}
+
+/** Tarjeta de KPI del pie del editor. */
+function KpiCard({ label, hint, value, bg, labelColor }: { label: string; hint?: string; value: string; bg: string; labelColor: string }) {
+    return (
+        <div className="rounded-xl px-2.5 py-2.5 text-center shadow-sm" style={{ backgroundColor: bg }} title={hint}>
+            <p className="text-[9px] font-black uppercase tracking-wider leading-tight" style={{ color: labelColor }}>{label}</p>
+            <p className="text-sm sm:text-base font-black tabular-nums leading-tight mt-0.5" style={{ color: '#ffffff' }}>{value}</p>
+            {hint && <p className="text-[9px] leading-tight mt-0.5 hidden sm:block" style={{ color: labelColor }}>{hint}</p>}
+        </div>
+    );
+}
+
 function LabeledField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-0.5 min-w-0">
@@ -1039,24 +1492,35 @@ function LabeledField({ label, hint, children }: { label: string; hint?: string;
     );
 }
 
+/** Colores e icono de cada estatus del ciclo de vida del evento. */
+const STATUS_STYLE: Record<QuoteStatus, { cls: string; icon: React.ElementType; iconCls: string }> = {
+    pendiente:  { cls: 'bg-amber-50 text-amber-700 border-amber-200',       icon: Clock,        iconCls: 'text-amber-600' },
+    confirmada: { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2, iconCls: 'text-emerald-600' },
+    terminada:  { cls: 'bg-violet-50 text-violet-700 border-violet-200',    icon: Flag,         iconCls: 'text-violet-600' },
+};
+
 function StatusSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-    const confirmed = value === 'confirmada';
+    const status = parseQuoteStatus(value);
+    const style = STATUS_STYLE[status];
+    const Icon = style.icon;
+    // Terminada es final: el select se bloquea para no ofrecer marcha atrás.
+    const opciones = allowedQuoteStatuses(status);
+
     return (
         <div className="relative inline-flex">
             <select
-                value={value}
+                value={status}
                 onChange={(e) => onChange(e.target.value)}
-                className={`appearance-none cursor-pointer text-xs font-semibold rounded-full pl-6 pr-6 py-1 border focus:outline-none transition-colors ${
-                    confirmed
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}
+                disabled={status === 'terminada'}
+                title={status === 'terminada' ? 'El evento ya está terminado' : undefined}
+                className={`appearance-none cursor-pointer text-xs font-semibold rounded-full pl-6 pr-6 py-1 border focus:outline-none transition-colors disabled:cursor-default ${style.cls}`}
             >
-                <option value="pendiente">Pendiente</option>
-                <option value="confirmada">Confirmada</option>
+                {opciones.map((s) => (
+                    <option key={s} value={s}>{QUOTE_STATUS_LABEL[s]}</option>
+                ))}
             </select>
             <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2">
-                {confirmed ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-amber-600" />}
+                <Icon size={12} className={style.iconCls} />
             </span>
         </div>
     );

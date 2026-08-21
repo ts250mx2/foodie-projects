@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { computeQuoteTotals, normalizeGastos, normalizeDishes } from '@/lib/quotes';
+import { computeQuoteTotals, normalizeGastos, normalizeDishes, resolveQuoteStatus } from '@/lib/quotes';
 
 export const runtime = 'nodejs';
 
@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, nombreEvento, fechaEvento, horaEvento, estatus, recaudacion, notas, gastos = [], platillos = [] } = body;
+        const {
+            projectId, nombreEvento, fechaEvento, horaEvento, estatus, notas,
+            contacto, direccionEvento, gastos = [], platillos = [],
+        } = body;
 
         if (!projectId || !nombreEvento) {
             return NextResponse.json({ success: false, message: 'Faltan campos obligatorios (proyecto y nombre del evento).' }, { status: 400 });
@@ -40,8 +43,11 @@ export async function POST(request: NextRequest) {
 
         const items = normalizeGastos(gastos);
         const dishes = normalizeDishes(platillos);
-        const t = computeQuoteTotals({ platillos: dishes, recaudacion, gastos: items });
-        const estatusEvento = estatus === 'confirmada' ? 'confirmada' : 'pendiente';
+        // Una cotización nace Pendiente: a Terminada solo se llega desde
+        // Confirmada, así que aquí ese valor nunca pasa el filtro.
+        const estatusEvento = resolveQuoteStatus('pendiente', estatus);
+        // La recaudación real se captura al cerrar el evento, no al crearlo.
+        const t = computeQuoteTotals({ platillos: dishes, recaudacion: 0, gastos: items });
 
         connection = await getProjectConnection(parseInt(projectId));
 
@@ -49,13 +55,13 @@ export async function POST(request: NextRequest) {
             `INSERT INTO tblCotizaciones
               (NombreEvento, FechaEvento, HoraEvento, EstatusEvento, CantidadPlatillos, GastosOperativos, Recaudacion,
                CostoPlatillos, IngresoEstimado, CostoTotal, UtilidadEstimada, UtilidadReal,
-               Notas, Status, FechaAct)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
+               Contacto, DireccionEvento, Notas, Status, FechaAct)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, Now())`,
             [
                 nombreEvento, fechaEvento || null, horaEvento || null, estatusEvento, t.cantidadPlatillos,
-                t.gastosOperativos, Number(recaudacion) || 0, t.costoPlatillos,
+                t.gastosOperativos, 0, t.costoPlatillos,
                 t.ingresoEstimado, t.costoTotal, t.utilidadEstimada, t.utilidadReal,
-                notas || null,
+                contacto || null, direccionEvento || null, notas || null,
             ]
         );
 

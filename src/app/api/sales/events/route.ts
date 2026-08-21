@@ -5,9 +5,10 @@ export const runtime = 'nodejs';
 
 /**
  * GET /api/sales/events?projectId
- * Eventos CONFIRMADOS con fecha, para el Calendario de Eventos.
- * Un evento aparece en el calendario sólo cuando su cotización está
- * confirmada (EstatusEvento = 'confirmada'), activa (Status = 0) y tiene fecha.
+ * Eventos agendados con fecha, para el Calendario de Eventos.
+ * Aparecen las cotizaciones CONFIRMADAS y las TERMINADAS: terminar un evento
+ * no lo borra de la agenda, siguió ocurriendo ese día y su recaudación real es
+ * justo lo que se quiere consultar después. Solo activas (Status = 0).
  */
 export async function GET(request: NextRequest) {
     let connection;
@@ -21,9 +22,10 @@ export async function GET(request: NextRequest) {
         connection = await getProjectConnection(parseInt(projectIdStr));
         const [rows] = await connection.query(
             `SELECT IdCotizacion, NombreEvento, FechaEvento, HoraEvento,
-                    CantidadPlatillos, Recaudacion, IngresoEstimado, CostoTotal, UtilidadEstimada, Notas
+                    CantidadPlatillos, Recaudacion, IngresoEstimado, CostoTotal, UtilidadEstimada, UtilidadReal,
+                    EstatusEvento, Contacto, DireccionEvento, Notas
              FROM tblCotizaciones
-             WHERE Status = 0 AND EstatusEvento = 'confirmada' AND FechaEvento IS NOT NULL
+             WHERE Status = 0 AND EstatusEvento IN ('confirmada', 'terminada') AND FechaEvento IS NOT NULL
              ORDER BY FechaEvento ASC, HoraEvento ASC`
         );
         return NextResponse.json({ success: true, data: rows });

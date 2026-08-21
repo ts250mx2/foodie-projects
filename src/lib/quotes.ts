@@ -106,3 +106,52 @@ export function computeQuoteTotals(input: Partial<QuoteInput>): QuoteTotals {
         margenReal,
     };
 }
+
+/* ── Ciclo de vida del evento ─────────────────────────────────────────────
+   Pendiente ──► Confirmada ──► Terminada
+   Terminada es final y SOLO se llega desde Confirmada: es el cierre del
+   evento, el momento en que se captura lo realmente recaudado. Vive en
+   tblCotizaciones.EstatusEvento (varchar), no en Status (que es el borrado
+   lógico del renglón).
+──────────────────────────────────────────────────────────────────────── */
+
+export const QUOTE_STATUSES = ['pendiente', 'confirmada', 'terminada'] as const;
+export type QuoteStatus = typeof QUOTE_STATUSES[number];
+
+export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
+    pendiente: 'Pendiente',
+    confirmada: 'Confirmada',
+    terminada: 'Terminada',
+};
+
+/** Lee el estatus crudo de la base; cualquier valor desconocido es Pendiente. */
+export function parseQuoteStatus(value: unknown): QuoteStatus {
+    return QUOTE_STATUSES.includes(value as QuoteStatus) ? (value as QuoteStatus) : 'pendiente';
+}
+
+/** Estatus a los que se puede mover una cotización desde el actual (incluye el propio). */
+export function allowedQuoteStatuses(current: unknown): QuoteStatus[] {
+    switch (parseQuoteStatus(current)) {
+        case 'pendiente':  return ['pendiente', 'confirmada'];
+        case 'confirmada': return ['pendiente', 'confirmada', 'terminada'];
+        case 'terminada':  return ['terminada'];
+    }
+}
+
+export function canTransitionQuoteStatus(current: unknown, next: unknown): boolean {
+    return allowedQuoteStatuses(current).includes(parseQuoteStatus(next));
+}
+
+/**
+ * Estatus final que debe guardarse. Si la transición pedida no es válida se
+ * conserva el actual: el servidor no confía en lo que manda el cliente.
+ */
+export function resolveQuoteStatus(current: unknown, requested: unknown): QuoteStatus {
+    const next = parseQuoteStatus(requested);
+    return canTransitionQuoteStatus(current, next) ? next : parseQuoteStatus(current);
+}
+
+/** Evento cerrado: ya tiene recaudación real y utilidad real que valen. */
+export function isQuoteClosed(status: unknown): boolean {
+    return parseQuoteStatus(status) === 'terminada';
+}

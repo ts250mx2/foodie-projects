@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle2, MapPin, Pencil, ShoppingCart, Receipt } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle2, MapPin, Pencil, ShoppingCart, Receipt, Flag, UserRound, ExternalLink } from 'lucide-react';
+import { isQuoteClosed } from '@/lib/quotes';
 import Button from '@/components/Button';
 import BaseModal from '@/components/BaseModal';
 import PageShell from '@/components/PageShell';
@@ -17,6 +18,10 @@ interface EventItem {
     IngresoEstimado: number;
     CostoTotal: number;
     UtilidadEstimada: number;
+    UtilidadReal: number;
+    EstatusEvento: string | null;
+    Contacto: string | null;
+    DireccionEvento: string | null;
     Notas: string | null;
 }
 
@@ -170,7 +175,7 @@ export default function EventsCalendarPage() {
                 {/* Barra del mes */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
                     <h2 className="text-base font-bold text-gray-900 capitalize">{monthLabel}</h2>
-                    <span className="text-xs text-gray-500 hidden sm:inline">Solo se muestran las cotizaciones confirmadas.</span>
+                    <span className="text-xs text-gray-500 hidden sm:inline">Se muestran los eventos confirmados y los ya terminados.</span>
                 </div>
 
                 {isLoading ? (
@@ -249,9 +254,33 @@ export default function EventsCalendarPage() {
                 {selected && (
                     <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
-                                <CheckCircle2 size={12} /> Confirmado
-                            </span>
+                            {isQuoteClosed(selected.EstatusEvento) ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-full px-2.5 py-1">
+                                    <Flag size={12} /> Terminado · recaudó {money(Number(selected.Recaudacion))}
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                                    <CheckCircle2 size={12} /> Confirmado
+                                </span>
+                            )}
+                            {selected.Contacto && (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                                    <UserRound size={12} /> {selected.Contacto}
+                                </span>
+                            )}
+                            {selected.DireccionEvento && (
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.DireccionEvento)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={selected.DireccionEvento}
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-1 hover:bg-blue-100 transition-colors max-w-[280px]"
+                                >
+                                    <MapPin size={12} className="shrink-0" />
+                                    <span className="truncate">{selected.DireccionEvento}</span>
+                                    <ExternalLink size={10} className="shrink-0" />
+                                </a>
+                            )}
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
                                 <CalendarDays size={12} />
                                 {selected.FechaEvento ? new Date(eventKey(selected.FechaEvento) + 'T00:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
@@ -266,8 +295,12 @@ export default function EventsCalendarPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <DetailStat label="Platillos" value={String(selected.CantidadPlatillos)} />
                             <DetailStat label="Costo total" value={money(Number(selected.CostoTotal))} />
-                            <DetailStat label="Recaudación" value={money(Number(selected.Recaudacion))} />
-                            <DetailStat label="Utilidad estimada" value={money(Number(selected.UtilidadEstimada))} positive={Number(selected.UtilidadEstimada) >= 0} />
+                            <DetailStat label="Recaudación esperada" value={money(Number(selected.IngresoEstimado))} />
+                            {isQuoteClosed(selected.EstatusEvento) ? (
+                                <DetailStat label="Utilidad real" value={money(Number(selected.UtilidadReal))} positive={Number(selected.UtilidadReal) >= 0} />
+                            ) : (
+                                <DetailStat label="Utilidad estimada" value={money(Number(selected.UtilidadEstimada))} positive={Number(selected.UtilidadEstimada) >= 0} />
+                            )}
                         </div>
 
                         {loadingDetail ? (
