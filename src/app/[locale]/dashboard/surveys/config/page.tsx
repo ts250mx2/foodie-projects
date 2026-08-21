@@ -127,6 +127,9 @@ export default function SurveyConfigPage() {
     const [isConfigLoaded, setIsConfigLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSavingConfig, setIsSavingConfig] = useState(false);
+    // Cambios de config sin guardar. Preguntas y personas NO cuentan: esas se
+    // guardan solas al momento contra su propio endpoint.
+    const [isDirty, setIsDirty] = useState(false);
     const [isLinkOpen, setIsLinkOpen] = useState(false);
 
     const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
@@ -175,6 +178,7 @@ export default function SurveyConfigPage() {
                     });
                 }
                 setAttendants(data.attendants || []);
+                setIsDirty(false);
             }
         } catch (error) {
             console.error('Error fetching survey config:', error);
@@ -392,7 +396,7 @@ export default function SurveyConfigPage() {
                 body: JSON.stringify({ projectId, config }),
             });
             const data = await res.json();
-            if (data.success) success('Configuración guardada');
+            if (data.success) { success('Configuración guardada'); setIsDirty(false); }
             else toastError(data.message || 'No se pudo guardar la configuración');
         } catch (error) {
             console.error('Error saving survey config:', error);
@@ -404,10 +408,11 @@ export default function SurveyConfigPage() {
 
     const setConfigField = (field: keyof SurveyConfigForm, value: string | number) => {
         setConfig(prev => ({ ...prev, [field]: value }));
+        setIsDirty(true);
     };
 
     // El flyer viaja como data URL dentro de la config (mismo mecanismo que el
-    // logo del proyecto) y se guarda con el botón Guardar Textos.
+    // logo del proyecto) y se guarda con el botón Guardar todo del final.
     const handleFlyerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         e.target.value = '';
@@ -427,6 +432,7 @@ export default function SurveyConfigPage() {
                 FlyerImagen: reader.result as string,
                 FlyerNombre: file.name.slice(0, 245),
             }));
+            setIsDirty(true);
         };
         reader.readAsDataURL(file);
     };
@@ -534,14 +540,7 @@ export default function SurveyConfigPage() {
                 </div>
 
                 {/* Textos de la página pública */}
-                <PageCard
-                    title="Textos de la encuesta"
-                    actions={
-                        <Button variant="solid" size="sm" leftIcon={Save} iconBox isLoading={isSavingConfig} disabled={!isConfigLoaded} onClick={handleSaveConfig}>
-                            Guardar Textos
-                        </Button>
-                    }
-                >
+                <PageCard title="Textos de la encuesta">
                     <div className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <Input
@@ -615,6 +614,7 @@ export default function SurveyConfigPage() {
                                                 AtencionTitulo: activa && !prev.AtencionTitulo ? DEFAULT_ATENCION_TITULO : prev.AtencionTitulo,
                                                 AtencionTexto: activa && !prev.AtencionTexto ? DEFAULT_ATENCION_TEXTO : prev.AtencionTexto,
                                             }));
+                                            setIsDirty(true);
                                         }}
                                         className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 cursor-pointer"
                                     />
@@ -838,7 +838,7 @@ export default function SurveyConfigPage() {
                                                 variant="secondary"
                                                 size="sm"
                                                 leftIcon={Trash2}
-                                                onClick={() => setConfig(prev => ({ ...prev, FlyerImagen: '', FlyerNombre: '' }))}
+                                                onClick={() => { setConfig(prev => ({ ...prev, FlyerImagen: '', FlyerNombre: '' })); setIsDirty(true); }}
                                             >
                                                 Quitar
                                             </Button>
@@ -855,7 +855,7 @@ export default function SurveyConfigPage() {
                                         <p className="text-[11px] text-gray-400">{config.FlyerNombre}</p>
                                     )}
                                     <p className="text-[11px] text-gray-400">
-                                        Imagen PNG, JPG, WEBP o GIF de hasta 4 MB. Se aplica al presionar Guardar Textos.
+                                        Imagen PNG, JPG, WEBP o GIF de hasta 4 MB. Se aplica al presionar Guardar todo.
                                     </p>
                                 </div>
                                 {config.FlyerImagen && (
@@ -876,6 +876,34 @@ export default function SurveyConfigPage() {
                         </div>
                     </div>
                 </PageCard>
+
+                {/* Guardar todo: cierra la página porque es lo último que se
+                    hace tras repasar los bloques de arriba. Solo se enciende
+                    cuando hay algo pendiente; mientras hay cambios sin guardar
+                    se queda pegado al borde inferior para no obligar a
+                    regresar hasta acá desde cualquier campo. */}
+                <div
+                    className={`flex items-center justify-between gap-3 flex-wrap rounded-xl border bg-white px-4 py-3 ${
+                        isDirty ? 'sticky bottom-3 z-20 border-amber-300 shadow-lg' : 'border-gray-200 shadow-sm'
+                    }`}
+                >
+                    <p className="text-xs text-gray-500">
+                        {isDirty
+                            ? 'Hay cambios sin guardar en los textos, el bloque de atención o el flyer.'
+                            : 'Todo guardado. Las preguntas y la lista de personas se guardan al momento.'}
+                    </p>
+                    <Button
+                        variant="solid"
+                        size="md"
+                        leftIcon={Save}
+                        iconBox
+                        isLoading={isSavingConfig}
+                        disabled={!isConfigLoaded || !isDirty}
+                        onClick={handleSaveConfig}
+                    >
+                        Guardar todo
+                    </Button>
+                </div>
             </div>
 
             {/* Modal de pregunta */}
