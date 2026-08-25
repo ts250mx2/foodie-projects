@@ -96,10 +96,30 @@ export async function GET(request: NextRequest) {
              ORDER BY Empleado ASC`
         );
 
+        // Cuentas de administrador del proyecto: viven en tblUsuarios de la BD
+        // central y se ligan por tblProyectosUsuarios. Los permisos son del
+        // proyecto (IdEmpleado = -1), así que aplican a todas ellas.
+        const [adminRows] = await pool.query<RowDataPacket[]>(
+            `SELECT u.IdUsuario, u.Usuario, u.CorreoElectronico, u.Telefono
+             FROM tblProyectosUsuarios pu
+             JOIN tblUsuarios u ON u.IdUsuario = pu.IdUsuario
+             WHERE pu.IdProyecto = ?
+             ORDER BY u.IdUsuario ASC`,
+            [projectId]
+        );
+
         return NextResponse.json({
             success: true,
             domain,
-            admin: { permissions: permsByUser.get(ADMIN_PERMISSIONS_ID) || {} },
+            admin: {
+                permissions: permsByUser.get(ADMIN_PERMISSIONS_ID) || {},
+                cuentas: adminRows.map(a => ({
+                    idUsuario: a.IdUsuario,
+                    nombre: a.Usuario || '',
+                    correo: a.CorreoElectronico || '',
+                    telefono: a.Telefono || '',
+                })),
+            },
             users: rows.map(u => ({
                 idEmpleado: u.IdEmpleado,
                 nombre: u.Empleado,
@@ -227,8 +247,70 @@ export async function PUT(request: NextRequest) {
         connection = await getProjectConnection(Number(projectId));
 
         if (employeeId === ADMIN_PERMISSIONS_ID) {
+            // La cuenta del administrador vive en la BD central; sus permisos,
+            // en la del proyecto. Se guardan los datos primero: si algo falla
+            // ahí, los permisos ni se tocan.
+            const cuenta = body.cuenta;
+            if (cuenta && cuenta.idUsuario) {
+                const idUsuario = Number(cuenta.idUsuario);
+
+                // Solo se puede editar una cuenta ligada A ESTE proyecto: sin
+                // esto, cualquiera con acceso al panel podría tocar la cuenta
+                // de otro cliente mandando otro id.
+                const [pertenece] = await pool.query<RowDataPacket[]>(
+                    'SELECT 1 FROM tblProyectosUsuarios WHERE IdProyecto = ? AND IdUsuario = ? LIMIT 1',
+                    [Number(projectId), idUsuario]
+                );
+                if (pertenece.length === 0) {
+                    return NextResponse.json(
+                        { success: false, message: 'Esa cuenta no pertenece a este proyecto' },
+                        { status: 403 }
+                    );
+                }
+
+                const nombreCuenta = cleanText(cuenta.nombre, 150);
+                const correoCuenta = cleanText(cuenta.correo, 150).toLowerCase();
+                const telefonoCuenta = cleanText(cuenta.telefono, 30);
+
+                if (!nombreCuenta) {
+                    return NextResponse.json({ success: false, message: 'Escribe el nombre del administrador' }, { status: 400 });
+                }
+                if (!correoCuenta || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoCuenta)) {
+                    return NextResponse.json({ success: false, message: 'El correo del administrador no es válido' }, { status: 400 });
+                }
+
+                // El correo es la credencial con la que entra, y el teléfono
+                // también es único en el alta: repetirlos rompería el login.
+                const [dupCuenta] = await pool.query<RowDataPacket[]>(
+                    `SELECT IdUsuario, CorreoElectronico, Telefono FROM tblUsuarios
+                     WHERE (CorreoElectronico = ? OR (Telefono = ? AND ? <> '')) AND IdUsuario <> ? LIMIT 1`,
+                    [correoCuenta, telefonoCuenta, telefonoCuenta, idUsuario]
+                );
+                if (dupCuenta.length > 0) {
+                    const choca = dupCuenta[0].CorreoElectronico === correoCuenta ? 'correo' : 'teléfono';
+                    return NextResponse.json(
+                        { success: false, message: `Ese ${choca} ya lo usa otra cuenta` },
+                        { status: 409 }
+                    );
+                }
+
+                const campos = ['Usuario = ?', 'CorreoElectronico = ?', 'Telefono = ?'];
+                const valores: unknown[] = [nombreCuenta, correoCuenta, telefonoCuenta || null];
+                // Contraseña opcional: vacía conserva la actual.
+                if (typeof cuenta.password === 'string' && cuenta.password.length > 0) {
+                    if (cuenta.password.length < 4) {
+                        return NextResponse.json({ success: false, message: 'La contraseña debe tener al menos 4 caracteres' }, { status: 400 });
+                    }
+                    campos.push('passwd = ?');
+                    valores.push(cuenta.password);
+                }
+                valores.push(idUsuario);
+
+                await pool.query(`UPDATE tblUsuarios SET ${campos.join(', ')} WHERE IdUsuario = ?`, valores);
+            }
+
             await savePermissions(connection, ADMIN_PERMISSIONS_ID, permissions);
-            return NextResponse.json({ success: true, message: 'Permisos del administrador actualizados' });
+            return NextResponse.json({ success: true, message: 'Administrador actualizado' });
         }
 
         const sets: string[] = [];

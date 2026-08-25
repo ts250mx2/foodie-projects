@@ -29,11 +29,20 @@ interface SystemUser {
     usuario: string;
     login: string;
     correo: string | null;
+    telefono: string | null;
     esAdministrador: boolean;
     esUsuarioSistema: boolean;
     sucursal: string | null;
     puesto: string | null;
     permissions: Record<string, boolean>;
+}
+
+/** Cuenta de administrador del proyecto (tblUsuarios de la BD central). */
+interface AdminAccount {
+    idUsuario: number;
+    nombre: string;
+    correo: string;
+    telefono: string;
 }
 
 interface EmpleadoSinAcceso {
@@ -51,8 +60,11 @@ interface UserDraft {
     password: string;
     esAdministrador: boolean;
     esUsuarioSistema: boolean;
+    telefono: string;
     /** Empleado existente al que se le abre acceso (solo en alta). */
     vinculaEmpleado: number | null;
+    /** Cuenta central que se está editando (solo en el administrador). */
+    adminIdUsuario: number | null;
     permissions: Record<string, boolean>;
 }
 
@@ -64,7 +76,9 @@ const EMPTY_DRAFT: UserDraft = {
     password: '',
     esAdministrador: false,
     esUsuarioSistema: true,
+    telefono: '',
     vinculaEmpleado: null,
+    adminIdUsuario: null,
     permissions: {},
 };
 
@@ -77,6 +91,7 @@ export default function SystemUsersPanel() {
     const [users, setUsers] = useState<SystemUser[]>([]);
     const [sinAcceso, setSinAcceso] = useState<EmpleadoSinAcceso[]>([]);
     const [adminPermissions, setAdminPermissions] = useState<Record<string, boolean>>({});
+    const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>([]);
     const [domain, setDomain] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -95,6 +110,7 @@ export default function SystemUsersPanel() {
                 setUsers(data.users || []);
                 setSinAcceso(data.empleadosSinAcceso || []);
                 setAdminPermissions(data.admin?.permissions || {});
+                setAdminAccounts(data.admin?.cuentas || []);
                 setDomain(data.domain || '');
             } else {
                 toastError(data.message || 'No se pudieron cargar los usuarios');
@@ -122,15 +138,23 @@ export default function SystemUsersPanel() {
         password: '',
         esAdministrador: u.esAdministrador,
         esUsuarioSistema: u.esUsuarioSistema,
+        telefono: u.telefono || '',
         vinculaEmpleado: null,
+        adminIdUsuario: null,
         permissions: { ...u.permissions },
     });
 
-    /** El administrador se edita como un usuario más, pero solo sus permisos. */
-    const openAdmin = () => setDraft({
+    /**
+     * El administrador se edita como un usuario más: sus datos van a la BD
+     * central y sus permisos a la del proyecto (bajo el id reservado).
+     */
+    const openAdmin = (cuenta?: AdminAccount) => setDraft({
         ...EMPTY_DRAFT,
         idEmpleado: ADMIN_PERMISSIONS_ID,
-        nombre: 'Administrador del proyecto',
+        adminIdUsuario: cuenta?.idUsuario ?? null,
+        nombre: cuenta?.nombre || 'Administrador del proyecto',
+        correo: cuenta?.correo || '',
+        telefono: cuenta?.telefono || '',
         permissions: { ...adminPermissions },
     });
 
@@ -183,6 +207,15 @@ export default function SystemUsersPanel() {
                     password: draft.password,
                     esAdministrador: draft.esAdministrador,
                     permissions: draft.permissions,
+                    cuenta: isAdminDraft && draft.adminIdUsuario
+                        ? {
+                            idUsuario: draft.adminIdUsuario,
+                            nombre: draft.nombre.trim(),
+                            correo: draft.correo.trim(),
+                            telefono: draft.telefono.trim(),
+                            password: draft.password,
+                        }
+                        : undefined,
                 }),
             });
             const data = await res.json();
@@ -248,11 +281,28 @@ export default function SystemUsersPanel() {
                         <Crown size={18} />
                     </span>
                     <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-900">Administrador del proyecto</p>
-                        <p className="text-xs text-gray-500 leading-snug">
-                            Es la cuenta con la que se dio de alta el proyecto; no es un empleado, así que no
-                            aparece en la lista. Sin permisos configurados ve todos los menús.
+                        <p className="text-sm font-bold text-gray-900">
+                            {adminAccounts[0]?.nombre || 'Administrador del proyecto'}
                         </p>
+                        {adminAccounts[0] ? (
+                            <p className="text-xs text-gray-500 leading-snug">
+                                {adminAccounts[0].correo}
+                                {adminAccounts[0].telefono && <span className="text-gray-400"> · {adminAccounts[0].telefono}</span>}
+                            </p>
+                        ) : (
+                            <p className="text-xs text-gray-500 leading-snug">
+                                Es la cuenta con la que se dio de alta el proyecto; no es un empleado, así que no
+                                aparece en la lista.
+                            </p>
+                        )}
+                        <p className="text-[11px] text-gray-400 leading-snug mt-0.5">
+                            Entra con su correo, no con un usuario del dominio. Sin permisos configurados ve todos los menús.
+                        </p>
+                        {adminAccounts.length > 1 && (
+                            <p className="text-[11px] text-amber-700 mt-0.5">
+                                Este proyecto tiene {adminAccounts.length} cuentas de administrador y los permisos aplican a todas.
+                            </p>
+                        )}
                         <p className="text-[11px] mt-1 font-semibold" style={{ color: permisosActivos(adminPermissions) > 0 ? '#0369a1' : '#9ca3af' }}>
                             {permisosActivos(adminPermissions) > 0
                                 ? `${permisosActivos(adminPermissions)} menús permitidos`
@@ -260,8 +310,8 @@ export default function SystemUsersPanel() {
                         </p>
                     </div>
                 </div>
-                <Button variant="secondary" size="sm" leftIcon={ShieldCheck} onClick={openAdmin}>
-                    Editar permisos
+                <Button variant="secondary" size="sm" leftIcon={ShieldCheck} onClick={() => openAdmin(adminAccounts[0])}>
+                    Editar
                 </Button>
             </div>
 
@@ -361,12 +411,12 @@ export default function SystemUsersPanel() {
                 isOpen={draft !== null}
                 onClose={() => setDraft(null)}
                 title={
-                    isAdminDraft ? 'Permisos del administrador'
+                    isAdminDraft ? 'Administrador del proyecto'
                         : draft?.idEmpleado === null ? 'Nuevo usuario de sistema'
                             : 'Editar usuario'
                 }
                 subtitle={isAdminDraft
-                    ? 'Se guardan en el proyecto, no en un empleado'
+                    ? 'Sus datos viven en la cuenta central; sus permisos, en este proyecto'
                     : draft?.usuario && domain ? `${draft.usuario}@${domain}` : undefined}
                 size="xl"
                 footer={
@@ -382,6 +432,50 @@ export default function SystemUsersPanel() {
             >
                 {draft && (
                     <div className="space-y-5">
+                        {/* Datos de la cuenta del administrador (BD central) */}
+                        {isAdminDraft && draft.adminIdUsuario !== null && (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Input
+                                        label="Nombre"
+                                        value={draft.nombre}
+                                        onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                                        placeholder="Nombre del administrador"
+                                    />
+                                    <Input
+                                        label="Teléfono"
+                                        value={draft.telefono}
+                                        onChange={(e) => setDraft({ ...draft, telefono: e.target.value })}
+                                        placeholder="10 dígitos"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Input
+                                        label="Correo electrónico"
+                                        type="email"
+                                        value={draft.correo}
+                                        onChange={(e) => setDraft({ ...draft, correo: e.target.value })}
+                                        placeholder="admin@correo.com"
+                                        hint="Es el correo con el que inicia sesión."
+                                    />
+                                    <Input
+                                        label="Nueva contraseña"
+                                        type="text"
+                                        value={draft.password}
+                                        onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+                                        placeholder="Dejar vacío para no cambiarla"
+                                        hint="Vacío conserva la actual."
+                                    />
+                                </div>
+                                {draft.correo.trim().toLowerCase() !== (adminAccounts.find(a => a.idUsuario === draft.adminIdUsuario)?.correo || '').toLowerCase() && (
+                                    <p className="text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                                        Estás cambiando el correo de acceso: la próxima vez tendrá que entrar con el
+                                        nuevo. La contraseña no cambia salvo que la escribas arriba.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
                         {!isAdminDraft && (
                             <div className="space-y-3">
                                 {/* En el alta se puede colgar el acceso de un empleado que ya existe */}
