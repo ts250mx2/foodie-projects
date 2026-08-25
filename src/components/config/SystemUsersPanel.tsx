@@ -229,6 +229,18 @@ export default function SystemUsersPanel() {
 
     return (
         <div className="space-y-4">
+            {/* Sin dominio no se puede armar el correo de acceso de nadie. */}
+            {!isLoading && !domain && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-sm font-semibold text-amber-900">Este proyecto no tiene dominio de acceso</p>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                        El correo con el que entra el personal se arma como <span className="font-mono">usuario@dominio</span>,
+                        así que hasta configurarlo no se pueden crear usuarios. Ve a la pestaña <strong>Proyecto</strong>,
+                        revisa el campo <strong>Dominio de acceso</strong> y guarda.
+                    </p>
+                </div>
+            )}
+
             {/* Administrador del proyecto */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex items-start gap-3 min-w-0">
@@ -437,7 +449,7 @@ export default function SystemUsersPanel() {
                                                 className="flex-1 min-w-0 text-sm rounded-l-lg border border-r-0 border-gray-200 px-3 py-2 focus:outline-none focus:border-blue-500 text-gray-800"
                                             />
                                             <span className="inline-flex items-center px-3 rounded-r-lg border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500">
-                                                @{domain || 'sin-dominio'}
+                                                @{domain || '…'}
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-gray-400">Así entra al sistema: el dominio lo pone el proyecto.</p>

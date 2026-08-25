@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import {
+    PROJECT_DOMAIN_SUFFIX,
+    slugifyProjectName,
+    splitProjectDomain,
+} from '@/lib/project-domain';
 import WhatsappPhonesModal from '@/components/WhatsappPhonesModal';
 import TaxesModal from '@/components/config/TaxesModal';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -12,6 +17,10 @@ interface ProjectSettings {
     Logo64: string;
     Proyecto: string;
     Titulo: string;
+    /** Dominio de acceso; segunda mitad del login de todo el personal. */
+    DominioFG: string;
+    /** El que le tocaría por el nombre del proyecto (lo calcula el servidor). */
+    DominioSugerido: string;
     ColorFondo1: string;
     ColorFondo2: string;
     ColorLetra: string;
@@ -85,6 +94,8 @@ export default function ProjectPanel() {
         Logo64: '',
         Proyecto: '',
         Titulo: '',
+        DominioFG: '',
+        DominioSugerido: '',
         ColorFondo1: '#FF6B35',
         ColorFondo2: '#F7931E',
         ColorLetra: '#FFFFFF',
@@ -108,6 +119,8 @@ export default function ProjectPanel() {
     const [project, setProject] = useState<any>(null);
     const [user, setUser] = useState<any>(null);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    // Dominio con el que se cargó la pantalla: contra él se avisa del cambio.
+    const [dominioOriginal, setDominioOriginal] = useState('');
     const [waOpen, setWaOpen] = useState(false);
     const [taxesOpen, setTaxesOpen] = useState(false);
 
@@ -129,7 +142,11 @@ export default function ProjectPanel() {
             const response = await fetch(`/api/project-settings?projectId=${project.idProyecto}&userId=${user.idUsuario}`);
             const data = await response.json();
             if (data.success) {
-                setProjectData(data.projectData);
+                // Sin dominio configurado se propone el que le toca por su nombre,
+                // para que guardar una vez lo deje correcto.
+                const dominio = data.projectData.DominioFG || data.projectData.DominioSugerido || '';
+                setProjectData({ ...data.projectData, DominioFG: dominio });
+                setDominioOriginal(data.projectData.DominioFG || '');
                 setUserData(data.userData);
             }
         } catch (error) {
@@ -160,6 +177,9 @@ export default function ProjectPanel() {
                             userId: user.idUsuario,
                             projectData: {
                                 ...projectData,
+                                // Sin DominioFG: subir un logo no debe reescribir
+                                // los accesos de nadie.
+                                DominioFG: undefined,
                                 Logo64: base64String // Ensure we send the new logo
                             },
                             userData: {
@@ -202,6 +222,7 @@ export default function ProjectPanel() {
                     projectData: {
                         Logo64: projectData.Logo64, // This will be the file path or empty
                         Titulo: projectData.Titulo,
+                        DominioFG: projectData.DominioFG,
                         ColorFondo1: projectData.ColorFondo1,
                         ColorFondo2: projectData.ColorFondo2,
                         ColorLetra: projectData.ColorLetra,
@@ -224,7 +245,14 @@ export default function ProjectPanel() {
 
             const data = await response.json();
             if (data.success) {
-                setMessage('Configuración guardada exitosamente');
+                // Cambiar el dominio reescribe el correo de acceso de todos:
+                // se dice cuántos, que es justo lo que la persona necesita saber.
+                setMessage(
+                    data.loginsActualizados > 0
+                        ? `Configuración guardada. Se actualizó el correo de acceso de ${data.loginsActualizados} ${data.loginsActualizados === 1 ? 'usuario' : 'usuarios'}.`
+                        : 'Configuración guardada exitosamente'
+                );
+                if (data.dominio) setDominioOriginal(data.dominio);
                 // Update logo path if a new one was saved
                 const nextLogo = data.logoPath || projectData.Logo64;
                 setProjectData(prev => ({ ...prev, Logo64: nextLogo }));
@@ -256,6 +284,9 @@ export default function ProjectPanel() {
         }
     };
 
+    // El sufijo es fijo: solo se edita lo de antes.
+    const dominioPrefijo = splitProjectDomain(projectData.DominioFG).prefix;
+    const dominioSugerido = projectData.DominioSugerido || '';
     if (isLoading) {
         return <div className="py-10 text-center text-sm text-gray-400">Cargando…</div>;
     }
@@ -355,6 +386,61 @@ export default function ProjectPanel() {
                                 value={projectData.Titulo}
                                 onChange={(e) => setProjectData({ ...projectData, Titulo: e.target.value })}
                             />
+
+                            {/* Dominio de acceso: solo se edita la parte antes
+                                del sufijo, que es fijo para todos los proyectos. */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Dominio de acceso
+                                </label>
+                                <div className="flex items-stretch">
+                                    <input
+                                        type="text"
+                                        value={dominioPrefijo}
+                                        onChange={(e) => setProjectData({
+                                            ...projectData,
+                                            DominioFG: `${slugifyProjectName(e.target.value)}${PROJECT_DOMAIN_SUFFIX}`,
+                                        })}
+                                        placeholder={slugifyProjectName(projectData.Proyecto) || 'miproyecto'}
+                                        autoComplete="off"
+                                        className="flex-1 min-w-0 px-4 py-2 border border-r-0 border-gray-300 rounded-l-lg focus:outline-none focus:border-primary-500 text-gray-800"
+                                    />
+                                    <span className="inline-flex items-center px-3 rounded-r-lg border border-gray-300 bg-gray-100 text-sm font-semibold text-gray-600">
+                                        {PROJECT_DOMAIN_SUFFIX}
+                                    </span>
+                                </div>
+
+                                <div className="mt-2 flex items-center gap-3 flex-wrap">
+                                    <p className="text-xs text-gray-500">
+                                        Todo el personal entra con <span className="font-semibold text-gray-700">usuario@{dominioPrefijo || '…'}{PROJECT_DOMAIN_SUFFIX}</span>
+                                    </p>
+                                    {dominioSugerido && projectData.DominioFG !== dominioSugerido && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setProjectData({ ...projectData, DominioFG: dominioSugerido })}
+                                            className="text-xs font-semibold text-primary-600 hover:text-primary-700"
+                                        >
+                                            Usar el nombre del proyecto ({dominioSugerido})
+                                        </button>
+                                    )}
+                                </div>
+
+                                {!projectData.DominioFG && (
+                                    <p className="mt-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                        Este proyecto todavía no tiene dominio, por eso los usuarios de sistema aparecen
+                                        sin él. Configúralo aquí y guarda.
+                                    </p>
+                                )}
+
+                                {dominioOriginal && projectData.DominioFG !== dominioOriginal && (
+                                    <p className="mt-2 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                                        Al guardar, el correo de acceso de <strong>todos</strong> los usuarios cambia de
+                                        <span className="font-mono"> @{dominioOriginal}</span> a
+                                        <span className="font-mono"> @{projectData.DominioFG}</span>. Sus contraseñas no
+                                        cambian, pero tendrán que entrar con el correo nuevo.
+                                    </p>
+                                )}
+                            </div>
 
                             {/* Módulos opcionales del proyecto */}
                             <div className="pt-2 space-y-2">
