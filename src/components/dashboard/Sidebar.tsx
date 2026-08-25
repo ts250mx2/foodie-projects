@@ -111,8 +111,17 @@ export default function Sidebar({ isCollapsed = false, mobileOpen = false, onExp
                 return false;
             }
 
-            // Check permissions first
-            const isAuthorized = !user?.isEmployee || user?.isAdmin || permissions[item.key] === true;
+            // Permisos. El administrador del proyecto (no empleado) tambien
+            // puede tener los suyos: solo se aplican si el proyecto configuro
+            // alguno, para no restringir a quien nunca los toco. Configuracion
+            // General queda siempre visible o no habria por donde corregirlos.
+            const tienePermisosPropios = Object.keys(permissions).length > 0;
+            const restringido = user?.isEmployee || tienePermisosPropios;
+            const isAuthorized =
+                user?.isAdmin ||
+                !restringido ||
+                permissions[item.key] === true ||
+                (!user?.isEmployee && item.key === 'project');
             if (!isAuthorized) return false;
 
             // Then check search term

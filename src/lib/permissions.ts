@@ -7,6 +7,14 @@ import { ALL_MENU_KEYS } from '@/lib/menu';
 
 const VALID_KEYS = new Set(ALL_MENU_KEYS);
 
+/**
+ * Los permisos del ADMINISTRADOR del proyecto (el que entra por tblUsuarios de
+ * la BD central, no por tblEmpleados) viven en la misma tabla bajo un
+ * IdEmpleado reservado. No hay renglon de empleado con ese id, y como los ids
+ * reales son autoincrementales positivos nunca va a chocar con uno.
+ */
+export const ADMIN_PERMISSIONS_ID = -1;
+
 /** Devuelve el mapa { menuKey: boolean } de permisos de un empleado. */
 export async function getPermissions(connection: Connection, employeeId: number): Promise<Record<string, boolean>> {
     const map: Record<string, boolean> = {};

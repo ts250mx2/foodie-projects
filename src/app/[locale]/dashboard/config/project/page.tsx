@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import PageShell from '@/components/PageShell';
 import BaseModal from '@/components/BaseModal';
 import Button from '@/components/Button';
-import { Settings, FolderOpen, MapPin, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, FolderOpen, MapPin, Plus, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ProjectPanel from '@/components/config/ProjectPanel';
+import SystemUsersPanel from '@/components/config/SystemUsersPanel';
 import BranchEditContent from '@/components/BranchEditContent';
 
 interface Branch {
@@ -84,6 +85,7 @@ export default function GeneralConfigPage() {
 
     const tabs = [
         { id: 'project', label: 'Proyecto', icon: FolderOpen },
+        { id: 'users', label: 'Usuarios de sistema', icon: ShieldCheck },
         ...branches.map((b) => ({ id: `b:${b.IdSucursal}`, label: b.Sucursal || 'Sucursal', icon: MapPin })),
         { id: 'new', label: 'Nueva sucursal', icon: Plus },
     ];
@@ -91,7 +93,7 @@ export default function GeneralConfigPage() {
     return (
         <PageShell
             title="Configuración General"
-            subtitle="Datos del proyecto y sucursales"
+            subtitle="Datos del proyecto, usuarios con acceso y sucursales"
             icon={Settings}
         >
             {/* Pestañas: Proyecto + una por sucursal + Nueva */}
@@ -138,6 +140,8 @@ export default function GeneralConfigPage() {
 
             {/* Contenido de la pestaña activa */}
             {active === 'project' && <ProjectPanel />}
+
+            {active === 'users' && <SystemUsersPanel />}
 
             {project?.idProyecto && active === 'new' && (
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

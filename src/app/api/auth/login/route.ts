@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { RowDataPacket } from 'mysql2';
 import { getProjectConnection } from '@/lib/dynamic-db';
-import { getPermissions } from '@/lib/permissions';
+import { ADMIN_PERMISSIONS_ID, getPermissions } from '@/lib/permissions';
 
 // Validation schema
 const loginSchema = z.object({
@@ -152,6 +152,22 @@ export async function POST(request: NextRequest) {
         // Return success with user data and project info
         // Note: Sending DB credentials to client is risky but requested for context.
         // In a real production app, we would keep these server-side or encrypted.
+        // Permisos del ADMINISTRADOR del proyecto: se guardan en la BD del
+        // proyecto bajo un IdEmpleado reservado porque esta cuenta no es un
+        // empleado. Si no hay ninguno configurado, el menu no se restringe.
+        let adminPermissions: Record<string, boolean> = {};
+        if (user.IdProyecto) {
+            let adminConn;
+            try {
+                adminConn = await getProjectConnection(user.IdProyecto);
+                adminPermissions = await getPermissions(adminConn, ADMIN_PERMISSIONS_ID);
+            } catch (err) {
+                console.error('Error loading admin permissions:', err);
+            } finally {
+                if (adminConn) await adminConn.end();
+            }
+        }
+
         return NextResponse.json({
             success: true,
             message: 'Login exitoso',
@@ -160,6 +176,7 @@ export async function POST(request: NextRequest) {
                 nombreUsuario: user.Usuario, // Mapped correctly from u.Usuario
                 correoElectronico: user.CorreoElectronico,
             },
+            permissions: adminPermissions,
             project: {
                 idProyecto: user.IdProyecto,
                 nombre: user.Proyecto,

@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
             LEFT JOIN BDFoodieProjects.tblPuestos p ON e.IdPuesto = p.IdPuesto 
             LEFT JOIN tblSucursales s ON e.IdSucursal = s.IdSucursal
             LEFT JOIN BDFoodieProjects.tblTiposPuestos tp ON p.IdTipoPuesto = tp.IdTipoPuesto
-            WHERE e.Status = 0 
+            WHERE e.Status = 0
+              -- Los usuarios de sistema que no son personal se administran
+              -- en Configuración General > Usuarios de sistema.
+              AND (e.EsUsuarioSistema IS NULL OR e.EsUsuarioSistema = 0)
         `;
         const queryParams: any[] = [];
 

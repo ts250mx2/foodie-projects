@@ -106,6 +106,12 @@ export async function ensureAccessAndPermissions(connection: Connection) {
         if (!empNames.includes('EsAdministrador')) {
             await connection.query('ALTER TABLE tblEmpleados ADD COLUMN EsAdministrador TINYINT NOT NULL DEFAULT 0');
         }
+        // Usuario que solo existe para entrar al sistema (contador externo,
+        // socio, soporte): vive aquí porque el login y los permisos ya van
+        // por IdEmpleado, pero NO es personal y se filtra de empleados.
+        if (!empNames.includes('EsUsuarioSistema')) {
+            await connection.query('ALTER TABLE tblEmpleados ADD COLUMN EsUsuarioSistema TINYINT NOT NULL DEFAULT 0');
+        }
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS \`tblEmpleadosPermisos\` (
