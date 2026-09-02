@@ -836,7 +836,7 @@ export default function DashboardPage() {
                         {isLoadingKpi ? (
                             <div className="h-4 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
-                            <h2 className="text-base font-bold text-gray-900 leading-tight">
+                            <h2 className="text-base font-bold text-gray-900 leading-tight" style={{ color: '#111827' }}>
                                 {formatCurrency(totalSales)}
                             </h2>
                         )}
@@ -887,7 +887,7 @@ export default function DashboardPage() {
                         {isLoadingKpi || isPayrollLoading ? (
                             <div className="h-4 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
-                            <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                            <h2 className="text-lg font-bold text-gray-900 leading-tight" style={{ color: '#111827' }}>
                                 {formatCurrency(totalPayroll)}
                             </h2>
                         )}
@@ -938,7 +938,7 @@ export default function DashboardPage() {
                         {isLoadingKpi ? (
                             <div className="h-4 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
-                            <h2 className={`${getKpiFontSize(formatCurrency(totalOperatingExpense))} font-bold text-gray-900 leading-tight`}>
+                            <h2 className={`${getKpiFontSize(formatCurrency(totalOperatingExpense))} font-bold text-gray-900 leading-tight`} style={{ color: '#111827' }}>
                                 {formatCurrency(totalOperatingExpense)}
                             </h2>
                         )}
@@ -991,7 +991,7 @@ export default function DashboardPage() {
                         {isLoadingKpi ? (
                             <div className="h-4 w-28 bg-gray-200 animate-pulse rounded-lg"></div>
                         ) : (
-                            <h2 className={`${getKpiFontSize(formatCurrency(totalRawMaterial))} font-bold text-gray-900 leading-tight`}>
+                            <h2 className={`${getKpiFontSize(formatCurrency(totalRawMaterial))} font-bold text-gray-900 leading-tight`} style={{ color: '#111827' }}>
                                 {formatCurrency(totalRawMaterial)}
                             </h2>
                         )}
@@ -1036,7 +1036,7 @@ export default function DashboardPage() {
                                 {isLoadingKpi ? (
                                     <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mt-0.5"></div>
                                 ) : (
-                                    <p className="text-sm font-bold text-gray-900 leading-tight truncate">{formatCurrency(lastInventoryCost)}</p>
+                                    <p className="text-sm font-bold text-gray-900 leading-tight truncate" style={{ color: '#111827' }}>{formatCurrency(lastInventoryCost)}</p>
                                 )}
                             </div>
                             <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -1055,7 +1055,7 @@ export default function DashboardPage() {
                                     <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mt-0.5"></div>
                                 ) : (
                                     <div className="flex items-baseline gap-1">
-                                        <p className="text-sm font-bold text-gray-900 leading-tight">{formatCurrency(totalWaste)}</p>
+                                        <p className="text-sm font-bold text-gray-900 leading-tight" style={{ color: '#111827' }}>{formatCurrency(totalWaste)}</p>
                                         <span className={`text-[8px] font-bold ${totalSales > 0 ? 'text-pink-600' : 'text-gray-500'}`}>
                                             {totalSales > 0 ? `${((totalWaste / totalSales) * 100).toFixed(1)}%` : '0%'}
                                         </span>

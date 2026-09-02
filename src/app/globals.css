@@ -1,10 +1,14 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* El producto es de tema claro: todas las superficies (tarjetas, tablas,
+   modales) son blancas y fijas. Declarar 'light dark' hacía que un iPhone en
+   modo oscuro tiñera de claro el color heredado del texto, y como los fondos
+   seguían blancos los números se veían casi invisibles. */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -52,12 +56,9 @@
   --font-brand:   var(--font-archivo), var(--font-inter), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Sin variante oscura de --background/--foreground a propósito: el texto que
+   hereda su color (ver la regla `color: inherit` de más abajo) quedaba casi
+   blanco sobre tarjetas blancas en dispositivos con modo oscuro. */
 
 body {
   background: var(--background);
@@ -170,15 +171,8 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-@media (prefers-color-scheme: dark) {
-
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset !important;
-    -webkit-text-fill-color: white !important;
-  }
-}
+/* Sin variante oscura del autocompletado: pintaba la caja gris oscuro con
+   letra blanca dentro de formularios blancos. */
 
 /* Ensure option elements have proper text color */
 option {
@@ -187,12 +181,9 @@ option {
 }
 
 /* Dark mode option fix */
-@media (prefers-color-scheme: dark) {
-  option {
-    color: #ededed;
-    background-color: #0a0a0a;
-  }
-}
+/* Sin variante oscura de las opciones del select: con color-scheme claro el
+   navegador ya las pinta legibles, y forzar el par oscuro dejaba la lista
+   desplegable ilegible en iPhone. */
 
 /* Fix for select dropdowns on Safari/WebKit */
 select {
