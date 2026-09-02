@@ -56,6 +56,30 @@ interface Category {
     Categoria: string;
 }
 
+/** Documento devuelto por el buscador de compras. */
+interface SearchResult {
+    idCompra: number;
+    fecha: string;
+    numeroFactura: string;
+    total: number;
+    proveedor: string;
+    idProveedor?: number;
+    idSucursal: number | null;
+    sucursal: string | null;
+    porProveedor?: boolean;
+    porFactura?: boolean;
+    porProducto?: boolean;
+    productosCoinciden?: string | null;
+}
+
+const money = (v: number) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number.isFinite(v) ? v : 0);
+
+const formatDateShort = (value: string) => {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' });
+};
+
 interface PurchaseDetail {
     IdDetalleCompra: number;
     IdProducto: number;
@@ -82,6 +106,15 @@ export default function PurchasesCapturePage() {
     const [project, setProject] = useState<any>(null);
 
     // Modal state
+    // Buscador de compras (proveedor / factura / producto)
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchTruncated, setSearchTruncated] = useState(false);
+    // Por defecto busca en todo el proyecto: quien caza una factura no siempre
+    // recuerda en que sucursal se capturo.
+    const [searchOnlyBranch, setSearchOnlyBranch] = useState(false);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [dailyPurchases, setDailyPurchases] = useState<Purchase[]>([]);
@@ -514,6 +547,73 @@ export default function PurchasesCapturePage() {
         setEditingPurchase(null);
     };
 
+    /* ── Buscador de compras ────────────────────────────────────────────────
+       Busca por proveedor, número de factura o producto capturado dentro del
+       documento, en todo el historial (no solo el mes que se está viendo).
+    ──────────────────────────────────────────────────────────────────────── */
+
+    const runSearch = async (term: string) => {
+        if (!project?.idProyecto || term.trim().length < 2) {
+            setSearchResults([]);
+            setSearchTruncated(false);
+            return;
+        }
+        setIsSearching(true);
+        try {
+            const params = new URLSearchParams({ projectId: String(project.idProyecto), q: term.trim() });
+            if (searchOnlyBranch && selectedBranch) params.set('branchId', selectedBranch);
+            const res = await fetch(`/api/purchases/search?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                setSearchResults(data.results || []);
+                setSearchTruncated(Boolean(data.truncated));
+            }
+        } catch (error) {
+            console.error('Error searching purchases:', error);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    /** Compras ya capturadas con ese mismo número de factura. */
+    const buscarFacturaDuplicada = async (
+        invoiceNumber: string,
+        excludeId: number | null
+    ): Promise<SearchResult[]> => {
+        if (!project?.idProyecto || !invoiceNumber.trim()) return [];
+        try {
+            const params = new URLSearchParams({
+                projectId: String(project.idProyecto),
+                invoice: invoiceNumber.trim(),
+            });
+            if (excludeId) params.set('excludeId', String(excludeId));
+            const res = await fetch(`/api/purchases/search?${params.toString()}`);
+            const data = await res.json();
+            return data.success ? (data.matches || []) : [];
+        } catch (error) {
+            // Sin red no se bloquea la captura: el aviso es una ayuda, no un
+            // requisito para poder guardar.
+            console.error('Error checking duplicate invoice:', error);
+            return [];
+        }
+    };
+
+    /** Abre el día de una compra encontrada, con su modal ya cargado. */
+    const openSearchResult = async (r: SearchResult) => {
+        const fecha = new Date(r.fecha);
+        if (Number.isNaN(fecha.getTime())) return;
+        // La compra puede ser de otra sucursal, mes o año que los que están
+        // seleccionados: se mueven los filtros para que el día exista.
+        if (r.idSucursal && String(r.idSucursal) !== selectedBranch) setSelectedBranch(String(r.idSucursal));
+        setSelectedMonth(fecha.getMonth());
+        setSelectedYear(fecha.getFullYear());
+        setSelectedDate(fecha);
+        await fetchDailyPurchases(fecha, r.idSucursal ? String(r.idSucursal) : undefined);
+        setIsModalOpen(true);
+        setIsFormOpen(false);
+        setEditingPurchase(null);
+    };
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !uploadingPurchaseKey || !project) return;
@@ -544,12 +644,15 @@ export default function PurchasesCapturePage() {
         reader.readAsDataURL(file);
     };
 
-    const fetchDailyPurchases = async (date: Date) => {
-        if (!project || !selectedBranch) return;
+    const fetchDailyPurchases = async (date: Date, branchIdOverride?: string) => {
+        // branchIdOverride: al abrir un resultado de búsqueda de otra sucursal, el
+        // setState todavía no surtió efecto cuando se piden los datos del día.
+        const branchId = branchIdOverride || selectedBranch;
+        if (!project || !branchId) return;
         try {
             const params = new URLSearchParams({
                 projectId: project.idProyecto,
-                branchId: selectedBranch,
+                branchId,
                 day: date.getDate().toString(),
                 month: date.getMonth().toString(),
                 year: date.getFullYear().toString()
@@ -685,6 +788,29 @@ export default function PurchasesCapturePage() {
             return;
         }
 
+        // Factura repetida: casi siempre es la misma compra capturada dos
+        // veces. Se avisa con los documentos que ya la traen y se deja decidir,
+        // porque hay proveedores que sí reciclan folios.
+        const duplicadas = await buscarFacturaDuplicada(
+            formData.invoiceNumber,
+            editingPurchase ? editingPurchase.IdCompra : null
+        );
+        if (duplicadas.length > 0) {
+            const mismoProveedor = duplicadas.filter(
+                (d) => String(d.idProveedor) === String(formData.providerId)
+            );
+            const lista = duplicadas
+                .slice(0, 5)
+                .map((d) => `· ${formatDateShort(d.fecha)} — ${d.proveedor} — ${money(d.total)}`)
+                .join('\n');
+            const encabezado = mismoProveedor.length > 0
+                ? `Ya existe una compra del MISMO proveedor con la factura ${formData.invoiceNumber.toUpperCase()}:`
+                : `Ya existe una compra con la factura ${formData.invoiceNumber.toUpperCase()}, de otro proveedor:`;
+            if (!window.confirm(`${encabezado}\n\n${lista}\n\n¿Capturarla de todos modos?`)) {
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         try {
             const url = '/api/purchases/daily';
@@ -789,6 +915,38 @@ export default function PurchasesCapturePage() {
 
     return (
         <PageShell title="Captura de Compras" icon={ShoppingBag} actions={<div className="flex items-center gap-3 flex-wrap">
+                    {/* Buscador: proveedor, factura o producto capturado dentro
+                        del documento, en todo el historial. */}
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); runSearch(searchTerm); }}
+                        className="relative"
+                    >
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                if (e.target.value.trim().length < 2) {
+                                    setSearchResults([]);
+                                    setSearchTruncated(false);
+                                }
+                            }}
+                            placeholder="Buscar proveedor, factura o producto…"
+                            className="w-64 pl-9 pr-8 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => { setSearchTerm(''); setSearchResults([]); setSearchTruncated(false); }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-gray-700"
+                                aria-label="Limpiar búsqueda"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </form>
+
                     <Button
                         onClick={() => setIsOcrModalOpen(true)}
                         variant="secondary"
@@ -831,6 +989,85 @@ export default function PurchasesCapturePage() {
                         ))}
                     </select>
                 </div>}>
+
+            {/* ── Resultados de búsqueda ─────────────────────────────────
+                Reemplazan al calendario mientras haya una búsqueda activa: se
+                está buscando un documento, no capturando un día. */}
+            {searchTerm.trim().length >= 2 && (
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 mb-4 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between gap-3 flex-wrap">
+                        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                            {isSearching
+                                ? 'Buscando…'
+                                : `${searchResults.length}${searchTruncated ? '+' : ''} ${searchResults.length === 1 ? 'documento encontrado' : 'documentos encontrados'}`}
+                        </span>
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={searchOnlyBranch}
+                                    onChange={(e) => { setSearchOnlyBranch(e.target.checked); }}
+                                    className="w-3.5 h-3.5 rounded border-gray-300 cursor-pointer"
+                                />
+                                <span className="text-[11px] font-semibold text-gray-500">Solo esta sucursal</span>
+                            </label>
+                            <Button variant="secondary" size="sm" leftIcon={Search} onClick={() => runSearch(searchTerm)}>
+                                Buscar
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="max-h-[calc(100vh-280px)] overflow-y-auto divide-y divide-gray-50">
+                        {!isSearching && searchResults.length === 0 && (
+                            <p className="p-8 text-center text-sm text-gray-400">
+                                Sin coincidencias. Presiona Buscar o revisa el texto: se busca por proveedor,
+                                número de factura y productos capturados dentro del documento.
+                            </p>
+                        )}
+                        {searchResults.map((r) => (
+                            <button
+                                key={r.idCompra}
+                                onClick={() => openSearchResult(r)}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-50/60 transition-colors flex items-start gap-3"
+                            >
+                                <span className="shrink-0 w-9 h-9 rounded-lg bg-blue-50 text-blue-600 grid place-items-center">
+                                    <FileText size={16} />
+                                </span>
+                                <span className="flex-1 min-w-0">
+                                    <span className="flex items-baseline gap-2 flex-wrap">
+                                        <span className="text-sm font-bold text-gray-800 truncate">{r.proveedor}</span>
+                                        <span className="text-xs font-semibold text-gray-500">Factura {r.numeroFactura}</span>
+                                    </span>
+                                    <span className="block text-[11px] text-gray-400 mt-0.5">
+                                        {formatDateShort(r.fecha)}
+                                        {r.sucursal && <span> · {r.sucursal}</span>}
+                                    </span>
+                                    {/* Por qué salió: si fue por producto, cuáles */}
+                                    <span className="flex items-center gap-1.5 flex-wrap mt-1">
+                                        {r.porProveedor && (
+                                            <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-1.5 py-0.5">Proveedor</span>
+                                        )}
+                                        {r.porFactura && (
+                                            <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-1.5 py-0.5">Factura</span>
+                                        )}
+                                        {r.porProducto && (
+                                            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5">
+                                                Producto{r.productosCoinciden ? `: ${r.productosCoinciden}` : ''}
+                                            </span>
+                                        )}
+                                    </span>
+                                </span>
+                                <span className="shrink-0 text-sm font-bold text-gray-800 tabular-nums">{money(r.total)}</span>
+                            </button>
+                        ))}
+                        {searchTruncated && (
+                            <p className="px-4 py-2.5 text-[11px] text-gray-400 bg-gray-50/60">
+                                Se muestran los 100 más recientes. Afina la búsqueda para ver el resto.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
                 {/* Header sticky */}
