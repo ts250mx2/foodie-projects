@@ -29,6 +29,12 @@ interface Dish {
      * IVA y Costo ya en el renglón la cuenta sale sola.
      */
     PorcentajeCostoSinIva?: number;
+    /**
+     * 1 si el costo sin impuesto se pasó del ideal. No se usa AlertaCosto de la
+     * vista porque esa compara contra el precio CON impuesto y perdona
+     * platillos que ya se pasaron.
+     */
+    AlertaCostoSinIva?: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
     Categoria?: string;
@@ -94,9 +100,13 @@ export default function DishesPage() {
                 // columna se pueda ordenar igual que las que vienen de la vista.
                 setDishes((data.data as Dish[]).map(dish => {
                     const precioNeto = (dish.Precio || 0) - ((dish.Precio || 0) * ((dish.IVA || 0) / 100));
+                    const real = precioNeto > 0 ? ((dish.Costo || 0) / precioNeto) * 100 : 0;
+                    const ideal = dish.PorcentajeCostoIdeal || 0;
                     return {
                         ...dish,
-                        PorcentajeCostoSinIva: precioNeto > 0 ? ((dish.Costo || 0) / precioNeto) * 100 : 0,
+                        PorcentajeCostoSinIva: real,
+                        // Sin ideal capturado no hay contra qué comparar.
+                        AlertaCostoSinIva: ideal > 0 && real > ideal ? 1 : 0,
                     };
                 }));
             }
@@ -286,17 +296,6 @@ export default function DishesPage() {
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
                                 className="text-right cursor-pointer hover:opacity-80"
-                                onClick={() => handleSort('PorcentajeCosto')}
-                            >
-                                <div className="flex items-center justify-end gap-1">
-                                    % Costo Real
-                                    {sortConfig?.key === 'PorcentajeCosto' && (
-                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                                    )}
-                                </div>
-                            </ThemedGridHeaderCell>
-                            <ThemedGridHeaderCell
-                                className="text-right cursor-pointer hover:opacity-80"
                                 onClick={() => handleSort('PorcentajeCostoSinIva')}
                             >
                                 <div className="flex items-center justify-end gap-1">
@@ -308,11 +307,11 @@ export default function DishesPage() {
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
                                 className="cursor-pointer hover:opacity-80"
-                                onClick={() => handleSort('AlertaCosto')}
+                                onClick={() => handleSort('AlertaCostoSinIva')}
                             >
                                 <div className="flex items-center gap-1">
                                     Alerta
-                                    {sortConfig?.key === 'AlertaCosto' && (
+                                    {sortConfig?.key === 'AlertaCostoSinIva' && (
                                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                                     )}
                                 </div>
@@ -363,9 +362,6 @@ export default function DishesPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
                                         {(dish.PorcentajeCostoIdeal || 0).toFixed(2)}%
                                     </td>
-                                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${dish.AlertaCosto === 1 ? 'text-red-600' : 'text-green-600'}`}>
-                                        {(dish.PorcentajeCosto || 0).toFixed(2)}%
-                                    </td>
                                     {(() => {
                                         const ideal = dish.PorcentajeCostoIdeal || 0;
                                         const real = dish.PorcentajeCostoSinIva || 0;
@@ -381,8 +377,11 @@ export default function DishesPage() {
                                         );
                                     })()}
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                                        {dish.AlertaCosto === 1 && (
-                                            <div title="¡Alerta de Costo!" className="flex justify-center cursor-help">
+                                        {dish.AlertaCostoSinIva === 1 && (
+                                            <div
+                                                title={`Costo real ${(dish.PorcentajeCostoSinIva || 0).toFixed(2)}% sobre el ideal de ${(dish.PorcentajeCostoIdeal || 0).toFixed(2)}%`}
+                                                className="flex justify-center cursor-help"
+                                            >
                                                 <AlertTriangle size={20} className="text-amber-500" />
                                             </div>
                                         )}
