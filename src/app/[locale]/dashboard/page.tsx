@@ -1626,7 +1626,7 @@ export default function DashboardPage() {
                             Alertas de Costeo
                         </h3>
                         <p className="text-sm text-slate-500 mt-1">
-                            Platillos cuyo % de costo real supera el % de costo ideal definido
+                            Platillos cuyo % de costo sobre el precio sin impuesto supera el % de costo ideal definido
                         </p>
                     </div>
                     {!isLoadingCostingAlerts && (
@@ -1680,6 +1680,9 @@ export default function DashboardPage() {
                                             <div className="flex items-center gap-2 mt-1.5">
                                                 <span className="text-[10px] font-bold text-slate-500">Costo: <span className="text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(item.Costo) || 0)}</span></span>
                                                 <span className="text-[10px] font-bold text-slate-500">Precio: <span className="text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(item.Precio) || 0)}</span></span>
+                                                {/* El precio neto es el denominador del %: sin verlo,
+                                                    la cuenta no cuadra con el precio de lista. */}
+                                                <span className="text-[10px] font-bold text-slate-500">s/IVA: <span className="text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((Number(item.Precio) || 0) * (1 - ((Number(item.IVA) || 0) / 100)))}</span></span>
                                             </div>
                                         </div>
                                     </div>
