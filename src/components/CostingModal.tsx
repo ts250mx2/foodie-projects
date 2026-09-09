@@ -14,6 +14,18 @@ import { generateTechnicalSheetPDF, CostingHeaderData } from '@/utils/generateTe
 import { YIELD_DATA, YieldReference } from '@/utils/yieldData';
 import { useTheme } from '@/contexts/ThemeContext';
 
+/**
+ * Convierte a número el precio del formulario.
+ *
+ * `formData.precio` NO guarda un número: guarda el texto que ve el usuario, que
+ * al cargar el producto y al salir del campo queda formateado como "$225.00".
+ * Quitarle solo las comas deja el signo de pesos, y `parseFloat("$225.00")` es
+ * NaN — que al caer en `|| 0` se convierte en un cero silencioso.
+ */
+function parsePrecio(value: string): number {
+    return parseFloat((value || '').replace(/[^0-9.]/g, '')) || 0;
+}
+
 interface KitItem {
     IdProductoPadre: number;
     IdProductoHijo: number;
@@ -1274,13 +1286,13 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
 
             const rendimientoVal = pesoInicial > 0 ? (pesoFinal / pesoInicial) * 100 : 0;
             const mermaVal = pesoInicial > 0 ? ((pesoInicial - pesoFinal) / pesoInicial) * 100 : 0;
-            const puCompraNeto = pesoInicial > 0 ? ((parseFloat(formData.precio.replace(/,/g, '')) || 0) * (pesoFinal / pesoInicial)) : 0; // Price * Yield Ratio
+            const puCompraNeto = pesoInicial > 0 ? (parsePrecio(formData.precio) * (pesoFinal / pesoInicial)) : 0; // Price * Yield Ratio
             // Price Processed Header Calculation: (PU Compra Neto) / Conversion
             const precioProcesadoHeader = simpleConversion !== 0 ? (puCompraNeto / simpleConversion) : 0;
 
             const headerData: CostingHeaderData = {
                 unidadCompra: presentations.find(p => p.IdPresentacion.toString() === formData.idPresentacion)?.Presentacion,
-                precio: parseFloat(formData.precio.replace(/,/g, '')) || 0,
+                precio: parsePrecio(formData.precio),
                 categoriaRecetario: recipeCategories.find(c => c.IdCategoriaRecetario.toString() === idCategoriaRecetario)?.CategoriaRecetario,
                 conversionSimple: simpleConversion,
                 unidadInventario: presentations.find(p => p.IdPresentacion === idPresentacionConversion)?.Presentacion,
@@ -1397,7 +1409,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <h3 className="text-[10px] font-semibold opacity-80">% Costo c/{t('iva')}</h3>
                                         <p className="text-sm font-bold leading-tight">
                                             {(() => {
-                                                const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
+                                                const price = parsePrecio(formData.precio);
                                                 return price > 0 ? ((totalCost / price) * 100).toFixed(2) : '0.00';
                                             })()}%
                                         </p>
@@ -1408,7 +1420,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         <h3 className="text-[10px] font-semibold opacity-80">% Costo s/{t('iva')}</h3>
                                         <p className="text-sm font-bold leading-tight">
                                             {(() => {
-                                                const price = parseFloat(formData.precio.replace(/,/g, '')) || 0;
+                                                const price = parsePrecio(formData.precio);
                                                 const iva = parseFloat(formData.iva) || 0;
                                                 const netPrice = price - (price * (iva / 100));
                                                 return netPrice > 0 ? ((totalCost / netPrice) * 100).toFixed(2) : '0.00';
