@@ -1255,6 +1255,22 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
         return sum + (cantidad * costoUnitario);
     }, 0);
 
+    /**
+     * Costo del platillo contra el precio SIN impuesto, que es el que se
+     * compara con el % ideal.
+     *
+     * El impuesto no es ingreso del negocio: se cobra y se entrega. Medir el
+     * costo contra el precio con impuesto lo hace ver más bajo de lo que es y
+     * el semáforo perdona platillos que en realidad ya se pasaron del ideal.
+     */
+    const precioNetoVenta = (() => {
+        const price = parsePrecio(formData.precio);
+        const iva = parseFloat(formData.iva) || 0;
+        return price - (price * (iva / 100));
+    })();
+    const porcentajeCostoReal = precioNetoVenta > 0 ? (totalCost / precioNetoVenta) * 100 : 0;
+    const idealSuperado = porcentajeCostoReal > (parseFloat(porcentajeCostoIdeal) || 0);
+
     const calculateCostPerUnit = () => {
         if (!pesoFinal || pesoFinal === 0) return 0;
         const conversion = simpleConversion || 0;
@@ -1419,12 +1435,7 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                     <div className="bg-white/10 backdrop-blur-sm rounded-md px-2.5 py-1.5 min-w-[110px]">
                                         <h3 className="text-[10px] font-semibold opacity-80">% Costo s/{t('iva')}</h3>
                                         <p className="text-sm font-bold leading-tight">
-                                            {(() => {
-                                                const price = parsePrecio(formData.precio);
-                                                const iva = parseFloat(formData.iva) || 0;
-                                                const netPrice = price - (price * (iva / 100));
-                                                return netPrice > 0 ? ((totalCost / netPrice) * 100).toFixed(2) : '0.00';
-                                            })()}%
+                                            {porcentajeCostoReal.toFixed(2)}%
                                         </p>
                                     </div>
                                 </div>
@@ -2791,15 +2802,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                                                     {(parseFloat(porcentajeCostoIdeal) || 0).toFixed(2)}%
                                                                 </span>
                                                             </div>
-                                                            <div className={`flex flex-col p-1 px-2 rounded border min-w-[80px] ${(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100) > (parseFloat(porcentajeCostoIdeal) || 0)
+                                                            <div className={`flex flex-col p-1 px-2 rounded border min-w-[80px] ${idealSuperado
                                                                 ? 'bg-red-50 border-red-100 text-red-800'
                                                                 : 'bg-green-50 border-green-100 text-green-800'
                                                                 }`}>
                                                                 <label className="text-[10px] font-bold uppercase mb-0.5 opacity-70">
-                                                                    % Costo {(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100) > (parseFloat(porcentajeCostoIdeal) || 0) && '⚠️'}
+                                                                    % Costo s/imp. {idealSuperado && '⚠️'}
                                                                 </label>
                                                                 <span className="text-sm font-bold">
-                                                                    {(totalCost / (parseFloat(formData.precio.replace(/[^0-9.]/g, '')) || 1) * 100).toFixed(2)}%
+                                                                    {porcentajeCostoReal.toFixed(2)}%
                                                                 </span>
                                                             </div>
                                                         </>
