@@ -22,6 +22,13 @@ interface Dish {
     PorcentajeCosto?: number;
     PorcentajeCostoIdeal?: number;
     AlertaCosto?: number;
+    /**
+     * Costo contra el precio SIN impuesto. Se calcula aquí y no en la vista
+     * vlProductos, que es de donde vienen Costo y PorcentajeCosto: tocar la
+     * vista obligaría a migrarla en la base de cada proyecto, y con Precio,
+     * IVA y Costo ya en el renglón la cuenta sale sola.
+     */
+    PorcentajeCostoSinIva?: number;
     ArchivoImagen?: string;
     NombreArchivo?: string;
     Categoria?: string;
@@ -83,7 +90,15 @@ export default function DishesPage() {
             const response = await fetch(`/api/products?projectId=${project.idProyecto}&tipoProducto=1`);
             const data = await response.json();
             if (data.success) {
-                setDishes(data.data);
+                // El % sin impuesto se deja calculado en el renglón para que la
+                // columna se pueda ordenar igual que las que vienen de la vista.
+                setDishes((data.data as Dish[]).map(dish => {
+                    const precioNeto = (dish.Precio || 0) - ((dish.Precio || 0) * ((dish.IVA || 0) / 100));
+                    return {
+                        ...dish,
+                        PorcentajeCostoSinIva: precioNeto > 0 ? ((dish.Costo || 0) / precioNeto) * 100 : 0,
+                    };
+                }));
             }
         } catch (error) {
             console.error('Error fetching dishes:', error);
@@ -281,6 +296,17 @@ export default function DishesPage() {
                                 </div>
                             </ThemedGridHeaderCell>
                             <ThemedGridHeaderCell
+                                className="text-right cursor-pointer hover:opacity-80"
+                                onClick={() => handleSort('PorcentajeCostoSinIva')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    % Costo Real s/IVA
+                                    {sortConfig?.key === 'PorcentajeCostoSinIva' && (
+                                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                                    )}
+                                </div>
+                            </ThemedGridHeaderCell>
+                            <ThemedGridHeaderCell
                                 className="cursor-pointer hover:opacity-80"
                                 onClick={() => handleSort('AlertaCosto')}
                             >
@@ -340,6 +366,20 @@ export default function DishesPage() {
                                     <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${dish.AlertaCosto === 1 ? 'text-red-600' : 'text-green-600'}`}>
                                         {(dish.PorcentajeCosto || 0).toFixed(2)}%
                                     </td>
+                                    {(() => {
+                                        const ideal = dish.PorcentajeCostoIdeal || 0;
+                                        const real = dish.PorcentajeCostoSinIva || 0;
+                                        // Sin % ideal capturado no hay contra qué comparar: se
+                                        // muestra en neutro en lugar de inventar una alerta.
+                                        const color = ideal <= 0
+                                            ? 'text-gray-500'
+                                            : real > ideal ? 'text-red-600' : 'text-green-600';
+                                        return (
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${color}`}>
+                                                {real.toFixed(2)}%
+                                            </td>
+                                        );
+                                    })()}
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {dish.AlertaCosto === 1 && (
                                             <div title="¡Alerta de Costo!" className="flex justify-center cursor-help">
