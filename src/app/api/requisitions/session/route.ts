@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RowDataPacket } from 'mysql2';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { parseCategoryCsv, resolveRequisitionUuid } from '@/lib/requisitions';
+import { loadUnitsForProducts } from '@/lib/product-units';
 
 /**
  * Arranque de la página pública de requisiciones (tablet de cocina).
@@ -44,6 +45,25 @@ export async function GET(request: NextRequest) {
              ORDER BY c.Categoria ASC, p.Producto ASC`
         );
 
+        // Presentaciones configuradas: son las unidades en las que la tablet
+        // deja pedir. Un producto sin renglones aquí se pide en su unidad de
+        // siempre. La tabla es chica, se trae completa y se cruza en memoria.
+        const unitsByProduct = await loadUnitsForProducts(
+            connection,
+            (products as RowDataPacket[]).map(p => Number(p.IdProducto))
+        );
+        const productsWithUnits = (products as RowDataPacket[]).map(p => {
+            const unidades = unitsByProduct.get(Number(p.IdProducto)) || [];
+            const base = unidades.find(u => u.esBase);
+            return {
+                ...p,
+                // Con presentaciones configuradas manda la base: es la unidad
+                // en la que el almacén lleva la existencia.
+                Unidad: base?.unidad || p.Unidad,
+                Unidades: unidades,
+            };
+        });
+
         // Perfiles con los que se puede firmar el pedido. Se manda si tienen
         // PIN, NUNCA el PIN: la verificación ocurre en el servidor. Categorias
         // acota lo que la tablet muestra al frente; vacío = catálogo completo.
@@ -72,7 +92,7 @@ export async function GET(request: NextRequest) {
                 colorLetra: project.colorLetra,
             },
             branches,
-            products,
+            products: productsWithUnits,
         });
     } catch (error) {
         console.error('Error loading requisition session:', error);

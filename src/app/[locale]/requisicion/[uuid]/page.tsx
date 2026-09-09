@@ -22,6 +22,17 @@ type Stage = 'loading' | 'invalid' | 'identity' | 'catalog' | 'review' | 'sent';
 /** Verde de marca por defecto cuando el proyecto no definió color. */
 const FALLBACK_ACCENT = '#16a34a';
 
+/**
+ * Unidad preseleccionada al pedir: la marcada como "así me lo piden" y, si no
+ * hay presentaciones configuradas, la de siempre.
+ */
+function defaultUnit(producto: RequisitionProduct): string {
+    const unidades = producto.Unidades || [];
+    return unidades.find(u => u.esPedido)?.unidad
+        || unidades.find(u => u.esBase)?.unidad
+        || producto.Unidad;
+}
+
 export default function RequisitionPage() {
     const params = useParams();
     const uuid = (params?.uuid as string) || '';
@@ -37,6 +48,9 @@ export default function RequisitionPage() {
 
     const [requester, setRequester] = useState<Requester | null>(null);
     const [quantities, setQuantities] = useState<Map<number, number>>(new Map());
+    // Unidad elegida por producto. Vacío = la de omisión del producto, que es
+    // lo que pasa mientras nadie toque el selector.
+    const [unidades, setUnidades] = useState<Map<number, string>>(new Map());
     const [notas, setNotas] = useState('');
     const [padTarget, setPadTarget] = useState<RequisitionProduct | null>(null);
 
@@ -99,10 +113,16 @@ export default function RequisitionPage() {
         const result: CartLine[] = [];
         quantities.forEach((cantidad, idProducto) => {
             const producto = productsById.get(idProducto);
-            if (producto && cantidad > 0) result.push({ producto, cantidad });
+            if (producto && cantidad > 0) {
+                result.push({ producto, cantidad, unidad: unidades.get(idProducto) || defaultUnit(producto) });
+            }
         });
         return result.sort((a, b) => a.producto.Producto.localeCompare(b.producto.Producto, 'es'));
-    }, [quantities, productsById]);
+    }, [quantities, productsById, unidades]);
+
+    const setUnidad = useCallback((idProducto: number, unidad: string) => {
+        setUnidades(prev => new Map(prev).set(idProducto, unidad));
+    }, []);
 
     const setQuantity = useCallback((idProducto: number, cantidad: number) => {
         setQuantities(prev => {
@@ -166,7 +186,7 @@ export default function RequisitionPage() {
                     items: lines.map(line => ({
                         idProducto: line.producto.IdProducto,
                         cantidad: line.cantidad,
-                        unidadMedida: line.producto.Unidad,
+                        unidadMedida: line.unidad,
                     })),
                 }),
             });
@@ -332,6 +352,7 @@ export default function RequisitionPage() {
                         if (product) setPadTarget(product);
                     }}
                     onRemove={id => setQuantity(id, 0)}
+                    onChangeUnit={setUnidad}
                     onNotasChange={setNotas}
                     onSend={handleSend}
                 />
@@ -341,7 +362,7 @@ export default function RequisitionPage() {
                 <NumericPad
                     title={padTarget.Producto}
                     subtitle={padTarget.Categoria || undefined}
-                    unit={padTarget.Unidad}
+                    unit={unidades.get(padTarget.IdProducto) || defaultUnit(padTarget)}
                     accent={accent}
                     initialValue={quantities.get(padTarget.IdProducto) ?? 0}
                     onCancel={() => setPadTarget(null)}

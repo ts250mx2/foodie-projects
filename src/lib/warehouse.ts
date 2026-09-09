@@ -1,5 +1,7 @@
 import { Connection } from 'mysql2/promise';
 import { ResultSetHeader } from 'mysql2';
+import { loadProductUnits, loadUnitsForProducts } from './product-units';
+import { ProductUnit, baseUnit, defaultCaptureUnit, unitFactor } from './units';
 
 /**
  * Lógica compartida del almacén (inventario perpetuo por sucursal).
@@ -33,11 +35,14 @@ export type MovementInput = {
     tipo: 'ENTRADA' | 'SALIDA';
     origen: 'ORDEN_COMPRA' | 'SALIDA_INTERNA' | 'AJUSTE_MANUAL';
     idOrdenCompra?: number | null;
+    /** Cantidad TAL COMO SE CAPTURÓ, en la unidad `unidad`. */
     cantidad: number;
-    /** Costo del renglón (entradas). Las salidas descargan al costo promedio vigente. */
+    /** Costo del renglón (entradas), por `unidad`. Las salidas descargan al costo promedio vigente. */
     costoUnitario?: number;
     unidad?: string | null;
     notas?: string | null;
+    /** Presentaciones ya cargadas; si no vienen se consultan aquí. */
+    units?: ProductUnit[];
 };
 
 export type MovementResult = {
@@ -45,18 +50,46 @@ export type MovementResult = {
     existenciaNueva: number;
     costoAplicado: number;
     costoPromedio: number;
+    /** Cantidad realmente aplicada al inventario, en unidad base. */
+    cantidadBase: number;
+    /** Unidad en la que quedó registrada la existencia. */
+    unidadBase: string | null;
 };
 
 /**
  * Registra UN movimiento de kardex y actualiza existencia + costo promedio
  * ponderado de la sucursal. Debe llamarse dentro de una transacción abierta.
+ *
+ * Convierte la captura a la unidad BASE del producto antes de tocar nada. Este
+ * es el único lugar donde entra o sale mercancía, así que convertir aquí deja
+ * cuadrados todos los orígenes (compras, órdenes, requisiciones, OCR) sin que
+ * cada uno tenga que acordarse de hacerlo.
+ *
+ * Un producto sin presentaciones configuradas usa factor 1: se comporta igual
+ * que antes.
  */
 export async function registerWarehouseMovement(
     connection: Connection,
     input: MovementInput
 ): Promise<MovementResult> {
-    const qty = Number(input.cantidad) || 0;
-    const inputCost = Number(input.costoUnitario) || 0;
+    const qtyCaptura = Number(input.cantidad) || 0;
+    const costCaptura = Number(input.costoUnitario) || 0;
+
+    // Conversión a unidad base. El costo se divide por el mismo factor por el
+    // que se multiplica la cantidad: un bote de $200 que trae 3,700 gramos
+    // entra como 3,700 a $0.054054 el gramo, no como 1 a $200.
+    const units = input.units ?? await loadProductUnits(connection, input.idProducto);
+    // La captura de compras no manda unidad: se entiende en la presentación de
+    // compra, que es como se pidió al proveedor. Los ajustes de almacén van en
+    // base, que es lo que la pantalla de existencias muestra.
+    const unidadCaptura = input.unidad
+        || defaultCaptureUnit(units, input.origen === 'ORDEN_COMPRA' ? 'compra' : 'base');
+    const factor = unitFactor(units, unidadCaptura);
+    const base = baseUnit(units);
+    const convertido = factor !== 1;
+
+    const qty = qtyCaptura * factor;
+    const inputCost = factor > 0 ? costCaptura / factor : costCaptura;
 
     const [exRows] = await connection.query(
         'SELECT Existencia, CostoPromedio, Unidad FROM tblAlmacenExistencias WHERE IdSucursal = ? AND IdProducto = ? FOR UPDATE',
@@ -82,8 +115,10 @@ export async function registerWarehouseMovement(
             : costo;
     }
 
-    // Unidad: la indicada → la ya registrada → la del catálogo del producto.
-    let unidad: string | null = input.unidad || existing?.Unidad || null;
+    // Unidad de la EXISTENCIA: manda la base del producto. Sin presentaciones
+    // configuradas se conserva el orden anterior (la indicada → la ya
+    // registrada → la del catálogo).
+    let unidad: string | null = base?.unidad || input.unidad || existing?.Unidad || null;
     if (!unidad) {
         const [prodRows] = await connection.query(
             'SELECT UnidadMedidaCompra, UnidadMedidaInventario FROM tblProductos WHERE IdProducto = ?',
@@ -96,8 +131,9 @@ export async function registerWarehouseMovement(
     await connection.query(
         `INSERT INTO tblAlmacenMovimientos
             (IdSucursal, IdProducto, TipoMovimiento, Origen, IdOrdenCompra, Cantidad, CostoUnitario,
-             ExistenciaAnterior, ExistenciaNueva, Unidad, Notas, FechaMovimiento, FechaAct)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), Now())`,
+             ExistenciaAnterior, ExistenciaNueva, Unidad, CantidadCaptura, UnidadCaptura,
+             Notas, FechaMovimiento, FechaAct)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, Now(), Now())`,
         [
             input.idSucursal,
             input.idProducto,
@@ -109,6 +145,10 @@ export async function registerWarehouseMovement(
             prev,
             nueva,
             unidad,
+            // Solo cuando hubo conversión: si no, el renglón ya se lee tal cual
+            // y repetirlo solo estorbaría en el kardex.
+            convertido ? qtyCaptura : null,
+            convertido ? unidadCaptura : null,
             input.notas || null,
         ]
     );
@@ -120,7 +160,14 @@ export async function registerWarehouseMovement(
         [input.idSucursal, input.idProducto, nueva, nuevoPromedio, unidad, nueva, nuevoPromedio, unidad]
     );
 
-    return { existenciaAnterior: prev, existenciaNueva: nueva, costoAplicado: costo, costoPromedio: nuevoPromedio };
+    return {
+        existenciaAnterior: prev,
+        existenciaNueva: nueva,
+        costoAplicado: costo,
+        costoPromedio: nuevoPromedio,
+        cantidadBase: qty,
+        unidadBase: unidad,
+    };
 }
 
 /**
@@ -135,6 +182,9 @@ export async function applyOrderToWarehouse(connection: Connection, order: any, 
     // hacia cocina o barra. Solo la compra a proveedor suma.
     const descarga = Number(order.EsSalida) === 1 || Number(order.EsInterna) === 1;
     const folio = `OC-${String(order.IdOrdenCompra).padStart(4, '0')}`;
+
+    // Presentaciones de todos los renglones en una consulta, no una por renglón.
+    const unitsByProduct = await loadUnitsForProducts(connection, items.map(i => Number(i.IdProducto)));
 
     for (const item of items) {
         const qty = Number(item.Cantidad) || 0;
@@ -155,6 +205,7 @@ export async function applyOrderToWarehouse(connection: Connection, order: any, 
             // (ver registerWarehouseMovement); va por compatibilidad de firma.
             costoUnitario: Number(item.PrecioUnitario) || 0,
             unidad,
+            units: unitsByProduct.get(Number(item.IdProducto)) || [],
             notas: `Aplicación de ${folio}`,
         });
     }

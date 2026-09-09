@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Upload, Download, Trash2, Pencil, Search } from 'lucide-react';
+import { Plus, Upload, Download, Trash2, Pencil, Search, Scale } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell, RowActionButton, TableRow, TableCell, TableBody } from '@/components/ThemedGridHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import CostingModal from '@/components/CostingModal';
+import ProductUnitsModal from '@/components/products/ProductUnitsModal';
 import MassiveProductUpload from '@/components/MassiveProductUpload';
 import ProductImageCaptureModal from '@/components/ProductImageCaptureModal';
 import PageShell from '@/components/PageShell';
@@ -110,6 +111,7 @@ export default function ProductsPage() {
         iva: ''
     });
     const [selectedProductForCosting, setSelectedProductForCosting] = useState<Product | null>(null);
+    const [unitsProduct, setUnitsProduct] = useState<Product | null>(null);
     const [project, setProject] = useState<any>(null);
 
     // New state for creating category/presentation
@@ -621,6 +623,12 @@ export default function ProductsPage() {
                                     <TableCell align="right">
                                         <div className="flex items-center justify-end gap-1">
                                             <RowActionButton
+                                                icon={Scale}
+                                                onClick={() => setUnitsProduct(product)}
+                                                label="Unidades y presentaciones"
+                                                variant="view"
+                                            />
+                                            <RowActionButton
                                                 icon={Pencil}
                                                 onClick={() => openEditModal(product)}
                                                 label={t('editProduct')}
@@ -649,6 +657,18 @@ export default function ProductsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Unidades y presentaciones del producto */}
+            {unitsProduct && project?.idProyecto && (
+                <ProductUnitsModal
+                    isOpen={true}
+                    onClose={() => setUnitsProduct(null)}
+                    projectId={project.idProyecto}
+                    productId={unitsProduct.IdProducto}
+                    productName={unitsProduct.Producto}
+                    onSaved={fetchProducts}
+                />
+            )}
 
             {/* Costing Modal for Create/Edit and Kits */}
             {isModalOpen && (

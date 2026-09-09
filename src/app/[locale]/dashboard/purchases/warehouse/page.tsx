@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import PageShell from '@/components/PageShell';
+import { ProductUnit, conversionHint } from '@/lib/units';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import BaseModal from '@/components/BaseModal';
@@ -50,6 +51,8 @@ type StockRow = {
     UnidadMedidaCompra: string | null;
     UnidadMedidaInventario: string | null;
     CostoInventario: number | null;
+    /** Presentaciones configuradas; vacio = solo la unidad de siempre. */
+    Unidades?: ProductUnit[];
 };
 
 type StockGroup = {
@@ -173,6 +176,9 @@ export default function WarehousePage() {
     const [adjustCantidad, setAdjustCantidad] = useState('');
     const [adjustCosto, setAdjustCosto] = useState('');
     const [adjustNotas, setAdjustNotas] = useState('');
+    // Presentacion en la que se captura el ajuste: contar en botes es mas
+    // natural que en gramos, y el servidor convierte a base al guardar.
+    const [adjustUnidad, setAdjustUnidad] = useState('');
     const [isSavingAdjust, setIsSavingAdjust] = useState(false);
 
     const fetchBranches = useCallback(async () => {
@@ -460,8 +466,22 @@ export default function WarehousePage() {
         setAdjustCantidad('');
         setAdjustCosto('');
         setAdjustNotas('');
+        setAdjustUnidad(((row as StockRow | null)?.Unidades || []).find(u => u.esBase)?.unidad || '');
         setIsAdjustOpen(true);
     };
+
+    // Presentaciones del producto elegido. Se leen de las existencias, que
+    // es la lista que las trae, sin importar si el producto se escogio en el
+    // renglon o en el buscador del modal.
+    const adjustUnidades = useMemo<ProductUnit[]>(() => {
+        const id = (adjustProduct as any)?.IdProducto;
+        return (id ? stock.find(r => r.IdProducto === id)?.Unidades : undefined) || [];
+    }, [adjustProduct, stock]);
+
+    // Si la unidad guardada no aplica al producto actual, manda la base.
+    const adjustUnidadActiva = adjustUnidades.some(u => u.unidad === adjustUnidad)
+        ? adjustUnidad
+        : (adjustUnidades.find(u => u.esBase)?.unidad || '');
 
     const handleSaveAdjust = async () => {
         const idProducto = (adjustProduct as any)?.IdProducto;
@@ -492,6 +512,7 @@ export default function WarehousePage() {
                     cantidad: qty,
                     costoUnitario: adjustCosto ? Number(adjustCosto) : null,
                     notas: adjustNotas || null,
+                    unidad: adjustUnidadActiva || null,
                 }),
             });
             const data = await res.json();
@@ -1228,7 +1249,7 @@ export default function WarehousePage() {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className={`grid gap-3 ${adjustUnidades.length > 1 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
                         <Input
                             label={adjustTipo === 'AJUSTE' ? 'Nueva existencia' : 'Cantidad'}
                             type="number"
@@ -1238,6 +1259,20 @@ export default function WarehousePage() {
                             onChange={(e) => setAdjustCantidad(e.target.value)}
                             placeholder="0"
                         />
+                        {adjustUnidades.length > 1 && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Unidad</label>
+                                <select
+                                    value={adjustUnidadActiva}
+                                    onChange={(e) => setAdjustUnidad(e.target.value)}
+                                    className="text-sm rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-800 focus:outline-none focus:border-blue-500 transition-all"
+                                >
+                                    {adjustUnidades.map(u => (
+                                        <option key={u.unidad} value={u.unidad}>{u.unidad}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         {adjustTipo === 'SALIDA' ? (
                             <div className="flex flex-col gap-1">
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Costo de salida</label>
@@ -1257,6 +1292,13 @@ export default function WarehousePage() {
                             />
                         )}
                     </div>
+
+                    {(() => {
+                        const hint = conversionHint(adjustUnidades, Number(adjustCantidad), adjustUnidadActiva);
+                        return hint ? (
+                            <p className="text-xs -mt-1" style={{ color: '#6B7280' }}>{hint}</p>
+                        ) : null;
+                    })()}
 
                     <Input
                         label="Motivo / Notas"

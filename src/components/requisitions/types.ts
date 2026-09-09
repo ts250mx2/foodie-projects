@@ -1,5 +1,7 @@
 /** Tipos compartidos por la página táctil de requisiciones. */
 
+import type { ProductUnit } from '@/lib/units';
+
 export interface RequisitionBranch {
     IdSucursal: number;
     Sucursal: string;
@@ -11,7 +13,13 @@ export interface RequisitionProduct {
     Codigo: string | null;
     IdCategoria: number | null;
     Categoria: string | null;
+    /** Unidad por omisión (la base cuando el producto tiene presentaciones). */
     Unidad: string;
+    /**
+     * Presentaciones en las que se puede pedir. Vacío = solo `Unidad`, que es
+     * el caso de los productos que aún no se configuran.
+     */
+    Unidades: ProductUnit[];
 }
 
 export interface RequisitionTheme {
@@ -22,10 +30,12 @@ export interface RequisitionTheme {
     colorLetra: string;
 }
 
-/** Renglón del carrito: producto + cantidad pedida. */
+/** Renglón del carrito: producto + cantidad pedida en la unidad elegida. */
 export interface CartLine {
     producto: RequisitionProduct;
     cantidad: number;
+    /** Unidad en la que se pidió: "100 GRAMO" y no "100" a secas. */
+    unidad: string;
 }
 
 /** Perfil de captura (Cocina, Barra, …) configurado desde el portal. */

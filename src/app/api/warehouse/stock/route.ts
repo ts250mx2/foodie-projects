@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectConnection } from '@/lib/dynamic-db';
+import { RowDataPacket } from 'mysql2';
+import { loadProductUnits, loadUnitsForProducts } from '@/lib/product-units';
+import { baseUnit, unitFactor } from '@/lib/units';
 
 /**
  * Existencias de almacén por sucursal (inventario perpetuo costeado).
@@ -50,7 +53,18 @@ export async function GET(request: NextRequest) {
             [parseInt(branchIdStr)]
         );
 
-        return NextResponse.json({ success: true, data: rows });
+        // Presentaciones de cada insumo: la pantalla de ajustes deja contar en
+        // la que se usa en la bodega ("3 botes") y aquí se convierte a base.
+        const unitsByProduct = await loadUnitsForProducts(
+            connection,
+            (rows as RowDataPacket[]).map(r => Number(r.IdProducto))
+        );
+        const data = (rows as RowDataPacket[]).map(r => ({
+            ...r,
+            Unidades: unitsByProduct.get(Number(r.IdProducto)) || [],
+        }));
+
+        return NextResponse.json({ success: true, data });
     } catch (error) {
         console.error('Error fetching warehouse stock:', error);
         return NextResponse.json({ success: false, message: 'Error fetching warehouse stock' }, { status: 500 });
@@ -63,9 +77,9 @@ export async function POST(request: NextRequest) {
     let connection;
     try {
         const body = await request.json();
-        const { projectId, branchId, idProducto, tipo, cantidad, costoUnitario, notas } = body;
+        const { projectId, branchId, idProducto, tipo, cantidad, costoUnitario, notas, unidad: unidadCaptura } = body;
 
-        const qty = Number(cantidad);
+        const qtyCaptura = Number(cantidad);
         if (!projectId || !branchId || !idProducto || !tipo) {
             return NextResponse.json({ success: false, message: 'Datos incompletos: se requiere producto, tipo y cantidad' }, { status: 400 });
         }
@@ -74,15 +88,23 @@ export async function POST(request: NextRequest) {
         }
         // ENTRADA/SALIDA: delta > 0. AJUSTE: existencia objetivo (acepta 0, no negativos).
         if (tipo === 'AJUSTE') {
-            if (isNaN(qty) || qty < 0) {
+            if (isNaN(qtyCaptura) || qtyCaptura < 0) {
                 return NextResponse.json({ success: false, message: 'La nueva existencia no puede ser negativa' }, { status: 400 });
             }
-        } else if (!qty || qty <= 0) {
+        } else if (!qtyCaptura || qtyCaptura <= 0) {
             return NextResponse.json({ success: false, message: 'Captura una cantidad mayor a cero' }, { status: 400 });
         }
 
         connection = await getProjectConnection(parseInt(projectId));
         await connection.beginTransaction();
+
+        // El conteo se puede capturar en cualquier presentación ("3 botes y
+        // medio") pero el almacén siempre guarda la base. Sin presentaciones
+        // configuradas el factor es 1 y todo queda igual que antes.
+        const units = await loadProductUnits(connection, Number(idProducto));
+        const factor = unitFactor(units, unidadCaptura);
+        const convertido = factor !== 1;
+        const qty = qtyCaptura * factor;
 
         const [exRows] = await connection.query(
             'SELECT Existencia, CostoPromedio, Unidad FROM tblAlmacenExistencias WHERE IdSucursal = ? AND IdProducto = ? FOR UPDATE',
@@ -91,7 +113,9 @@ export async function POST(request: NextRequest) {
         const existing = (exRows as any[])[0];
         const prev = existing ? Number(existing.Existencia) : 0;
         const avg = existing ? Number(existing.CostoPromedio) : 0;
-        const inputCost = Number(costoUnitario) || 0;
+        // El costo capturado es por unidad capturada: se divide por el mismo
+        // factor por el que se multiplicó la cantidad.
+        const inputCost = factor > 0 ? (Number(costoUnitario) || 0) / factor : (Number(costoUnitario) || 0);
 
         let costo: number;
         let nueva: number;
@@ -124,7 +148,9 @@ export async function POST(request: NextRequest) {
             costo = movTipo === 'ENTRADA'
                 ? (inputCost > 0 ? inputCost : avg)
                 : (avg > 0 ? avg : inputCost);
-            movNotas = `Ajuste de inventario: existencia establecida en ${qty}${notas ? ` — ${notas}` : ''}`;
+            movNotas = convertido
+                ? `Ajuste de inventario: ${qtyCaptura} ${unidadCaptura} = ${qty}${notas ? ` — ${notas}` : ''}`
+                : `Ajuste de inventario: existencia establecida en ${qty}${notas ? ` — ${notas}` : ''}`;
         } else if (tipo === 'SALIDA') {
             costo = avg > 0 ? avg : inputCost;
             nueva = prev - qty;
@@ -137,8 +163,9 @@ export async function POST(request: NextRequest) {
                 : costo;
         }
 
-        // Unidad: conserva la registrada; si no hay, usa la de inventario del producto.
-        let unidad: string | null = existing?.Unidad || null;
+        // Unidad: manda la base del producto — es la que quedará en existencias
+        // tras el corte físico. Sin presentaciones, conserva la registrada.
+        let unidad: string | null = baseUnit(units)?.unidad || existing?.Unidad || null;
         if (!unidad) {
             const [prodRows] = await connection.query(
                 'SELECT UnidadMedidaInventario, UnidadMedidaCompra FROM tblProductos WHERE IdProducto = ?',
@@ -151,9 +178,15 @@ export async function POST(request: NextRequest) {
         await connection.query(
             `INSERT INTO tblAlmacenMovimientos
                 (IdSucursal, IdProducto, TipoMovimiento, Origen, IdOrdenCompra, Cantidad, CostoUnitario,
-                 ExistenciaAnterior, ExistenciaNueva, Unidad, Notas, FechaMovimiento, FechaAct)
-             VALUES (?, ?, ?, 'AJUSTE_MANUAL', NULL, ?, ?, ?, ?, ?, ?, Now(), Now())`,
-            [branchId, idProducto, movTipo, movQty, costo, prev, nueva, unidad, movNotas]
+                 ExistenciaAnterior, ExistenciaNueva, Unidad, CantidadCaptura, UnidadCaptura,
+                 Notas, FechaMovimiento, FechaAct)
+             VALUES (?, ?, ?, 'AJUSTE_MANUAL', NULL, ?, ?, ?, ?, ?, ?, ?, ?, Now(), Now())`,
+            [
+                branchId, idProducto, movTipo, movQty, costo, prev, nueva, unidad,
+                convertido ? qtyCaptura : null,
+                convertido ? unidadCaptura : null,
+                movNotas,
+            ]
         );
 
         await connection.query(

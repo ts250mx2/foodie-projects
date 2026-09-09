@@ -4,6 +4,7 @@ import { ArrowLeft, Minus, Plus, Send, Trash2 } from 'lucide-react';
 import { CartLine } from './types';
 import { INK, INK_MUTED, foregroundFor } from './theme';
 import { NO_AUTOFILL } from '@/components/noAutofill';
+import { conversionHint } from '@/lib/units';
 
 interface RequisitionCartProps {
     lines: CartLine[];
@@ -15,6 +16,8 @@ interface RequisitionCartProps {
     onChangeQty: (idProducto: number, cantidad: number) => void;
     onOpenPad: (idProducto: number) => void;
     onRemove: (idProducto: number) => void;
+    /** Cambia la unidad en la que se pide ese insumo (gramos, botes, …). */
+    onChangeUnit: (idProducto: number, unidad: string) => void;
     onNotasChange: (value: string) => void;
     onSend: () => void;
 }
@@ -30,6 +33,7 @@ export default function RequisitionCart({
     onChangeQty,
     onOpenPad,
     onRemove,
+    onChangeUnit,
     onNotasChange,
     onSend,
 }: RequisitionCartProps) {
@@ -58,7 +62,7 @@ export default function RequisitionCart({
 
             <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
                 <ul className="space-y-3">
-                    {lines.map(({ producto, cantidad }) => (
+                    {lines.map(({ producto, cantidad, unidad }) => (
                         <li
                             key={producto.IdProducto}
                             className="rounded-2xl bg-white border-2 border-slate-300 p-4 flex items-center gap-4 flex-wrap shadow-sm"
@@ -66,7 +70,7 @@ export default function RequisitionCart({
                             <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                                 <p className="text-lg font-bold leading-snug" style={{ color: INK }}>{producto.Producto}</p>
                                 <p className="text-[13px] font-bold uppercase tracking-wide mt-0.5" style={{ color: INK_MUTED }}>
-                                    {producto.Unidad}
+                                    {unidad}
                                     {producto.Codigo && <span className="ml-2 normal-case font-semibold">{producto.Codigo}</span>}
                                 </p>
                             </div>
@@ -111,6 +115,39 @@ export default function RequisitionCart({
                                     <Trash2 size={22} strokeWidth={2.5} />
                                 </button>
                             </div>
+
+                            {/* Unidad del pedido. Solo aparece cuando el insumo
+                                tiene más de una presentación: si no, estorbaría. */}
+                            {producto.Unidades && producto.Unidades.length > 1 && (
+                                <div className="basis-full">
+                                    <div className="flex flex-wrap gap-2">
+                                        {producto.Unidades.map(u => {
+                                            const activa = u.unidad === unidad;
+                                            return (
+                                                <button
+                                                    key={u.unidad}
+                                                    type="button"
+                                                    onClick={() => onChangeUnit(producto.IdProducto, u.unidad)}
+                                                    className="h-12 px-4 rounded-xl border-2 text-base font-bold uppercase tracking-wide active:scale-95 transition"
+                                                    style={activa
+                                                        ? { backgroundColor: accent, borderColor: accent, color: accentInk }
+                                                        : { backgroundColor: '#fff', borderColor: '#cbd5e1', color: INK }}
+                                                >
+                                                    {u.unidad}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {(() => {
+                                        const hint = conversionHint(producto.Unidades, cantidad, unidad);
+                                        return hint ? (
+                                            <p className="text-[13px] font-semibold mt-2" style={{ color: INK_MUTED }}>
+                                                {hint}
+                                            </p>
+                                        ) : null;
+                                    })()}
+                                </div>
+                            )}
                         </li>
                     ))}
                 </ul>
