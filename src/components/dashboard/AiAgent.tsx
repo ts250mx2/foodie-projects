@@ -12,6 +12,12 @@ import PageShell from '@/components/PageShell';
 import { chatStorageKey, clearLegacyChatHistory, currentProjectId } from '@/lib/ai-chat-storage';
 
 // Botones de navegación que el agente embebe como ```nav {json}```.
+const NOMBRE_PROVEEDOR_IA: Record<string, string> = { claude: "Claude", openai: "OpenAI", gemini: "Gemini", deepseek: "DeepSeek", groq: "Groq", mistral: "Mistral", xai: "xAI", openrouter: "OpenRouter", kimi: "Kimi", qwen: "Qwen", glm: "GLM" };
+/** Nombre legible del proveedor de IA que contestó ('deepseek' -> 'DeepSeek'). */
+function nombreProveedorIA(id: string): string {
+    return NOMBRE_PROVEEDOR_IA[id] ?? (id.charAt(0).toUpperCase() + id.slice(1));
+}
+
 export function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
     let items: { label: string; path: string; reason?: string }[] = [];
     try { const p = JSON.parse(json); items = Array.isArray(p.items) ? p.items : []; } catch { return null; }
@@ -46,13 +52,9 @@ interface Message {
     ts?: number;
 }
 
-type ClaudeModel = 'claude-opus-4-8' | 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001';
-
-const CLAUDE_MODELS: { id: ClaudeModel; label: string; badge: string }[] = [
-    { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6', badge: '⚡' },
-    { id: 'claude-opus-4-8',           label: 'Opus 4.8',   badge: '🧠' },
-    { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  badge: '🪶' },
-];
+// El modelo ya no se elige aquí: lo fija HL Console (proyecto hl-servidor) en
+// el agente HL_AGENTE_FOODIE. La respuesta del stream trae en `modelUsed` el
+// que contestó de verdad, y solo se muestra/anota.
 
 // La conversación se guarda por proyecto; ver src/lib/ai-chat-storage.ts.
 
@@ -164,7 +166,7 @@ function TypingIndicator() {
 // ─── ChatPanel ────────────────────────────────────────────────────────────────
 function ChatPanel({
     messages, isLoading, input, setInput, handleSend,
-    model, setModel, onClear, onMaximize, onClose,
+    modelUsed, onClear, onMaximize, onClose,
     isMaximized, mode, suggestions, messagesEndRef,
     streamingText, streamPhase, onNavigate, onShare,
     dashboardData,
@@ -174,8 +176,8 @@ function ChatPanel({
     input: string;
     setInput: (v: string) => void;
     handleSend: (e: React.FormEvent) => void;
-    model: ClaudeModel;
-    setModel: (v: ClaudeModel) => void;
+    /** Modelo con que contestó HL en el último turno; null hasta la primera respuesta. */
+    modelUsed: string | null;
     onClear: () => void;
     onMaximize?: () => void;
     onClose?: () => void;
@@ -193,7 +195,6 @@ function ChatPanel({
     const router = useRouter();
     const params = useParams();
     const locale = (params?.locale as string) || 'es';
-    const currentModelInfo = CLAUDE_MODELS.find(m => m.id === model) ?? CLAUDE_MODELS[0];
     const [isInputFocused, setIsInputFocused] = useState(false);
 
     // Render de Markdown: intercepta ```chart (gráfica) y ```nav (botones).
@@ -274,7 +275,7 @@ function ChatPanel({
 
             generateAnswerPDF(msg.content, {
                 question,
-                model: CLAUDE_MODELS.find(m => m.id === model)?.label,
+                model: modelUsed || undefined,
                 branchName: (ctx as any)?.branchName || undefined,
                 projectLogo: logo64 || undefined,
                 projectName: projectName || undefined,
@@ -430,7 +431,7 @@ function ChatPanel({
                         <div className="flex items-center justify-center gap-2 mt-6">
                             <Sparkles size={11} className="text-amber-500" />
                             <span className="text-[10px] text-slate-400 font-medium">
-                                Potenciado por Claude AI · {currentModelInfo.label}
+                                Potenciado por IA{modelUsed ? ` · ${modelUsed}` : ''}
                             </span>
                         </div>
                     </div>
@@ -573,24 +574,6 @@ function ChatPanel({
             {/* ── Input & Controls ─────────────────────────────────────────── */}
             <div className="shrink-0 px-5 pb-5 pt-3 bg-white border-t border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.015)] flex flex-col gap-2.5">
                 
-                {/* Model Selector Bar */}
-                <div className="flex items-center justify-between text-slate-400 text-[10px] font-extrabold uppercase tracking-wider pb-1.5 px-1 border-b border-slate-50">
-                    <span>Modelo de Inteligencia Artificial:</span>
-                    <div className="relative">
-                        <select
-                            value={model}
-                            onChange={e => setModel(e.target.value as ClaudeModel)}
-                            className="text-[10px] font-bold bg-slate-50 border border-slate-150 text-slate-700 rounded-lg px-2 py-0.5 outline-none cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition-all shadow-sm"
-                        >
-                            {CLAUDE_MODELS.map(m => (
-                                <option key={m.id} value={m.id} className="text-slate-800 bg-white">
-                                    {m.badge} {m.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
                 <form id="agent-chat-form" onSubmit={handleSend} className="w-full">
                     <div 
                         className="flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300 shadow-sm"
@@ -650,7 +633,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     const [messages,      setMessages]      = useState<Message[]>([]);
     const [input,         setInput]         = useState('');
     const [isLoading,     setIsLoading]     = useState(false);
-    const [model,         setModel]         = useState<ClaudeModel>('claude-sonnet-4-6');
+    const [modelUsed,     setModelUsed]     = useState<string | null>(null);
     const [hydrated,      setHydrated]      = useState(false);
     // Llave de guardado del proyecto en sesión; null = no persistir.
     const [storageKey,    setStorageKey]    = useState<string | null>(null);
@@ -673,7 +656,6 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed.messages)) setMessages(parsed.messages);
-                if (CLAUDE_MODELS.some(m => m.id === parsed.model)) setModel(parsed.model);
             }
         } catch { }
         setHydrated(true);
@@ -685,12 +667,12 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         if (!hydrated || !storageKey) return;
         try {
             if (messages.length > 0) {
-                localStorage.setItem(storageKey, JSON.stringify({ messages, model }));
+                localStorage.setItem(storageKey, JSON.stringify({ messages }));
             } else {
                 localStorage.removeItem(storageKey);
             }
         } catch { }
-    }, [messages, model, hydrated, storageKey]);
+    }, [messages, hydrated, storageKey]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -725,7 +707,6 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: [...messages, userMsg].map(({ role, content }) => ({ role, content })),
-                    model,
                     context: { ...ctx, currentPage: pathname },
                     projectId,
                 }),
@@ -786,6 +767,9 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                                 committed = true;
                             }
                             setStreamingText(null);
+                            // Con proveedor y modelo (HL Console); si el servidor es anterior, solo el modelo.
+                            if (evt.ia?.proveedor && evt.ia?.modelo) setModelUsed(`${nombreProveedorIA(evt.ia.proveedor)} · ${evt.ia.modelo}`);
+                            else if (evt.modelUsed && evt.modelUsed !== 'none') setModelUsed(evt.modelUsed);
                             if (evt.executedSql) {
                                 console.groupCollapsed('🔍 Foodie Guru – SQL');
                                 console.log(evt.executedSql);
@@ -824,7 +808,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             setStreamPhase(null);
             setIsLoading(false);
         }
-    }, [input, isLoading, messages, model, pathname, dashboardData]);
+    }, [input, isLoading, messages, pathname, dashboardData]);
 
     const handleClear = () => {
         setMessages([]);
@@ -857,7 +841,7 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                     content,
                     question,
                     projectId,
-                    model: CLAUDE_MODELS.find(m => m.id === model)?.label,
+                    model: modelUsed || undefined,
                     branchName: (ctx as any)?.branchName,
                 }),
             });
@@ -866,11 +850,11 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
         } catch {
             return null;
         }
-    }, [dashboardData, model]);
+    }, [dashboardData, modelUsed]);
 
     const sharedProps = {
         messages, isLoading, input, setInput, handleSend,
-        model, setModel, onClear: handleClear, suggestions, messagesEndRef,
+        modelUsed, onClear: handleClear, suggestions, messagesEndRef,
         streamingText, streamPhase, onNavigate: handleNavigate, onShare: handleShare,
         dashboardData,
     };

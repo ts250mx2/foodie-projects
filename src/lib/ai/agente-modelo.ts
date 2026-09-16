@@ -45,6 +45,8 @@ export interface CredencialIA {
     respaldo?: CredencialIA | null;
     /** De qué agente de HL salió: permite volver a pedirla si HL avisa que cambió de proveedor. */
     agente?: AgenteHl;
+    /** Nombre del proveedor en HL ('claude', 'deepseek'...) para decir quién contestó; `proveedor` solo dice el SDK. */
+    proveedorHl?: string;
 }
 
 /** El SDK exige una llave; la real la pone HL en el proxy. */
@@ -81,6 +83,14 @@ export interface ResultadoTurno {
     /** Si el turno terminó porque el modelo pidió herramientas. */
     pidioHerramientas: boolean;
     /** Modelo que contestó de verdad (el respaldo, si el principal falló). */
+    modelo: string;
+    /** Proveedor en HL que contestó ('claude', 'deepseek'...). */
+    proveedor?: string;
+}
+
+/** Con qué proveedor y modelo se atendió una respuesta: lo que se le muestra a quien pregunta. */
+export interface IAUsada {
+    proveedor: string;
     modelo: string;
 }
 
@@ -123,7 +133,7 @@ export async function credencialDeAgente(
             `HL asignó al agente ${agente} el proveedor "${proveedor}", que este sistema no sabe correr (solo los que hablan el API de Anthropic o de OpenAI)`
         );
     }
-    return { proveedor: soportado, modelo, ...configProxy(agente, env), agente };
+    return { proveedor: soportado, modelo, ...configProxy(agente, env), agente, proveedorHl: proveedor.trim().toLowerCase() };
 }
 
 /** Lo que ve el usuario cuando HL no dio credencial; el detalle va al log. */
@@ -315,7 +325,7 @@ export async function completarTexto(
         mensajes: Anthropic.MessageParam[];
         maxTokens: number;
     }
-): Promise<{ texto: string; modelo: string }> {
+): Promise<{ texto: string; modelo: string; proveedor: string }> {
     const resultado = await correrTurnoAgente({
         ...credencial,
         sistema: opciones.sistema ?? '',
@@ -328,7 +338,7 @@ export async function completarTexto(
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
         .join('');
-    return { texto, modelo: resultado.modelo };
+    return { texto, modelo: resultado.modelo, proveedor: resultado.proveedor ?? credencial.proveedorHl ?? credencial.proveedor };
 }
 
 // ---------- Anthropic ----------
@@ -377,6 +387,7 @@ async function turnoAnthropic(turno: TurnoAgente): Promise<ResultadoTurno> {
         usos: pidioHerramientas ? usos : [],
         pidioHerramientas,
         modelo: turno.modelo,
+        proveedor: turno.proveedorHl ?? turno.proveedor,
     };
 }
 
@@ -542,5 +553,5 @@ async function turnoOpenAI(turno: TurnoAgente): Promise<ResultadoTurno> {
             input,
         } as Anthropic.ContentBlock);
     }
-    return { contenido, usos, pidioHerramientas: usos.length > 0, modelo: turno.modelo };
+    return { contenido, usos, pidioHerramientas: usos.length > 0, modelo: turno.modelo, proveedor: turno.proveedorHl ?? turno.proveedor };
 }

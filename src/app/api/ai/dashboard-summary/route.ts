@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { getProjectConnection } from '@/lib/dynamic-db';
+import { completarTexto, credencialParaRuta } from '@/lib/ai/agente-modelo';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Proveedor y modelo los fija HL Console (agente HL_AGENTE_FOODIE).
 
 interface SummaryRequest {
     projectId: number;
@@ -275,15 +275,17 @@ Genera un análisis ejecutivo en Markdown rico y útil. Incluye:
 
 Responde en español. Sé directo y útil. Usa emojis de semáforo para señalizar estado. Menciona cifras específicas, nunca generalidades.`;
 
-        const response = await anthropic.messages.create({
-            model: 'claude-opus-4-8',
-            max_tokens: 4096,
-            messages: [{ role: 'user', content: prompt }],
+        const credencialHl = await credencialParaRuta('foodie');
+        if (!credencialHl.ok) {
+            return NextResponse.json({ error: credencialHl.error }, { status: 503 });
+        }
+
+        const { texto: summary, modelo, proveedor } = await completarTexto(credencialHl.credencial, {
+            maxTokens: 4096,
+            mensajes: [{ role: 'user', content: prompt }],
         });
 
-        const summary = response.content[0].type === 'text' ? response.content[0].text : '';
-
-        return NextResponse.json({ summary, model: 'claude-opus-4-8' });
+        return NextResponse.json({ summary, model: modelo, ia: { proveedor, modelo } });
 
     } catch (error: any) {
         console.error('Dashboard Summary Error:', error);

@@ -4,14 +4,12 @@ import { getProjectConnection } from '@/lib/dynamic-db';
 import { DATABASE_SCHEMA } from '@/lib/ai/schema';
 import { buildProjectCatalog } from '@/lib/ai/catalog';
 import { createSseStream, SSE_HEADERS } from '@/lib/ai/sse';
+import { credencialParaRuta, correrTurnoAgente } from '@/lib/ai/agente-modelo';
 
 const MAX_TURNS = 12;
 
-const ALLOWED_MODELS = new Set([
-    'claude-opus-4-8',
-    'claude-sonnet-4-6',
-    'claude-haiku-4-5-20251001',
-]);
+// El proveedor y el modelo los fija HL Console (agente HL_AGENTE_FOODIE); esta
+// ruta ya no los elige ni los recibe del cliente. Ver src/lib/ai/agente-modelo.ts.
 
 async function executeQuery(connection: any, sql: string): Promise<any[]> {
     const trimmed = sql.toLowerCase().trim();
@@ -343,50 +341,15 @@ CONTEXTO ACTIVO: ${ctxExtra || '(sin contexto adicional)'}`;
     ];
 }
 
-// ─── Fallback de modelo ─────────────────────────────────────────────────────
-// Si el modelo elegido falla por sobrecarga/crédito/rate-limit, degradamos al
-// siguiente de la cadena en vez de romper la conversación.
-const MODEL_FALLBACKS: Record<string, string[]> = {
-    'claude-opus-4-8':           ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-    'claude-sonnet-4-6':         ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-    'claude-haiku-4-5-20251001': ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
-};
-
-function shouldFallback(err: any): boolean {
-    const status = err?.status;
-    const msg = String(err?.message || '').toLowerCase();
-    if ([429, 500, 502, 503, 529].includes(status)) return true;
-    return ['overloaded', 'credit', 'rate limit', 'billing'].some(s => msg.includes(s));
-}
-
-async function createMessageWithFallback(
-    anthropic: Anthropic,
-    params: Omit<Anthropic.MessageCreateParamsNonStreaming, 'model'>,
-    primaryModel: string,
-): Promise<{ response: Anthropic.Message; modelUsed: string }> {
-    const chain = MODEL_FALLBACKS[primaryModel] || [primaryModel];
-    let lastErr: any;
-    for (let i = 0; i < chain.length; i++) {
-        try {
-            const response = await anthropic.messages.create({ ...params, model: chain[i] });
-            return { response, modelUsed: chain[i] };
-        } catch (err) {
-            lastErr = err;
-            if (i < chain.length - 1 && shouldFallback(err)) {
-                console.warn(`[ai/chat] modelo ${chain[i]} falló (${(err as any)?.status ?? ''}); probando ${chain[i + 1]}`);
-                continue;
-            }
-            throw err;
-        }
-    }
-    throw lastErr;
-}
+// El reintento cuando el proveedor falla (sobrecarga, rate-limit, cuenta sin
+// saldo) ya no degrada de modelo: lo resuelve el agente de respaldo de HL
+// (HL_AGENTE_RESPALDO) dentro de correrTurnoAgente.
 
 // ─── POST Handler ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
     let connection: any = null;
     try {
-        const { messages, model, context, projectId } = await req.json();
+        const { messages, context, projectId } = await req.json();
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'messages requerido' }, { status: 400 });
@@ -399,8 +362,12 @@ export async function POST(req: Request) {
             });
         }
 
-        const resolvedModel = ALLOWED_MODELS.has(model) ? model : 'claude-sonnet-4-6';
-        const anthropic     = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        // Proveedor, modelo y entrada al proxy salen de HL Console.
+        const credencialHl = await credencialParaRuta('foodie');
+        if (!credencialHl.ok) {
+            return NextResponse.json({ content: credencialHl.error, modelUsed: 'none' });
+        }
+        const credencial = credencialHl.credencial;
 
         connection = await getProjectConnection(projectId);
 
@@ -430,69 +397,68 @@ export async function POST(req: Request) {
                 try {
                     let turns       = 0;
                     let finalText   = '';
-                    let activeModel = resolvedModel;
+                    let activeModel = credencial.modelo;
+                    let activeProvider = credencial.proveedorHl ?? credencial.proveedor;
                     emit({ type: 'status', phase: 'thinking' });
 
                     while (turns < MAX_TURNS) {
                         turns++;
-                        const msgStream = anthropic.messages.stream({
-                            model:       activeModel,
-                            max_tokens:  8192,
-                            system:      systemPrompt,
-                            tools:       AGENT_TOOLS,
-                            tool_choice: { type: 'auto' },
-                            messages:    conversationMessages,
-                        });
 
                         let turnText  = '';
                         let sawTool   = false;
                         let resetSent = false;
-                        for await (const ev of msgStream) {
-                            if (ev.type === 'content_block_start' && (ev as any).content_block?.type === 'tool_use') {
+                        const turno = await correrTurnoAgente({
+                            ...credencial,
+                            // Si el turno se repite con el agente de respaldo, el
+                            // estado del intento anterior no debe arrastrarse.
+                            alIniciarIntento: () => { turnText = ''; sawTool = false; resetSent = false; },
+                            sistema:      systemPrompt,
+                            herramientas: AGENT_TOOLS,
+                            mensajes:     conversationMessages,
+                            maxTokens:    8192,
+                            alTexto: (t) => {
+                                if (sawTool) return;
+                                turnText += t;
+                                emit({ type: 'text', delta: t });
+                            },
+                            alUsarHerramienta: () => {
                                 sawTool = true;
                                 // Si el modelo emitió preámbulo antes de la tool, bórralo en el cliente.
                                 if (turnText && !resetSent) { emit({ type: 'reset' }); resetSent = true; turnText = ''; }
-                            } else if (ev.type === 'content_block_delta' && (ev as any).delta?.type === 'text_delta') {
-                                if (!sawTool) {
-                                    const t = (ev as any).delta.text as string;
-                                    turnText += t;
-                                    emit({ type: 'text', delta: t });
-                                }
-                            }
-                        }
-
-                        const finalMessage = await msgStream.finalMessage();
+                            },
+                        });
+                        activeModel = turno.modelo;
+                        activeProvider = turno.proveedor ?? activeProvider;
 
                         // Turno final (sin tools): el texto ya se transmitió.
-                        if (finalMessage.stop_reason !== 'tool_use') {
-                            const tb = finalMessage.content.find((c: any) => c.type === 'text') as any;
+                        if (!turno.pidioHerramientas) {
+                            const tb = turno.contenido.find((c: any) => c.type === 'text') as any;
                             finalText = turnText || tb?.text || '';
                             break;
                         }
 
                         // ask_clarification → evento terminal
-                        const clar = finalMessage.content.find(
-                            (c: any) => c.type === 'tool_use' && c.name === 'ask_clarification'
-                        ) as any;
+                        const clar = turno.usos.find(u => u.name === 'ask_clarification');
                         if (clar) {
+                            const input = clar.input as any;
                             emit({
                                 type: 'clarification',
-                                question:    clar.input?.question || '¿Qué período te gustaría analizar?',
-                                suggestions: clar.input?.suggestions || [],
+                                question:    input?.question || '¿Qué período te gustaría analizar?',
+                                suggestions: input?.suggestions || [],
                             });
-                            emit({ type: 'done', modelUsed: activeModel, executedSql: executedSql.join(';\n') });
+                            emit({ type: 'done', modelUsed: activeModel, ia: { proveedor: activeProvider, modelo: activeModel }, executedSql: executedSql.join(';\n') });
                             return;
                         }
 
                         // query_database → ejecuta y realimenta
                         emit({ type: 'status', phase: 'querying' });
-                        conversationMessages.push({ role: 'assistant', content: finalMessage.content });
-                        const toolResults = await runToolBlocks(ownedConn, finalMessage.content, executedSql);
+                        conversationMessages.push({ role: 'assistant', content: turno.contenido });
+                        const toolResults = await runToolBlocks(ownedConn, turno.contenido, executedSql);
                         conversationMessages.push({ role: 'user', content: toolResults });
                         emit({ type: 'status', phase: 'analyzing' });
                     }
 
-                    emit({ type: 'done', content: finalText, modelUsed: activeModel, executedSql: executedSql.join(';\n') });
+                    emit({ type: 'done', content: finalText, modelUsed: activeModel, ia: { proveedor: activeProvider, modelo: activeModel }, executedSql: executedSql.join(';\n') });
                 } finally {
                     try { await ownedConn.end(); } catch { /* noop */ }
                 }
@@ -503,52 +469,53 @@ export async function POST(req: Request) {
         // ── BRANCH NO-STREAMING (JSON, back-compat) ───────────────────────────
         let turns       = 0;
         let finalText   = '';
-        let activeModel = resolvedModel;
+        let activeModel = credencial.modelo;
+        let activeProvider = credencial.proveedorHl ?? credencial.proveedor;
 
         while (turns < MAX_TURNS) {
             turns++;
 
-            const { response: resp, modelUsed } = await createMessageWithFallback(anthropic, {
-                max_tokens: 8192,
-                system:     systemPrompt,
-                tools:      AGENT_TOOLS,
-                tool_choice: { type: 'auto' },
-                messages:   conversationMessages,
-            }, activeModel);
-            activeModel = modelUsed; // si degradó, sigue con ese modelo el resto del loop
+            const turno = await correrTurnoAgente({
+                ...credencial,
+                sistema:      systemPrompt,
+                herramientas: AGENT_TOOLS,
+                mensajes:     conversationMessages,
+                maxTokens:    8192,
+                alTexto:      () => {},
+            });
+            activeModel = turno.modelo; // si corrió con el respaldo, ese es el que contestó
+            activeProvider = turno.proveedor ?? activeProvider;
 
             // Collect text from this turn
-            const textBlock = resp.content.find((c: any) => c.type === 'text');
+            const textBlock = turno.contenido.find((c: any) => c.type === 'text');
             if (textBlock?.type === 'text') finalText = textBlock.text;
 
             // No more tool calls → done
-            if (resp.stop_reason !== 'tool_use') break;
+            if (!turno.pidioHerramientas) break;
 
             // Check for ask_clarification in this turn's tool calls
-            const clarificationBlock = resp.content.find(
-                (c: any) => c.type === 'tool_use' && c.name === 'ask_clarification'
-            );
-            if (clarificationBlock?.type === 'tool_use') {
-                const input = clarificationBlock.input as any;
+            const clarificationUse = turno.usos.find(u => u.name === 'ask_clarification');
+            if (clarificationUse) {
+                const input = clarificationUse.input as any;
                 return NextResponse.json({
                     clarification: {
                         question:    input.question    || '¿Qué período te gustaría analizar?',
                         suggestions: input.suggestions || [],
                     },
-                    modelUsed: activeModel,
+                    modelUsed: activeModel, ia: { proveedor: activeProvider, modelo: activeModel },
                     executedSql: executedSql.join(';\n'),
                 });
             }
 
             // Process all query_database tool calls
-            conversationMessages.push({ role: 'assistant', content: resp.content });
-            const toolResults = await runToolBlocks(connection, resp.content, executedSql);
+            conversationMessages.push({ role: 'assistant', content: turno.contenido });
+            const toolResults = await runToolBlocks(connection, turno.contenido, executedSql);
             conversationMessages.push({ role: 'user', content: toolResults });
         }
 
         return NextResponse.json({
             content:    finalText,
-            modelUsed:  activeModel,
+            modelUsed:  activeModel, ia: { proveedor: activeProvider, modelo: activeModel },
             executedSql: executedSql.join(';\n'),
         });
 
