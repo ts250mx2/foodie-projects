@@ -1,34 +1,15 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { DATABASE_SCHEMA } from '@/lib/ai/schema';
 import { buildProjectCatalog } from '@/lib/ai/catalog';
 import { createReport, AdvancedReportDefinition, ReportViz, resolveReportSql, sanitizeParams } from '@/lib/ai/reports-store';
 import { createSseStream, SSE_HEADERS } from '@/lib/ai/sse';
+import { completarTexto, correrTurnoAgente, credencialParaRuta, type CredencialIA } from '@/lib/ai/agente-modelo';
 
 const MAX_TURNS = 8;
-const ALLOWED_MODELS = new Set(['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001']);
-const MODEL_FALLBACKS: Record<string, string[]> = {
-    'claude-opus-4-8': ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-    'claude-sonnet-4-6': ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-    'claude-haiku-4-5-20251001': ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6'],
-};
-
-function shouldFallback(err: any): boolean {
-    const s = err?.status;
-    const m = String(err?.message || '').toLowerCase();
-    if ([429, 500, 502, 503, 529].includes(s)) return true;
-    return ['overloaded', 'credit', 'rate limit', 'billing'].some(x => m.includes(x));
-}
-async function createWithFallback(anthropic: Anthropic, params: any, primary: string) {
-    const chain = MODEL_FALLBACKS[primary] || [primary];
-    let lastErr: any;
-    for (let i = 0; i < chain.length; i++) {
-        try { return { resp: await anthropic.messages.create({ ...params, model: chain[i] }), model: chain[i] }; }
-        catch (err) { lastErr = err; if (i < chain.length - 1 && shouldFallback(err)) continue; throw err; }
-    }
-    throw lastErr;
-}
+// Proveedor y modelo los fija HL Console (agente HL_AGENTE_FOODIE): esta ruta
+// ya no los elige ni los recibe del cliente, y el reintento por fallo del
+// proveedor lo cubre el agente de respaldo dentro de correrTurnoAgente.
 
 function assertSelect(sql: string): string {
     const t = sql.toLowerCase().trim();
@@ -176,10 +157,8 @@ type Emit = (e: Record<string, any> & { type: string }) => void;
 
 // Núcleo del constructor. Emite eventos amigables (sin SQL) si se pasa `emit`.
 async function buildReport(
-    connection: any, projectId: number, prompt: string, resolvedModel: string, emit?: Emit
+    connection: any, projectId: number, prompt: string, credencial: CredencialIA, emit?: Emit
 ): Promise<{ idReporte: number; url: string; title: string; description?: string; visualization: ReportViz; rows: number }> {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
     emit?.({ type: 'status', label: 'Entendiendo tu petición…' });
     let catalog = '';
     try { catalog = await buildProjectCatalog(connection, String(projectId)); }
@@ -188,7 +167,6 @@ async function buildReport(
     const system = buildBuilderPrompt(catalog);
     const messages: { role: 'user' | 'assistant'; content: any }[] = [{ role: 'user', content: String(prompt) }];
 
-    let activeModel = resolvedModel;
     let saved: any = null;
     let turns = 0;
     let queryCount = 0;
@@ -197,19 +175,20 @@ async function buildReport(
 
     while (turns < MAX_TURNS && !saved) {
         turns++;
-        const { resp, model: used } = await createWithFallback(anthropic, {
-            max_tokens: 4096, system, tools: TOOLS, tool_choice: { type: 'auto' }, messages,
-        }, activeModel);
-        activeModel = used;
+        const turno = await correrTurnoAgente({
+            ...credencial,
+            sistema: system, herramientas: TOOLS, mensajes: messages,
+            maxTokens: 4096, alTexto: () => {},
+        });
 
-        if (resp.stop_reason !== 'tool_use') {
-            const txt = (resp.content.find((c: any) => c.type === 'text') as any)?.text || '';
+        if (!turno.pidioHerramientas) {
+            const txt = (turno.contenido.find((c: any) => c.type === 'text') as any)?.text || '';
             throw Object.assign(new Error('El agente no pudo construir el reporte.'), { detail: txt.slice(0, 500), status: 422 });
         }
 
-        messages.push({ role: 'assistant', content: resp.content });
+        messages.push({ role: 'assistant', content: turno.contenido });
         const results: any[] = [];
-        for (const block of resp.content) {
+        for (const block of turno.contenido) {
             if (block.type !== 'tool_use') continue;
             if (block.name === 'save_report') { saved = block.input; results.push({ type: 'tool_result', tool_use_id: block.id, content: 'OK' }); continue; }
             // query_database
@@ -245,8 +224,9 @@ async function buildReport(
     if (sample.length > 0) {
         try {
             const ip = `Eres consultor restaurantero. Da 2-3 hallazgos accionables (en español, con **negritas** en cifras) sobre estos datos del reporte "${saved.title}". Responde SOLO JSON: {"insights":["..."]}\nDATOS (${rows.length} filas, muestra): ${JSON.stringify(sample).slice(0, 7000)}`;
-            const ir = await anthropic.messages.create({ model: activeModel, max_tokens: 700, messages: [{ role: 'user', content: ip }] });
-            const t = (ir.content.find((c: any) => c.type === 'text') as any)?.text || '';
+            const { texto: t } = await completarTexto(credencial, {
+                maxTokens: 700, mensajes: [{ role: 'user', content: ip }],
+            });
             const j = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
             if (Array.isArray(j.insights)) insights = j.insights.slice(0, 4).map((s: any) => String(s));
         } catch { /* insights opcionales */ }
@@ -261,9 +241,9 @@ async function buildReport(
         expectedColumns: Array.isArray(saved.columns) ? saved.columns : [],
         insights,
         parameters: parameters.length ? parameters : undefined,
-        createdWith: { model: activeModel, createdAt: new Date().toISOString() },
+        createdWith: { model: credencial.modelo, createdAt: new Date().toISOString() },
     };
-    const idReporte = await createReport(connection, definition, activeModel);
+    const idReporte = await createReport(connection, definition, credencial.modelo);
 
     return {
         idReporte, url: `/dashboard/reportes/${idReporte}`,
@@ -275,11 +255,14 @@ async function buildReport(
 export async function POST(req: Request) {
     let connection: any = null;
     try {
-        const { projectId, prompt, model } = await req.json();
+        const { projectId, prompt } = await req.json();
         if (!projectId) return NextResponse.json({ error: 'projectId requerido' }, { status: 400 });
         if (!prompt || !String(prompt).trim()) return NextResponse.json({ error: 'prompt requerido' }, { status: 400 });
 
-        const resolvedModel = ALLOWED_MODELS.has(model) ? model : 'claude-sonnet-4-6';
+        const credencialHl = await credencialParaRuta('foodie');
+        if (!credencialHl.ok) return NextResponse.json({ error: credencialHl.error }, { status: 503 });
+        const credencial = credencialHl.credencial;
+
         connection = await getProjectConnection(projectId);
 
         const useStream = new URL(req.url).searchParams.get('stream') === 'true';
@@ -288,7 +271,7 @@ export async function POST(req: Request) {
             connection = null;
             const stream = createSseStream(async (emit) => {
                 try {
-                    const result = await buildReport(ownedConn, projectId, String(prompt), resolvedModel, emit);
+                    const result = await buildReport(ownedConn, projectId, String(prompt), credencial, emit);
                     emit({ type: 'done', ...result });
                 } catch (e: any) {
                     emit({ type: 'error', message: e?.message || 'Error creando el reporte', detail: e?.detail });
@@ -299,7 +282,7 @@ export async function POST(req: Request) {
             return new Response(stream, { headers: SSE_HEADERS });
         }
 
-        const result = await buildReport(connection, projectId, String(prompt), resolvedModel);
+        const result = await buildReport(connection, projectId, String(prompt), credencial);
         return NextResponse.json(result);
     } catch (e: any) {
         console.error('reports/build error:', e);

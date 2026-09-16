@@ -32,7 +32,6 @@ function ReceiptCaptureContent() {
     const [ocrResult, setOcrResult] = useState<any>(null);
     const [amount, setAmount] = useState('');
     const [reference, setReference] = useState('');
-    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
     
     // Result concepts (extracted items)
     const [extractedItems, setExtractedItems] = useState<any[]>([]);
@@ -113,7 +112,6 @@ function ReceiptCaptureContent() {
             images.forEach(img => {
                 formData.append('image', img);
             });
-            formData.append('model', selectedModel);
 
             const response = await fetch('/api/expenses/process-receipt', {
                 method: 'POST',
@@ -230,30 +228,6 @@ function ReceiptCaptureContent() {
                         ))}
                     </select>
                 </div>
-
-                {/* Model Selector */}
-                <div className="flex flex-col gap-2 min-w-[220px]">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Modelo IA</label>
-                    <div className="flex gap-2">
-                        {[
-                            { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
-                            { id: 'claude-opus-4-8', label: 'Opus 4.8' },
-                            { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' }
-                        ].map((m) => (
-                            <button
-                                key={m.id}
-                                onClick={() => setSelectedModel(m.id as any)}
-                                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all border-2 ${
-                                    selectedModel === m.id
-                                        ? 'bg-primary-50 border-primary-400 text-primary-700'
-                                        : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
-                                }`}
-                            >
-                                {m.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </div>
 
             {!isMobile && previews.length === 0 ? (
@@ -335,7 +309,7 @@ function ReceiptCaptureContent() {
                             onClick={processReceipt}
                             style={{ backgroundColor: colors.colorFondo1 }}
                         >
-                            🔍 Procesar {previews.length} Imagen{previews.length > 1 ? 'es' : ''} con {selectedModel === 'claude-sonnet-4-6' ? 'Sonnet 4.6' : selectedModel === 'claude-opus-4-8' ? 'Opus 4.8' : 'Haiku 4.5'}
+                            🔍 Procesar {previews.length} Imagen{previews.length > 1 ? 'es' : ''}
                         </Button>
                     )}
 

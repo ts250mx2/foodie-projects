@@ -192,7 +192,6 @@ export default function JarvisPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     messages: messagesRef.current,
-                    model: 'claude-sonnet-4-6',
                     context: { ...ctx, currentPage: '/dashboard/agente/jarvis' },
                     projectId,
                 }),

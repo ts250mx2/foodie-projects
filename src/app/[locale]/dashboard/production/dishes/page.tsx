@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Settings, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Settings, Search, Pencil, Trash2, AlertTriangle, Download } from 'lucide-react';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell, RowActionButton } from '@/components/ThemedGridHeader';
 import CostingModal from '@/components/CostingModal';
 import MenuSectionsModal from '@/components/MenuSectionsModal';
+import RecipeExportModal from '@/components/production/RecipeExportModal';
 import PageShell from '@/components/PageShell';
 
 interface Dish {
@@ -72,6 +73,7 @@ export default function DishesPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
     const [isMenuSectionsModalOpen, setIsMenuSectionsModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [editingDish, setEditingDish] = useState<Dish | null>(null);
     const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
     const [project, setProject] = useState<any>(null);
@@ -217,6 +219,15 @@ export default function DishesPage() {
                         onClick={() => setIsMenuSectionsModalOpen(true)}
                     >
                         Secciones de Menú
+                    </Button>
+                    <Button
+                        variant="outline"
+                        leftIcon={Download}
+                        iconBox
+                        size="sm"
+                        onClick={() => setIsExportModalOpen(true)}
+                    >
+                        Exportar
                     </Button>
                     <Button variant="solid" leftIcon={Plus} iconBox size="sm" onClick={handleOpenAddModal}>Agregar Platillo</Button>
                 </div>
@@ -457,6 +468,18 @@ export default function DishesPage() {
                     isOpen={isMenuSectionsModalOpen}
                     onClose={() => setIsMenuSectionsModalOpen(false)}
                     projectId={project.idProyecto}
+                />
+            )}
+
+            {/* Exportar a Excel o PDF */}
+            {isExportModalOpen && project && (
+                <RecipeExportModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    projectId={project.idProyecto}
+                    tipo={1}
+                    rows={sortedAndFilteredDishes}
+                    projectName={project.proyecto || project.titulo}
                 />
             )}
         </PageShell>

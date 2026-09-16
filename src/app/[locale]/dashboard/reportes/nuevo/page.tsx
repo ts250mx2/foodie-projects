@@ -14,12 +14,6 @@ const SUGGESTIONS = [
     'Nómina por empleado del mes, de mayor a menor',
     'Ventas por día del mes para ver la tendencia',
 ];
-const MODELS = [
-    { id: 'claude-sonnet-4-6', label: '⚡ Sonnet 4.6' },
-    { id: 'claude-opus-4-8', label: '🧠 Opus 4.8' },
-    { id: 'claude-haiku-4-5-20251001', label: '🪶 Haiku 4.5' },
-];
-
 type Entry =
     | { kind: 'user'; text: string }
     | { kind: 'status'; label: string }
@@ -44,7 +38,6 @@ export default function AgenteAvanzadoConsole() {
     const [tabs, setTabs] = useState<Tab[]>([]);
     const [activeId, setActiveId] = useState('');
     const [input, setInput] = useState('');
-    const [model, setModel] = useState('claude-sonnet-4-6');
     const [busy, setBusy] = useState(false);
     const [runningTabId, setRunningTabId] = useState<string | null>(null);
     const [maximized, setMaximized] = useState(false);
@@ -66,7 +59,6 @@ export default function AgenteAvanzadoConsole() {
             if (saved && Array.isArray(saved.tabs) && saved.tabs.length) {
                 setTabs(saved.tabs);
                 setActiveId(saved.activeId && saved.tabs.some((t: Tab) => t.id === saved.activeId) ? saved.activeId : saved.tabs[0].id);
-                if (saved.model) setModel(saved.model);
                 return;
             }
         } catch { /* ignora json inválido */ }
@@ -79,9 +71,9 @@ export default function AgenteAvanzadoConsole() {
         if (!loadedRef.current || projectId == null || tabs.length === 0) return;
         try {
             const trimmed = tabs.slice(-12).map(t => ({ ...t, entries: t.entries.slice(-120) }));
-            localStorage.setItem(storageKey(projectId), JSON.stringify({ tabs: trimmed, activeId, model }));
+            localStorage.setItem(storageKey(projectId), JSON.stringify({ tabs: trimmed, activeId }));
         } catch { /* storage lleno: ignora */ }
-    }, [tabs, activeId, model, projectId]);
+    }, [tabs, activeId, projectId]);
 
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [tabs, activeId, busy]);
     useEffect(() => {
@@ -118,7 +110,7 @@ export default function AgenteAvanzadoConsole() {
         try {
             const res = await fetch('/api/reports/build?stream=true', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId: pid, prompt: p, model }),
+                body: JSON.stringify({ projectId: pid, prompt: p }),
             });
             if (!res.ok || !res.body) {
                 const j = await res.json().catch(() => ({}));
@@ -315,13 +307,6 @@ export default function AgenteAvanzadoConsole() {
                 </div>
                 <div className="flex items-center justify-between gap-3 mt-1.5 flex-wrap">
                     <p className="text-[11px] text-slate-400">Enter envía · Shift+Enter salto · cada pestaña es un chat y se guardan tus últimas conversaciones</p>
-                    <label className="flex items-center gap-2 text-[11px] text-slate-500 font-semibold">
-                        Modelo:
-                        <select value={model} onChange={e => setModel(e.target.value)} disabled={busy}
-                            className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:border-orange-300 cursor-pointer">
-                            {MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-                        </select>
-                    </label>
                 </div>
             </div>
         </div>

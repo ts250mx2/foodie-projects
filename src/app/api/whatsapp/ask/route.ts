@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import pool from '@/lib/db';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { buildProjectCatalog } from '@/lib/ai/catalog';
 import { saveShare } from '@/lib/ai/shares';
 import { buildSystemPrompt, AGENT_TOOLS as WEB_AGENT_TOOLS } from '@/app/api/ai/chat/route';
+import {
+    completarTexto,
+    correrTurnoAgente,
+    credencialParaRuta,
+    ERROR_SIN_IA,
+    type CredencialIA,
+} from '@/lib/ai/agente-modelo';
 
 /**
  * POST /api/whatsapp/ask  — agente Foodie Guru por WhatsApp (estilo Integra Gym).
@@ -26,9 +32,9 @@ const MAX_TURNS = 8;
 const PENDING_TTL_MS = 10 * 60 * 1000;
 const ANSWER_CAP = 100;      // Si la respuesta supera este límite → se envía link del reporte
 const REPORT_THRESHOLD = 100; // chars: umbral para forzar generación de reporte
-const WA_MODEL = process.env.WHATSAPP_AI_MODEL || 'claude-sonnet-4-6';
-const WA_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
 const SHARE_LOCALE = 'es';
+// Proveedor y modelo los fija HL Console (agente HL_AGENTE_FOODIE): esta ruta
+// ya no elige modelo ni lee WHATSAPP_AI_MODEL.
 
 interface WhatsAppRequest {
     question?: string;
@@ -134,25 +140,7 @@ async function runToolBlocks(conn: any, content: any[], executedSql: string[]): 
     return out;
 }
 
-async function createWithFallback(anthropic: Anthropic, params: any, primary: string): Promise<{ msg: Anthropic.Message; model: string }> {
-    const chain = primary === WA_FALLBACK_MODEL ? [WA_FALLBACK_MODEL] : [primary, WA_FALLBACK_MODEL];
-    let lastErr: any;
-    for (let i = 0; i < chain.length; i++) {
-        try {
-            const msg = await anthropic.messages.create({ ...params, model: chain[i] });
-            return { msg, model: chain[i] };
-        } catch (err: any) {
-            lastErr = err;
-            const status = err?.status ?? err?.response?.status;
-            const transient = !status || status >= 500 || status === 429;
-            if (i < chain.length - 1 && transient) continue;
-            throw err;
-        }
-    }
-    throw lastErr;
-}
-
-async function runAgent(projectId: number, projectName: string, question: string):
+async function runAgent(projectId: number, projectName: string, question: string, credencial: CredencialIA):
     Promise<{ answer: string; executedSql: string[]; model: string }> {
     let conn: any = null;
     try {
@@ -161,8 +149,6 @@ async function runAgent(projectId: number, projectName: string, question: string
         try { projectCatalog = await buildProjectCatalog(conn, String(projectId)); }
         catch (e) { console.error('[whatsapp/ask] catálogo falló:', e); }
 
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-        
         // Contexto para el prompt del sistema (Zona horaria Monterrey/México)
         const now = new Date();
         const f = new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Monterrey', year: 'numeric', month: 'numeric', day: 'numeric' });
@@ -182,27 +168,27 @@ async function runAgent(projectId: number, projectName: string, question: string
         const messages: { role: 'user' | 'assistant'; content: any }[] = [{ role: 'user', content: question }];
 
         let finalText = '';
-        let modelUsed = WA_MODEL;
+        let modelUsed = credencial.modelo;
         let turns = 0;
 
         while (turns < MAX_TURNS) {
             turns++;
-            const { msg, model } = await createWithFallback(anthropic, {
-                max_tokens: 8192, system, tools: WEB_AGENT_TOOLS, tool_choice: { type: 'auto' }, messages,
-            }, modelUsed);
-            modelUsed = model;
+            const turno = await correrTurnoAgente({
+                ...credencial,
+                sistema: system, herramientas: WEB_AGENT_TOOLS, mensajes: messages,
+                maxTokens: 8192, alTexto: () => {},
+            });
+            modelUsed = turno.modelo;
 
-            const tb = msg.content.find((c: any) => c.type === 'text') as any;
+            const tb = turno.contenido.find((c: any) => c.type === 'text') as any;
             if (tb?.text) finalText = tb.text;
-            
-            if (msg.stop_reason !== 'tool_use') break;
+
+            if (!turno.pidioHerramientas) break;
 
             // Manejo de ask_clarification en WhatsApp
-            const clarificationBlock = msg.content.find(
-                (c: any) => c.type === 'tool_use' && c.name === 'ask_clarification'
-            );
-            if (clarificationBlock?.type === 'tool_use') {
-                const input = clarificationBlock.input as any;
+            const clarificationUse = turno.usos.find(u => u.name === 'ask_clarification');
+            if (clarificationUse) {
+                const input = clarificationUse.input as any;
                 const quest = input.question || '¿Qué período te gustaría analizar?';
                 const suggestions = input.suggestions || [];
                 const suggestionsText = suggestions.length > 0
@@ -212,8 +198,8 @@ async function runAgent(projectId: number, projectName: string, question: string
                 break;
             }
 
-            messages.push({ role: 'assistant', content: msg.content });
-            const toolResults = await runToolBlocks(conn, msg.content, executedSql);
+            messages.push({ role: 'assistant', content: turno.contenido });
+            const toolResults = await runToolBlocks(conn, turno.contenido, executedSql);
             messages.push({ role: 'user', content: toolResults });
         }
 
@@ -223,20 +209,19 @@ async function runAgent(projectId: number, projectName: string, question: string
     }
 }
 
-async function summarizeForWhatsApp(anthropic: Anthropic, originalQuestion: string, fullResponse: string): Promise<string> {
+async function summarizeForWhatsApp(credencial: CredencialIA, originalQuestion: string, fullResponse: string): Promise<string> {
     try {
-        const { msg } = await createWithFallback(anthropic, {
-            max_tokens: 150,
-            system: "Eres un asistente que resume la respuesta de un agente consultor de restaurantes para enviarla por WhatsApp.\n" +
+        const { texto } = await completarTexto(credencial, {
+            maxTokens: 150,
+            sistema: "Eres un asistente que resume la respuesta de un agente consultor de restaurantes para enviarla por WhatsApp.\n" +
                     "Escribe un único titular directo sin formato (sin **, sin #, sin viñetas, sin markdown) que contenga la métrica o dato clave más relevante.\n" +
                     "Debe ser extremadamente conciso: máximo 90 caracteres de longitud. Escribe en español.\n" +
                     "Ejemplo: 'Ventas de mayo: $182,400 (8% más vs abril) 📈'",
-            messages: [
+            mensajes: [
                 { role: 'user', content: `Pregunta: "${originalQuestion}"\n\nRespuesta:\n${fullResponse}` }
             ]
-        }, WA_FALLBACK_MODEL);
-        const textBlock = msg.content.find((c: any) => c.type === 'text') as any;
-        let summary = (textBlock?.text || '').trim();
+        });
+        let summary = texto.trim();
         // Limpiar markdown residual
         summary = summary.replace(/[#*`>|]/g, '').replace(/\s+/g, ' ').trim();
         if (summary.length > 100) {
@@ -376,7 +361,17 @@ async function answerForProject(
 ): Promise<Response> {
     await setActiveProject(fromPhone, project.IdProyecto);
 
-    const { answer, executedSql, model } = await runAgent(project.IdProyecto, project.Proyecto, question);
+    // Proveedor y modelo salen de HL Console; el mismo agente resume después.
+    const credencialHl = await credencialParaRuta('foodie');
+    if (!credencialHl.ok) {
+        return NextResponse.json({
+            answer: ERROR_SIN_IA,
+            meta: { request_id: requestId, from_phone: fromPhone, elapsed_ms: Date.now() - startTime },
+        }, { status: 503 });
+    }
+    const credencial = credencialHl.credencial;
+
+    const { answer, executedSql, model } = await runAgent(project.IdProyecto, project.Proyecto, question, credencial);
     if (executedSql.length) console.log(`[${requestId}] project=${project.IdProyecto} SQL: ${executedSql.join(' | ').slice(0, 240)}`);
 
     const rawAnswer = answer || 'No pude generar una respuesta. ¿Puedes reformular tu pregunta?';
@@ -389,9 +384,9 @@ async function answerForProject(
     let reportUrl: string | null = null;
 
     if (needsReport) {
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-        const summary = await summarizeForWhatsApp(anthropic, question, rawAnswer);
-        
+        const summary = await summarizeForWhatsApp(credencial, question, rawAnswer);
+
+
         finalAnswer = prefix + summary;
 
         try {

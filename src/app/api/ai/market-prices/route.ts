@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { completarTexto, credencialParaRuta } from '@/lib/ai/agente-modelo';
+import { extraerJson } from '@/lib/ai/json-respuesta';
+
+// La búsqueda sigue siendo Serper; quien interpreta los resultados es el agente
+// de HL Console (agente HL_AGENTE_FOODIE), que fija proveedor y modelo.
 
 export async function POST(req: Request) {
     try {
@@ -44,17 +48,15 @@ export async function POST(req: Request) {
             source: item.source || (item.link ? new URL(item.link).hostname : 'Google')
         }));
 
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        const credencialHl = await credencialParaRuta('foodie');
+        if (!credencialHl.ok) {
+            return NextResponse.json({ error: credencialHl.error }, { status: 503 });
+        }
 
-        const extractionResponse = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "Eres un experto en análisis de mercados y precios. Tu tarea es extraer de forma estructurada los precios de productos a partir de fragmentos de búsqueda de Google."
-                },
+        const { texto } = await completarTexto(credencialHl.credencial, {
+            maxTokens: 4096,
+            sistema: "Eres un experto en análisis de mercados y precios. Tu tarea es extraer de forma estructurada los precios de productos a partir de fragmentos de búsqueda de Google. Responde ÚNICAMENTE con el objeto JSON que se te pide, sin texto alrededor ni bloques de código.",
+            mensajes: [
                 {
                     role: "user",
                     content: `A partir de estos resultados de búsqueda para "${productName}", extrae el precio (si está presente), la unidad (kilo, pieza, bulto, etc.) y la fuente. 
@@ -73,15 +75,9 @@ export async function POST(req: Request) {
                     ${JSON.stringify(rawResults)}`
                 }
             ],
-            response_format: { type: "json_object" }
         });
 
-        const content = extractionResponse.choices[0].message.content;
-        if (!content) {
-            throw new Error('No content returned from AI for extraction');
-        }
-
-        const result = JSON.parse(content);
+        const result = extraerJson<{ extractedResults?: unknown[] }>(texto);
         return NextResponse.json({ results: result.extractedResults });
 
     } catch (error: any) {

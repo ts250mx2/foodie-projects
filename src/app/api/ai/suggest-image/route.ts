@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * ÚNICA ruta de IA que NO pasa por HL Console: genera imágenes con DALL-E 3.
+ * El proxy de HL sustituye el campo `model` por el del agente, que es un modelo
+ * de texto, así que /v1/images/generations no puede ir por ahí. Mientras HL no
+ * maneje agentes de imagen, esta ruta sigue con OPENAI_API_KEY propia.
+ */
 export async function POST(request: NextRequest) {
     try {
         const { productName } = await request.json();

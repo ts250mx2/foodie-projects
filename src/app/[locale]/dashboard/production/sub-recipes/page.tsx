@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, BookOpen, Search, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, BookOpen, Search, Pencil, Trash2, AlertTriangle, Download } from 'lucide-react';
 import Button from '@/components/Button';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import BaseModal from '@/components/BaseModal';
 import CostingModal from '@/components/CostingModal';
 import PageShell from '@/components/PageShell';
+import RecipeExportModal from '@/components/production/RecipeExportModal';
 
 interface SubRecipe {
     IdProducto: number;
@@ -52,6 +53,7 @@ export default function SubRecipesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [editingSubRecipe, setEditingSubRecipe] = useState<SubRecipe | null>(null);
     const [selectedSubRecipe, setSelectedSubRecipe] = useState<SubRecipe | null>(null);
     const [project, setProject] = useState<any>(null);
@@ -170,6 +172,15 @@ export default function SubRecipesPage() {
                         className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400 bg-transparent"
                     />
                 </div>
+                <Button
+                    variant="outline"
+                    leftIcon={Download}
+                    iconBox
+                    size="sm"
+                    onClick={() => setIsExportModalOpen(true)}
+                >
+                    Exportar
+                </Button>
                 <Button
                     variant="solid"
                     leftIcon={Plus}
@@ -314,6 +325,18 @@ export default function SubRecipesPage() {
                     productType={2}
                     onProductUpdate={() => fetchSubRecipes()}
                     initialTab="general"
+                />
+            )}
+
+            {/* Exportar a Excel o PDF */}
+            {isExportModalOpen && project && (
+                <RecipeExportModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    projectId={project.idProyecto}
+                    tipo={2}
+                    rows={sortedAndFilteredSubRecipes}
+                    projectName={project.proyecto || project.titulo}
                 />
             )}
         </PageShell>

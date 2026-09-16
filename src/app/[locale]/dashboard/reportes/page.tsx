@@ -27,9 +27,6 @@ const VIZ_OPTS = [
     { id: 'line', label: '📈 Línea' },
     { id: 'pie', label: '🥧 Pastel' },
 ];
-const MODEL_LABELS: Record<string, string> = {
-    'claude-opus-4-8': 'Opus 4.8', 'claude-sonnet-4-6': 'Sonnet 4.6', 'claude-haiku-4-5-20251001': 'Haiku 4.5',
-};
 // null = Todos · 'none' = Sin carpeta · number = id de carpeta
 type Filter = null | 'none' | number;
 
@@ -275,7 +272,7 @@ export default function MisReportesPage() {
                                     <p className="text-[11px] text-gray-400">{fmtFecha(r.fechaCreacion)}</p>
                                     {r.modelo && (
                                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-100 rounded-full px-2 py-0.5">
-                                            <FcMindMap size={12} /> {MODEL_LABELS[r.modelo] || r.modelo}
+                                            <FcMindMap size={12} /> {r.modelo}
                                         </span>
                                     )}
                                 </div>

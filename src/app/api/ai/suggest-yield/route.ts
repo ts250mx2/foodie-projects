@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { completarTexto, credencialParaRuta } from '@/lib/ai/agente-modelo';
+import { extraerJson } from '@/lib/ai/json-respuesta';
 
+// Proveedor y modelo los fija HL Console (agente HL_AGENTE_FOODIE).
 export async function POST(req: Request) {
-    const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
     try {
         const { productName } = await req.json();
 
@@ -12,21 +11,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Product name is required' }, { status: 400 });
         }
 
-        if (!process.env.OPENAI_API_KEY) {
-            console.error('OPENAI_API_KEY is not configured');
-            return NextResponse.json({
-                error: 'AI service not configured',
-                suggestion: 'Please add OPENAI_API_KEY to your .env.local file'
-            }, { status: 500 });
+        const credencialHl = await credencialParaRuta('foodie');
+        if (!credencialHl.ok) {
+            return NextResponse.json({ error: credencialHl.error }, { status: 503 });
         }
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "Eres un experto en costos culinarios y auditoría de alimentos. Tu tarea es sugerir el porcentaje de rendimiento (yield) estándar de la industria para un producto específico, considerando diferentes procesos culinarios."
-                },
+        const { texto } = await completarTexto(credencialHl.credencial, {
+            maxTokens: 1500,
+            sistema: "Eres un experto en costos culinarios y auditoría de alimentos. Tu tarea es sugerir el porcentaje de rendimiento (yield) estándar de la industria para un producto específico, considerando diferentes procesos culinarios. Responde ÚNICAMENTE con el objeto JSON que se te pide, sin texto alrededor ni bloques de código.",
+            mensajes: [
                 {
                     role: "user",
                     content: `Sugiere el rendimiento (porcentaje utilizable después de limpieza/proceso) para el producto: "${productName}". 
@@ -39,16 +32,9 @@ export async function POST(req: Request) {
                     )`
                 }
             ],
-            response_format: { type: "json_object" }
         });
 
-        const content = response.choices[0].message.content;
-        if (!content) {
-            throw new Error('No content returned from AI');
-        }
-
-        const result = JSON.parse(content);
-        return NextResponse.json(result);
+        return NextResponse.json(extraerJson(texto));
 
     } catch (error: any) {
         console.error('AI Suggest Yield Error:', error);

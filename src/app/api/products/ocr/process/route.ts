@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type Anthropic from '@anthropic-ai/sdk';
+import { completarTexto, credencialParaRuta } from '@/lib/ai/agente-modelo';
 import { getProjectConnection } from '@/lib/dynamic-db';
 import { Connection, RowDataPacket } from 'mysql2/promise';
 
@@ -54,101 +56,34 @@ function getSimilarity(s1: string, s2: string): number {
     return (2.0 * intersection) / union;
 }
 
-async function processWithClaude(files: File[], prompt: string, modelName: string): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured in .env');
+/**
+ * Lee las imágenes con el agente de HL Console (proyecto hl-servidor): el
+ * proveedor, el modelo y la llave los pone HL, aquí no se elige ninguno.
+ */
+async function processWithHl(files: File[], prompt: string): Promise<{ content: string; model: string }> {
+    const credencialHl = await credencialParaRuta('foodie');
+    if (!credencialHl.ok) throw new Error(credencialHl.error);
 
     const imageContents = await Promise.all(
-        files.map(async (file) => {
+        files.map(async (file): Promise<Anthropic.ContentBlockParam> => {
             const bytes = await file.arrayBuffer();
             const base64Image = Buffer.from(bytes).toString('base64');
             return {
-                type: 'image' as const,
+                type: 'image',
                 source: {
-                    type: 'base64' as const,
-                    media_type: file.type || 'image/jpeg',
-                    data: base64Image
-                }
+                    type: 'base64',
+                    media_type: (file.type || 'image/jpeg') as 'image/jpeg',
+                    data: base64Image,
+                },
             };
         })
     );
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: modelName,
-            max_tokens: 4096,
-            messages: [{
-                role: 'user',
-                content: [
-                    ...imageContents,
-                    { type: 'text', text: prompt }
-                ]
-            }]
-        })
+    const { texto, modelo } = await completarTexto(credencialHl.credencial, {
+        maxTokens: 4096,
+        mensajes: [{ role: 'user', content: [...imageContents, { type: 'text', text: prompt }] }],
     });
-
-    if (!response.ok) {
-        const err = await response.json();
-        console.error('Claude API Error:', err);
-        throw new Error('Error processing images with Claude');
-    }
-
-    const data = await response.json();
-    return data.content[0].text;
-}
-
-async function processWithGPT4o(files: File[], prompt: string): Promise<string> {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error('OPENAI_API_KEY is not configured in .env');
-
-    const imageContents = await Promise.all(
-        files.map(async (file) => {
-            const bytes = await file.arrayBuffer();
-            const base64Image = Buffer.from(bytes).toString('base64');
-            const mimeType = file.type || 'image/jpeg';
-            return {
-                type: 'image_url' as const,
-                image_url: {
-                    url: `data:${mimeType};base64,${base64Image}`,
-                    detail: 'high'
-                }
-            };
-        })
-    );
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o',
-            max_tokens: 4096,
-            messages: [{
-                role: 'user',
-                content: [
-                    ...imageContents,
-                    { type: 'text', text: prompt }
-                ]
-            }]
-        })
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        console.error('GPT-4o API Error:', err);
-        throw new Error('Error processing images with GPT-4o');
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return { content: texto, model: modelo };
 }
 
 export async function POST(request: NextRequest) {
@@ -156,7 +91,6 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const files = formData.getAll('image') as File[];
-        const model = (formData.get('model') as string) || 'claude-sonnet-4-6';
         const projectIdStr = formData.get('projectId') as string;
 
         if (!files || files.length === 0) {
@@ -171,12 +105,7 @@ export async function POST(request: NextRequest) {
 
         // 1. Process with AI
         const prompt = PRODUCT_OCR_PROMPT();
-        let content: string;
-        if (model === 'gpt-4o') {
-            content = await processWithGPT4o(files, prompt);
-        } else {
-            content = await processWithClaude(files, prompt, model);
-        }
+        const { content, model } = await processWithHl(files, prompt);
 
         // 2. Parse JSON result
         const jsonMatch = content.match(/\{[\s\S]*\}/);

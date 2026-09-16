@@ -44,7 +44,6 @@ export default function ProductImageCaptureModal({
     const [ocrItems, setOcrItems] = useState<OcrItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<'claude-sonnet-4-6' | 'claude-opus-4-8' | 'claude-haiku-4-5-20251001'>('claude-sonnet-4-6');
     const [isMaximized, setIsMaximized] = useState(false);
     const [maximizedImage, setMaximizedImage] = useState<string | null>(null);
     
@@ -194,7 +193,6 @@ export default function ProductImageCaptureModal({
         setIsProcessing(true);
         try {
             const formData = new FormData();
-            formData.append('model', selectedModel);
             formData.append('projectId', projectId.toString());
             selectedItems.forEach(item => formData.append('image', item.file));
 
@@ -334,18 +332,6 @@ export default function ProductImageCaptureModal({
                         <p className="text-xs text-slate-400 font-medium mt-1">Digitaliza productos para tu catálogo con IA</p>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex flex-col gap-1 items-end">
-                            <label className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Motor de Inteligencia</label>
-                            <select 
-                                value={selectedModel}
-                                onChange={(e) => setSelectedModel(e.target.value as any)}
-                                className="bg-white rounded-xl px-3 py-1 border border-slate-200 shadow-sm text-[10px] font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                            >
-                                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
-                                <option value="claude-opus-4-8">Opus 4.8</option>
-                                <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
-                            </select>
-                        </div>
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setIsMaximized(!isMaximized)} 
