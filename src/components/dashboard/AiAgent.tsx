@@ -331,11 +331,21 @@ function ChatPanel({
                             </div>
                             <div>
                                 <h1 className="text-white brand-heading text-sm leading-none tracking-wider">Agente Foodie Gurú</h1>
-                                <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-1">
+                                <div className="flex items-center gap-1.5 mt-1 min-w-0">
+                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-1 shrink-0">
                                         <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)', animationDuration: '2s' }} />
                                         En línea
                                     </span>
+                                    {/* El modelo lo fija HL Console y puede cambiar sin tocar el
+                                        código, así que se anuncia aquí y no en una constante. */}
+                                    {modelUsed && (
+                                        <span
+                                            className="text-white/70 text-[10px] font-semibold truncate"
+                                            title={`Modelo de IA en uso: ${modelUsed}`}
+                                        >
+                                            · {modelUsed}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -640,6 +650,29 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamPhase,   setStreamPhase]   = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    /**
+     * Modelo que anuncia el encabezado antes de la primera pregunta.
+     *
+     * Sin esto solo se sabía después de contestar, porque el dato venía del
+     * stream: preguntar "¿qué modelo usas?" obligaba a mandar un mensaje
+     * primero. Lo que responda el stream pisa a esto, porque ese sí es el
+     * modelo que efectivamente atendió el turno — pudo haber entrado el
+     * agente de respaldo.
+     */
+    useEffect(() => {
+        const controller = new AbortController();
+        fetch('/api/ai/model', { signal: controller.signal })
+            .then(res => res.json())
+            .then(data => {
+                if (!data?.success) return;
+                setModelUsed(prev => prev ?? `${nombreProveedorIA(data.proveedor)} · ${data.modelo}`);
+            })
+            .catch(() => {
+                // Que no se pueda anunciar el modelo no rompe el chat.
+            });
+        return () => controller.abort();
+    }, []);
 
     // ── Load persisted conversation (solo la del proyecto en sesión) ───────
     useEffect(() => {
