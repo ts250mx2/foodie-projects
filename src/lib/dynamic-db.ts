@@ -10,6 +10,7 @@ import {
 } from '@/lib/requisitions';
 import { ensureSurveyTables } from '@/lib/surveys';
 import { ensureProductUnitsTable } from '@/lib/product-units';
+import { ensureInventoryZones } from '@/lib/inventory-zones';
 
 interface ProjectConfig extends RowDataPacket {
     BaseDatos: string;
@@ -396,6 +397,7 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             await ensureQuotesTables(connection);
             await ensureWarehouseTables(connection);
             await ensureProductUnitsTable(connection);
+            await ensureInventoryZones(connection);
             await ensureRequisitionColumns(connection);
             await ensureRequisitionProfiles(connection);
             await ensureRequisitionProfileCategories(connection);

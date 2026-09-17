@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import * as XLSX from 'xlsx';
 import { useTheme } from '@/contexts/ThemeContext';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CostingModal from '@/components/CostingModal';
+import ZonesModal from '@/components/inventories/ZonesModal';
 import InventoryMaxMinComparisonModal from '@/components/InventoryMaxMinComparisonModal';
 import PageShell from '@/components/PageShell';
-import { ClipboardList, X, Save, Search, Download, BarChart2, Printer, FileSpreadsheet, Pencil } from 'lucide-react';
+import { ClipboardList, X, Save, Search, Download, BarChart2, Printer, FileSpreadsheet, Pencil, MapPin } from 'lucide-react';
 
 interface Branch {
     IdSucursal: number;
@@ -43,6 +44,17 @@ interface InventoryEntry {
     UnidadMedidaInventario?: string;
     ImagenCategoria?: string;
     ArchivoImagen?: string;
+    /** Suma de todas las zonas; solo viene al capturar por zona. */
+    CantidadTotal?: number;
+    /** false = esta zona todavia no se cuenta (distinto de contar cero). */
+    ContadoEnZona?: boolean;
+}
+
+interface Zona {
+    idZona: number;
+    zona: string;
+    orden: number;
+    productos: number;
 }
 
 interface GroupedInventory {
@@ -70,6 +82,11 @@ export default function InventoryCapturePage() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+    // Conteo por zona fisica. zonaActiva = null captura el total directo,
+    // que es como funcionaba antes de existir las zonas.
+    const [zonas, setZonas] = useState<Zona[]>([]);
+    const [zonaActiva, setZonaActiva] = useState<number | null>(null);
+    const [isZonesModalOpen, setIsZonesModalOpen] = useState(false);
     const [isCostingModalOpen, setIsCostingModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<any>(null);
     const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
@@ -206,6 +223,31 @@ export default function InventoryCapturePage() {
         }
     };
 
+    const fetchZonas = useCallback(async () => {
+        if (!project?.idProyecto || !selectedBranch) return;
+        try {
+            const res = await fetch(`/api/inventories/zones?projectId=${project.idProyecto}&branchId=${selectedBranch}`);
+            const data = await res.json();
+            setZonas(data.success ? data.zonas : []);
+        } catch {
+            setZonas([]);
+        }
+    }, [project, selectedBranch]);
+
+    // Cambiar de zona recarga lo contado ahi, sin cerrar el modal.
+    useEffect(() => {
+        if (isModalOpen && selectedDate) fetchInventoryEntries(selectedDate);
+        // fetchInventoryEntries se redefine en cada render; incluirla aqui
+        // dispararia la carga en bucle.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [zonaActiva]);
+
+    useEffect(() => {
+        fetchZonas();
+        // Al cambiar de sucursal la zona elegida ya no aplica.
+        setZonaActiva(null);
+    }, [fetchZonas]);
+
     const fetchInventoryEntries = async (date: Date) => {
         if (!project || !selectedBranch) return;
         try {
@@ -216,7 +258,14 @@ export default function InventoryCapturePage() {
                 month: date.getMonth().toString(),
                 year: date.getFullYear().toString()
             });
-            const response = await fetch(`/api/inventories/daily?${params}`);
+            // Con zona activa el origen es el conteo de esa zona; sin ella,
+            // el total de siempre.
+            if (zonaActiva) params.set('zoneId', String(zonaActiva));
+            const response = await fetch(
+                zonaActiva
+                    ? `/api/inventories/zones/capture?${params}`
+                    : `/api/inventories/daily?${params}`
+            );
             const data = await response.json();
             if (data.success) {
                 console.log('Fetched inventory entries:', data.data.length);
@@ -293,24 +342,41 @@ export default function InventoryCapturePage() {
                 return;
             }
 
-            const response = await fetch('/api/inventories/daily', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectId: project.idProyecto,
-                    branchId: parseInt(selectedBranch),
-                    day: selectedDate.getDate(),
-                    month: selectedDate.getMonth(),
-                    year: selectedDate.getFullYear(),
-                    updates
+            // Capturando una zona, lo que se guarda es el conteo DE ESA ZONA:
+            // el servidor recalcula el total del producto sumando las demas.
+            const response = zonaActiva
+                ? await fetch('/api/inventories/zones/capture', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: project.idProyecto,
+                        branchId: parseInt(selectedBranch),
+                        zoneId: zonaActiva,
+                        day: selectedDate.getDate(),
+                        month: selectedDate.getMonth(),
+                        year: selectedDate.getFullYear(),
+                        inventoryDate: selectedDate.toISOString().slice(0, 10),
+                        conteos: updates.map(u => ({ productId: u.productId, cantidad: u.quantity })),
+                    })
                 })
-            });
+                : await fetch('/api/inventories/daily', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: project.idProyecto,
+                        branchId: parseInt(selectedBranch),
+                        day: selectedDate.getDate(),
+                        month: selectedDate.getMonth(),
+                        year: selectedDate.getFullYear(),
+                        updates
+                    })
+                });
 
             if (response.ok) {
                 alert(tCommon('successUpdate') || '¡Guardado con éxito!');
                 await fetchInventoryEntries(selectedDate);
                 await fetchInventoryDates();
-                setIsModalOpen(false);
+                if (!zonaActiva) setIsModalOpen(false);
             } else {
                 const errorData = await response.json();
                 alert(`${tCommon('errorUpdate') || 'Error al guardar'}: ${errorData.message || ''}`);
@@ -717,7 +783,53 @@ export default function InventoryCapturePage() {
                             >
                                 Exportar
                             </Button>
+                            <Button
+                                onClick={() => setIsZonesModalOpen(true)}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={MapPin}
+                                disabled={isLoading}
+                            >
+                                Zonas
+                            </Button>
                         </div>
+
+                        {/* Zonas de conteo. Solo aparece si la sucursal tiene
+                            zonas configuradas: sin ellas la captura es la de siempre. */}
+                        {zonas.length > 0 && (
+                            <div className="shrink-0 px-5 py-2.5 bg-white border-b border-gray-100 flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 mr-1">
+                                    Zona
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setZonaActiva(null)}
+                                    className={`h-8 px-3 rounded-lg border text-xs font-bold transition-colors ${zonaActiva === null
+                                        ? 'border-violet-300 bg-violet-50 text-violet-700'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                                    title="Captura el total del producto, sin desglosar por zona"
+                                >
+                                    Total
+                                </button>
+                                {zonas.map(z => (
+                                    <button
+                                        key={z.idZona}
+                                        type="button"
+                                        onClick={() => setZonaActiva(z.idZona)}
+                                        className={`h-8 px-3 rounded-lg border text-xs font-bold transition-colors ${zonaActiva === z.idZona
+                                            ? 'border-violet-300 bg-violet-50 text-violet-700'
+                                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        {z.zona}
+                                    </button>
+                                ))}
+                                {zonaActiva !== null && (
+                                    <span className="text-[11px] text-gray-500 ml-1">
+                                        Cuentas solo esta zona; el total del producto se suma solo.
+                                    </span>
+                                )}
+                            </div>
+                        )}
 
                         {/* Excel Grid */}
                         <div id="inventory-grid-container" className="flex-1 overflow-y-auto p-6">
@@ -792,6 +904,11 @@ export default function InventoryCapturePage() {
                                                                         className="w-24 h-8 text-center text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500/30"
                                                                         disabled={isLoading}
                                                                     />
+                                                                    {zonaActiva !== null && (entry.CantidadTotal ?? 0) > 0 && (
+                                                                        <span className="block text-[10px] text-gray-500 mt-1">
+                                                                            Total: {entry.CantidadTotal}
+                                                                        </span>
+                                                                    )}
 
                                                                 </td>
                                                                 <td className="px-5 py-3 text-sm text-gray-900 text-right">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(entry.Precio)}</td>
@@ -880,6 +997,17 @@ export default function InventoryCapturePage() {
                         setIsCostingModalOpen(false);
                     }}
                     zIndexClass="z-[60]"
+                />
+            )}
+
+            {isZonesModalOpen && project?.idProyecto && selectedBranch && (
+                <ZonesModal
+                    isOpen={isZonesModalOpen}
+                    onClose={() => setIsZonesModalOpen(false)}
+                    projectId={project.idProyecto}
+                    branchId={parseInt(selectedBranch)}
+                    branchName={branches.find(b => b.IdSucursal.toString() === selectedBranch)?.Sucursal}
+                    onChanged={fetchZonas}
                 />
             )}
         </PageShell>
