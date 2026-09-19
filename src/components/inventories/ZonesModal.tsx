@@ -65,7 +65,9 @@ export default function ZonesModal({ isOpen, onClose, projectId, branchId, branc
 
     const cargarProductos = useCallback(async () => {
         try {
-            const res = await fetch(`/api/products?projectId=${projectId}&tipoProducto=0`);
+            // Materia prima Y subrecetas: el inventario se siembra con todos los
+            // productos activos, así que una salsa preparada también se cuenta.
+            const res = await fetch(`/api/products?projectId=${projectId}&tipoProducto=0,2`);
             const data = await res.json();
             setProductos(data.success ? data.data : []);
         } catch {

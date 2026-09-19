@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 import AddMaterialModal, { SearchProduct } from '@/components/AddMaterialModal';
+import ProductZonesField from '@/components/inventories/ProductZonesField';
 import InstructionsTab from '@/components/InstructionsTab';
 import DocumentsTab from '@/components/DocumentsTab';
 import { generateTechnicalSheetPDF, CostingHeaderData } from '@/utils/generateTechnicalSheetPDF';
@@ -2239,6 +2240,15 @@ export default function CostingModal({ isOpen, onClose, product: initialProduct,
                                         </div>
                                      )}
                                 </div>
+                            )}
+
+                            {/* Áreas de conteo: solo materia prima y subrecetas, que son
+                                las que se cuentan en el inventario fisico. */}
+                            {(productType === 0 || productType === 2) && projectId && (
+                                <ProductZonesField
+                                    projectId={projectId}
+                                    productId={product?.IdProducto || 0}
+                                />
                             )}
 
                             <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-gray-100">

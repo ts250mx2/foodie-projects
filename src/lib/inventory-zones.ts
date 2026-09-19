@@ -252,6 +252,72 @@ export async function productosDeZona(connection: Connection, idZona: number): P
     return rows.map(r => Number(r.IdProducto));
 }
 
+/**
+ * Zonas a las que pertenece un producto, de TODAS las sucursales.
+ *
+ * Es el inverso de productosDeZona: la configuración de zonas se hace zona por
+ * zona, pero al dar de alta un insumo es más natural decir dónde vive ese
+ * insumo que ir abriendo cada zona a buscarlo.
+ */
+export async function zonasDeProducto(connection: Connection, idProducto: number): Promise<number[]> {
+    const [rows] = await connection.query<RowDataPacket[]>(
+        `SELECT zp.IdZona
+           FROM tblZonasProductos zp
+           INNER JOIN tblZonas z ON z.IdZona = zp.IdZona
+          WHERE zp.IdProducto = ? AND z.Status = 0`,
+        [idProducto]
+    );
+    return rows.map(r => Number(r.IdZona));
+}
+
+/**
+ * Reemplaza las zonas de un producto sin tocar las de los demás.
+ *
+ * Solo borra los renglones de ESTE producto: asignar un insumo a una zona no
+ * debe alterar lo que ya tenían configurado las zonas para otros insumos.
+ */
+export async function asignarZonasAProducto(
+    connection: Connection,
+    idProducto: number,
+    idsZona: number[]
+): Promise<number> {
+    const limpios = Array.from(new Set(
+        idsZona.filter(id => Number.isInteger(id) && id > 0)
+    ));
+
+    await connection.query('DELETE FROM tblZonasProductos WHERE IdProducto = ?', [idProducto]);
+    if (limpios.length === 0) return 0;
+
+    await connection.query(
+        `INSERT INTO tblZonasProductos (IdZona, IdProducto, FechaAct) VALUES ${limpios.map(() => '(?, ?, NOW())').join(', ')}`,
+        limpios.flatMap(id => [id, idProducto])
+    );
+    return limpios.length;
+}
+
+/** Todas las zonas activas del proyecto, con el nombre de su sucursal. */
+export async function listarZonasDelProyecto(
+    connection: Connection
+): Promise<{ idZona: number; zona: string; idSucursal: number; sucursal: string }[]> {
+    try {
+        const [rows] = await connection.query<RowDataPacket[]>(
+            `SELECT z.IdZona, z.Zona, z.IdSucursal, s.Sucursal
+               FROM tblZonas z
+               LEFT JOIN tblSucursales s ON s.IdSucursal = z.IdSucursal
+              WHERE z.Status = 0
+              ORDER BY s.Sucursal ASC, z.Orden ASC, z.Zona ASC`
+        );
+        return rows.map(r => ({
+            idZona: Number(r.IdZona),
+            zona: String(r.Zona),
+            idSucursal: Number(r.IdSucursal),
+            sucursal: String(r.Sucursal || `Sucursal ${r.IdSucursal}`),
+        }));
+    } catch {
+        return [];
+    }
+}
+
 /** Crea una zona al final del recorrido y devuelve su id. */
 export async function crearZona(
     connection: Connection,
