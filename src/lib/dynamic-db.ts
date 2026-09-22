@@ -342,6 +342,105 @@ async function ensurePOSConfigTable(connection: Connection) {
 }
 
 /**
+ * Almacena los reportes Excel de ventas sin imponer una estructura fija a sus
+ * hojas. Wansoft cambia las columnas entre versiones, por eso cada fila se
+ * conserva como JSON junto con el nombre de la hoja y su número original.
+ */
+async function ensureSalesImportTables(connection: Connection) {
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasImportaciones\` (
+          \`IdImportacion\` bigint NOT NULL AUTO_INCREMENT,
+          \`NombreArchivo\` varchar(255) NOT NULL,
+          \`HashArchivo\` char(64) NOT NULL,
+          \`TamanoBytes\` bigint NOT NULL DEFAULT 0,
+          \`NumeroHojas\` int NOT NULL DEFAULT 0,
+          \`NumeroFilas\` int NOT NULL DEFAULT 0,
+          \`FechaReporte\` date DEFAULT NULL,
+          \`FechaImportacion\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`IdImportacion\`),
+          UNIQUE KEY \`uq_ventas_import_hash\` (\`HashArchivo\`),
+          KEY \`idx_ventas_import_fecha\` (\`FechaImportacion\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasImportacionHojas\` (
+          \`IdHoja\` bigint NOT NULL AUTO_INCREMENT,
+          \`IdImportacion\` bigint NOT NULL,
+          \`NombreHoja\` varchar(255) NOT NULL,
+          \`OrdenHoja\` int NOT NULL,
+          \`RangoOriginal\` varchar(50) DEFAULT NULL,
+          \`NumeroFilas\` int NOT NULL DEFAULT 0,
+          \`NumeroColumnas\` int NOT NULL DEFAULT 0,
+          PRIMARY KEY (\`IdHoja\`),
+          UNIQUE KEY \`uq_ventas_import_hoja\` (\`IdImportacion\`, \`OrdenHoja\`),
+          CONSTRAINT \`fk_ventas_import_hoja\` FOREIGN KEY (\`IdImportacion\`)
+            REFERENCES \`tblVentasImportaciones\` (\`IdImportacion\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasImportacionFilas\` (
+          \`IdFila\` bigint NOT NULL AUTO_INCREMENT,
+          \`IdHoja\` bigint NOT NULL,
+          \`NumeroFila\` int NOT NULL,
+          \`Datos\` json NOT NULL,
+          PRIMARY KEY (\`IdFila\`),
+          UNIQUE KEY \`uq_ventas_import_fila\` (\`IdHoja\`, \`NumeroFila\`),
+          CONSTRAINT \`fk_ventas_import_fila\` FOREIGN KEY (\`IdHoja\`)
+            REFERENCES \`tblVentasImportacionHojas\` (\`IdHoja\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasPlatillosRelaciones\` (
+          \`IdRelacion\` bigint NOT NULL AUTO_INCREMENT,
+          \`ClaveReporte\` varchar(150) NOT NULL,
+          \`NombreReporte\` varchar(255) NOT NULL,
+          \`IdProducto\` int DEFAULT NULL,
+          \`TipoRelacion\` varchar(20) NOT NULL DEFAULT 'sin_relacion',
+          \`Confianza\` decimal(5,2) NOT NULL DEFAULT 0,
+          \`FechaAct\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`IdRelacion\`),
+          UNIQUE KEY \`uq_ventas_platillo_clave\` (\`ClaveReporte\`),
+          KEY \`idx_ventas_platillo_producto\` (\`IdProducto\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasPlatillosReportes\` (
+          \`IdReporte\` bigint NOT NULL AUTO_INCREMENT,
+          \`IdImportacion\` bigint NOT NULL,
+          \`FechaInicio\` date NOT NULL,
+          \`FechaFin\` date NOT NULL,
+          \`SucursalReporte\` varchar(255) NOT NULL DEFAULT '',
+          \`NumeroArticulos\` int NOT NULL DEFAULT 0,
+          \`CantidadTotal\` decimal(18,4) NOT NULL DEFAULT 0,
+          \`SubtotalTotal\` decimal(18,4) NOT NULL DEFAULT 0,
+          \`FechaAct\` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`IdReporte\`),
+          UNIQUE KEY \`uq_ventas_reporte_periodo\` (\`FechaInicio\`, \`FechaFin\`, \`SucursalReporte\`),
+          KEY \`idx_ventas_reporte_import\` (\`IdImportacion\`),
+          CONSTRAINT \`fk_ventas_reporte_import\` FOREIGN KEY (\`IdImportacion\`)
+            REFERENCES \`tblVentasImportaciones\` (\`IdImportacion\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    await connection.query(`
+        CREATE TABLE IF NOT EXISTS \`tblVentasPlatillosEstadistica\` (
+          \`IdDetalle\` bigint NOT NULL AUTO_INCREMENT,
+          \`IdReporte\` bigint NOT NULL,
+          \`ClaveReporte\` varchar(150) NOT NULL,
+          \`NombreReporte\` varchar(255) NOT NULL,
+          \`GrupoReporte\` varchar(255) DEFAULT NULL,
+          \`Cantidad\` decimal(18,4) NOT NULL DEFAULT 0,
+          \`Subtotal\` decimal(18,4) NOT NULL DEFAULT 0,
+          \`Porcentaje\` decimal(12,6) NOT NULL DEFAULT 0,
+          PRIMARY KEY (\`IdDetalle\`),
+          UNIQUE KEY \`uq_ventas_detalle_clave\` (\`IdReporte\`, \`ClaveReporte\`),
+          KEY \`idx_ventas_detalle_clave\` (\`ClaveReporte\`),
+          CONSTRAINT \`fk_ventas_detalle_reporte\` FOREIGN KEY (\`IdReporte\`)
+            REFERENCES \`tblVentasPlatillosReportes\` (\`IdReporte\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+}
+
+/**
  * Creates a connection to the project-specific database.
  * 
  * @param projectId The ID of the project to connect to.
@@ -394,6 +493,7 @@ export async function getProjectConnection(projectId: number): Promise<Connectio
             await ensureDocumentTablesAndColumns(connection);
             await ensureAccessAndPermissions(connection);
             await ensurePOSConfigTable(connection);
+            await ensureSalesImportTables(connection);
             await ensureQuotesTables(connection);
             await ensureWarehouseTables(connection);
             await ensureProductUnitsTable(connection);

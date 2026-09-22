@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePathname, useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { Sparkles, Trash2, Maximize2, Minimize2, X, Send, Bot, ChevronRight, ArrowUpRight, Link2, Check, Loader2, ChefHat, Mic } from 'lucide-react';
 import { FcDocument } from 'react-icons/fc';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,6 +17,30 @@ const NOMBRE_PROVEEDOR_IA: Record<string, string> = { claude: "Claude", openai: 
 /** Nombre legible del proveedor de IA que contestó ('deepseek' -> 'DeepSeek'). */
 function nombreProveedorIA(id: string): string {
     return NOMBRE_PROVEEDOR_IA[id] ?? (id.charAt(0).toUpperCase() + id.slice(1));
+}
+
+const COCINERITO_IMAGE = '/images/agent/cocinerito-robot-light-v4.webp';
+
+function CocineritoAvatar({ size = 'sm', className = '' }: { size?: 'xs' | 'sm' | 'md' | 'hero' | 'fab'; className?: string }) {
+    const sizes = {
+        xs: 'h-8 w-8',
+        sm: 'h-12 w-11',
+        md: 'h-16 w-14',
+        hero: 'h-40 w-36',
+        fab: 'h-20 w-20',
+    };
+    const fullBody = size === 'hero';
+    return (
+        <span className={`relative inline-flex shrink-0 items-center justify-center overflow-visible ${sizes[size]} ${className}`}>
+            <Image
+                src={COCINERITO_IMAGE}
+                alt="Cocinerito, robot sous-chef de Foodie"
+                fill
+                sizes={fullBody ? '128px' : '64px'}
+                className={`z-10 object-contain ${fullBody ? 'drop-shadow-[0_18px_14px_rgba(65,25,140,0.24)] drop-shadow-[0_5px_3px_rgba(15,23,42,0.24)]' : 'scale-[1.08] drop-shadow-[0_8px_6px_rgba(65,25,140,0.25)] drop-shadow-[0_2px_2px_rgba(15,23,42,0.3)]'}`}
+            />
+        </span>
+    );
 }
 
 export function NavButtons({ json, onNavigate }: { json: string; onNavigate: (path: string) => void }) {
@@ -308,25 +333,16 @@ function ChatPanel({
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden" style={{ background: '#fcfbfa' }}>
+        <div className="flex flex-col h-full overflow-hidden bg-white">
 
             {/* ── Header ───────────────────────────────────────────────────── */}
             {mode === 'floating' && (
-                <div className="shrink-0 relative overflow-hidden text-white" 
-                     style={{ 
-                          background: 'linear-gradient(135deg, var(--color-brand-orange, #f4481e) 0%, #db340a 100%)'
-                      }}>
-                    {/* decorative glowing circles */}
-                    <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />
-                    <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5 blur-md pointer-events-none" />
+                <div className="cocinerito-chat-header shrink-0 relative overflow-visible bg-[#7033ff] text-white">
 
-                    <div className="relative px-4 py-3.5 flex items-center justify-between text-white z-10">
-                        <div className="flex items-center gap-3">
-                            {/* Avatar with yellow background accent from PDF */}
+                    <div className="relative z-10 flex items-center justify-between py-3.5 pl-4 pr-16 text-white">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
                             <div className="relative">
-                                <div className="w-10 h-10 rounded-2xl bg-[var(--color-brand-yellow,#f8e14c)] flex items-center justify-center text-xl shadow-lg border border-white/20">
-                                    👨‍🍳
-                                </div>
+                                <CocineritoAvatar size="sm" />
                                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white/30" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
                             </div>
                             {/* min-w-0 es lo que permite que el titulo y el modelo se
@@ -334,9 +350,9 @@ function ChatPanel({
                                 encoger y son los botones de la derecha los que se
                                 salen — empezando por la X de cerrar. */}
                             <div className="min-w-0">
-                                <h1 className="text-white brand-heading text-sm leading-none tracking-wider truncate">Agente Foodie Gurú</h1>
+                                <h1 className="text-white brand-heading text-sm leading-none tracking-wider truncate">Cocinerito Foodie</h1>
                                 <div className="flex items-center gap-1.5 mt-1 min-w-0">
-                                    <span className="text-emerald-200 text-[10px] font-black flex items-center gap-1 shrink-0">
+                                    <span className="text-white/80 text-[10px] font-black flex items-center gap-1 shrink-0">
                                         <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)', animationDuration: '2s' }} />
                                         En línea
                                     </span>
@@ -356,14 +372,14 @@ function ChatPanel({
 
                         {/* shrink-0: los botones nunca ceden espacio. Cerrar tiene que
                             estar siempre alcanzable, aunque el titulo quede a medias. */}
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="ml-2 flex shrink-0 items-center gap-1">
                             <button onClick={() => router.push(`/${locale}/dashboard/reportes/nuevo`)} title="Agente Avanzado"
-                                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                className="hidden min-[380px]:inline-flex p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
                                 <Sparkles size={14} />
                             </button>
 
                             <button onClick={() => router.push(`/${locale}/dashboard/agente/jarvis`)} title="Activar Modo Voz"
-                                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
+                                className="hidden min-[380px]:inline-flex p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
                                 <Mic size={14} />
                             </button>
 
@@ -380,9 +396,9 @@ function ChatPanel({
                             )}
 
                             {onClose && (
-                                <button onClick={onClose} title="Cerrar"
-                                    className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
-                                    <X size={16} />
+                                <button onClick={onClose} title="Cerrar chat" aria-label="Cerrar chat"
+                                    className="cocinerito-chat-close absolute right-3 top-1/2 z-50 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center bg-transparent text-white transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:opacity-60">
+                                    <X size={22} strokeWidth={3} />
                                 </button>
                             )}
                         </div>
@@ -390,52 +406,34 @@ function ChatPanel({
                 </div>
             )}
 
-            {/* ── Messages area with brand pattern background ───────────────── */}
-            <div className="flex-1 overflow-y-auto scroll-smooth px-5 py-5 space-y-5"
-                 style={{ 
-                     backgroundColor: '#fdfcfb',
-                     backgroundImage: 'radial-gradient(rgba(244, 72, 30, 0.04) 1.2px, transparent 1.2px)',
-                     backgroundSize: '20px 20px'
-                 }}>
+            {/* ── Messages area ───────────────────────────────────────────── */}
+            <div className="flex-1 overflow-y-auto scroll-smooth bg-white px-5 py-5 space-y-5">
 
                 {/* Empty state */}
                 {messages.length === 0 && (
                     <div className="animate-in fade-in zoom-in-95 duration-500 pt-2">
-                        {/* Beautiful welcoming card */}
-                        <div className="bg-white/90 backdrop-blur-md border border-slate-100/80 rounded-3xl p-6 shadow-sm max-w-sm mx-auto mb-6 text-center">
-                            <div className="relative inline-flex mb-4">
-                                {/* Glow effect behind avatar */}
-                                <div className="absolute inset-0 bg-amber-400/20 rounded-3xl blur-xl animate-pulse" />
-                                <div className="relative w-16 h-16 rounded-3xl bg-amber-50/50 border border-brand-yellow/40 flex items-center justify-center text-3xl shadow-md animate-float">
-                                    👨‍🍳
-                                </div>
+                        <div className="max-w-sm mx-auto mb-7 text-center">
+                            <div className="relative inline-flex mb-3">
+                                <div className="absolute inset-x-[12%] bottom-0 h-4 rounded-full bg-violet-950/20 blur-md" />
+                                <CocineritoAvatar size="hero" className="animate-float" />
                             </div>
-                            <h3 className="brand-heading text-lg text-slate-800 leading-tight mb-2 tracking-wider">
-                                ¡Hola! Soy Foodie Guru
+                            <p className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.22em] text-orange-600">Cocinerito Foodie</p>
+                            <h3 className="brand-heading text-xl text-slate-900 leading-tight mb-2 tracking-wide">
+                                ¿Qué cocinamos con tus números hoy?
                             </h3>
                             <p className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto font-medium">
-                                Tu consultor de rentabilidad restaurantera en tiempo real. 
-                                ¿En qué te puedo ayudar hoy a mejorar tus números?
+                                Pregúntame sobre ventas, costos, inventarios o rentabilidad.
                             </p>
                         </div>
 
                         {/* Suggestions */}
-                        <div className="space-y-2.5 max-w-md mx-auto">
+                        <div className="space-y-2 max-w-md mx-auto">
                             <p className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 px-2 mb-2">
                                 Sugerencias para esta sección
                             </p>
                             {suggestions.map((s, i) => (
                                 <button key={i} onClick={() => sendSuggestion(s)}
-                                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white border border-slate-200/80 text-slate-700 text-sm font-semibold transition-all duration-350 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:translate-x-1 group text-left"
-                                    style={{
-                                        borderLeft: '4px solid var(--color-brand-orange, #f4481e)'
-                                    }}
-                                    onMouseEnter={e => {
-                                        e.currentTarget.style.borderColor = 'rgba(244, 72, 30, 0.3)';
-                                    }}
-                                    onMouseLeave={e => {
-                                        e.currentTarget.style.borderColor = '#e2e8f0';
-                                    }}
+                                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/80 border border-white text-slate-700 text-sm font-semibold transition-all duration-300 shadow-[0_4px_18px_-14px_rgba(15,23,42,.45)] hover:bg-white hover:border-orange-200 hover:shadow-sm hover:-translate-y-0.5 group text-left"
                                 >
                                     <span className="group-hover:text-brand-orange transition-colors duration-200 pr-2">{s}</span>
                                     <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-orange group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -459,10 +457,7 @@ function ChatPanel({
                         <div className={`flex gap-2.5 max-w-[88%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                             {/* Avatar */}
                             {msg.role === 'assistant' && (
-                                <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
-                                    style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
-                                    👨‍🍳
-                                </div>
+                                <CocineritoAvatar size="xs" className="mt-0.5" />
                             )}
 
                             {/* Bubble */}
@@ -472,13 +467,14 @@ function ChatPanel({
                                     : 'border text-slate-800 rounded-tl-sm hover:shadow-md'
                             }`}
                             style={msg.role === 'user' ? {
-                                background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)',
-                                color: '#0a0a0a',
+                                backgroundColor: '#7033ff',
+                                color: '#ffffff',
                                 borderRadius: '20px 20px 4px 20px',
-                                boxShadow: '0 4px 14px -4px rgba(248, 225, 76, 0.4)'
+                                boxShadow: '0 5px 14px -8px rgba(112, 51, 255, 0.65)'
                             } : {
-                                backgroundColor: 'rgba(245, 240, 226, 0.65)',
-                                borderColor: 'rgba(226, 232, 240, 0.5)'
+                                backgroundColor: '#ffffff',
+                                borderColor: 'rgba(226, 232, 240, 0.9)',
+                                boxShadow: '0 6px 20px -16px rgba(15, 23, 42, 0.45)'
                             }}>
                                 {msg.role === 'assistant' ? (
                                     <div id={`agent-msg-${idx}`} className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
@@ -548,10 +544,7 @@ function ChatPanel({
                 {/* Streaming bubble — el texto del asistente mientras llega */}
                 {typeof streamingText === 'string' && streamingText.length > 0 && (
                     <div className="flex gap-2.5 max-w-[88%] items-start animate-in fade-in duration-200">
-                        <div className="w-7 h-7 rounded-xl shrink-0 mt-0.5 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
-                            style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
-                            👨‍🍳
-                        </div>
+                        <CocineritoAvatar size="xs" className="mt-0.5" />
                         <div className="bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
                             <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1.5 prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2 prose-strong:text-slate-900 prose-strong:font-black prose-table:text-xs prose-table:border-collapse prose-th:bg-slate-50 prose-th:text-slate-800 prose-th:font-bold prose-th:px-3 prose-th:py-2 prose-th:border prose-th:border-slate-200 prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-slate-100 prose-ul:my-1.5 prose-li:my-0.5 prose-code:bg-slate-100 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:text-slate-700">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -567,10 +560,7 @@ function ChatPanel({
                 {/* Loading / fase — solo antes del primer token o entre consultas */}
                 {isLoading && !(typeof streamingText === 'string' && streamingText.length > 0) && (
                     <div className="flex items-center gap-2.5 animate-in fade-in duration-300">
-                        <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-sm shadow-sm border border-slate-200/50"
-                            style={{ background: 'linear-gradient(135deg, #ffffff, #f1f5f9)' }}>
-                            👨‍🍳
-                        </div>
+                        <CocineritoAvatar size="xs" />
                         <div className="flex items-center gap-2 bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                             <TypingIndicator />
                             {streamPhase && streamPhase !== 'writing' && (
@@ -594,12 +584,12 @@ function ChatPanel({
                     <div 
                         className="flex items-center gap-3 rounded-2xl px-4 py-2.5 transition-all duration-300 shadow-sm"
                         style={{
-                            border: `1px solid ${isInputFocused ? 'var(--color-brand-orange, #f4481e)' : '#e2e8f0'}`,
-                            boxShadow: isInputFocused ? '0 0 0 4px rgba(244, 72, 30, 0.15)' : 'none',
+                            border: `1px solid ${isInputFocused ? '#7033ff' : '#e2e8f0'}`,
+                            boxShadow: isInputFocused ? '0 0 0 4px rgba(112, 51, 255, 0.12)' : 'none',
                             backgroundColor: isInputFocused ? '#ffffff' : '#f8fafc'
                         }}
                     >
-                        <Bot size={18} className={`transition-colors duration-300 ${isInputFocused ? 'text-brand-orange' : 'text-slate-400'}`} style={isInputFocused ? { color: 'var(--color-brand-orange)' } : { color: '#94a3b8' }} />
+                        <Bot size={18} className="transition-colors duration-300" style={{ color: isInputFocused ? '#7033ff' : '#94a3b8' }} />
                         <input
                             type="text"
                             value={input}
@@ -614,8 +604,8 @@ function ChatPanel({
                             className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-brand-yellow/10 hover:shadow-brand-yellow/25 hover:-translate-y-0.5 active:translate-y-0"
                             style={!isLoading && input.trim()
                                 ? { 
-                                    background: 'linear-gradient(135deg, var(--color-brand-yellow, #f8e14c) 0%, #f6d833 100%)', 
-                                    color: '#0a0a0a' 
+                                    backgroundColor: '#7033ff',
+                                    color: '#ffffff'
                                   }
                                 : { backgroundColor: '#e2e8f0', color: '#94a3b8', boxShadow: 'none' }}>
                             <Send size={14} />
@@ -628,6 +618,16 @@ function ChatPanel({
             </div>
 
             <style jsx global>{`
+                .cocinerito-chat-header,
+                .cocinerito-chat-header :is(h1, span, button, svg) {
+                    color: #ffffff !important;
+                    -webkit-text-fill-color: #ffffff !important;
+                }
+                .cocinerito-chat-header .cocinerito-chat-close,
+                .cocinerito-chat-header .cocinerito-chat-close svg {
+                    color: #ffffff !important;
+                    -webkit-text-fill-color: #ffffff !important;
+                }
                 @keyframes bounce {
                     0%, 60%, 100% { transform: translateY(0); }
                     30% { transform: translateY(-6px); }
@@ -902,8 +902,8 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
     if (mode === 'embedded') {
         return (
             <PageShell
-                title={locale === 'es' ? 'Agente Foodie Gurú' : 'Foodie Guru Agent'}
-                subtitle={locale === 'es' ? 'Tu consultor de rentabilidad en tiempo real' : 'Your real-time profitability consultant'}
+                title={locale === 'es' ? 'Cocinerito Foodie' : 'Foodie Chef Agent'}
+                subtitle={locale === 'es' ? 'Tu chef de datos y rentabilidad en tiempo real' : 'Your real-time data and profitability chef'}
                 icon={ChefHat}
                 actions={
                     <div className="flex items-center gap-2">
@@ -951,13 +951,10 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
             {/* FAB button */}
             {!isOpen && (
                 <button onClick={() => setIsOpen(true)}
-                    className="group relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300"
-                    style={{ 
-                        backgroundColor: 'var(--color-brand-orange, #f4481e)',
-                        backgroundImage: 'none'
-                    }}
-                    title="Agente Foodie Guru">
-                    <span className="text-2xl group-hover:scale-110 transition-transform duration-200">👨‍🍳</span>
+                    className="group relative flex h-20 w-20 items-center justify-center bg-transparent hover:scale-105 active:scale-95 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7033ff] focus-visible:ring-offset-4"
+                    title="Abrir Cocinerito Foodie">
+                    <span className="absolute inset-x-[18%] bottom-0 h-3 rounded-full bg-violet-950/25 blur-md transition-transform duration-300 group-hover:scale-110" />
+                    <CocineritoAvatar size="fab" className="transition-transform duration-300 group-hover:-translate-y-1" />
                     {/* unread dot */}
                     {hasMessages && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center">
@@ -965,8 +962,6 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                                 ? '9+' : messages.filter(m => m.role === 'assistant').length || ''}
                         </span>
                     )}
-                    {/* pulse ring */}
-                    <span className="absolute inset-0 rounded-2xl animate-ping" style={{ boxShadow: `0 0 0 4px var(--color-brand-orange, #f4481e)40`, animationDuration: '3s' }} />
                 </button>
             )}
 

@@ -9,7 +9,8 @@ import {
     DollarSign,
     Store,
     Calculator,
-    ChevronRight 
+    ChevronRight,
+    FileUp,
 } from 'lucide-react';
 
 export default function SalesDashboardPage() {
@@ -19,6 +20,16 @@ export default function SalesDashboardPage() {
     const { colors } = useTheme();
 
     const menuCards = [
+        {
+            key: 'salesImport',
+            title: locale === 'es' ? 'Importar ventas' : 'Import sales',
+            description: locale === 'es'
+                ? 'Carga reportes de ventas en Excel y conserva cada hoja en la base de datos del proyecto.'
+                : 'Upload Excel sales reports and keep every sheet in the project database.',
+            href: `/dashboard/sales/import`,
+            icon: FileUp,
+            badge: 'Excel'
+        },
         {
             key: 'salesChannelsCapture',
             title: t('salesChannelsCapture'),

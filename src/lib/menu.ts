@@ -34,6 +34,7 @@ export const PERMISSION_MENU: MenuPermSection[] = [
     },
     {
         key: 'sales', label: 'Ventas', items: [
+            { key: 'salesImport', label: 'Importar ventas', href: '/dashboard/sales/import' },
             { key: 'salesChannelsCapture', label: 'Captura de Canales de Venta', href: '/dashboard/sales/channels-capture' },
             { key: 'appPriceCalculator', label: 'Calculadora de Precios App', href: '/dashboard/sales/app-price-calculator' },
             { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes' },

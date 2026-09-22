@@ -36,6 +36,7 @@ import {
     PackageMinus,
     Star,
     BarChart3,
+    FileUp,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -91,6 +92,7 @@ export const menuItems: MenuSection[] = [
         emoji: '💰',
         color: '#10b981', // esmeralda
         items: [
+            { key: 'salesImport', label: 'Importar ventas', href: '/dashboard/sales/import', icon: FileUp, emoji: '📥' },
             { key: 'salesChannelsCapture', href: '/dashboard/sales/channels-capture', icon: Store, emoji: '🏪' },
             { key: 'appPriceCalculator', href: '/dashboard/sales/app-price-calculator', icon: Calculator, emoji: '🧮' },
             { key: 'quotes', label: 'Cotizaciones', href: '/dashboard/sales/quotes', icon: FileText, emoji: '🧾' },
