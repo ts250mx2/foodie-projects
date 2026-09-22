@@ -6,6 +6,40 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ThemedGridHeader, { ThemedGridHeaderCell, TableBody, TableRow, TableCell, RowActionButton } from '@/components/ThemedGridHeader';
 
+const MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+/** Orden cronologico en un solo numero, para comparar mes/anio. */
+const enMeses = (anio: number, mes: number) => anio * 12 + mes;
+
+/**
+ * Ultimo registro ANTERIOR al mes elegido.
+ *
+ * No es "el mes pasado" literal: si se saltaron un mes, sirve el mas
+ * reciente que si tenga captura. Lo que se quiere es no volver a teclear
+ * lo mismo, y eso es lo ultimo que se capturo.
+ */
+function ultimoAnterior(costs: BranchCost[], mes: number, anio: number): BranchCost | null {
+    const objetivo = enMeses(anio, mes);
+    return costs
+        .filter(c => enMeses(c.Anio, c.Mes) < objetivo)
+        .sort((a, b) => enMeses(b.Anio, b.Mes) - enMeses(a.Anio, a.Mes))[0] || null;
+}
+
+/** Los cuatro campos del formulario, con el formato que espera cada uno. */
+function aFormulario(cost: BranchCost) {
+    return {
+        salesObjective: cost.ObjetivoVentas
+            ? cost.ObjetivoVentas.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '',
+        rawMaterialCost: cost.CostoMateriaPrima ? cost.CostoMateriaPrima.toFixed(2) : '',
+        payrollCost: cost.CostoNomina ? cost.CostoNomina.toFixed(2) : '',
+        operatingExpense: cost.GastoOperativo ? cost.GastoOperativo.toFixed(2) : '',
+    };
+}
+
 interface BranchCost {
     Mes: number;
     Anio: number;
@@ -35,6 +69,9 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
         payrollCost: '',
         operatingExpense: ''
     });
+    // De que mes se copiaron los valores que estan en pantalla; null cuando
+    // el mes elegido ya tenia su propia captura.
+    const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
 
     useEffect(() => {
         if ((isOpen || isTabMode) && branchId) {
@@ -45,22 +82,30 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
     useEffect(() => {
         const selectedCost = costs.find(c => c.Mes === formData.month && c.Anio === formData.year);
         if (selectedCost) {
-            setFormData(prev => ({
-                ...prev,
-                salesObjective: selectedCost.ObjetivoVentas ? selectedCost.ObjetivoVentas.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
-                rawMaterialCost: selectedCost.CostoMateriaPrima ? selectedCost.CostoMateriaPrima.toFixed(2) : '',
-                payrollCost: selectedCost.CostoNomina ? selectedCost.CostoNomina.toFixed(2) : '',
-                operatingExpense: selectedCost.GastoOperativo ? selectedCost.GastoOperativo.toFixed(2) : ''
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                salesObjective: '',
-                rawMaterialCost: '',
-                payrollCost: '',
-                operatingExpense: ''
-            }));
+            setCopiadoDe(null);
+            setFormData(prev => ({ ...prev, ...aFormulario(selectedCost) }));
+            return;
         }
+
+        // Mes sin capturar: arranca con lo ultimo que se registro. Los
+        // objetivos y costos se repiten casi igual mes con mes, y volver a
+        // teclearlos completos solo invita a errores de dedo. Queda cargado
+        // pero NO guardado: se aplica al mes nuevo hasta que se guarde.
+        const previo = ultimoAnterior(costs, formData.month, formData.year);
+        if (previo) {
+            setCopiadoDe(`${MESES[previo.Mes - 1]} ${previo.Anio}`);
+            setFormData(prev => ({ ...prev, ...aFormulario(previo) }));
+            return;
+        }
+
+        setCopiadoDe(null);
+        setFormData(prev => ({
+            ...prev,
+            salesObjective: '',
+            rawMaterialCost: '',
+            payrollCost: '',
+            operatingExpense: ''
+        }));
     }, [formData.month, formData.year, costs]);
 
     const fetchCosts = async () => {
@@ -105,7 +150,7 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
     };
 
     const handleDelete = async (month: number, year: number) => {
-        if (!confirm(`¿Está seguro de eliminar el registro de ${months[month - 1]} ${year}?`)) return;
+        if (!confirm(`¿Está seguro de eliminar el registro de ${MESES[month - 1]} ${year}?`)) return;
         try {
             const response = await fetch(`/api/branches/${branchId}/costs?projectId=${projectId}&month=${month}&year=${year}`, {
                 method: 'DELETE'
@@ -120,10 +165,6 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
 
     if (!isOpen && !isTabMode) return null;
 
-    const months = [
-        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ];
 
     const years = [];
     const currentYear = new Date().getFullYear();
@@ -154,11 +195,17 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     required
                                 >
-                                    {months.map((m, i) => (
+                                    {MESES.map((m, i) => (
                                         <option key={i + 1} value={i + 1}>{m}</option>
                                     ))}
                                 </select>
                             </div>
+                        {copiadoDe && (
+                            <p className="text-xs rounded-md border border-amber-200 bg-amber-50 px-3 py-2" style={{ color: '#92400E' }}>
+                                Valores copiados de <strong>{copiadoDe}</strong>. Ajusta lo que cambie y guarda
+                                para aplicarlos a <strong>{MESES[formData.month - 1]} {formData.year}</strong>.
+                            </p>
+                        )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Año</label>
                                 <select
@@ -325,7 +372,7 @@ export default function BranchCostsModal({ isOpen, onClose, branchId, branchName
                                     <TableRow key={`${cost.Anio}-${cost.Mes}`}>
                                         <TableCell>
                                             <span className="font-medium text-gray-900">
-                                                {cost.Anio} - {months[cost.Mes - 1]}
+                                                {cost.Anio} - {MESES[cost.Mes - 1]}
                                             </span>
                                         </TableCell>
                                         <TableCell align="right">
