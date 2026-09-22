@@ -329,8 +329,12 @@ function ChatPanel({
                                 </div>
                                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white/30" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)' }} />
                             </div>
-                            <div>
-                                <h1 className="text-white brand-heading text-sm leading-none tracking-wider">Agente Foodie Gurú</h1>
+                            {/* min-w-0 es lo que permite que el titulo y el modelo se
+                                recorten cuando no cabe: sin el, este bloque se niega a
+                                encoger y son los botones de la derecha los que se
+                                salen — empezando por la X de cerrar. */}
+                            <div className="min-w-0">
+                                <h1 className="text-white brand-heading text-sm leading-none tracking-wider truncate">Agente Foodie Gurú</h1>
                                 <div className="flex items-center gap-1.5 mt-1 min-w-0">
                                     <span className="text-emerald-200 text-[10px] font-black flex items-center gap-1 shrink-0">
                                         <span className="w-1.5 h-1.5 rounded-full inline-block animate-ping" style={{ backgroundColor: 'var(--color-brand-green, #34b14a)', animationDuration: '2s' }} />
@@ -350,7 +354,9 @@ function ChatPanel({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        {/* shrink-0: los botones nunca ceden espacio. Cerrar tiene que
+                            estar siempre alcanzable, aunque el titulo quede a medias. */}
+                        <div className="flex items-center gap-1 shrink-0">
                             <button onClick={() => router.push(`/${locale}/dashboard/reportes/nuevo`)} title="Agente Avanzado"
                                 className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all">
                                 <Sparkles size={14} />
@@ -964,9 +970,12 @@ export default function AiAgent({ mode = 'floating', dashboardData }: AiAgentPro
                 </button>
             )}
 
-            {/* Chat window */}
+            {/* Chat window.
+                En escritorio son los 400x620 de siempre. En un celular de 360-390px
+                ese ancho fijo se salía de la pantalla por la izquierda y el alto no
+                cabía, así que se limita a lo que de verdad hay disponible. */}
             {isOpen && (
-                <div className="absolute bottom-0 right-0 rounded-3xl overflow-hidden border border-white/20 shadow-2xl transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 zoom-in-95 w-[400px] h-[620px]"
+                <div className="absolute bottom-0 right-0 rounded-3xl overflow-hidden border border-white/20 shadow-2xl transition-all duration-500 ease-out animate-in slide-in-from-bottom-4 zoom-in-95 w-[calc(100vw-3rem)] max-w-[400px] h-[620px] max-h-[calc(100vh-7rem)]"
                 style={{ boxShadow: '0 32px 64px -12px rgba(79,70,229,0.25), 0 0 0 1px rgba(255,255,255,0.1)' }}>
                     <ChatPanel
                         {...sharedProps}
